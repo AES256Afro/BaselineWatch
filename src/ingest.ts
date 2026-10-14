@@ -1,9 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor } from "./adapters/index.ts";
-import { canonicalUrl, type Adapter, type DocumentTarget, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
+import { canonicalUrl, type Adapter, type DocumentTarget, type ParsedDocument, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
-import { changeSummaryText, storeDocument } from "./register.ts";
+import { summarizeRelease, type LlmSettings } from "./llm.ts";
+import { changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
 
 export interface DocumentOutcome {
   key: string;
@@ -18,13 +19,36 @@ export interface DocumentOutcome {
  * Fetches one versioned document of a standards source, snapshots it, and stores and diffs it
  * when its bytes are new. Exported so the backfill command can load history in order.
  */
+async function addGeneratedSummary(
+  db: DatabaseSync,
+  http: HttpGet,
+  llm: LlmSettings,
+  source: SourceRow,
+  stored: StoredDocument,
+  parsed: ParsedDocument,
+  at: string,
+): Promise<void> {
+  const previous = stored.previousId ? getDocument(db, stored.previousId) : null;
+  const labels = new Map(parsed.requirements.map((r) => [r.ref, { label: r.label, title: r.title }]));
+  const text = await summarizeRelease(llm, http, {
+    standard: source.name,
+    version: parsed.versionLabel ?? "this version",
+    previousVersion: previous?.version_label ?? null,
+    rationale: parsed.rationale?.text ?? null,
+    changes: stored.changes.map((c) => ({ label: labels.get(c.ref)?.label ?? c.ref.toUpperCase(), title: labels.get(c.ref)?.title ?? "", kind: c.kind, field: c.field, before: c.before, after: c.after })),
+  });
+  if (text) {
+    db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'generated', ?, NULL, ?)").run(stored.documentId, text, at);
+  }
+}
+
 export async function ingestDocumentTarget(
   db: DatabaseSync,
   dataDir: string,
   source: SourceRow,
   adapter: Adapter,
   target: DocumentTarget,
-  deps: { http: HttpGet; now: () => Date },
+  deps: { http: HttpGet; now: () => Date; settings?: PullSettings },
 ): Promise<DocumentOutcome> {
   const base = { key: target.key, documentId: null as number | null, versionLabel: null as string | null, summary: null as string | null, error: null as string | null };
   try {
@@ -44,7 +68,7 @@ export async function ingestDocumentTarget(
       return { ...base, status: "unchanged", documentId: doc?.id ?? null, versionLabel: doc?.version_label ?? null };
     }
     if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
-    const parsed = adapter.parseDocument(response.bytes, target, { db, source });
+    const parsed = await adapter.parseDocument(response.bytes, target, { db, source, http: deps.http });
     const blob = putBlob(dataDir, response.bytes);
     const snapshot = db
       .prepare(
@@ -53,6 +77,9 @@ export async function ingestDocumentTarget(
       )
       .run(source.id, target.key, sha256, blob.bytes, response.contentType, blob.relativePath, fetchedAt, response.etag, response.lastModified);
     const stored = storeDocument(db, { source, target, parsed, snapshotId: Number(snapshot.lastInsertRowid), fetchedAt });
+    if (deps.settings?.llmUrl && stored.previousId && stored.changes.length > 0) {
+      await addGeneratedSummary(db, deps.http, { url: deps.settings.llmUrl, model: deps.settings.llmModel ?? "llama3.2:3b" }, source, stored, parsed, fetchedAt);
+    }
     return {
       ...base,
       status: "ok",
@@ -172,7 +199,9 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     }
     if (adapter.documents) {
       const outcomes: DocumentOutcome[] = [];
-      for (const target of await adapter.documents(source, { db, http, now })) outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now }));
+      for (const target of await adapter.documents(source, { db, http, now })) {
+        outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now, ...(deps.settings ? { settings: deps.settings } : {}) }));
+      }
       const errors = outcomes.filter((o) => o.status === "error");
       const fresh = outcomes.filter((o) => o.status === "ok");
       const status: IngestStatus = errors.length === outcomes.length ? "error" : fresh.length ? "ok" : "unchanged";

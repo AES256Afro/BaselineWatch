@@ -1,5 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
+import { parseStigRevisionHistory } from "../explain.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
+import { pdfText } from "../pdf.ts";
 import { entryText, findEntry, unzipAll } from "../zip.ts";
 import { plainText, type Adapter, type DocumentTarget, type ListingContext, type ParsedDocument, type SourceRow } from "./types.ts";
 
@@ -185,16 +187,33 @@ export const disaAdapter: Adapter = {
     if (!Array.isArray(listing.returnValue)) throw new Error("STIG library listing has no returnValue array");
     return selectStigs(listing.returnValue, followedPatterns(ctx));
   },
-  parseDocument(bytes, target): ParsedDocument {
+  async parseDocument(bytes, target): Promise<ParsedDocument> {
     const entries = unzipAll(bytes);
     const xccdf = findEntry(entries, /xccdf\.xml$/i);
     if (!xccdf) throw new Error("STIG zip has no XCCDF file");
     const parsed = parseXccdf(entryText(xccdf));
+    const versionLabel = target.versionLabel ?? parsed.versionLabel;
+    let rationale: ParsedDocument["rationale"] = null;
+    let notes: ParsedDocument["notes"] = [];
+    const history = findEntry(entries, /Revision_History\.pdf$/i);
+    if (history) {
+      try {
+        const text = await pdfText(history.bytes);
+        const parsedHistory = parseStigRevisionHistory(text, versionLabel);
+        notes = parsedHistory.notes;
+        const summary = [...parsedHistory.notes.map((n) => `${n.label}: ${n.text}`), ...parsedHistory.general];
+        if (summary.length) rationale = { text: `Revision History, ${versionLabel ?? "this release"}:\n${summary.map((s) => `- ${s}`).join("\n")}`, url: target.url };
+      } catch {
+        // A revision history that will not parse costs nothing but the rationale.
+      }
+    }
     return {
       title: parsed.title,
-      versionLabel: target.versionLabel ?? parsed.versionLabel,
+      versionLabel,
       publishedAt: target.publishedAt ?? parsed.publishedAt,
       requirements: parsed.requirements,
+      rationale,
+      notes,
     };
   },
 };

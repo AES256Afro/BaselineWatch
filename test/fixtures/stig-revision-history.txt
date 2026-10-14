@@ -1,0 +1,233 @@
+UNCLASSIFIED
+
+UNCLASSIFIED
+
+MICROSOFT WINDOWS SERVER 2025 STIG
+
+REVISION HISTORY
+
+Version 1, Release 4
+
+30 September 2026
+
+Developed by DISA for the DoW
+
+UNCLASSIFIED
+
+MS Windows Server 2025 STIG Revision History, V1R4 DISA
+
+30 September 2026 Developed by DISA for the DoW
+
+1
+
+UNCLASSIFIED
+
+REVISION HISTORY
+
+Revision
+
+Number
+
+Document
+
+Revised 
+Description of Change Release Date
+
+V1R4 Microsoft
+
+Windows
+
+Server 2025
+
+STIG, V1R3
+
+- WN25-00-000020, WN25-AC-000050 -
+
+Updated max password age value to 180 days.
+
+- WN25-00-000140 - Revised default
+
+permissions in Check text.
+
+- WN25-00-000190 - Replaced CCI number.
+
+- WN25-00-000480 - Added requirement that
+
+OS must be maintained at supported
+
+servicing level.
+
+- WN25-CC-000530 - Added log storage
+
+location guidance.
+
+- WN25-DC-000320 - Revised Check text
+
+due to OS change.
+
+- WN25-MS-000140 - Added NA statement
+
+for Microsoft Exchange Server. Updated max
+
+password age value to 180 days.
+
+- WN25-SO-000140 - Removed rule due to
+
+overlap with WN25-SO-000130.
+
+- WN25-UC-000010 - Revised Check text to
+
+address all interactive user profiles.
+
+- Requirements were updated throughout to
+
+reflect the change from DOD to DoW.
+
+- Rule numbers updated throughout due to
+
+changes in content management system.
+
+30 September 2026
+
+V1R3 Microsoft
+
+Windows
+
+Server 2025
+
+STIG, V1R2
+
+- WN25-00-000332 - Corrected syntax in
+
+Check text PS command.
+
+- WN25-DC-000405 - Removed requirement
+
+due to removal of setting in Windows Server
+
+OS.
+
+- WN25-PK-000020, WN25-PK-000030 -
+
+Revised to remove validation of Thumbprint
+
+and expiration dates.
+
+- WN25-SH-000080 - Corrected permission
+
+values in Check and Fix.
+
+- WN25-PK-000010 - Minor edits to Check
+
+and Fix text.
+
+- WN25-SH-000030, WN25-DC-000430 -
+
+Addressed issues of STIG style compliance.
+
+- Requirements were updated throughout to
+
+reflect the change from DOD to DoW.
+
+10 August 2026
+
+UNCLASSIFIED
+
+MS Windows Server 2025 STIG Revision History, V1R4 DISA
+
+30 September 2026 Developed by DISA for the DoW
+
+2
+
+UNCLASSIFIED
+
+REVISION HISTORY
+
+Revision
+
+Number
+
+Document
+
+Revised 
+Description of Change Release Date
+
+V1R2 Microsoft
+
+Windows
+
+Server 2025
+
+STIG, V1R1
+
+- WN25-00-000030 - Revised Discussion,
+
+Check, and Fix to clarify description of
+
+prohibited access to external systems.
+
+- WN25-00-000090 - Revised Title. Removed
+
+NA statement from Check. Removed
+
+reference to TPM 1.2 in Check and Fix.
+
+- WN25-00-000170 - Revised Check and Fix
+
+to reflect default account differences in
+
+Domain Controllers and Member Servers.
+
+- WN25-00-000240 - Revised Check and Fix
+
+to add .pfx files and remove Adobe files.
+
+- WN25-00-000250 - Revised Check and Fix
+
+to provide a Not Applicable rationale.
+
+- WN25-AU-000060 - Revised Check to
+
+include NA statement for Core Edition.
+
+- WN25-AU-000581, WN25-AU-000582,
+
+WN25-AU-000584 - Removed requirement
+
+due to operational issues.
+
+- WN25-CC-000280 - Revised Rule Title,
+
+Discussion, Check, and Fix.
+
+- WN25-DC-000190, WN25-DC-000210 -
+
+Added optional step at end of Check and Fix.
+
+- WN25-DC-000310 - Removed CCI-000776
+
+from References.
+
+- WN25-PK-000010 - Revised Check and Fix
+
+to remove CA 4 Cert from list of required
+
+DOD Root CA certificates.
+
+- WN25-SH-000010, WN25-SH-000020,
+
+WN25-SH-000030, WN25-SH-000040,
+
+WN25-SH-000050, WN25-SH-000060,
+
+WN25-SH-000070, WN25-SH-000080,
+
+WN25-SH-000090, WN25-SH-000100,
+
+WN25-SH-000110 - Added requirement to
+
+secure the use of OpenSSH protocol.
+
+01 July 2026
+
+V1R1 - NA - Initial Release. 26 January 2026

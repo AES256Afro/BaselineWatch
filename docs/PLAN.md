@@ -244,7 +244,17 @@ ComplianceAsCode is deferred.
 - **Done when**: the next quarterly STIG release and the next Microsoft baseline show up as
   per-rule and per-setting diffs without manual work.
 
-### M5: Explain (1 to 2 weeks)
+### M5: Explain (1 to 2 weeks) — shipped 2026-10-15 as 0.6.0
+
+What landed: PDF text extraction (pdfjs, lazily loaded); DISA's Revision History read from each
+STIG zip and split into per-rule notes ("WN25-00-000020 - Updated max password age value to 180
+days") that attach to the exact changes they explain, with the release-wide notes as the release
+rationale; Microsoft's Announcement PDF stored as the baseline release's rationale; NIST's Planning
+Note read from the CSRC publication page for any release the built-in history does not already
+explain; a release with no captured reason marked as such; and an optional Ollama summary per
+release with changes, stored as kind `generated` and badged on every page, built only from the
+before/after text and the publisher's note. The control page shows "Why it changed, in the
+publisher's words" above the redline when a note exists.
 - Rationale extractors: CSRC Planning Note and release notes, XCCDF revision history, Microsoft
   blog post sections, CIS changelog pages; stored as `explanation` rows linked to changes.
 - Optional LLM summary via Ollama or BoxPilot's model gateway; prompt includes only the before,

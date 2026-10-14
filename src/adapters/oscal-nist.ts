@@ -1,7 +1,11 @@
+import { extractPlanningNote } from "../explain.ts";
 import { normalizeCatalog, normalizeProfile, type OscalCatalog, type OscalProfile } from "../oscal.ts";
 import { latestDocument, loadRequirements } from "../register.ts";
-import type { Adapter, DocumentTarget, SourceRow } from "./types.ts";
+import type { Adapter, DocumentTarget, ParsedDocument, SourceRow } from "./types.ts";
 import { isoDate } from "./types.ts";
+
+/** Where NIST explains a release of SP 800-53: the publication page's Planning Note. */
+export const publicationPage = "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final";
 
 const repo = "https://raw.githubusercontent.com/usnistgov/oscal-content";
 const dir = "nist.gov/SP800-53/rev5/json";
@@ -40,9 +44,20 @@ export const nistCatalogAdapter: Adapter = {
   history(): DocumentTarget[] {
     return releases.map((r) => ({ key: "catalog", url: `${repo}/${r.sha}/${dir}/NIST_SP-800-53_rev5_catalog.json`, rationale: r.rationale }));
   },
-  parseDocument(bytes) {
+  async parseDocument(bytes, target, ctx): Promise<ParsedDocument> {
     const doc = normalizeCatalog(decode(bytes) as OscalCatalog);
-    return { title: doc.title, versionLabel: doc.version, publishedAt: isoDate(doc.lastModified), requirements: doc.requirements };
+    let rationale: ParsedDocument["rationale"] = null;
+    if (!target.rationale) {
+      // A release the history does not already explain: read NIST's Planning Note from the publication page.
+      try {
+        const page = await ctx.http(publicationPage, { headers: { accept: "text/html" }, timeoutMs: 60_000 });
+        const note = extractPlanningNote(new TextDecoder("utf-8").decode(page.bytes));
+        if (note) rationale = { text: `Planning Note${note.date ? ` (${note.date})` : ""}: ${note.text}`, url: publicationPage };
+      } catch {
+        // The catalog still loads; the release is marked as having no captured reason.
+      }
+    }
+    return { title: doc.title, versionLabel: doc.version, publishedAt: isoDate(doc.lastModified), requirements: doc.requirements, rationale };
   },
 };
 

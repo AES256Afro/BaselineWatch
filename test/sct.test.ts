@@ -59,12 +59,13 @@ describe("PolicyRules", () => {
   });
 
   it("reads a baseline zip through the adapter and lists documents from the page", async () => {
+    const ctx = { db: null as never, source: null as never, http: fakeHttp({}) };
     const zip = zipSync({ "Windows Server 2025 Security Baseline - 2602/Documentation/MSFT-WS2025-v2602.PolicyRules": fixture("sct.PolicyRules"), "Windows Server 2025 Security Baseline - 2602/Documentation/x.txt": new Uint8Array(0) });
-    const parsed = sctAdapter.parseDocument!(zip, { key: "baseline:windows-server-2025", url: "u", versionLabel: "2602", publishedAt: "2026-10-08T18:35:40.000Z" }, { db: null as never, source: null as never });
+    const parsed = await sctAdapter.parseDocument!(zip, { key: "baseline:windows-server-2025", url: "u", versionLabel: "2602", publishedAt: "2026-10-08T18:35:40.000Z" }, ctx);
     expect(parsed.title).toBe("Windows Server 2025 Security Baseline - 2602");
     expect(parsed.versionLabel).toBe("2602");
     expect(parsed.requirements).toHaveLength(11);
-    expect(() => sctAdapter.parseDocument!(zipSync({ "a.txt": new Uint8Array([1]) }), { key: "k", url: "u" }, { db: null as never, source: null as never })).toThrow(/PolicyRules/);
+    await expect(sctAdapter.parseDocument!(zipSync({ "a.txt": new Uint8Array([1]) }), { key: "k", url: "u" }, ctx)).rejects.toThrow(/PolicyRules/);
 
     // Older toolkits: several PolicyRules files per zip, encoded as UTF-16 with a byte-order mark.
     const utf16 = (s: string) => {
@@ -81,10 +82,10 @@ describe("PolicyRules", () => {
     const one = text("sct.PolicyRules");
     const two = one.replace(/Member Server/g, "Domain Controller");
     const old = zipSync({ "Documentation/MSFT-WS2019-MemberServer-FINAL.PolicyRules": utf16(one), "Documentation/MSFT-WS2019-DomainController-FINAL.PolicyRules": utf16(two) });
-    const merged = sctAdapter.parseDocument!(old, { key: "baseline:windows-10-version-1809-and-windows-server-2019", url: "u" }, { db: null as never, source: null as never });
+    const merged = await sctAdapter.parseDocument!(old, { key: "baseline:windows-10-version-1809-and-windows-server-2019", url: "u" }, ctx);
     expect(merged.requirements.length).toBe(11 + 11 - 2); // the two Internet Explorer user entries carry no "Member Server" and so repeat
     expect(merged.requirements.some((r) => r.family === "Windows Server 2025 - Domain Controller")).toBe(true);
-    expect(() => sctAdapter.parseDocument!(zipSync({ "x.PolicyRules": new TextEncoder().encode("<PolicyRules></PolicyRules>") }), { key: "k", url: "u" }, { db: null as never, source: null as never })).toThrow(/no settings/);
+    await expect(sctAdapter.parseDocument!(zipSync({ "x.PolicyRules": new TextEncoder().encode("<PolicyRules></PolicyRules>") }), { key: "k", url: "u" }, ctx)).rejects.toThrow(/no settings/);
 
     const source = { id: "microsoft-sct", url: "https://www.microsoft.com/en-us/download/details.aspx?id=55319" } as SourceRow;
     const http = fakeHttp({ [source.url]: { bytes: fixture("sct-listing.html") } });

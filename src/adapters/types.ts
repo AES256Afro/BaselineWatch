@@ -51,6 +51,9 @@ export interface ParseResult {
 export interface PullSettings {
   nvdApiKey: string | null;
   nvdBackfillDays: number;
+  /** An Ollama address; when set, releases get a generated summary beside the publisher's words. */
+  llmUrl?: string | null;
+  llmModel?: string;
 }
 
 export interface PullContext {
@@ -83,16 +86,28 @@ export interface DocumentTarget {
   rationale?: { text: string; url: string | null } | null;
 }
 
+/** A publisher's note about one requirement in a release, matched to it by label (STIG id) or ref. */
+export interface RequirementNote {
+  label?: string;
+  ref?: string;
+  text: string;
+}
+
 export interface ParsedDocument {
   title: string;
   versionLabel: string | null;
   publishedAt: string | null;
   requirements: NormalizedRequirement[];
+  /** The publisher's own words on the release, found inside or beside the document. */
+  rationale?: { text: string; url: string | null } | null;
+  /** Per-requirement notes from the publisher's change log. */
+  notes?: RequirementNote[];
 }
 
 export interface DocumentContext {
   db: DatabaseSync;
   source: SourceRow;
+  http: HttpGet;
 }
 
 export interface ListingContext {
@@ -119,7 +134,7 @@ export interface Adapter {
   documents?(source: SourceRow, ctx: ListingContext): Promise<DocumentTarget[]> | DocumentTarget[];
   /** Earlier releases, oldest first, so the Register can start with real history. */
   history?(source: SourceRow): DocumentTarget[];
-  parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument;
+  parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument | Promise<ParsedDocument>;
 }
 
 export const cvePattern = /\bCVE-\d{4}-\d{4,7}\b/g;
