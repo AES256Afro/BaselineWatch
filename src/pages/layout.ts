@@ -1,0 +1,61 @@
+import { html, type Html } from "../html.ts";
+import { productName, productVersion, repositoryUrl } from "../version.ts";
+
+export type Area = "register" | "wire" | "vulnerabilities" | "triage" | "watchlist" | "sources";
+
+/** Areas that have a page in this build. The rest are drawn as "soon", so the shape of the app is visible from day one. */
+const built: Record<Area, { label: string; path: string; milestone: string }> = {
+  register: { label: "Register", path: "/", milestone: "" },
+  wire: { label: "Wire", path: "/wire", milestone: "M1" },
+  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "M2" },
+  triage: { label: "Triage", path: "/triage", milestone: "M6" },
+  watchlist: { label: "Watchlist", path: "/watchlist", milestone: "M2" },
+  sources: { label: "Sources", path: "/sources", milestone: "" },
+};
+const order: Area[] = ["register", "wire", "vulnerabilities", "triage", "watchlist", "sources"];
+
+export interface PageOptions {
+  title: string;
+  active: Area;
+  content: Html;
+  meta?: Html;
+}
+
+export function page({ title, active, content, meta }: PageOptions): string {
+  const nav = order.map((area) => {
+    const item = built[area];
+    const current = area === active;
+    if (item.milestone) {
+      return html`<span class="soon" title="Arrives in ${item.milestone}">${item.label}</span>`;
+    }
+    return html`<a href="${item.path}"${current ? html` aria-current="page"` : ""}>${item.label}</a>`;
+  });
+  return (
+    "<!doctype html>\n" +
+    html`<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title === productName ? title : `${title} · ${productName}`}</title>
+<link rel="stylesheet" href="/assets/app.css">
+<meta name="color-scheme" content="light dark">
+</head>
+<body>
+<header class="mast">
+  <div class="mast-inner">
+    <a class="name" href="/">${productName} <small>Standards change register</small></a>
+    <nav aria-label="Areas">${nav}</nav>
+    <div class="meta">${meta ?? ""}</div>
+  </div>
+</header>
+<main class="wrap">${content}</main>
+<footer class="foot">
+  <div class="wrap">
+    <p>${productName} ${productVersion} · <a href="${repositoryUrl}">source</a> · <a href="/health">health</a></p>
+    <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed.</p>
+  </div>
+</footer>
+</body>
+</html>`.value
+  );
+}

@@ -1,0 +1,24 @@
+services:
+  baselinewatch:
+    build: .
+    image: ghcr.io/aes256afro/baselinewatch:0.1.0
+    container_name: baselinewatch
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Etc/UTC}
+      BW_BASE_URL: ${BW_BASE_URL:-http://localhost:8790}
+      BW_PUBLIC_READ: ${BW_PUBLIC_READ:-true}
+      BW_NVD_API_KEY: ${BW_NVD_API_KEY:-}
+      BW_NOTIFY_URL: ${BW_NOTIFY_URL:-}
+      BW_LLM_URL: ${BW_LLM_URL:-}
+    ports:
+      - "${BW_PORT:-8790}:8790"
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

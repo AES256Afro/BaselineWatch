@@ -15,6 +15,17 @@ to be installed from the BoxPilot catalog on BigBox.
 
 ---
 
+## 0. Decisions
+
+| Date | Decision |
+| --- | --- |
+| 2026-10-14 | The **Register** is the home page (mockup direction 2). |
+| 2026-10-14 | Build follows **Path C**, the recommended middle: Register built properly, Wire and Vulnerabilities thin, server-rendered HTML first, React only if the UI outgrows it. |
+| 2026-10-14 | Public home is **https://cybercard.net**, replacing the FinancialAuthority demo there. It is a read-only information, learning and teaching site: no private data, anyone may read, writes need the owner's sign-in (M7). Hosted on BigBox, published through Cloudflare. |
+| 2026-10-14 | Stack: Node 24 running TypeScript directly (no build step), Express 5, `node:sqlite`, one stylesheet, strict CSP with no inline script. |
+
+---
+
 ## 1. What it is, in one screen
 
 | Area | What the user sees | Source of truth |
