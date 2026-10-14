@@ -173,14 +173,29 @@ export function storeDocument(
     }
     const summary = summarizeChanges(changes);
 
-    if (target.rationale) {
+    const rationale = target.rationale ?? parsed.rationale ?? null;
+    if (rationale) {
       db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'publisher', ?, ?, ?)").run(
         documentId,
-        target.rationale.text,
-        target.rationale.url,
+        rationale.text,
+        rationale.url,
         fetchedAt,
       );
-    } else if (previous && changes.length) {
+    }
+    // Per-requirement notes from the publisher's change log, attached to the changes they explain.
+    if (previous && changes.length && parsed.notes?.length) {
+      const byLabel = new Map<string, string>();
+      for (const r of parsed.requirements) byLabel.set(r.label.toUpperCase(), r.ref);
+      for (const r of loadRequirements(db, previous.id)) if (!byLabel.has(r.label.toUpperCase())) byLabel.set(r.label.toUpperCase(), r.ref);
+      const changeIds = db.prepare("SELECT id FROM changes WHERE to_document_id = ? AND ref = ?");
+      const insertNote = db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (?, NULL, 'publisher', ?, ?, ?)");
+      for (const note of parsed.notes) {
+        const ref = note.ref ?? (note.label ? byLabel.get(note.label.toUpperCase()) : undefined);
+        if (!ref) continue;
+        for (const row of changeIds.all(documentId, ref) as { id: number }[]) insertNote.run(row.id, note.text, rationale?.url ?? null, fetchedAt);
+      }
+    }
+    if (!rationale && previous && changes.length) {
       db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'none', ?, NULL, ?)").run(
         documentId,
         "No stated reason was captured with this release. Check the publisher's release notes.",
@@ -227,6 +242,23 @@ export function releaseChanges(db: DatabaseSync, documentId: number): ChangeRow[
 
 export function explanationsFor(db: DatabaseSync, documentId: number): ExplanationRow[] {
   return db.prepare("SELECT * FROM explanations WHERE to_document_id = ? ORDER BY kind, id").all(documentId) as unknown as ExplanationRow[];
+}
+
+/** The publisher's notes attached to a requirement's changes in one release, deduplicated. */
+export function notesFor(db: DatabaseSync, documentId: number, ref: string): ExplanationRow[] {
+  const rows = db
+    .prepare(
+      `SELECT e.* FROM explanations e JOIN changes c ON c.id = e.change_id
+       WHERE c.to_document_id = ? AND c.ref = ? ORDER BY e.id`,
+    )
+    .all(documentId, ref) as unknown as ExplanationRow[];
+  const seen = new Set<string>();
+  return rows.filter((r) => (seen.has(r.text) ? false : (seen.add(r.text), true)));
+}
+
+/** How many of a release's changes carry a publisher's note. */
+export function notedChangeCount(db: DatabaseSync, documentId: number): number {
+  return (db.prepare("SELECT COUNT(DISTINCT c.ref) AS n FROM explanations e JOIN changes c ON c.id = e.change_id WHERE c.to_document_id = ?").get(documentId) as { n: number }).n;
 }
 
 /** Which baselines (latest profile of each) include a control. */

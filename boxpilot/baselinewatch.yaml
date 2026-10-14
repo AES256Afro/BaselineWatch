@@ -10,8 +10,8 @@ description: "Security news, CVEs, CISA advisories and NIST publications in one 
 website: https://github.com/AES256Afro/BaselineWatch
 risk: low
 image:
-  reference: ghcr.io/aes256afro/baselinewatch:0.5.0
-  version: "0.5.0"
+  reference: ghcr.io/aes256afro/baselinewatch:0.6.0
+  version: "0.6.0"
 ports:
   - id: web
     label: Web UI
@@ -62,8 +62,12 @@ env:
     default: ""
   - name: BW_LLM_URL
     label: Local model URL (optional)
-    description: An Ollama address such as http://<this server>:11434. When set, each change also gets a short generated summary, badged as generated, next to the publisher's own words.
+    description: An Ollama address such as http://<this server>:11434. When set, each release with changes also gets a short generated summary, badged as generated, next to the publisher's own words.
     default: ""
+  - name: BW_LLM_MODEL
+    label: Local model name
+    description: The Ollama model used for generated summaries. Any small instruction model works; it only ever sees text already on screen.
+    default: "llama3.2:3b"
 signIn:
   path: /login
   port: web

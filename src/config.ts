@@ -28,6 +28,8 @@ export interface Config {
   nvdBackfillDays: number;
   notifyUrl: string | null;
   llmUrl: string | null;
+  /** The Ollama model name used for generated summaries. */
+  llmModel: string;
 }
 
 function days(env: Env, key: string, fallback: number): number {
@@ -82,5 +84,6 @@ export function loadConfig(env: Env = process.env): Config {
     nvdBackfillDays: days(env, "BW_NVD_BACKFILL_DAYS", 7),
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
     llmUrl: optional(env, "BW_LLM_URL"),
+    llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
   };
 }

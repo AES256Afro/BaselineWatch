@@ -34,7 +34,7 @@ export interface AppContext {
 export const publicDir = path.join(import.meta.dirname, "..", "public");
 
 export function pullSettings(config: Config): PullSettings {
-  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays };
+  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, llmUrl: config.llmUrl, llmModel: config.llmModel };
 }
 
 export interface HealthReport {

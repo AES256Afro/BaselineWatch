@@ -1,4 +1,6 @@
+import { announcementText } from "../explain.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
+import { pdfText } from "../pdf.ts";
 import { entryText, findEntry, unzipAll } from "../zip.ts";
 import type { Adapter, DocumentTarget, ParsedDocument, SourceRow } from "./types.ts";
 
@@ -182,7 +184,7 @@ export const sctAdapter: Adapter = {
     const files = parseSctListing(new TextDecoder("utf-8").decode(page.bytes));
     return files.map(baselineTarget).filter((t): t is DocumentTarget => t !== null);
   },
-  parseDocument(bytes, target): ParsedDocument {
+  async parseDocument(bytes, target): Promise<ParsedDocument> {
     const entries = unzipAll(bytes);
     const rules = entries.filter((e) => /\.PolicyRules$/i.test(e.name));
     if (rules.length === 0) throw new Error("baseline zip has no .PolicyRules file");
@@ -199,6 +201,15 @@ export const sctAdapter: Adapter = {
     if (requirements.length === 0) throw new Error(`${rules.map((r) => r.name).join(", ")} hold no settings BaselineWatch can read`);
     const first = findEntry(entries, /\.PolicyRules$/i)!;
     const folder = first.name.includes("/") ? first.name.split("/")[0]! : target.key;
-    return { title: folder, versionLabel: target.versionLabel ?? null, publishedAt: target.publishedAt ?? null, requirements };
+    let rationale: ParsedDocument["rationale"] = null;
+    const announcement = findEntry(entries, /Announcement\.pdf$/i);
+    if (announcement) {
+      try {
+        rationale = { text: announcementText(await pdfText(announcement.bytes)), url: target.url };
+      } catch {
+        // No announcement text, no rationale; the settings still load.
+      }
+    }
+    return { title: folder, versionLabel: target.versionLabel ?? null, publishedAt: target.publishedAt ?? null, requirements, rationale };
   },
 };

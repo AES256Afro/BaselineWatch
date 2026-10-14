@@ -5,7 +5,7 @@ import { html, type Html } from "../html.ts";
 import { getSource } from "../ingest.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
-import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, releaseChanges, type DocumentRow } from "../register.ts";
+import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, notedChangeCount, notesFor, releaseChanges, type DocumentRow } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { page } from "./layout.ts";
 
@@ -116,6 +116,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       ${summary.editorial.length ? html`<span class="pill">${summary.editorial.length} with discussion, related-control or assessment updates</span>` : ""}
       ${!previous ? html`<span class="pill none">First version loaded: ${doc.requirement_count} requirements, nothing to compare yet</span>` : ""}
       ${previous && changes.length === 0 ? html`<span class="pill none">No control-level changes against ${previous.version_label ?? "the previous version"}</span>` : ""}
+      ${changes.length ? (() => { const noted = notedChangeCount(db, documentId); return noted ? html`<span class="pill">${noted} of ${byRef.size} changed requirements carry the publisher's note</span>` : ""; })() : ""}
     </div>
     ${explanations.map((e) =>
       e.kind === "publisher"
@@ -155,6 +156,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   const baselines = baselinesFor(db, ref);
   const changedFields = new Set(releaseChanges(db, documentId).filter((c) => c.ref === ref).map((c) => c.field ?? c.kind));
   const kind = !before ? (previous ? "added" : "first") : !after ? "removed" : changedFields.size ? "modified" : "unchanged";
+  const notes = notesFor(db, documentId, ref);
 
   const field = (name: string, label: string, b: string | null, a: string | null): Html => {
     const changed = changedFields.has(name) || (b ?? "") !== (a ?? "");
@@ -183,6 +185,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       ${baselines.map((b) => html`<span class="pill">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</span>`)}
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
     </div>
+    ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" rel="noopener">${n.source_url}</a></cite>` : ""}</div>`)}
     ${field("title", "Title", before?.title ?? null, after?.title ?? null)}
     ${field("statement", "Control", before?.statement ?? null, after?.statement ?? null)}
     ${field("guidance", "Discussion", before?.guidance ?? null, after?.guidance ?? null)}

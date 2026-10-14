@@ -8,14 +8,15 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M4. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), the
+**Status**: M5. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), the
 DISA STIGs you follow (XCCDF, rule by rule) and every Microsoft Security Baseline in the
 Security Compliance Toolkit (setting by setting). Every release is kept as a snapshot and diffed
-against the last with a word-level redline and the publisher's own release note beside it; NIST's
-Release 5.1.1 to 5.2.0 loads from published history with one command. The Wire (M1) carries news
-feeds, Reddit, Hacker News, CISA advisories and the KEV catalog; the Vulnerabilities page (M2)
-pulls every CVE NVD modifies with EPSS, KEV and your watchlist.
-Next: rationale extraction and badged summaries (M5), triage and digests (M6).
+against the last with a word-level redline, and the publisher's own reason sits beside it: NIST's
+Planning Note from the publication page, DISA's Revision History read out of the PDF and attached
+rule by rule, Microsoft's announcement from the zip. A local model can add a short summary, always
+badged as generated. The Wire (M1) carries news feeds, Reddit, Hacker News, CISA advisories and
+the KEV catalog; the Vulnerabilities page (M2) pulls every CVE NVD modifies with EPSS, KEV and
+your watchlist. Next: triage, digests and notifications (M6).
 Public home will be https://cybercard.net, a read-only information and teaching site.
 
 ## Run it
@@ -68,7 +69,8 @@ source immediately from that page.
 | `BW_NVD_API_KEY` | unset | Free from nvd.nist.gov/developers; 50 requests per 30 s instead of 5. |
 | `BW_NVD_BACKFILL_DAYS` | `7` | How many days of NVD modifications the first pull loads. Later pulls continue from the stored cursor. |
 | `BW_NOTIFY_URL` | unset | Apprise-style URL for KEV additions and standard releases (M6). |
-| `BW_LLM_URL` | unset | Ollama address. When set, changes also get a summary badged as generated (M5). |
+| `BW_LLM_URL` | unset | Ollama address. When set, each release with changes also gets a short summary badged as generated, beside the publisher's own words. |
+| `BW_LLM_MODEL` | `llama3.2:3b` | The Ollama model for those summaries. |
 | `TZ` | `Etc/UTC` | Time zone for digests. |
 
 ## Docs
