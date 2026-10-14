@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 /**
  * Runtime configuration, read once from the environment.
  *
@@ -13,8 +15,14 @@ export interface Config {
   /** The address people use, for links in digests and notifications. */
   baseUrl: string;
   timeZone: string;
-  /** When true anyone who can reach the page may read it; writes still need the owner (M7). */
+  /** When true anyone who can reach the page may read it; writes still need the owner. */
   publicRead: boolean;
+  /** The owner's password. Unset means single-user mode: no sign-in, writes open. */
+  adminPassword: string | null;
+  /** Signs session cookies. Unset means a fresh secret per start, so sessions end on restart. */
+  sessionSecret: string;
+  /** False stops the in-process scheduler (tests, or when a cron job runs the CLI instead). */
+  scheduler: boolean;
   nvdApiKey: string | null;
   notifyUrl: string | null;
   llmUrl: string | null;
@@ -57,6 +65,9 @@ export function loadConfig(env: Env = process.env): Config {
     baseUrl: text(env, "BW_BASE_URL", `http://localhost:${portNumber}`).replace(/\/+$/, ""),
     timeZone: text(env, "TZ", "Etc/UTC"),
     publicRead: flag(env, "BW_PUBLIC_READ", true),
+    adminPassword: optional(env, "BW_ADMIN_PASSWORD"),
+    sessionSecret: optional(env, "BW_SESSION_SECRET") ?? randomBytes(32).toString("hex"),
+    scheduler: flag(env, "BW_SCHEDULER", true),
     nvdApiKey: optional(env, "BW_NVD_API_KEY"),
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
     llmUrl: optional(env, "BW_LLM_URL"),

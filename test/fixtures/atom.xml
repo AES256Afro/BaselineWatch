@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Research Blog</title>
+  <link href="https://blog.example.test/" rel="alternate"/>
+  <link href="https://blog.example.test/feed.atom" rel="self"/>
+  <updated>2026-10-13T18:00:00Z</updated>
+  <entry>
+    <id>tag:blog.example.test,2026:post-77</id>
+    <title type="html">Abusing OAuth device code flow in enterprise SSO</title>
+    <link rel="alternate" type="text/html" href="https://blog.example.test/2026/oauth-device-code"/>
+    <link rel="enclosure" href="https://blog.example.test/2026/oauth.pdf"/>
+    <published>2026-10-13T17:30:00Z</published>
+    <updated>2026-10-13T18:00:00Z</updated>
+    <summary type="html">&lt;p&gt;A walkthrough of the phishing path and the detections that catch it.&lt;/p&gt;</summary>
+  </entry>
+  <entry>
+    <id>tag:blog.example.test,2026:post-78</id>
+    <title>Entry with content only</title>
+    <link href="https://blog.example.test/2026/content-only"/>
+    <updated>2026-10-12T09:00:00Z</updated>
+    <content type="text">Plain text content used as the summary.</content>
+  </entry>
+</feed>

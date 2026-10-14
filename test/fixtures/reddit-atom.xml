@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <category term="netsec" label="r/netsec"/>
+  <updated>2026-10-14T06:00:00+00:00</updated>
+  <id>/r/netsec/new.rss</id>
+  <link rel="self" href="https://www.reddit.com/r/netsec/new.rss" type="application/atom+xml"/>
+  <link rel="alternate" href="https://www.reddit.com/r/netsec/new" type="text/html"/>
+  <title>newest submissions : netsec</title>
+  <entry>
+    <author><name>/u/researcher</name><uri>https://www.reddit.com/user/researcher</uri></author>
+    <category term="netsec" label="r/netsec"/>
+    <content type="html">&lt;table&gt; &lt;tr&gt;&lt;td&gt; &lt;a href="https://www.reddit.com/r/netsec/comments/1abcde/writeup_abusing_oauth_device_code_flow/"&gt; &lt;img src="https://external-preview.redd.it/x.jpg" alt="Write-up" title="Write-up" /&gt; &lt;/a&gt; &lt;/td&gt;&lt;td&gt; submitted by &lt;a href="https://www.reddit.com/user/researcher"&gt; /u/researcher &lt;/a&gt; &lt;br/&gt; &lt;span&gt;&lt;a href="https://blog.example.test/2026/oauth-device-code?utm_source=reddit"&gt;[link]&lt;/a&gt;&lt;/span&gt; &amp;#32; &lt;span&gt;&lt;a href="https://www.reddit.com/r/netsec/comments/1abcde/writeup_abusing_oauth_device_code_flow/"&gt;[comments]&lt;/a&gt;&lt;/span&gt; &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</content>
+    <id>t3_1abcde</id>
+    <link href="https://www.reddit.com/r/netsec/comments/1abcde/writeup_abusing_oauth_device_code_flow/"/>
+    <updated>2026-10-14T05:46:40+00:00</updated>
+    <published>2026-10-14T05:46:40+00:00</published>
+    <title>Write-up: abusing OAuth device code flow in enterprise SSO</title>
+  </entry>
+  <entry>
+    <author><name>/u/asker</name><uri>https://www.reddit.com/user/asker</uri></author>
+    <category term="netsec" label="r/netsec"/>
+    <content type="html">&lt;!-- SC_OFF --&gt;&lt;div class="md"&gt;&lt;p&gt;Has anyone seen a public PoC for cve-2026-31417 yet?&lt;/p&gt; &lt;/div&gt;&lt;!-- SC_ON --&gt; submitted by &lt;a href="https://www.reddit.com/user/asker"&gt; /u/asker &lt;/a&gt; &lt;br/&gt; &lt;span&gt;&lt;a href="https://www.reddit.com/r/netsec/comments/1abcdg/question/"&gt;[link]&lt;/a&gt;&lt;/span&gt; &amp;#32; &lt;span&gt;&lt;a href="https://www.reddit.com/r/netsec/comments/1abcdg/question/"&gt;[comments]&lt;/a&gt;&lt;/span&gt;</content>
+    <id>t3_1abcdg</id>
+    <link href="https://www.reddit.com/r/netsec/comments/1abcdg/question/"/>
+    <updated>2026-10-14T02:00:00+00:00</updated>
+    <published>2026-10-14T02:00:00+00:00</published>
+    <title>Question about CVE-2026-31417 exploitation details</title>
+  </entry>
+</feed>
