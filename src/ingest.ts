@@ -1,8 +1,62 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor } from "./adapters/index.ts";
-import { canonicalUrl, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
+import { canonicalUrl, type Adapter, type DocumentTarget, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
+import { changeSummaryText, storeDocument } from "./register.ts";
+
+export interface DocumentOutcome {
+  key: string;
+  status: "ok" | "unchanged" | "error";
+  documentId: number | null;
+  versionLabel: string | null;
+  summary: string | null;
+  error: string | null;
+}
+
+/**
+ * Fetches one versioned document of a standards source, snapshots it, and stores and diffs it
+ * when its bytes are new. Exported so the backfill command can load history in order.
+ */
+export async function ingestDocumentTarget(
+  db: DatabaseSync,
+  dataDir: string,
+  source: SourceRow,
+  adapter: Adapter,
+  target: DocumentTarget,
+  deps: { http: HttpGet; now: () => Date },
+): Promise<DocumentOutcome> {
+  const base = { key: target.key, documentId: null as number | null, versionLabel: null as string | null, summary: null as string | null, error: null as string | null };
+  try {
+    const response = await deps.http(target.url, { ...(adapter.headers ? { headers: adapter.headers } : {}), timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024 });
+    const fetchedAt = deps.now().toISOString();
+    const sha256 = sha256Hex(response.bytes);
+    const existing = db.prepare("SELECT id FROM snapshots WHERE source_id = ? AND document_key = ? AND sha256 = ?").get(source.id, target.key, sha256) as { id: number } | undefined;
+    if (existing) {
+      const doc = db.prepare("SELECT id, version_label FROM documents WHERE snapshot_id = ?").get(existing.id) as { id: number; version_label: string | null } | undefined;
+      return { ...base, status: "unchanged", documentId: doc?.id ?? null, versionLabel: doc?.version_label ?? null };
+    }
+    if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
+    const parsed = adapter.parseDocument(response.bytes, target, { db, source });
+    const blob = putBlob(dataDir, response.bytes);
+    const snapshot = db
+      .prepare(
+        `INSERT INTO snapshots (source_id, document_key, sha256, bytes, media_type, blob_path, fetched_at, etag, last_modified)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(source.id, target.key, sha256, blob.bytes, response.contentType, blob.relativePath, fetchedAt, response.etag, response.lastModified);
+    const stored = storeDocument(db, { source, target, parsed, snapshotId: Number(snapshot.lastInsertRowid), fetchedAt });
+    return {
+      ...base,
+      status: "ok",
+      documentId: stored.documentId,
+      versionLabel: target.versionLabel ?? parsed.versionLabel,
+      summary: stored.previousId ? changeSummaryText(stored.summary) : `first version, ${parsed.requirements.length} requirements`,
+    };
+  } catch (error) {
+    return { ...base, status: "error", error: error instanceof Error ? error.message : String(error) };
+  }
+}
 
 export type IngestStatus = "ok" | "unchanged" | "error" | "skipped";
 
@@ -107,6 +161,17 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       const outcome = await adapter.pull({ db, dataDir, source, http, now, settings: deps.settings ?? defaultPullSettings, log });
       const result = done({ status: "ok", items: outcome.items, inserted: outcome.inserted, updated: outcome.updated, detail: outcome.detail ?? null });
       recordOutcome(db, source, { status: "ok", fetchedAt: now().toISOString(), durationMs: result.durationMs });
+      return result;
+    }
+    if (adapter.documents) {
+      const outcomes: DocumentOutcome[] = [];
+      for (const target of adapter.documents(source)) outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now }));
+      const errors = outcomes.filter((o) => o.status === "error");
+      const fresh = outcomes.filter((o) => o.status === "ok");
+      const status: IngestStatus = errors.length === outcomes.length ? "error" : fresh.length ? "ok" : "unchanged";
+      const detail = outcomes.map((o) => `${o.key}${o.versionLabel ? ` ${o.versionLabel}` : ""}: ${o.status === "ok" ? o.summary : o.status === "error" ? o.error : "unchanged"}`).join("; ");
+      const result = done({ status, items: outcomes.length, inserted: fresh.length, detail, error: errors.length ? errors.map((e) => `${e.key}: ${e.error}`).join("; ") : null });
+      recordOutcome(db, source, { status, error: result.error, fetchedAt: now().toISOString(), durationMs: result.durationMs });
       return result;
     }
     if (!adapter.parse) throw new Error(`adapter ${adapter.id} can neither parse nor pull`);

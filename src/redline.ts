@@ -2,8 +2,9 @@ import { html, type Html } from "./html.ts";
 
 export type Op = { kind: "same" | "del" | "ins"; text: string };
 
+/** Words, runs of whitespace, and single punctuation marks, so "software." and "software" share a word. */
 function tokens(text: string): string[] {
-  return text.match(/\s+|[^\s]+/g) ?? [];
+  return text.match(/\s+|[\p{L}\p{N}_'’-]+|[^\s\p{L}\p{N}_'’-]/gu) ?? [];
 }
 
 /**
