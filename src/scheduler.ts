@@ -79,7 +79,7 @@ async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number): Promis
 }
 
 export function formatResult(r: IngestResult): string {
-  const detail = r.status === "error" ? r.error : r.status === "skipped" ? r.error : `${r.items} items, +${r.inserted} new, ~${r.updated} changed`;
+  const detail = r.status === "error" ? r.error : r.status === "skipped" ? r.error : (r.detail ?? `${r.items} items, +${r.inserted} new, ~${r.updated} changed`);
   return `[fetch] ${r.sourceId.padEnd(22)} ${r.status.padEnd(9)} ${String(r.durationMs).padStart(6)} ms  ${detail ?? ""}`;
 }
 

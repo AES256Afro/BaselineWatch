@@ -10,6 +10,7 @@ import { getSource, ingestSource, type IngestResult } from "./ingest.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
+import { renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
@@ -202,6 +203,27 @@ export function createApp(ctx: AppContext): Express {
     const body = req.body as Record<string, unknown>;
     markAllRead(db, wireFilters(body));
     res.redirect(303, safeBack(body.back, "/wire"));
+  });
+
+  app.get("/standards", (_req, res) => res.redirect(302, "/"));
+  app.get("/standards/:source", (req, res, next) => {
+    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(res), now: now() });
+    if (!html) return next();
+    res.type("html").send(html);
+  });
+  app.get("/standards/:source/:doc", (req, res, next) => {
+    const documentId = Number(req.params.doc);
+    if (!Number.isInteger(documentId) || documentId <= 0) return next();
+    const html = renderRelease({ db, sourceId: String(req.params.source), documentId, ...who(res), now: now() });
+    if (!html) return next();
+    res.type("html").send(html);
+  });
+  app.get("/standards/:source/:doc/:ref", (req, res, next) => {
+    const documentId = Number(req.params.doc);
+    if (!Number.isInteger(documentId) || documentId <= 0) return next();
+    const html = renderControl({ db, sourceId: String(req.params.source), documentId, ref: String(req.params.ref).toLowerCase(), ...who(res), now: now() });
+    if (!html) return next();
+    res.type("html").send(html);
   });
 
   app.get("/vulnerabilities", (req, res) => {

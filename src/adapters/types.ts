@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { HttpGet } from "../http.ts";
+import type { NormalizedRequirement } from "../oscal.ts";
 
 /** A row of the sources table, as the adapters see it. */
 export interface SourceRow {
@@ -71,9 +72,34 @@ export interface PullOutcome {
   detail?: string;
 }
 
+/** One versioned document a standards source publishes: a catalog, a baseline profile, a STIG. */
+export interface DocumentTarget {
+  /** Stable within the source across releases: 'catalog', 'profile:moderate', 'stig:windows-server-2025'. */
+  key: string;
+  url: string;
+  versionLabel?: string | null;
+  publishedAt?: string | null;
+  /** The publisher's own words on why this release exists, when known. */
+  rationale?: { text: string; url: string | null } | null;
+}
+
+export interface ParsedDocument {
+  title: string;
+  versionLabel: string | null;
+  publishedAt: string | null;
+  requirements: NormalizedRequirement[];
+}
+
+export interface DocumentContext {
+  db: DatabaseSync;
+  source: SourceRow;
+}
+
 /**
- * An adapter turns one fetched document into timeline items (`parse`), or runs its own
- * multi-request pull against a stream such as the NVD API (`pull`). One or the other.
+ * An adapter does one of three things: turns one fetched feed into timeline items (`parse`),
+ * runs its own multi-request pull against a stream such as the NVD API (`pull`), or names the
+ * versioned documents of a standard and parses each into requirements (`documents` +
+ * `parseDocument`), which the ingester snapshots, stores and diffs against the previous version.
  */
 export interface Adapter {
   id: string;
@@ -83,6 +109,11 @@ export interface Adapter {
   pull?(ctx: PullContext): Promise<PullOutcome>;
   /** Runs after a parsed document's items are stored, for joins into other tables. */
   after?(db: DatabaseSync, items: ParsedItem[], now: Date): void;
+  /** The current documents of a standards source. */
+  documents?(source: SourceRow): DocumentTarget[];
+  /** Earlier releases, oldest first, so the Register can start with real history. */
+  history?(source: SourceRow): DocumentTarget[];
+  parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument;
 }
 
 export const cvePattern = /\bCVE-\d{4}-\d{4,7}\b/g;

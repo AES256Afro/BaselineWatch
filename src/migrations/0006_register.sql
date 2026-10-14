@@ -11,7 +11,7 @@ ALTER TABLE documents ADD COLUMN requirement_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE documents ADD COLUMN previous_document_id INTEGER REFERENCES documents(id);
 
 UPDATE sources SET
-  url = 'https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog-min.json',
+  url = 'https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json',
   format = 'oscal-json', schedule = 'daily',
   notes = 'The OSCAL catalog NIST publishes, which carries both the 800-53 controls and the 800-53A assessment objectives. Current Release 5.2.0 (2025-08-27). History is loaded from the same repository''s commits.'
   WHERE id = 'nist-sp-800-53';

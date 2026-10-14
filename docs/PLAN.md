@@ -198,7 +198,19 @@ CVE List V5 deltas are deferred: NVD's modified window every hour has been enoug
 - **Done when**: a CVE added to KEV, or a watched product's CVE changing score, surfaces within
   the hour with its change history.
 
-### M3: Register, structured sources (2 to 3 weeks)
+### M3: Register, structured sources (2 to 3 weeks) — shipped 2026-10-15 as 0.4.0
+
+What landed: the OSCAL normaliser (groups, controls and enhancements into one `requirement`
+shape with the printed label, parameters resolved into the text, related controls, status and
+the 800-53A assessment objective), the profile normaliser (baselines as control membership), a
+field-level differ with a substantive/editorial split, a word-level redline, the document
+ingestion path (snapshot, store, diff against the previous version, record the explanation,
+post a release to the Wire), the NIST adapters with the catalog's published history so
+`npm run backfill` seeds Release 5.1.1 → 5.2.0 with NIST's verbatim Planning Note as the
+rationale, and the three Register pages: a standard's versions, a release's changes, and a
+control's before/after. Found on the way: NIST's note says every -01 control had related-control
+updates, but the OSCAL catalog shows AC-1 unchanged, which is exactly the kind of thing the
+Register exists to show.
 - Snapshot store (blobs + index + retention policy).
 - Normaliser for OSCAL catalogs and profiles (800-53, 53A, 53B, 171r3 via CPRT/CAPORDINO).
 - Differ for `requirement` shapes: added/removed/modified controls, field-level, parameter

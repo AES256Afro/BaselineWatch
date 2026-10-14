@@ -88,7 +88,7 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
           : html`<span class="state wait">No snapshot yet</span>`
         : html`<span class="state ok">${s.latest_version ?? "latest"}${s.latest_published ? html` · ${s.latest_published.slice(0, 10)}` : ""}</span>`;
     return html`<li class="std">
-      <div class="std-head"><b>${s.name}</b>${state}</div>
+      <div class="std-head"><b><a href="/standards/${s.id}">${s.name}</a></b>${state}</div>
       <div class="std-meta"><span>${formatLabel[s.format] ?? s.format}</span><span>${s.schedule === "manual" ? "manual" : `checked ${s.schedule}`}</span><span class="n">${s.snapshot_count} snapshots · ${s.change_count} changes</span></div>
       ${s.notes ? html`<p class="std-note">${s.notes}</p>` : ""}
     </li>`;
