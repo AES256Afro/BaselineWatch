@@ -1,0 +1,76 @@
+# Draft BoxPilot catalog manifest for BaselineWatch (schemaVersion 2).
+# Target: copy to BoxPilot/catalog/baselinewatch.yaml once the first image is on GHCR.
+# Port 8790 is free in the current BoxPilot catalog (BoxPilot itself is 8787).
+schemaVersion: 2
+id: baselinewatch
+name: BaselineWatch
+category: Monitoring
+icon: "🛡️"
+description: "Security news, CVEs, CISA advisories and NIST publications in one timeline, plus a change register for the standards themselves: when NIST 800-53, a DISA STIG or a Microsoft baseline changes, see each control before and after, what changed, and why."
+website: https://github.com/AES256Afro/BaselineWatch
+risk: low
+image:
+  reference: ghcr.io/aes256afro/baselinewatch:0.1.0
+  version: "0.1.0"
+ports:
+  - id: web
+    label: Web UI
+    container: 8790
+    host: 8790
+    exposure: lan
+volumes:
+  - id: data
+    label: Database and source snapshots
+    container: /data
+    path: data
+    description: SQLite database plus every fetched copy of every standard, so a diff from a year ago can still be shown.
+env:
+  - name: TZ
+    label: Time zone
+    type: timezone
+    default: Etc/UTC
+  - name: BW_BASE_URL
+    label: Address people use
+    description: Used in digest and notification links.
+    default: http://localhost:8790
+  - name: BW_ADMIN_USERNAME
+    label: Owner username
+    default: owner
+  - name: BW_ADMIN_PASSWORD
+    label: Owner password
+    type: password
+    secret: true
+    generate: true
+  - name: BW_SESSION_SECRET
+    label: Session signing secret
+    type: password
+    secret: true
+    generate: true
+  - name: BW_NVD_API_KEY
+    label: NVD API key (optional)
+    type: password
+    secret: true
+    description: Free from nvd.nist.gov/developers. Raises the vulnerability feed from 5 to 50 requests per 30 seconds.
+    default: ""
+  - name: BW_NOTIFY_URL
+    label: Notification URL (optional)
+    description: An Apprise-style URL, for example ntfy://<this server>:8093/baselinewatch, for KEV additions and standard releases.
+    default: ""
+  - name: BW_LLM_URL
+    label: Local model URL (optional)
+    description: An Ollama address such as http://<this server>:11434. When set, each change also gets a short generated summary, badged as generated, next to the publisher's own words.
+    default: ""
+signIn:
+  path: /
+  port: web
+  usernameEnv: BW_ADMIN_USERNAME
+  passwordEnv: BW_ADMIN_PASSWORD
+  note: BoxPilot generates the owner password. Sources, watchlist and triage state live in the data volume.
+health:
+  kind: healthcheck
+  timeoutSeconds: 180
+notes: >-
+  On first run, open Sources and tick what you follow; NIST SP 800-53 Release 5.1.1 and 5.2.0
+  are preloaded so the Register shows a real diff straight away. Add your products and the
+  baselines you own under Watchlist to dim everything else. The daily digest goes to the
+  notification URL at 07:00 in your time zone.
