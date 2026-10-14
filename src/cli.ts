@@ -32,7 +32,7 @@ if (command === "backfill") {
     console.error(source ? `${target} has no published history to load` : `no such source: ${target}`);
     process.exit(1);
   }
-  const targets = [...adapter.history(source), ...(adapter.documents?.(source) ?? [])];
+  const targets = [...adapter.history(source), ...(adapter.documents ? await adapter.documents(source, { db, http: httpGet, now: () => new Date() }) : [])];
   for (const t of targets) {
     const outcome = await ingestDocumentTarget(db, config.dataDir, source, adapter, t, { http: httpGet, now: () => new Date() });
     console.log(`[backfill] ${source.id} ${t.key.padEnd(18)} ${(outcome.versionLabel ?? "").padEnd(8)} ${outcome.status.padEnd(9)} ${outcome.summary ?? outcome.error ?? ""}`);

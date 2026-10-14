@@ -222,7 +222,19 @@ Register exists to show.
   SA-04, SA-05, SA-08, SI-02).
 - **Done when**: the 5.1.1 → 5.2.0 diff on screen matches NIST's published change list exactly.
 
-### M4: Register, semi-structured sources (2 to 3 weeks)
+### M4: Register, semi-structured sources (2 to 3 weeks) — shipped 2026-10-15 as 0.5.0
+
+What landed: the DISA adapter reads the STIG library through the Apex call the cyber.mil page
+itself makes, follows the STIGs on the watchlist (or six defaults), downloads each zip and
+normalises the XCCDF rule by rule (Group id as the stable ref, STIG id, severity as CAT, check,
+discussion, fix, CCIs). The Microsoft adapter reads the toolkit page's embedded file list and
+every "Security Baseline" zip's `.PolicyRules` file setting by setting (registry values,
+security-template lines, audit subcategories), with the GPO version token stripped from refs so
+settings keep their identity across releases. Listings are compared by file URL and publication
+date, so a daily check costs one small request until something moves. First live run: six STIGs
+(1,516 rules) and ten Microsoft baselines (3,764 settings) in under three seconds each; the
+2016-era Windows 10 1607 zip predates the PolicyRules format and is reported, not loaded.
+ComplianceAsCode is deferred.
 - DISA STIG adapter: watch the downloads listing, fetch zips, extract XCCDF, normalise rules
   (rule id, severity, title, check, fix), diff per STIG per release, read the revision history
   element for rationale. Fallback mirror: NIST NCP.

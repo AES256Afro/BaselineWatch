@@ -188,9 +188,11 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("guidance", "Discussion", before?.guidance ?? null, after?.guidance ?? null)}
     ${field("params", "Parameters", before ? paramsText(before) : null, after ? paramsText(after) : null)}
     ${field("related", "Related controls", before?.related.length ? [...before.related].sort().join(", ") : null, after?.related.length ? [...after.related].sort().join(", ") : null)}
+    ${field("extra", "Fix", typeof before?.extra.fix === "string" ? before.extra.fix : null, typeof after?.extra.fix === "string" ? after.extra.fix : null)}
     ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}`;
 
-  return page({ title: `${shown.label} ${shown.title}`, active: "register", content, owner, open });
+  const shortTitle = shown.title.length > 70 ? `${shown.title.slice(0, 69).trimEnd()}…` : shown.title;
+  return page({ title: `${shown.label} ${shortTitle}`, active: "register", content, owner, open });
 }
 
 export type { SourceRow };

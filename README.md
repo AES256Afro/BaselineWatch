@@ -8,13 +8,14 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M3, the Register. NIST SP 800-53 and its 800-53B baselines are loaded from NIST's
-OSCAL catalogs, every release kept as a snapshot and diffed against the last: control by control,
-field by field, with a word-level redline and the publisher's own release note beside it. The
-first real diff, Release 5.1.1 to 5.2.0, loads from NIST's published history with one command.
-The Wire (M1) carries news feeds, Reddit, Hacker News, CISA advisories and the KEV catalog; the
-Vulnerabilities page (M2) pulls every CVE NVD modifies with EPSS, KEV and your watchlist.
-Next: DISA STIGs and Microsoft baselines (M4), rationale extraction and badged summaries (M5).
+**Status**: M4. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), the
+DISA STIGs you follow (XCCDF, rule by rule) and every Microsoft Security Baseline in the
+Security Compliance Toolkit (setting by setting). Every release is kept as a snapshot and diffed
+against the last with a word-level redline and the publisher's own release note beside it; NIST's
+Release 5.1.1 to 5.2.0 loads from published history with one command. The Wire (M1) carries news
+feeds, Reddit, Hacker News, CISA advisories and the KEV catalog; the Vulnerabilities page (M2)
+pulls every CVE NVD modifies with EPSS, KEV and your watchlist.
+Next: rationale extraction and badged summaries (M5), triage and digests (M6).
 Public home will be https://cybercard.net, a read-only information and teaching site.
 
 ## Run it
