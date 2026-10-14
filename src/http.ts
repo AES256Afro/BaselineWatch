@@ -12,6 +12,9 @@ export interface HttpOptions {
   headers?: Record<string, string>;
   /** Responses larger than this are refused. */
   maxBytes?: number;
+  /** GET unless a body is given; the few listing endpoints that need a POST send JSON. */
+  method?: "GET" | "POST";
+  body?: string;
 }
 
 export interface HttpResponse {
@@ -46,7 +49,9 @@ export const httpGet: HttpGet = async (url, options = {}) => {
   if (options.lastModified) headers["if-modified-since"] = options.lastModified;
 
   const response = await fetch(url, {
+    method: options.method ?? (options.body !== undefined ? "POST" : "GET"),
     headers,
+    ...(options.body !== undefined ? { body: options.body } : {}),
     redirect: "follow",
     signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
   });

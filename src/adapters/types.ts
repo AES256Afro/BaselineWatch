@@ -95,6 +95,12 @@ export interface DocumentContext {
   source: SourceRow;
 }
 
+export interface ListingContext {
+  db: DatabaseSync;
+  http: HttpGet;
+  now: () => Date;
+}
+
 /**
  * An adapter does one of three things: turns one fetched feed into timeline items (`parse`),
  * runs its own multi-request pull against a stream such as the NVD API (`pull`), or names the
@@ -109,8 +115,8 @@ export interface Adapter {
   pull?(ctx: PullContext): Promise<PullOutcome>;
   /** Runs after a parsed document's items are stored, for joins into other tables. */
   after?(db: DatabaseSync, items: ParsedItem[], now: Date): void;
-  /** The current documents of a standards source. */
-  documents?(source: SourceRow): DocumentTarget[];
+  /** The current documents of a standards source; a listing adapter fetches its index here first. */
+  documents?(source: SourceRow, ctx: ListingContext): Promise<DocumentTarget[]> | DocumentTarget[];
   /** Earlier releases, oldest first, so the Register can start with real history. */
   history?(source: SourceRow): DocumentTarget[];
   parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument;

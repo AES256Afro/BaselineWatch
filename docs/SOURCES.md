@@ -44,12 +44,17 @@ new downloads).
 - **Diffability**: good for CPRT, fair for PDF (normalise whitespace and hyphenation first).
 
 ### DISA STIGs and SRGs
-- **Fetch**: downloads listing at `https://www.cyber.mil/stigs/downloads/`
-  (`public.cyber.mil` redirects there; the page is JavaScript-rendered, so the adapter needs
-  either the underlying data endpoint, *verify* in M4, or a headless fetch). Each STIG is a zip
-  containing XCCDF 1.1.4 XML. The quarterly "SRG-STIG Library Compilation" zip bundles them all.
-  Mirror: NIST National Checklist Program `https://ncp.nist.gov/repository`, which records each
-  revision with its download.
+- **Fetch**: the library page `https://www.cyber.mil/stigs/downloads/` is a Salesforce
+  Lightning app. Its table is filled by one Apex call that answers without a login (confirmed
+  2026-10-15): `POST https://www.cyber.mil/webruntime/api/apex/execute?language=en-US&asGuest=true&htmlEncode=false`
+  with body `{"classname":"@udd/01pRw0000002mOj","method":"getCyberDocumentCatalogByDocumentLibrary","params":{"documentLibrary":"STIGs"},...}`,
+  returning 414 items with `FileName` ("Microsoft Windows Server 2025 STIG - Ver 1, Rel 4"),
+  `DownloadLink` (zips on `dl.dod.cyber.mil/wp-content/uploads/stigs/zip/`), `UploadDate` and
+  `RawDownloadType` (STIGs; Sunset; SCAP 1.3; Supplemental Automation Content; STIG
+  Compilations). Each manual STIG zip holds one XCCDF 1.1.4 file plus Overview and Revision
+  History PDFs. The adapter follows the STIGs named on the watchlist (kind `baseline`) or a small
+  default set, since the whole library is hundreds of zips. The class id in the request is the
+  one thing likely to move when DISA redeploys the site; the fixture test will say so.
 - **Cadence**: DISA releases quarterly (late Jan / Apr / Jul / Oct) plus out-of-band fixes;
   poll the listing daily.
 - **Shape**: `requirement-set`. Benchmark id and release, rule id (SV-xxxxxrxxx), STIG id
@@ -66,8 +71,13 @@ new downloads).
   Announcements: Microsoft Security Baselines blog on Tech Community (RSS available from the
   blog's feed link; *verify* exact URL).
 - **Cadence**: per Windows feature update and per Office/Edge channel; poll weekly.
-- **Shape**: `setting-set`. From the baseline `.xlsx` ("MS Security Baseline ... .xlsx") and
-  the GPO backups: policy path, setting name, value, scope (MS / DC / User), rationale column.
+- **Shape**: `setting-set`, read from the `.PolicyRules` file in each baseline zip (Policy
+  Analyzer's format, confirmed 2026-10-15): `ComputerConfig` and `UserConfig` registry values
+  (Key, Value, RegType, RegData, PolicyName), `SecurityTemplate` lines by section, and
+  `AuditSubcategory` settings, each tagged with the GPO it comes from (Member Server, Domain
+  Controller, Defender Antivirus, Credential Guard...). The version token in the GPO name is
+  stripped so a setting keeps its ref across releases. The download page's `__DLCDetails__` JSON
+  lists every zip with `datePublished`; the `.xlsx` and `Announcement.pdf` in the zip are for M5.
 - **Rationale**: the blog post for the release, which walks through each changed setting (for
   example Server 2025 v2602 disabling `sudo` on member servers and domain controllers).
 - **Licence**: Microsoft; redistribution of the toolkit is not permitted, so snapshots stay

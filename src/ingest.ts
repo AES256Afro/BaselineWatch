@@ -28,6 +28,13 @@ export async function ingestDocumentTarget(
 ): Promise<DocumentOutcome> {
   const base = { key: target.key, documentId: null as number | null, versionLabel: null as string | null, summary: null as string | null, error: null as string | null };
   try {
+    // A listing that names the file and its publication date is enough to know nothing moved.
+    if (target.publishedAt) {
+      const seen = db
+        .prepare("SELECT id, version_label FROM documents WHERE source_id = ? AND document_key = ? AND source_url = ? AND published_at = ? ORDER BY id DESC LIMIT 1")
+        .get(source.id, target.key, target.url, target.publishedAt) as { id: number; version_label: string | null } | undefined;
+      if (seen) return { ...base, status: "unchanged", documentId: seen.id, versionLabel: seen.version_label };
+    }
     const response = await deps.http(target.url, { ...(adapter.headers ? { headers: adapter.headers } : {}), timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024 });
     const fetchedAt = deps.now().toISOString();
     const sha256 = sha256Hex(response.bytes);
@@ -165,7 +172,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     }
     if (adapter.documents) {
       const outcomes: DocumentOutcome[] = [];
-      for (const target of adapter.documents(source)) outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now }));
+      for (const target of await adapter.documents(source, { db, http, now })) outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now }));
       const errors = outcomes.filter((o) => o.status === "error");
       const fresh = outcomes.filter((o) => o.status === "ok");
       const status: IngestStatus = errors.length === outcomes.length ? "error" : fresh.length ? "ok" : "unchanged";

@@ -1,3 +1,4 @@
+import { disaAdapter } from "./disa.ts";
 import { epssAdapter } from "./epss.ts";
 import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
@@ -5,6 +6,7 @@ import { kevAdapter } from "./kev.ts";
 import { nvdAdapter } from "./nvd.ts";
 import { nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { redditAdapter } from "./reddit.ts";
+import { sctAdapter } from "./sct.ts";
 import type { Adapter, SourceRow } from "./types.ts";
 
 const byId: Record<string, Adapter> = {
@@ -14,6 +16,8 @@ const byId: Record<string, Adapter> = {
   "first-epss": epssAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
+  "microsoft-sct": sctAdapter,
+  "disa-stigs": disaAdapter,
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
   "reddit-blueteamsec": redditAdapter,
@@ -29,4 +33,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { epssAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter };
+export { disaAdapter, epssAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };
