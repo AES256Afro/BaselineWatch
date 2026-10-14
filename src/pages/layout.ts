@@ -7,9 +7,9 @@ export type Area = "register" | "wire" | "vulnerabilities" | "triage" | "watchli
 const built: Record<Area, { label: string; path: string; milestone: string }> = {
   register: { label: "Register", path: "/", milestone: "" },
   wire: { label: "Wire", path: "/wire", milestone: "" },
-  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "M2" },
+  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "" },
   triage: { label: "Triage", path: "/triage", milestone: "M6" },
-  watchlist: { label: "Watchlist", path: "/watchlist", milestone: "M2" },
+  watchlist: { label: "Watchlist", path: "/watchlist", milestone: "" },
   sources: { label: "Sources", path: "/sources", milestone: "" },
 };
 const order: Area[] = ["register", "wire", "vulnerabilities", "triage", "watchlist", "sources"];

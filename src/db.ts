@@ -52,7 +52,7 @@ export function migrate(db: DatabaseSync, dir: string = migrationsDir): Migratio
   return { applied, known: known.map((f) => f.replace(/\.sql$/, "")) };
 }
 
-const countable = new Set(["sources", "snapshots", "documents", "requirements", "changes", "items", "triage", "watchlist", "schema_migrations"]);
+const countable = new Set(["sources", "snapshots", "documents", "requirements", "changes", "items", "triage", "watchlist", "vulns", "vuln_changes", "schema_migrations"]);
 
 /** Row count of one of the known tables. The name is checked against an allowlist, never interpolated from input. */
 export function countRows(db: DatabaseSync, table: string, where = ""): number {

@@ -8,10 +8,12 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M1, the Wire. News feeds, Reddit, Hacker News, CISA advisories and the CISA Known
-Exploited Vulnerabilities catalog are fetched on a schedule into one searchable timeline, with
-read and star state for the owner. The standards Register is still empty: the first diff (NIST
-SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs) arrives with M3.
+**Status**: M2, Vulnerabilities. The Wire (M1) carries news feeds, Reddit, Hacker News, CISA
+advisories and the CISA Known Exploited Vulnerabilities catalog in one searchable timeline. The
+Vulnerabilities page pulls every CVE NVD modifies, joins CISA KEV and FIRST EPSS onto it, keeps a
+field-level change history per CVE, and marks what touches your watchlist; notable CVEs surface
+on the Wire. The standards Register is still empty: the first diff (NIST SP 800-53 Release 5.1.1
+to 5.2.0 from the OSCAL catalogs) arrives with M3.
 Public home will be https://cybercard.net, a read-only information and teaching site.
 
 ## Run it
@@ -55,6 +57,7 @@ source immediately from that page.
 | `BW_SESSION_SECRET` | random per start | Signs the owner's session cookie. Set it so sessions survive restarts. |
 | `BW_SCHEDULER` | `true` | Fetch sources in-process on their schedule. Set false to run `npm run fetch -- due` from cron instead. |
 | `BW_NVD_API_KEY` | unset | Free from nvd.nist.gov/developers; 50 requests per 30 s instead of 5. |
+| `BW_NVD_BACKFILL_DAYS` | `7` | How many days of NVD modifications the first pull loads. Later pulls continue from the stored cursor. |
 | `BW_NOTIFY_URL` | unset | Apprise-style URL for KEV additions and standard releases (M6). |
 | `BW_LLM_URL` | unset | Ollama address. When set, changes also get a summary badged as generated (M5). |
 | `TZ` | `Etc/UTC` | Time zone for digests. |

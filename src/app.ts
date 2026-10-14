@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
-import type { ItemKind } from "./adapters/types.ts";
+import type { ItemKind, PullSettings } from "./adapters/types.ts";
 import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader } from "./auth.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
@@ -11,8 +11,11 @@ import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
 import { renderSources } from "./pages/sources.ts";
+import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
+import { renderWatchlist } from "./pages/watchlist.ts";
 import { renderWire } from "./pages/wire.ts";
 import { productName, productVersion } from "./version.ts";
+import { recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
 export interface AppContext {
@@ -29,12 +32,16 @@ export interface AppContext {
 
 export const publicDir = path.join(import.meta.dirname, "..", "public");
 
+export function pullSettings(config: Config): PullSettings {
+  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays };
+}
+
 export interface HealthReport {
   ok: boolean;
   name: string;
   version: string;
   uptimeSeconds: number;
-  database: { migrations: number; bytes: number; sources: number; snapshots: number; changes: number; items: number };
+  database: { migrations: number; bytes: number; sources: number; snapshots: number; changes: number; items: number; vulns: number };
 }
 
 export function healthReport(ctx: AppContext): HealthReport {
@@ -50,6 +57,7 @@ export function healthReport(ctx: AppContext): HealthReport {
       snapshots: countRows(ctx.db, "snapshots"),
       changes: countRows(ctx.db, "changes"),
       items: countRows(ctx.db, "items"),
+      vulns: countRows(ctx.db, "vulns"),
     },
   };
 }
@@ -72,8 +80,9 @@ export function safeBack(value: unknown, fallback: string): string {
   return value;
 }
 
+const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
+
 function wireFilters(query: Record<string, unknown>): WireFilters {
-  const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, 200) : undefined);
   const kind = str(query.kind);
   const before = Number(str(query.before));
   return {
@@ -82,6 +91,25 @@ function wireFilters(query: Record<string, unknown>): WireFilters {
     q: str(query.q),
     unread: str(query.unread) === "1",
     before: Number.isInteger(before) && before > 0 ? before : undefined,
+  };
+}
+
+function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
+  const num = (v: unknown): number | undefined => {
+    const n = Number(str(v));
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const sort = str(query.sort);
+  const offset = num(query.offset);
+  return {
+    watch: str(query.watch) === "1",
+    kev: str(query.kev) === "1",
+    minCvss: num(query.min_cvss),
+    minEpss: num(query.min_epss),
+    changedSince: str(query.changed) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
+    q: str(query.q),
+    sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
+    offset: offset !== undefined && offset >= 0 ? Math.floor(offset) : 0,
   };
 }
 
@@ -148,15 +176,14 @@ export function createApp(ctx: AppContext): Express {
     if (res.locals.owner === true) return next();
     res.status(403).type("text").send("Only the owner can do that. Sign in at /login.");
   };
+  const who = (res: Response): { owner: boolean; open: boolean } => ({ owner: res.locals.owner === true, open: res.locals.open === true });
 
   app.get("/", (_req, res) => {
-    res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner: res.locals.owner === true, now: now() }));
+    res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner: who(res).owner, now: now() }));
   });
 
   app.get("/wire", (req, res) => {
-    res
-      .type("html")
-      .send(renderWire({ db, filters: wireFilters(req.query as Record<string, unknown>), owner: res.locals.owner === true, open: res.locals.open === true, now: now() }));
+    res.type("html").send(renderWire({ db, filters: wireFilters(req.query as Record<string, unknown>), ...who(res), now: now() }));
   });
 
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {
@@ -177,16 +204,56 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/wire"));
   });
 
+  app.get("/vulnerabilities", (req, res) => {
+    res.type("html").send(renderVulnList({ db, filters: vulnFilters(req.query as Record<string, unknown>, now()), ...who(res), now: now() }));
+  });
+  app.get("/vulnerabilities/:cve", (req, res, next) => {
+    const cveId = String(req.params.cve).toUpperCase();
+    if (!/^CVE-\d{4}-\d{4,7}$/.test(cveId)) return next();
+    const html = renderVulnDetail({ db, cveId, ...who(res), now: now() });
+    if (!html) return next();
+    res.type("html").send(html);
+  });
+
+  app.get("/watchlist", (req, res) => {
+    res.type("html").send(renderWatchlist({ db, ...who(res), notice: str(req.query.notice, 300) }));
+  });
+  app.post("/watchlist", requireOwner, (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const kind = str(body.kind);
+    const value = str(body.value);
+    const label = str(body.label, 60) ?? null;
+    if (!kind || !["product", "keyword", "baseline", "family"].includes(kind) || !value) {
+      return res.status(400).type("text").send("A kind and a value are needed.");
+    }
+    db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, value, label, now().toISOString());
+    const changed = recomputeWatchHits(db);
+    res.redirect(303, `/watchlist?notice=${encodeURIComponent(`Added ${value}; ${changed} CVE(s) re-marked.`)}`);
+  });
+  app.post("/watchlist/:id/delete", requireOwner, (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isInteger(id) && id > 0) {
+      db.prepare("DELETE FROM watchlist WHERE id = ?").run(id);
+      recomputeWatchHits(db);
+    }
+    res.redirect(303, "/watchlist");
+  });
+
   app.get("/sources", (req, res) => {
     const q = req.query as Record<string, unknown>;
     const notice = typeof q.fetched === "string" && typeof q.status === "string" ? { sourceId: q.fetched, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
-    res.type("html").send(renderSources({ db, owner: res.locals.owner === true, open: res.locals.open === true, notice }));
+    res.type("html").send(renderSources({ db, ...who(res), notice }));
   });
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
     const source = getSource(db, String(req.params.id));
     if (!source) return res.status(404).type("text").send("No such source.");
-    const result: IngestResult = await ingestSource(db, config.dataDir, source, { now, ...(ctx.http ? { http: ctx.http } : {}) });
-    const detail = result.status === "ok" ? `${result.items} items, ${result.inserted} new, ${result.updated} changed` : (result.error ?? result.status);
+    const result: IngestResult = await ingestSource(db, config.dataDir, source, {
+      now,
+      settings: pullSettings(config),
+      log: (line) => console.log(line),
+      ...(ctx.http ? { http: ctx.http } : {}),
+    });
+    const detail = result.status === "ok" ? (result.detail ?? `${result.items} items, ${result.inserted} new, ${result.updated} changed`) : (result.error ?? result.status);
     const params = new URLSearchParams({ fetched: source.id, status: result.status, detail });
     res.redirect(303, `/sources?${params.toString()}`);
   });

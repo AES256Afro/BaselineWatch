@@ -24,8 +24,18 @@ export interface Config {
   /** False stops the in-process scheduler (tests, or when a cron job runs the CLI instead). */
   scheduler: boolean;
   nvdApiKey: string | null;
+  /** How many days of NVD modifications the first pull loads. */
+  nvdBackfillDays: number;
   notifyUrl: string | null;
   llmUrl: string | null;
+}
+
+function days(env: Env, key: string, fallback: number): number {
+  const value = env[key];
+  if (value === undefined || value.trim() === "") return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1 || n > 3650) throw new Error(`${key} must be a whole number of days between 1 and 3650, got "${value}"`);
+  return n;
 }
 
 type Env = Record<string, string | undefined>;
@@ -69,6 +79,7 @@ export function loadConfig(env: Env = process.env): Config {
     sessionSecret: optional(env, "BW_SESSION_SECRET") ?? randomBytes(32).toString("hex"),
     scheduler: flag(env, "BW_SCHEDULER", true),
     nvdApiKey: optional(env, "BW_NVD_API_KEY"),
+    nvdBackfillDays: days(env, "BW_NVD_BACKFILL_DAYS", 7),
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
     llmUrl: optional(env, "BW_LLM_URL"),
   };

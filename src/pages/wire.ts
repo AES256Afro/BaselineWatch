@@ -14,6 +14,8 @@ interface Signals {
   score?: number;
   comments?: number;
   thread?: string;
+  epss?: number | null;
+  watch?: string[];
 }
 
 function signals(item: WireItem): Signals {
@@ -40,7 +42,12 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
 function chips(item: WireItem): Html[] {
   const s = signals(item);
   const out: Html[] = [];
-  if (item.kind === "kev") out.push(html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>`);
+  if (item.kind === "kev" || (item.kind === "vulnerability" && s.kev)) out.push(html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>`);
+  if (item.kind === "vulnerability") {
+    if (typeof s.epss === "number") out.push(html`<span class="chip epss">EPSS ${(s.epss * 100).toFixed(0)}%</span>`);
+    if (s.watch?.length) out.push(html`<span class="chip mine">${s.watch.join(", ")}</span>`);
+    if (s.cves?.[0]) out.push(html`<a class="chip" href="/vulnerabilities/${s.cves[0]}">details</a>`);
+  }
   if (s.ransomware) out.push(html`<span class="chip kev">ransomware</span>`);
   if (s.cves?.length && item.kind !== "kev") out.push(html`<span class="chip">${s.cves.slice(0, 3).join(", ")}${s.cves.length > 3 ? html` +${s.cves.length - 3}` : ""}</span>`);
   if (typeof s.score === "number" && s.thread) out.push(html`<a class="chip" href="${s.thread}" rel="noopener">${s.score} pts · ${s.comments ?? 0} comments</a>`);
@@ -105,6 +112,7 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
           <a class="${!filters.kind ? "on" : ""}" href="${query(filters, { kind: undefined, before: undefined })}">All</a>
           <a class="${filters.kind === "article" ? "on" : ""}" href="${query(filters, { kind: "article", before: undefined })}">News</a>
           <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", before: undefined })}">Known exploited</a>
+          <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", before: undefined })}">Notable CVEs</a>
           <a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">

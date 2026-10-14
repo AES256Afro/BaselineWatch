@@ -93,9 +93,9 @@ describe("ingestSource", () => {
   });
 
   it("skips a source that has no adapter yet", async () => {
-    const result = await ingestSource(db, dataDir, source("nvd-cves"), { http: fakeHttp({}), now });
+    const result = await ingestSource(db, dataDir, source("disa-stigs"), { http: fakeHttp({}), now });
     expect(result.status).toBe("skipped");
-    expect(source("nvd-cves").last_fetch_at).toBeNull();
+    expect(source("disa-stigs").last_fetch_at).toBeNull();
   });
 
   it("loads the KEV catalog with its version and marks the document", async () => {
@@ -150,7 +150,7 @@ describe("scheduler", () => {
     const due = dueSources(db, at);
     expect(due.every((s) => s.last_fetch_at === null)).toBe(true);
     expect(due.map((s) => s.id)).toContain("bleeping");
-    expect(due.map((s) => s.id)).not.toContain("nvd-cves");
+    expect(due.map((s) => s.id)).not.toContain("disa-stigs");
     expect(due.map((s) => s.id)).not.toContain("cis-benchmarks");
 
     db.prepare("UPDATE sources SET last_fetch_at = ?, last_status = 'ok' WHERE id = 'bleeping'").run("2026-10-14T06:30:00.000Z");

@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor } from "./adapters/index.ts";
-import { canonicalUrl, type ParsedItem, type SourceRow } from "./adapters/types.ts";
+import { canonicalUrl, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
 
@@ -15,13 +15,18 @@ export interface IngestResult {
   updated: number;
   snapshotId: number | null;
   error: string | null;
+  detail: string | null;
   durationMs: number;
 }
 
 export interface IngestDeps {
   http?: HttpGet;
   now?: () => Date;
+  settings?: PullSettings;
+  log?: (line: string) => void;
 }
+
+export const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
 
 export function getSource(db: DatabaseSync, id: string): SourceRow | null {
   return (db.prepare("SELECT * FROM sources WHERE id = ?").get(id) as unknown as SourceRow | undefined) ?? null;
@@ -80,14 +85,16 @@ export function upsertItems(db: DatabaseSync, sourceId: string, items: ParsedIte
 }
 
 /**
- * Fetches one source once: conditional GET, content-addressed snapshot, parse, upsert, and the
- * source's status row. Never throws for a source's own failure; that is recorded as `error`.
+ * Fetches one source once. A parsing adapter gets a conditional GET, a content-addressed
+ * snapshot, a parse and an upsert; a pulling adapter runs its own requests. Either way the
+ * source's status row records the outcome, and a source's own failure never throws.
  */
 export async function ingestSource(db: DatabaseSync, dataDir: string, source: SourceRow, deps: IngestDeps = {}): Promise<IngestResult> {
   const http = deps.http ?? httpGet;
   const now = deps.now ?? (() => new Date());
+  const log = deps.log ?? (() => {});
   const started = Date.now();
-  const base = { sourceId: source.id, items: 0, inserted: 0, updated: 0, snapshotId: null as number | null, error: null as string | null };
+  const base = { sourceId: source.id, items: 0, inserted: 0, updated: 0, snapshotId: null as number | null, error: null as string | null, detail: null as string | null };
   const done = (partial: Partial<IngestResult> & { status: IngestStatus }): IngestResult => ({ ...base, ...partial, durationMs: Date.now() - started });
 
   const adapter = adapterFor(source);
@@ -96,6 +103,14 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
   }
 
   try {
+    if (adapter.pull) {
+      const outcome = await adapter.pull({ db, dataDir, source, http, now, settings: deps.settings ?? defaultPullSettings, log });
+      const result = done({ status: "ok", items: outcome.items, inserted: outcome.inserted, updated: outcome.updated, detail: outcome.detail ?? null });
+      recordOutcome(db, source, { status: "ok", fetchedAt: now().toISOString(), durationMs: result.durationMs });
+      return result;
+    }
+    if (!adapter.parse) throw new Error(`adapter ${adapter.id} can neither parse nor pull`);
+
     const response = await http(source.url, {
       etag: source.etag,
       lastModified: source.last_modified,
@@ -136,6 +151,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     }
 
     const counts = status === "unchanged" ? { inserted: 0, updated: 0 } : upsertItems(db, source.id, parsed.items, fetchedAt);
+    if (status !== "unchanged") adapter.after?.(db, parsed.items, now());
     const result = done({ status, items: parsed.items.length, snapshotId, ...counts });
     recordOutcome(db, source, { status, etag: response.etag, lastModified: response.lastModified, fetchedAt, durationMs: result.durationMs });
     return result;
