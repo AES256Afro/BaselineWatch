@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createApp } from "./app.ts";
+import { createApp, pullSettings } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
@@ -25,7 +25,7 @@ const server = app.listen(config.port, config.host, () => {
 
 let scheduler: Scheduler | null = null;
 if (config.scheduler) {
-  scheduler = startScheduler({ db, dataDir: config.dataDir });
+  scheduler = startScheduler({ db, dataDir: config.dataDir, settings: pullSettings(config) });
   setTimeout(() => {
     void scheduler?.runOnce();
   }, 10_000).unref();

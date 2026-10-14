@@ -121,7 +121,7 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
         ${stats.changes === 0
           ? html`<div class="empty">
               <b>The Register has no diffs yet.</b>
-              <p>The Wire is live (news, advisories and CISA's Known Exploited Vulnerabilities). The first standards diff, NIST SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs, arrives with M3.</p>
+              <p>The Wire (news, advisories, KEV) and the Vulnerabilities table (NVD, EPSS, your watchlist) are live. The first standards diff, NIST SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs, arrives with M3.</p>
             </div>`
           : ""}
         <ul class="stds">${standardCards}</ul>
@@ -150,9 +150,9 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
         <section class="box">
           <h2>What comes next</h2>
           <ol class="plan">
-            <li><b>M2 Vulnerabilities.</b> NVD and CVE List deltas, EPSS, a watchlist for your stack.</li>
-            <li><b>M3 Register.</b> OSCAL snapshots and the first real diff on this page.</li>
+            <li><b>M3 Register.</b> OSCAL snapshots and the first real diff on this page: NIST SP 800-53 Release 5.1.1 to 5.2.0.</li>
             <li><b>M4 Register.</b> DISA STIGs and Microsoft baselines, rule by rule and setting by setting.</li>
+            <li><b>M5 Explain.</b> The publisher's reason beside every change, and an optional badged summary.</li>
           </ol>
           <p class="small">The full plan is in the repository under docs/PLAN.md.</p>
         </section>

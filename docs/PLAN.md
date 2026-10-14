@@ -178,7 +178,18 @@ the Sources page. First live run: 15 of 16 news and advisory sources parsed on t
 - **Done when**: you open it in the morning and nothing you care about is missing; nothing shows
   twice.
 
-### M2: Vulnerabilities (1 to 2 weeks)
+### M2: Vulnerabilities (1 to 2 weeks) — shipped 2026-10-15 as 0.3.0
+
+What landed: an NVD API 2.0 puller (incremental from a stored cursor, 120-day windows, 2,000 a
+page, polite pacing with or without a key, a backfill on first run); a vulnerabilities table with
+the best CVSS (4.0, 3.1, 3.0, then 2), SSVC decisions, CWEs, vulnerable CPE criteria, vendors and
+products, references, and CISA KEV fields; a field-level change history computed between
+sightings (score, description, status, CPEs, references, CWEs, KEV, EPSS jumps), which makes the
+NVD history endpoint unnecessary; the daily FIRST EPSS join; the KEV catalog joined onto known
+CVEs; the watchlist (vendor, product, vendor:product, CPE prefix, keyword) with re-marking on
+change; the Vulnerabilities list with filters and search and a per-CVE page; and "notable" CVEs
+(KEV, your stack, new criticals, EPSS over 50%, active exploitation per SSVC) on the Wire.
+CVE List V5 deltas are deferred: NVD's modified window every hour has been enough.
 - NVD API 2.0 adapter with API key, `lastModStartDate` windows, polite rate limiting, resume
   cursor; CVE History endpoint for "what changed on this CVE".
 - CVE List V5 delta releases as the primary trigger (hourly), NVD for enrichment.

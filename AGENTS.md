@@ -24,9 +24,16 @@ behind the owner's sign-in (M7); installable from the BoxPilot catalog on BigBox
 - **One pipeline**: fetch → snapshot (exact bytes, content-addressed under the data dir) →
   normalise (one of `requirement`, `setting`, `vulnerability`, `article`) → diff (field-level
   rows in `changes`) → explain (`explanations`, kind `publisher`, `generated` or `none`).
-- **A new source** is one adapter module declaring `id`, `kind`, `schedule`, `fetch()` and
-  `parse()`, a row in a migration, and a fixture test that replays a real captured response.
-  No bespoke code paths per source outside the adapter.
+  Vulnerability data is a stream, not a document: NVD records are normalised into `vulns` on
+  arrival and their history into `vuln_changes`; they are not kept as raw snapshots.
+- **A new source** is one adapter module in `src/adapters/` with an `id` and either `parse()`
+  (one document in, timeline items out; the ingester does the GET, the snapshot and the upsert)
+  or `pull()` (the adapter runs its own requests against a stream such as the NVD API), a row in
+  a migration, a line in `src/adapters/index.ts`, and a fixture test that replays a real captured
+  response. No bespoke code paths per source outside the adapter.
+- **The Wire is for what matters.** Every CVE goes in the Vulnerabilities table; only notable
+  ones (`isNotable` in `src/vulns.ts`: KEV, watchlist, new criticals, EPSS over 50%, active
+  exploitation per SSVC) become timeline items.
 - **Schema** changes are new files in `src/migrations/NNNN_name.sql`; never edit an applied one.
 - **Generated text is always labelled.** A model may summarise a change only beside the quoted
   official rationale, and the badge is not optional.

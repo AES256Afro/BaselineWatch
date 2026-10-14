@@ -95,7 +95,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
       const due = dueSources(db, now());
       if (due.length === 0) return [];
       log(`[scheduler] ${due.length} source(s) due`);
-      const deps: IngestDeps = { now, ...(options.http ? { http: options.http } : {}) };
+      const deps: IngestDeps = { now, log, ...(options.http ? { http: options.http } : {}), ...(options.settings ? { settings: options.settings } : {}) };
       const hostDelayMs = options.hostDelayMs ?? 3000;
       const perHost = groupByHost(due).map((group) => async () => {
         const results: IngestResult[] = [];

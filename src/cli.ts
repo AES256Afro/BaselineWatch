@@ -28,8 +28,9 @@ if (sources.length === 0) {
 }
 
 let failures = 0;
+const deps = { settings: { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays }, log: (line: string) => console.log(line) };
 for (const source of sources) {
-  const result = await ingestSource(db, config.dataDir, source);
+  const result = await ingestSource(db, config.dataDir, source, deps);
   console.log(formatResult(result));
   if (result.status === "error") failures += 1;
 }

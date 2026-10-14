@@ -1,12 +1,16 @@
+import { epssAdapter } from "./epss.ts";
 import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
+import { nvdAdapter } from "./nvd.ts";
 import { redditAdapter } from "./reddit.ts";
 import type { Adapter, SourceRow } from "./types.ts";
 
 const byId: Record<string, Adapter> = {
   "cisa-kev": kevAdapter,
   "hn-algolia": hnAdapter,
+  "nvd-cves": nvdAdapter,
+  "first-epss": epssAdapter,
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
   "reddit-blueteamsec": redditAdapter,
@@ -22,4 +26,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { feedAdapter, hnAdapter, kevAdapter, redditAdapter };
+export { epssAdapter, feedAdapter, hnAdapter, kevAdapter, nvdAdapter, redditAdapter };

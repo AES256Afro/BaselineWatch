@@ -171,6 +171,39 @@ input[type="search"], input[type="password"], input[type="text"] { font: inherit
 .kev-list .when { display: block; color: var(--mute); font-size: 12px; }
 td.n { font-variant-numeric: tabular-nums; text-align: right; }
 
+/* Vulnerabilities */
+.chip.sev { font-weight: 600; }
+.chip.sev.critical { color: var(--del); background: var(--del-bg); border-color: transparent; }
+.chip.sev.high { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.chip.sev.medium { color: var(--mute); }
+.chip.sev.low, .chip.sev.none { color: var(--mute); opacity: 0.8; }
+.chip.epss { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.chip.mine { color: var(--ins); background: var(--ins-bg); border-color: transparent; }
+table.vulns td.id { white-space: nowrap; }
+table.vulns td.id a { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--ink); }
+table.vulns td.id .chip { margin-left: 6px; }
+table.vulns td.desc { max-width: 42ch; }
+table.vulns td.desc span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--mute); }
+table.vulns td.who { max-width: 18ch; overflow-wrap: anywhere; }
+table.vulns td.when { white-space: nowrap; color: var(--mute); }
+table.vulns tr.hit td.id a { color: var(--acc); }
+.sort { margin-left: auto; font-size: 12.5px; color: var(--mute); display: flex; gap: 6px; align-items: center; }
+.vuln-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px 20px; margin-top: 22px; }
+.vuln-head h1 { font-family: var(--mono); font-size: 26px; font-weight: 600; margin-bottom: 8px; }
+.vuln-head .links { color: var(--mute); font-size: 13px; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hist li { display: grid; grid-template-columns: 130px 1fr; gap: 2px 12px; font-size: 13px; }
+.hist time { color: var(--mute); font-family: var(--mono); font-size: 12px; }
+.hist b { grid-column: 2; font-weight: 600; }
+.hist span, .hist .redline, .hist small { grid-column: 2; }
+.hist small { color: var(--mute); }
+.redline del, .redline ins { display: block; margin-top: 4px; }
+.cpes { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cpes code { font-size: 12px; overflow-wrap: anywhere; }
+.refs { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 4px; }
+.refs a { overflow-wrap: anywhere; }
+select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); max-width: 100%; }
+
 /* Sign-in */
 .login { max-width: 420px; margin: 40px auto; }
 .stack { display: grid; gap: 8px; }

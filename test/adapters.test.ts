@@ -13,7 +13,7 @@ const source = { id: "x", format: "rss" } as SourceRow;
 
 describe("feed adapter", () => {
   it("reads RSS with CDATA, content:encoded, entities and CVE ids", () => {
-    const { items, documentKey } = feedAdapter.parse(fixture("rss.xml"), source, now);
+    const { items, documentKey } = feedAdapter.parse!(fixture("rss.xml"), source, now);
     expect(documentKey).toBe("feed");
     expect(items).toHaveLength(3);
     const [first, second, third] = items;
@@ -32,7 +32,7 @@ describe("feed adapter", () => {
   });
 
   it("reads Atom with alternate links, html summaries and content fallbacks", () => {
-    const { items } = feedAdapter.parse(fixture("atom.xml"), { ...source, format: "atom" }, now);
+    const { items } = feedAdapter.parse!(fixture("atom.xml"), { ...source, format: "atom" }, now);
     expect(items).toHaveLength(2);
     expect(items[0]?.externalId).toBe("tag:blog.example.test,2026:post-77");
     expect(items[0]?.url).toBe("https://blog.example.test/2026/oauth-device-code");
@@ -43,13 +43,13 @@ describe("feed adapter", () => {
   });
 
   it("refuses something that is not a feed", () => {
-    expect(() => feedAdapter.parse(new TextEncoder().encode("<html><body>nope</body></html>"), source, now)).toThrow(/not an RSS or Atom/);
+    expect(() => feedAdapter.parse!(new TextEncoder().encode("<html><body>nope</body></html>"), source, now)).toThrow(/not an RSS or Atom/);
   });
 });
 
 describe("kev adapter", () => {
   it("turns every catalog entry into a dated kev item with its due date", () => {
-    const { items, documentKey, versionLabel } = kevAdapter.parse(fixture("kev.json"), source, now);
+    const { items, documentKey, versionLabel } = kevAdapter.parse!(fixture("kev.json"), source, now);
     expect(documentKey).toBe("known_exploited_vulnerabilities.json");
     expect(versionLabel).toBe("2026.10.14");
     expect(items).toHaveLength(3);
@@ -66,7 +66,7 @@ describe("kev adapter", () => {
 
 describe("reddit adapter", () => {
   it("keeps link posts and self posts, drops stickies, never stores comments", () => {
-    const { items } = redditAdapter.parse(fixture("reddit.json"), source, now);
+    const { items } = redditAdapter.parse!(fixture("reddit.json"), source, now);
     expect(items.map((i) => i.externalId)).toEqual(["t3_1abcde", "t3_1abcdg"]);
     expect(items[0]?.url).toBe("https://blog.example.test/2026/oauth-device-code");
     expect(items[0]?.summary).toBe("r/netsec · blog.example.test");
@@ -79,7 +79,7 @@ describe("reddit adapter", () => {
 
 describe("reddit adapter, Atom", () => {
   it("takes the outbound link for link posts and the thread for self posts", () => {
-    const { items } = redditAdapter.parse(fixture("reddit-atom.xml"), { ...source, format: "atom" }, now);
+    const { items } = redditAdapter.parse!(fixture("reddit-atom.xml"), { ...source, format: "atom" }, now);
     expect(items.map((i) => i.externalId)).toEqual(["t3_1abcde", "t3_1abcdg"]);
     expect(items[0]?.url).toBe("https://blog.example.test/2026/oauth-device-code?utm_source=reddit");
     expect(items[0]?.summary).toBe("r/netsec · blog.example.test");
@@ -94,7 +94,7 @@ describe("reddit adapter, Atom", () => {
 
 describe("hn adapter", () => {
   it("links to the story or the thread and skips hits without a title", () => {
-    const { items } = hnAdapter.parse(fixture("hn.json"), source, now);
+    const { items } = hnAdapter.parse!(fixture("hn.json"), source, now);
     expect(items).toHaveLength(2);
     expect(items[0]?.url).toBe("https://eng.example.test/postmortem-ci-token");
     expect(items[0]?.summary).toBe("212 points · 87 comments");
@@ -109,7 +109,8 @@ describe("adapter registry", () => {
     expect(adapterFor({ id: "bleeping", format: "rss" })?.id).toBe("feed");
     expect(adapterFor({ id: "schneier", format: "atom" })?.id).toBe("feed");
     expect(adapterFor({ id: "reddit-netsec", format: "json" })?.id).toBe("reddit");
-    expect(adapterFor({ id: "nvd-cves", format: "json" })).toBeNull();
+    expect(adapterFor({ id: "nvd-cves", format: "json" })?.id).toBe("nvd");
+    expect(adapterFor({ id: "cvelist-v5", format: "json" })).toBeNull();
     expect(adapterFor({ id: "disa-stigs", format: "xccdf-zip" })).toBeNull();
   });
 });

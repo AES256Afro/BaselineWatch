@@ -1,3 +1,4 @@
+import { applyKev } from "../vulns.ts";
 import { isoDate, plainText, type Adapter, type ParsedItem } from "./types.ts";
 
 interface KevEntry {
@@ -24,7 +25,8 @@ interface KevCatalog {
 
 /**
  * CISA's Known Exploited Vulnerabilities catalog. Every entry becomes a `kev` item dated by
- * dateAdded, so an addition surfaces at the top of the Wire and carries its due date.
+ * dateAdded, so an addition surfaces at the top of the Wire and carries its due date. After the
+ * items are stored the catalog is joined onto the vulnerabilities table.
  */
 export const kevAdapter: Adapter = {
   id: "kev",
@@ -51,5 +53,15 @@ export const kevAdapter: Adapter = {
       },
     }));
     return { items, documentKey: "known_exploited_vulnerabilities.json", versionLabel: catalog.catalogVersion ?? null };
+  },
+  after(db, items, now) {
+    applyKev(
+      db,
+      items.map((i) => {
+        const s = (i.signals ?? {}) as { dueDate?: string; ransomware?: boolean };
+        return { cveId: i.externalId, dateAdded: i.publishedAt?.slice(0, 10) ?? null, dueDate: s.dueDate ?? null, ransomware: s.ransomware === true };
+      }),
+      now.toISOString(),
+    );
   },
 };

@@ -1,3 +1,6 @@
+import type { DatabaseSync } from "node:sqlite";
+import type { HttpGet } from "../http.ts";
+
 /** A row of the sources table, as the adapters see it. */
 export interface SourceRow {
   id: string;
@@ -43,12 +46,43 @@ export interface ParseResult {
   versionLabel?: string | null;
 }
 
-/** An adapter turns one fetched document into timeline items. It never does I/O itself. */
+/** Settings a pulling adapter may need. */
+export interface PullSettings {
+  nvdApiKey: string | null;
+  nvdBackfillDays: number;
+}
+
+export interface PullContext {
+  db: DatabaseSync;
+  dataDir: string;
+  source: SourceRow;
+  http: HttpGet;
+  now: () => Date;
+  settings: PullSettings;
+  log: (line: string) => void;
+}
+
+export interface PullOutcome {
+  /** Records the adapter handled. */
+  items: number;
+  inserted: number;
+  updated: number;
+  /** A note for the Sources page, such as the cursor reached. */
+  detail?: string;
+}
+
+/**
+ * An adapter turns one fetched document into timeline items (`parse`), or runs its own
+ * multi-request pull against a stream such as the NVD API (`pull`). One or the other.
+ */
 export interface Adapter {
   id: string;
   /** Extra request headers, for sources that need them. */
   headers?: Record<string, string>;
-  parse(bytes: Uint8Array, source: SourceRow, now: Date): ParseResult;
+  parse?(bytes: Uint8Array, source: SourceRow, now: Date): ParseResult;
+  pull?(ctx: PullContext): Promise<PullOutcome>;
+  /** Runs after a parsed document's items are stored, for joins into other tables. */
+  after?(db: DatabaseSync, items: ParsedItem[], now: Date): void;
 }
 
 export const cvePattern = /\bCVE-\d{4}-\d{4,7}\b/g;
