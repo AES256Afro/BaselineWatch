@@ -8,8 +8,10 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M0 scaffold. The container, the database schema, the source register and the
-Register home page exist; nothing is fetched yet (M1 adds news and KEV, M3 the first OSCAL diff).
+**Status**: M1, the Wire. News feeds, Reddit, Hacker News, CISA advisories and the CISA Known
+Exploited Vulnerabilities catalog are fetched on a schedule into one searchable timeline, with
+read and star state for the owner. The standards Register is still empty: the first diff (NIST
+SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs) arrives with M3.
 Public home will be https://cybercard.net, a read-only information and teaching site.
 
 ## Run it
@@ -31,13 +33,27 @@ With Docker:
 docker compose up -d
 ```
 
+Fetch one source, every enabled source, or whatever is due, from the shell:
+
+```bash
+npm run fetch -- cisa-kev
+```
+
+Sources are fetched hourly, daily or weekly as the Sources page shows; a failed source is retried
+after thirty minutes. Every fetched document is kept as a content-addressed snapshot under the
+data directory, and the Sources page shows each source's last status. The owner can fetch any
+source immediately from that page.
+
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `BW_PORT` | `8790` | Port to listen on. |
 | `BW_HOST` | `127.0.0.1` (`0.0.0.0` in the container) | Interface to bind. |
 | `BW_DATA_DIR` | `./data` (`/data` in the container) | SQLite database and snapshot blobs. |
 | `BW_BASE_URL` | `http://localhost:8790` | The address people use, for links in digests. |
-| `BW_PUBLIC_READ` | `true` | Anyone who can reach the page may read it. Writes need the owner (M7). |
+| `BW_PUBLIC_READ` | `true` | Anyone who can reach the page may read it. Writes need the owner. |
+| `BW_ADMIN_PASSWORD` | unset | The owner's password. Unset means single-user mode: no sign-in, writes open. |
+| `BW_SESSION_SECRET` | random per start | Signs the owner's session cookie. Set it so sessions survive restarts. |
+| `BW_SCHEDULER` | `true` | Fetch sources in-process on their schedule. Set false to run `npm run fetch -- due` from cron instead. |
 | `BW_NVD_API_KEY` | unset | Free from nvd.nist.gov/developers; 50 requests per 30 s instead of 5. |
 | `BW_NOTIFY_URL` | unset | Apprise-style URL for KEV additions and standard releases (M6). |
 | `BW_LLM_URL` | unset | Ollama address. When set, changes also get a summary badged as generated (M5). |

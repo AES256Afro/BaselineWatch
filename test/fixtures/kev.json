@@ -1,0 +1,47 @@
+{
+  "title": "CISA Catalog of Known Exploited Vulnerabilities",
+  "catalogVersion": "2026.10.14",
+  "dateReleased": "2026-10-14T19:27:28.0105Z",
+  "count": 3,
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2026-105134",
+      "vendorProject": "Ahsay",
+      "product": "AhsayCBS",
+      "vulnerabilityName": "Ahsay AhsayCBS Command Injection Vulnerability",
+      "dateAdded": "2026-10-14",
+      "shortDescription": "Ahsay AhsayCBS contains a command injection vulnerability that could allow a remote attacker to execute operating system commands.",
+      "requiredAction": "Apply mitigations per vendor instructions, follow applicable BOD 22-01 guidance for cloud services, or discontinue use of the product if mitigations are unavailable.",
+      "dueDate": "2026-11-04",
+      "knownRansomwareCampaignUse": "Unknown",
+      "notes": "https://www.ahsay.com/example ; https://nvd.nist.gov/vuln/detail/CVE-2026-105134",
+      "cwes": ["CWE-78"]
+    },
+    {
+      "cveID": "CVE-2026-31417",
+      "vendorProject": "Example Networks",
+      "product": "ExampleOS",
+      "vulnerabilityName": "Example Networks ExampleOS SSL-VPN Heap-Based Buffer Overflow Vulnerability",
+      "dateAdded": "2026-10-13",
+      "shortDescription": "ExampleOS contains a heap-based buffer overflow vulnerability in the SSL-VPN component.",
+      "requiredAction": "Apply mitigations per vendor instructions.",
+      "dueDate": "2026-11-03",
+      "knownRansomwareCampaignUse": "Known",
+      "notes": "",
+      "cwes": ["CWE-122"]
+    },
+    {
+      "cveID": "CVE-2021-44228",
+      "vendorProject": "Apache",
+      "product": "Log4j2",
+      "vulnerabilityName": "Apache Log4j2 Remote Code Execution Vulnerability",
+      "dateAdded": "2021-12-10",
+      "shortDescription": "Apache Log4j2 contains a vulnerability where JNDI features do not protect against attacker-controlled endpoints.",
+      "requiredAction": "Apply updates per vendor instructions.",
+      "dueDate": "2021-12-24",
+      "knownRansomwareCampaignUse": "Known",
+      "notes": "",
+      "cwes": ["CWE-20", "CWE-400", "CWE-502"]
+    }
+  ]
+}

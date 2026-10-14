@@ -140,7 +140,7 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 
 | Source | Feed | Notes |
 | --- | --- | --- |
-| CISA advisories, alerts, ICS advisories | Subscribe page `https://www.cisa.gov/subscribe-updates-cisa` lists the GovDelivery topics; direct RSS endpoints *verify* in M1 (CISA has moved them more than once). | Also the KEV JSON above. |
+| CISA advisories, alerts, ICS advisories | `https://www.cisa.gov/cybersecurity-advisories/all.xml` (confirmed 2026-10-14; `alerts.xml`, `ics-advisories.xml`, `cybersecurity-advisories.xml` and `news.xml` also answer) | Also the KEV JSON above. |
 | NIST CSRC | drafts-open-for-comment feed above; NIST news RSS index `https://www.nist.gov/news-events/nist-rss-feeds`. | |
 | NSA Cybersecurity Advisories | `https://www.nsa.gov/Press-Room/Cybersecurity-Advisories-Guidance/` (*verify* RSS). | |
 | UK NCSC | `https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml` | |
@@ -154,10 +154,10 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 | SecurityWeek | `https://feeds.feedburner.com/securityweek` | |
 | Risky Business | `https://risky.biz/feeds/risky-business/` | Newsletter and podcast. |
 | Google Project Zero | `https://googleprojectzero.blogspot.com/feeds/posts/default` | |
-| MSRC blog | `https://msrc.microsoft.com/blog/feed` | |
+| MSRC Security Update Guide | `https://api.msrc.microsoft.com/update-guide/rss` | Checked 2026-10-14: the MSRC blog moved to microsoft.com with no feed. This feed lists every Microsoft CVE (thousands), so it is a vulnerability source for M2, off until then. |
 | Microsoft Security Baselines blog | Tech Community blog RSS (*verify*). | Doubles as the Register rationale source. |
-| /r/netsec | `https://www.reddit.com/r/netsec/.rss` (or `/new.json`) | Needs a descriptive `User-Agent`; poll at most every 10 min; 429 means back off. |
-| /r/cybersecurity, /r/blueteamsec, /r/security | same pattern | /r/security is small; keep it but weight it low. |
+| /r/netsec | `https://www.reddit.com/r/netsec/new.rss?limit=50` | Checked 2026-10-14: the `.json` listing answers 403 to anything but a browser or an OAuth app; the Atom feed works with a descriptive `User-Agent`. Two requests within seconds get a 429, so the scheduler spaces requests to one host. |
+| /r/cybersecurity, /r/blueteamsec | same pattern | |
 | Hacker News | Algolia `https://hn.algolia.com/api/v1/search_by_date?tags=story&query=<terms>` | Terms list in config (CVE, vulnerability, breach, ransomware, zero-day). |
 | Georgetown CSET (if that is what "CSET" meant) | `https://cset.georgetown.edu/publications/` (*verify* RSS). | Policy research, not advisories. |
 

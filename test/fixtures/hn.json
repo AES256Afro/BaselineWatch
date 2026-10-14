@@ -1,0 +1,30 @@
+{
+  "hits": [
+    {
+      "objectID": "45900001",
+      "title": "Post-mortem: how a CI token leak became a supply-chain incident",
+      "url": "https://eng.example.test/postmortem-ci-token",
+      "created_at": "2026-10-13T22:15:00.000Z",
+      "points": 212,
+      "num_comments": 87,
+      "story_text": null
+    },
+    {
+      "objectID": "45900002",
+      "title": "Ask HN: Is anyone tracking NIST 800-53 changes automatically?",
+      "url": null,
+      "created_at": "2026-10-13T20:03:00.000Z",
+      "points": 31,
+      "num_comments": 14,
+      "story_text": "Release 5.2.0 added SA-24 and I only found out by accident."
+    },
+    {
+      "objectID": "45900003",
+      "title": null,
+      "url": "https://example.test/comment",
+      "created_at": "2026-10-13T19:00:00.000Z",
+      "points": 1,
+      "num_comments": 0
+    }
+  ]
+}

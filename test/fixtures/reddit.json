@@ -1,0 +1,59 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": "t3_zzz",
+    "children": [
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1abcde",
+          "subreddit": "netsec",
+          "title": "Write-up: abusing OAuth device code flow in enterprise SSO",
+          "url": "https://blog.example.test/2026/oauth-device-code",
+          "permalink": "/r/netsec/comments/1abcde/writeup_abusing_oauth_device_code_flow/",
+          "selftext": "",
+          "created_utc": 1792000000,
+          "is_self": false,
+          "domain": "blog.example.test",
+          "score": 143,
+          "num_comments": 12,
+          "stickied": false
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1abcdf",
+          "subreddit": "netsec",
+          "title": "Monthly hiring thread",
+          "url": "https://www.reddit.com/r/netsec/comments/1abcdf/monthly_hiring_thread/",
+          "permalink": "/r/netsec/comments/1abcdf/monthly_hiring_thread/",
+          "selftext": "Post your openings here.",
+          "created_utc": 1791900000,
+          "is_self": true,
+          "domain": "self.netsec",
+          "score": 20,
+          "num_comments": 3,
+          "stickied": true
+        }
+      },
+      {
+        "kind": "t3",
+        "data": {
+          "id": "1abcdg",
+          "subreddit": "netsec",
+          "title": "Question about CVE-2026-31417 exploitation details",
+          "url": "https://www.reddit.com/r/netsec/comments/1abcdg/question/",
+          "permalink": "/r/netsec/comments/1abcdg/question/",
+          "selftext": "Has anyone seen a public PoC for cve-2026-31417 yet?",
+          "created_utc": 1791990000,
+          "is_self": true,
+          "domain": "self.netsec",
+          "score": 5,
+          "num_comments": 1,
+          "stickied": false
+        }
+      }
+    ]
+  }
+}

@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
 import { formatBytes, html } from "../html.ts";
+import { relativeTime } from "../time.ts";
 import { page } from "./layout.ts";
 import { productName } from "../version.ts";
 
@@ -18,6 +19,14 @@ interface StandardRow {
   latest_published: string | null;
 }
 
+interface KevRow {
+  id: number;
+  title: string;
+  url: string | null;
+  published_at: string | null;
+  signals_json: string | null;
+}
+
 const formatLabel: Record<string, string> = {
   "oscal-json": "OSCAL JSON",
   "cprt-json": "CPRT JSON",
@@ -32,8 +41,15 @@ const formatLabel: Record<string, string> = {
   html: "HTML listing",
 };
 
-export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: string[] }): string {
-  const { config, db } = ctx;
+export interface HomeOptions {
+  config: Config;
+  db: DatabaseSync;
+  migrations: string[];
+  owner: boolean;
+  now: Date;
+}
+
+export function renderHome({ config, db, migrations, owner, now }: HomeOptions): string {
   const standards = db
     .prepare(
       `SELECT s.id, s.name, s.format, s.schedule, s.enabled, s.notes,
@@ -53,8 +69,16 @@ export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: 
     snapshots: countRows(db, "snapshots"),
     changes: countRows(db, "changes"),
     items: countRows(db, "items"),
+    unread: countRows(db, "items", "WHERE read = 0"),
     bytes: databaseBytes(db),
   };
+
+  const kev = db
+    .prepare("SELECT id, title, url, published_at, signals_json FROM items WHERE kind = 'kev' ORDER BY published_at DESC, id DESC LIMIT 6")
+    .all() as unknown as KevRow[];
+  const kevVersion = (db.prepare("SELECT version_label FROM documents WHERE source_id = 'cisa-kev' ORDER BY id DESC LIMIT 1").get() as { version_label: string } | undefined)
+    ?.version_label;
+  const lastFetch = (db.prepare("SELECT MAX(last_fetch_at) AS at FROM sources").get() as { at: string | null }).at;
 
   const standardCards = standards.map((s) => {
     const state =
@@ -70,13 +94,23 @@ export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: 
     </li>`;
   });
 
+  const kevList = kev.map((k) => {
+    let due = "";
+    try {
+      due = (JSON.parse(k.signals_json ?? "{}") as { dueDate?: string }).dueDate ?? "";
+    } catch {
+      due = "";
+    }
+    return html`<li><a href="${k.url ?? "/wire?kind=kev"}" rel="noopener">${k.title}</a><span class="when">${relativeTime(k.published_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
+  });
+
   const content = html`
     <div class="stats" aria-label="Totals">
       <div><small>Standards tracked</small><b>${stats.standards}</b></div>
       <div><small>Sources enabled</small><b>${stats.sources}</b></div>
       <div><small>Snapshots</small><b>${stats.snapshots}</b></div>
       <div><small>Changes</small><b>${stats.changes}</b></div>
-      <div><small>Timeline items</small><b>${stats.items}</b></div>
+      <div><small>Wire, unread</small><b>${stats.unread}</b></div>
       <div><small>Database</small><b>${formatBytes(stats.bytes)}</b></div>
     </div>
 
@@ -84,10 +118,10 @@ export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: 
       <section class="main">
         <h1>Tracked standards</h1>
         <p class="lede">Every release of each standard is kept as a snapshot. Two snapshots of the same document give a change list: each control or setting before and after, what changed, and the publisher's stated reason.</p>
-        ${stats.snapshots === 0
+        ${stats.changes === 0
           ? html`<div class="empty">
-              <b>The Register is empty.</b>
-              <p>This build (M0) proves the container, the database and this page. Fetching arrives with M1 (news, KEV) and M3 (the first OSCAL diff: NIST SP 800-53 Release 5.1.1 to 5.2.0). Nothing has been downloaded yet.</p>
+              <b>The Register has no diffs yet.</b>
+              <p>The Wire is live (news, advisories and CISA's Known Exploited Vulnerabilities). The first standards diff, NIST SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs, arrives with M3.</p>
             </div>`
           : ""}
         <ul class="stds">${standardCards}</ul>
@@ -95,24 +129,30 @@ export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: 
 
       <aside class="side">
         <section class="box">
+          <h2>Known exploited, newest${kevVersion ? html` <span class="count">catalog ${kevVersion}</span>` : ""}</h2>
+          ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/wire?kind=kev">All KEV additions on the Wire</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}
+        </section>
+        <section class="box">
           <h2>This instance</h2>
           <dl class="kv">
             <dt>Address</dt><dd>${config.baseUrl}</dd>
             <dt>Reading</dt><dd>${config.publicRead ? "open to anyone who can reach the page" : "owner only"}</dd>
+            <dt>Writes</dt><dd>${config.adminPassword ? (owner ? "you are signed in as the owner" : "owner sign-in required") : "open (no owner password set)"}</dd>
+            <dt>Last fetch</dt><dd>${lastFetch ? relativeTime(lastFetch, now) : "never"}</dd>
             <dt>Time zone</dt><dd>${config.timeZone}</dd>
             <dt>Data</dt><dd>${config.dataDir}</dd>
             <dt>NVD API key</dt><dd>${config.nvdApiKey ? "set" : "not set (5 requests per 30 s)"}</dd>
             <dt>Notifications</dt><dd>${config.notifyUrl ? "set" : "not set"}</dd>
             <dt>Local model</dt><dd>${config.llmUrl ? "set, summaries badged as generated" : "off"}</dd>
-            <dt>Schema</dt><dd>${ctx.migrations.length} migrations applied</dd>
+            <dt>Schema</dt><dd>${migrations.length} migrations applied</dd>
           </dl>
         </section>
         <section class="box">
           <h2>What comes next</h2>
           <ol class="plan">
-            <li><b>M1 Wire.</b> News feeds, CISA KEV, CSRC drafts into one timeline with search.</li>
             <li><b>M2 Vulnerabilities.</b> NVD and CVE List deltas, EPSS, a watchlist for your stack.</li>
             <li><b>M3 Register.</b> OSCAL snapshots and the first real diff on this page.</li>
+            <li><b>M4 Register.</b> DISA STIGs and Microsoft baselines, rule by rule and setting by setting.</li>
           </ol>
           <p class="small">The full plan is in the repository under docs/PLAN.md.</p>
         </section>
@@ -124,5 +164,7 @@ export function renderHome(ctx: { config: Config; db: DatabaseSync; migrations: 
     active: "register",
     content,
     meta: html`Tracking ${stats.standards} standards · ${stats.snapshots} snapshots`,
+    owner,
+    open: !config.adminPassword,
   });
 }

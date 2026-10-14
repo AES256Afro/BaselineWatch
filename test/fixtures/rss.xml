@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Example Security News</title>
+    <link>https://news.example.test/</link>
+    <atom:link href="https://news.example.test/feed/" rel="self" type="application/rss+xml"/>
+    <item>
+      <title><![CDATA[Vendor patches CVE-2026-31417 in SSL-VPN after in-the-wild exploitation]]></title>
+      <link>https://news.example.test/vendor-patches-ssl-vpn/?utm_source=rss&amp;utm_medium=feed</link>
+      <guid isPermaLink="false">news-1001</guid>
+      <pubDate>Tue, 14 Oct 2026 06:58:00 +0000</pubDate>
+      <description><![CDATA[<p>The vendor shipped <strong>7.4.8</strong> fixing a heap overflow &amp; a second bug, cve-2026-31418.</p><p>Read more&hellip;</p>]]></description>
+    </item>
+    <item>
+      <title>Ransomware group claims breach of logistics firm</title>
+      <link>https://news.example.test/ransomware-logistics/</link>
+      <guid>https://news.example.test/ransomware-logistics/</guid>
+      <pubDate>Mon, 13 Oct 2026 22:15:00 +0000</pubDate>
+      <content:encoded><![CDATA[<div>Two terabytes were listed on the leak site.</div>]]></content:encoded>
+      <description>Short description that content:encoded should win over.</description>
+    </item>
+    <item>
+      <title>No link, no guid, still a story</title>
+      <description>Only a title and this text.</description>
+    </item>
+  </channel>
+</rss>

@@ -164,7 +164,13 @@ agent; the first number is the "fast" path, the second the "quality" path from s
 - **Done when**: `docker run` serves an empty timeline on BigBox and BoxPilot installs it from a
   local manifest.
 
-### M1: Wire (1 to 2 weeks)
+### M1: Wire (1 to 2 weeks) — shipped 2026-10-14 as 0.2.0
+
+What landed: feed, Reddit, Hacker News and KEV adapters behind one ingest pipeline with
+content-addressed snapshots; an in-process scheduler with per-host spacing and a `fetch` CLI;
+the Wire page with source and kind filters, FTS5 search, read and star state and cursor paging;
+the owner session (password, signed cookie, same-origin guard, login throttle); `Fetch now` on
+the Sources page. First live run: 15 of 16 news and advisory sources parsed on the first try.
 - RSS/Atom/JSON adapters for the news list; Reddit and HN adapters with proper User-Agent and
   backoff; dedupe by canonical URL and title similarity.
 - CISA KEV adapter (new additions are events), CISA advisories feed, CSRC drafts-open-for-comment.

@@ -6,7 +6,7 @@ export type Area = "register" | "wire" | "vulnerabilities" | "triage" | "watchli
 /** Areas that have a page in this build. The rest are drawn as "soon", so the shape of the app is visible from day one. */
 const built: Record<Area, { label: string; path: string; milestone: string }> = {
   register: { label: "Register", path: "/", milestone: "" },
-  wire: { label: "Wire", path: "/wire", milestone: "M1" },
+  wire: { label: "Wire", path: "/wire", milestone: "" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "M2" },
   triage: { label: "Triage", path: "/triage", milestone: "M6" },
   watchlist: { label: "Watchlist", path: "/watchlist", milestone: "M2" },
@@ -19,9 +19,12 @@ export interface PageOptions {
   active: Area;
   content: Html;
   meta?: Html;
+  /** Draws the sign-in or sign-out control. Omit on pages that do not know. */
+  owner?: boolean | undefined;
+  open?: boolean | undefined;
 }
 
-export function page({ title, active, content, meta }: PageOptions): string {
+export function page({ title, active, content, meta, owner, open }: PageOptions): string {
   const nav = order.map((area) => {
     const item = built[area];
     const current = area === active;
@@ -30,6 +33,12 @@ export function page({ title, active, content, meta }: PageOptions): string {
     }
     return html`<a href="${item.path}"${current ? html` aria-current="page"` : ""}>${item.label}</a>`;
   });
+  const session =
+    owner === undefined || open
+      ? ""
+      : owner
+        ? html`<form method="post" action="/logout" class="inline"><button type="submit" class="link">Sign out</button></form>`
+        : html`<a href="/login">Owner sign-in</a>`;
   return (
     "<!doctype html>\n" +
     html`<html lang="en">
@@ -45,7 +54,7 @@ export function page({ title, active, content, meta }: PageOptions): string {
   <div class="mast-inner">
     <a class="name" href="/">${productName} <small>Standards change register</small></a>
     <nav aria-label="Areas">${nav}</nav>
-    <div class="meta">${meta ?? ""}</div>
+    <div class="meta">${meta ?? ""}${session ? html` <span class="sep">·</span> ${session}` : ""}</div>
   </div>
 </header>
 <main class="wrap">${content}</main>
