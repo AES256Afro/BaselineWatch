@@ -1,0 +1,10 @@
+node_modules
+data
+docs
+test
+boxpilot
+scripts
+.git
+.github
+*.md
+.env

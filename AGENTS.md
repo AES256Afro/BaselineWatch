@@ -1,0 +1,59 @@
+# Working on BaselineWatch
+
+Read this before changing anything. It applies to humans and coding agents alike.
+
+## What it is
+
+One page that keeps a security practitioner in tune: news, advisories and CVEs in a timeline,
+and a **change register for the standards themselves** (NIST SP 800-53, DISA STIGs, Microsoft
+baselines, CIS by upload): each control or setting before and after, what changed, and the
+publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`.
+
+Decisions so far (2026-10-14): the Register is the home page; build follows the "middle path"
+in the plan (Register done properly, Wire and Vulnerabilities thin, server-rendered HTML first);
+public home is https://cybercard.net as a read-only information and teaching site, with writes
+behind the owner's sign-in (M7); installable from the BoxPilot catalog on BigBox.
+
+## Conventions
+
+- **Stack**: Node ≥ 24 running TypeScript directly (type stripping, so `erasableSyntaxOnly`: no
+  enums, namespaces or parameter properties; relative imports carry the `.ts` extension; type-only
+  imports use `import type`). Express 5. `node:sqlite`. No build step. Server-rendered HTML through
+  the `html` tagged template in `src/html.ts`; no template engine, no inline script or style (the
+  CSP forbids both).
+- **One pipeline**: fetch → snapshot (exact bytes, content-addressed under the data dir) →
+  normalise (one of `requirement`, `setting`, `vulnerability`, `article`) → diff (field-level
+  rows in `changes`) → explain (`explanations`, kind `publisher`, `generated` or `none`).
+- **A new source** is one adapter module declaring `id`, `kind`, `schedule`, `fetch()` and
+  `parse()`, a row in a migration, and a fixture test that replays a real captured response.
+  No bespoke code paths per source outside the adapter.
+- **Schema** changes are new files in `src/migrations/NNNN_name.sql`; never edit an applied one.
+- **Generated text is always labelled.** A model may summarise a change only beside the quoted
+  official rationale, and the badge is not optional.
+- **Licensing**: CIS and Microsoft content is the user's own copy; it is quoted on screen and
+  never redistributed or exposed through the API. NVD, CVE, CISA and FIRST attributions stay in
+  the footer.
+- **Secrets** (NVD key, notifier URL) are read from the environment and never rendered or
+  logged; pages say "set" or "not set".
+- **Version**: `package.json` is the only source; import `productVersion` from `src/version.ts`.
+- **No personal host data** in committed files: no real hostnames, LAN layouts or device lists.
+- **Tests**: `npm run check` must pass (typecheck, vitest, eslint, manifest check). Inject clocks
+  rather than reading the wall clock against dated fixtures.
+- **Commits**: imperative subject, short body saying why.
+
+## Layout
+
+```
+src/server.ts        start: config, data dir, migrations, listen
+src/app.ts           Express app, routes, security headers, /health
+src/config.ts        BW_* environment variables
+src/db.ts            open, migrate, counts
+src/blobs.ts         content-addressed snapshot store
+src/html.ts          html`` template with escaping
+src/pages/           server-rendered pages (layout, home, sources, not-found)
+src/migrations/      NNNN_name.sql
+public/app.css       the one stylesheet (Register look)
+test/                vitest; fixtures under test/fixtures/<adapter>/ from M1
+boxpilot/            the BoxPilot catalog manifest; scripts/validate-manifest.mjs checks it
+docs/                plan, sources, mockups
+```
