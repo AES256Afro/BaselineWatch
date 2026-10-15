@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, type Html } from "../html.ts";
+import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, vulnChanges, vulnStats, type VulnFilters, type VulnRow } from "../vulns.ts";
@@ -145,7 +145,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           <span class="chip">${row.vuln_status ?? "status unknown"}</span>
         </div>
       </div>
-      <div class="links"><a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" rel="noopener">NVD</a> · <a href="https://www.cve.org/CVERecord?id=${row.cve_id}" rel="noopener">CVE.org</a>${row.kev ? html` · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${row.cve_id}" rel="noopener">CISA KEV</a>` : ""}</div>
+      <div class="links"><a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" ${newTab}>NVD</a> · <a href="https://www.cve.org/CVERecord?id=${row.cve_id}" ${newTab}>CVE.org</a>${row.kev ? html` · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${row.cve_id}" ${newTab}>CISA KEV</a>` : ""}</div>
     </div>
     <div class="cols">
       <section class="main">
@@ -166,7 +166,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
         </section>
         <section class="box">
           <h2>References <span class="count">${references.length}</span></h2>
-          <ul class="refs">${references.slice(0, 60).map((r) => html`<li><a href="${r.url}" rel="noopener">${r.url}</a>${r.tags.length ? html` <span class="small">${r.tags.join(", ")}</span>` : ""}</li>`)}</ul>
+          <ul class="refs">${references.slice(0, 60).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a>${r.tags.length ? html` <span class="small">${r.tags.join(", ")}</span>` : ""}</li>`)}</ul>
         </section>
       </section>
       <aside class="side">

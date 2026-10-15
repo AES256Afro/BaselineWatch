@@ -1,4 +1,4 @@
-import { html, type Html } from "../html.ts";
+import { html, newTab, type Html } from "../html.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
 export type Area = "today" | "register" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources";
@@ -63,7 +63,7 @@ export function page({ title, active, content, meta, owner, open }: PageOptions)
 <main class="wrap">${content}</main>
 <footer class="foot">
   <div class="wrap">
-    <p>${productName} ${productVersion} · <a href="${repositoryUrl}">source</a> · <a href="/health">health</a></p>
+    <p>${productName} ${productVersion} · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
     <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed.</p>
   </div>
 </footer>

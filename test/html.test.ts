@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, formatBytes, html, raw } from "../src/html.ts";
+import { escapeHtml, formatBytes, html, newTab, newTabIf, raw } from "../src/html.ts";
 
 describe("html", () => {
   it("escapes interpolated text", () => {
@@ -17,5 +17,13 @@ describe("html", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(4096)).toBe("4.0 KB");
     expect(formatBytes(432_013_312)).toBe("412 MB");
+  });
+  it("sends off-site links to a new tab, and leaves paths on this site alone", () => {
+    expect(html`<a href="https://example.org" ${newTab}>x</a>`.value).toBe('<a href="https://example.org" target="_blank" rel="noopener">x</a>');
+    expect(newTabIf("https://nvd.nist.gov/vuln/detail/CVE-2026-0001").value).toBe(newTab.value);
+    expect(newTabIf("HTTP://EXAMPLE.ORG").value).toBe(newTab.value);
+    expect(newTabIf("/wire?kind=kev").value).toBe("");
+    expect(newTabIf(null).value).toBe("");
+    expect(newTabIf(undefined).value).toBe("");
   });
 });

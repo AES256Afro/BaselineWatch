@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { SourceRow } from "../adapters/types.ts";
 import { summarizeChanges, type RequirementChange } from "../differ.ts";
-import { html, type Html } from "../html.ts";
+import { html, newTabIf, type Html } from "../html.ts";
 import { getSource } from "../ingest.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
@@ -65,7 +65,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
 
   const content = html`
     <h1>${source.name}</h1>
-    <p class="lede">${source.notes ?? ""} <a href="${source.url}" rel="noopener">Source</a>${source.licence ? html` · ${source.licence}` : ""}.</p>
+    <p class="lede">${source.notes ?? ""} <a href="${source.url}" ${newTabIf(source.url)}>Source</a>${source.licence ? html` · ${source.licence}` : ""}.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     ${upload}
     ${documents.length === 0
@@ -174,7 +174,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
   const content = html`
     <div class="rel">
       <h1>${source.name} <span class="arrow">${previous ? html`${previous.version_label ?? "previous"} → ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
-      <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" rel="noopener">${keyLabel(doc.document_key)} source</a></div>
+      <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key)} source</a></div>
     </div>
     <div class="pills">
       ${summary.added.length ? html`<span class="pill ins">+ ${summary.added.length} added: ${summary.added.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.added.length > 10 ? "…" : ""}</span>` : ""}
@@ -187,7 +187,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
     </div>
     ${explanations.map((e) =>
       e.kind === "publisher"
-        ? html`<div class="why"><small>Why this release, in the publisher's words</small><p>${e.text}</p>${e.source_url ? html`<cite><a href="${e.source_url}" rel="noopener">${e.source_url}</a></cite>` : ""}</div>`
+        ? html`<div class="why"><small>Why this release, in the publisher's words</small><p>${e.text}</p>${e.source_url ? html`<cite><a href="${e.source_url}" ${newTabIf(e.source_url)}>${e.source_url}</a></cite>` : ""}</div>`
         : e.kind === "generated"
           ? html`<div class="why gen"><small>Summary <span class="badge">Generated</span></small><p>${e.text}</p></div>`
           : html`<div class="why none"><small>Why this release</small><p>${e.text}</p></div>`,
@@ -252,7 +252,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       ${baselines.map((b) => html`<span class="pill">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</span>`)}
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
     </div>
-    ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" rel="noopener">${n.source_url}</a></cite>` : ""}</div>`)}
+    ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" ${newTabIf(n.source_url)}>${n.source_url}</a></cite>` : ""}</div>`)}
     ${(() => {
       const t = getTriage(db, "control", documentId, ref);
       if (owner) return html`<details class="box triage-box" ${t ? "open" : ""}><summary>Triage${t ? html`: ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}` : ""}</summary>${triageForm({ kind: "control", id: documentId, key: ref }, t, `/standards/${sourceId}/${documentId}/${ref}`)}</details>`;

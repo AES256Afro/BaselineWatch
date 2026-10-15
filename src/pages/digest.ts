@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { latestDigest, listDigests, type DigestRow } from "../digest.ts";
-import { html } from "../html.ts";
+import { html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { page } from "./layout.ts";
@@ -32,7 +32,7 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
         <section class="box">
           <h2>Alerts sent <span class="count">${alerts.length}</span></h2>
           ${alerts.length
-            ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}">${a.title}</a>` : a.title}</li>`)}</ul>`
+            ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>`
             : html`<p class="small">None yet. KEV additions, watched CVE changes and standard releases are sent as they arrive, after a source's first load.</p>`}
         </section>
       </aside>

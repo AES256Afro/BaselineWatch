@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "../adapters/index.ts";
 import type { SourceRow } from "../adapters/types.ts";
-import { html, type Html } from "../html.ts";
+import { html, newTabIf, type Html } from "../html.ts";
 import { shortStamp } from "../time.ts";
 import { page } from "./layout.ts";
 
@@ -43,7 +43,7 @@ export function renderSources({ db, owner, open, notice }: SourcesPageOptions): 
         <tbody>${list.map((s) => {
           const adapter = adapterFor(s);
           return html`<tr class="${s.enabled ? "" : "off"}">
-            <td><a href="${s.url}" rel="noopener">${s.name}</a>${s.notes ? html`<div class="note">${s.notes}</div>` : ""}</td>
+            <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.notes ? html`<div class="note">${s.notes}</div>` : ""}</td>
             <td>${s.format}</td>
             <td>${s.enabled ? s.schedule : "off"}${adapter ? "" : html`<div class="note">no adapter yet</div>`}</td>
             <td class="n">${s.item_count}</td>
