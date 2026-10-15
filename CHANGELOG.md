@@ -2,6 +2,11 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.16.1 — 2026-10-15
+
+- At start, every standard's versions are put in publication order before anything is served:
+  a chain an older version linked wrong is re-diffed once, and a correct one costs a query.
+
 ## 0.16.0 — 2026-10-15
 
 - A standard's first scheduled fetch loads its published history before the current file, so a
