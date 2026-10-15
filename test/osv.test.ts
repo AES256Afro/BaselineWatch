@@ -54,8 +54,8 @@ describe("package values and OSV records", () => {
     expect(advisoryKey({ id: "PYSEC-2026-1", aliases: ["GHSA-aaaa-bbbb-cccc"] })).toBe("GHSA-AAAA-BBBB-CCCC");
     // Debian's and Ubuntu's trackers prefix the CVE and list no aliases: still the CVE's row.
     expect(advisoryKey({ id: "DEBIAN-CVE-2026-84782", aliases: [] })).toBe("CVE-2026-84782");
-    expect(advisoryKey({ id: "UBUNTU-CVE-2026-1", aliases: ["USN-7000-1"] })).toBe("CVE-2026-1");
-    expect(advisoryKey({ id: "DSA-5999-1", aliases: ["CVE-2026-2"] })).toBe("CVE-2026-2");
+    expect(advisoryKey({ id: "UBUNTU-CVE-2026-10001", aliases: ["USN-7000-1"] })).toBe("CVE-2026-10001");
+    expect(advisoryKey({ id: "DSA-5999-1", aliases: ["CVE-2026-20002"] })).toBe("CVE-2026-20002");
   });
 });
 
