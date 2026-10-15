@@ -61,6 +61,41 @@ export const nistCatalogAdapter: Adapter = {
   },
 };
 
+/**
+ * NIST SP 800-171 Revision 3: the requirements for protecting CUI in nonfederal systems (CMMC
+ * Level 2 is this set), from NIST's OSCAL. The same normaliser as 800-53, then the names people
+ * use: the requirement number (03.01.01) as ref and label, the family as "03.01 Access Control",
+ * and statement items lettered a., b. instead of the file's SR-03.01.01.a ids.
+ *
+ * No backfill: NIST's OSCAL 1.0.0 of Revision 3 (August 2025) left 29 statements empty, which
+ * 1.1.0 (May 2026) filled in, so a diff against 1.0.0 would show a conversion fix as a change to
+ * the publication. Tracking starts at the current file.
+ */
+export const nist171Adapter: Adapter = {
+  id: "oscal-171",
+  headers: { accept: "application/json" },
+  documents(source: SourceRow): DocumentTarget[] {
+    return [{ key: "catalog", url: source.url }];
+  },
+  async parseDocument(bytes): Promise<ParsedDocument> {
+    const raw = decode(bytes) as OscalCatalog & { catalog: { groups?: { id?: string; title?: string; props?: { name: string; value: string }[] }[] } };
+    const doc = normalizeCatalog(raw);
+    const families = new Map<string, string>();
+    for (const group of raw.catalog.groups ?? []) {
+      const sortId = (group.props ?? []).find((p) => p.name === "sort-id")?.value;
+      families.set((group.id ?? "").toUpperCase(), `${sortId ? `${sortId} ` : ""}${group.title ?? group.id ?? ""}`.trim());
+    }
+    const requirements = doc.requirements.map((r) => ({
+      ...r,
+      ref: r.sortKey.toLowerCase(),
+      label: r.sortKey,
+      family: families.get(r.family ?? "") ?? r.family,
+      statement: r.statement?.replace(/^SR-\d{2}\.\d{2}\.\d{2}\.([a-z](?:\.\d{2})*)\s+/gm, "$1. ") ?? null,
+    }));
+    return { title: "NIST SP 800-171 Revision 3", versionLabel: `OSCAL ${doc.version}`, publishedAt: isoDate(doc.lastModified), requirements, rationale: null };
+  },
+};
+
 /** NIST SP 800-53B: the four baseline profiles, diffed as control membership. */
 export const nistBaselinesAdapter: Adapter = {
   id: "oscal-profiles",

@@ -319,7 +319,8 @@ Red Hat (0.10.0); off-site links in a new tab (0.10.1); versions linked by publi
 `relink` (0.10.2); FedRAMP's Consolidated Rules for 2026 in the Register (0.11.0), in place of
 the Rev5 OSCAL baselines, whose repository GSA has taken down; package advisories from OSV and
 the GitHub Advisory Database for the packages on the watchlist (0.12.0); the read-only MCP
-server at `/mcp` (0.13.0). Still open: Intune and CMMC, multi-user.
+server at `/mcp` (0.13.0); NIST SP 800-171 Rev 3 in the Register, which is the CMMC Level 2 set
+(0.14.0). Still open: Intune baselines (no public machine-readable source yet), multi-user.
 
 ### M8 as planned
 - CIS Benchmarks in manual-upload mode (drop the PDF, get the diff against your last upload).

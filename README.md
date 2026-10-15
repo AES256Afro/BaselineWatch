@@ -10,7 +10,7 @@ Runs on its own (one container, one SQLite volume) or from the
 
 **Status**: M6. Triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
 alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
-releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), FedRAMP's Consolidated Rules for 2026, the
+releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the
 DISA STIGs you follow (XCCDF, rule by rule) and every Microsoft Security Baseline in the
 Security Compliance Toolkit (setting by setting). Every release is kept as a snapshot and diffed
 against the last with a word-level redline, and the publisher's own reason sits beside it: NIST's
