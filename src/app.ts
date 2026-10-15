@@ -23,7 +23,7 @@ import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
 import { renderWire } from "./pages/wire.ts";
 import { productName, productVersion } from "./version.ts";
-import { recomputeWatchHits, type VulnFilters } from "./vulns.ts";
+import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
 import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
@@ -306,8 +306,11 @@ export function createApp(ctx: AppContext): Express {
     const kind = str(body.kind);
     const value = str(body.value);
     const label = str(body.label, 60) ?? null;
-    if (!kind || !["product", "keyword", "baseline", "family"].includes(kind) || !value) {
+    if (!kind || !["product", "keyword", "baseline", "family", "package"].includes(kind) || !value) {
       return res.status(400).type("text").send("A kind and a value are needed.");
+    }
+    if (kind === "package" && !parsePackageValue(value)) {
+      return res.status(400).type("text").send("A package is written ecosystem:name, such as npm:express or PyPI:django.");
     }
     db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, value, label, now().toISOString());
     const changed = recomputeWatchHits(db);

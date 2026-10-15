@@ -2,6 +2,18 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.12.0 — 2026-10-15
+
+- Package advisories from OSV.dev and the GitHub Advisory Database. Add a package to the watchlist
+  (kind "package", value ecosystem:name such as npm:express, PyPI:django,
+  Maven:group:artifact or Debian:12:openssl) and the daily pull queries OSV for it. An advisory
+  lands on its CVE when NVD has it, adding the affected packages, fixed versions and advisory ids
+  and marking your watch; a GHSA or distribution entry NVD has not analysed gets a row of its own.
+  Severity is scored here from the CVSS 3.x vector. Only advisories published in the last thirty
+  days, or changed since last seen, reach the Wire; the back catalogue stays in the table.
+- The CVE page shows affected packages with their fixed versions, the advisory ids, and links to
+  the GitHub advisory and OSV; the Vulnerabilities table names the package when NVD names no vendor.
+
 ## 0.11.0 — 2026-10-15
 
 - FedRAMP's Consolidated Rules for 2026 in the Register: the FRR rules by family and subset, the

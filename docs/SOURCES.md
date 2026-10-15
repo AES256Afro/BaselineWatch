@@ -155,6 +155,23 @@ new downloads).
 - **Cadence**: daily.
 - **Shape**: score join onto `vulnerability`.
 
+### OSV.dev and the GitHub Advisory Database (added 2026-10-15)
+- **Fetch**: `POST https://api.osv.dev/v1/query` with `{"package": {"name", "ecosystem"}}`, once per
+  package on the watchlist (kind `package`, value `ecosystem:name`), paged by `next_page_token`.
+  OSV carries the GitHub Advisory Database, PyPA, Go, RustSec and the distributions' trackers, so
+  one query covers the GHSA ids too.
+- **Cadence**: daily; the owner can fetch now after adding a package.
+- **Shape**: `vulnerability`. An advisory is kept under its CVE id when it has one (NVD's words and
+  score stay; the packages, fixed versions and advisory ids are added and the watch is marked),
+  else under its GHSA or OSV id as a row of its own. Severity comes from the CVSS 3.x vector,
+  scored here; CVSS 4.0-only advisories stay unscored.
+- **Wire**: only an advisory published in the last thirty days, or one that changed since it was
+  last seen; a package's back catalogue goes to the table alone, and a first pull never alerts.
+- **Licence**: OSV data under its sources' licences; the GitHub Advisory Database is CC-BY 4.0.
+  Attribution in the footer.
+- **Diffability**: good. Stable ids; the affected set and fixed versions are diffed as a
+  `packages` change.
+
 ### Vendor advisories (added 2026-10-15, all RSS, in the vulnerabilities group)
 | Source | Feed |
 | --- | --- |
