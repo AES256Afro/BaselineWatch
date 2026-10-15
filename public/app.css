@@ -337,6 +337,12 @@ details.box summary { cursor: pointer; }
 .due li:last-child { border-bottom: 0; }
 .due .d { font: 500 12px var(--mono); color: var(--acc); }
 
+/* Browse a version */
+table.browse td.id a { font-family: var(--mono); font-size: 12.5px; text-decoration: none; color: var(--ink); }
+table.browse td.desc { max-width: 48ch; }
+table.browse td.desc span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--mute); }
+table.browse tr.changed td.id a { color: var(--acc); }
+
 /* Upload */
 .upload input[type="file"] { font: inherit; font-size: 13.5px; }
 

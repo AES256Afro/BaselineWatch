@@ -13,7 +13,7 @@ import { getSource, ingestSource, storeUploadedDocument, type IngestResult } fro
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
-import { renderControl, renderRelease, renderStandard } from "./pages/register.ts";
+import { renderBrowse, renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
@@ -267,6 +267,13 @@ export function createApp(ctx: AppContext): Express {
     const documentId = Number(req.params.doc);
     if (!Number.isInteger(documentId) || documentId <= 0) return next();
     const html = renderRelease({ db, sourceId: String(req.params.source), documentId, ...who(res), now: now() });
+    if (!html) return next();
+    res.type("html").send(html);
+  });
+  app.get("/standards/:source/:doc/browse", (req, res, next) => {
+    const documentId = Number(req.params.doc);
+    if (!Number.isInteger(documentId) || documentId <= 0) return next();
+    const html = renderBrowse({ db, sourceId: String(req.params.source), documentId, q: str(req.query.q, 100), family: str(req.query.family, 40), ...who(res) });
     if (!html) return next();
     res.type("html").send(html);
   });

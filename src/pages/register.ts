@@ -96,6 +96,51 @@ function fieldLabel(field: string | null): string {
   }
 }
 
+/** Every requirement of one version, for reading the standard itself rather than its changes. */
+export function renderBrowse(options: { db: DatabaseSync; sourceId: string; documentId: number; q: string | undefined; family: string | undefined } & Who): string | null {
+  const { db, sourceId, documentId, q, family, owner, open } = options;
+  const source = getSource(db, sourceId);
+  const doc = getDocument(db, documentId);
+  if (!source || !doc || doc.source_id !== sourceId) return null;
+  const all = loadRequirements(db, documentId);
+  const families = [...new Set(all.map((r) => r.family).filter((f): f is string => f !== null))].sort();
+  const needle = q?.toLowerCase();
+  const rows = all.filter((r) => (!family || r.family === family) && (!needle || r.label.toLowerCase().includes(needle) || r.title.toLowerCase().includes(needle) || (r.statement ?? "").toLowerCase().includes(needle)));
+  const changed = new Set(releaseChanges(db, documentId).map((c) => c.ref));
+  const link = (f?: string) => `/standards/${sourceId}/${documentId}/browse${f ? `?family=${encodeURIComponent(f)}` : ""}${q ? `${f ? "&" : "?"}q=${encodeURIComponent(q)}` : ""}`;
+
+  const content = html`
+    <div class="rel">
+      <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
+      <div class="when">${doc.requirement_count} requirements · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
+    </div>
+    <div class="wire-top">
+      <form method="get" action="/standards/${sourceId}/${documentId}/browse" class="search" role="search">
+        ${family ? html`<input type="hidden" name="family" value="${family}">` : ""}
+        <label class="visually-hidden" for="q">Search this version</label>
+        <input type="search" id="q" name="q" value="${q ?? ""}" placeholder="Label, title or words in the control text">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+    ${families.length > 1
+      ? html`<div class="filters"><a class="${!family ? "on" : ""}" href="${link()}">All</a>${families.map((f) => html`<a class="${family === f ? "on" : ""}" href="${link(f)}">${f}</a>`)}</div>`
+      : ""}
+    <div class="table-wrap"><table class="browse">
+      <thead><tr><th>Ref</th><th>Title</th><th>Text</th><th></th></tr></thead>
+      <tbody>${rows.slice(0, 400).map(
+        (r) => html`<tr class="${r.status === "withdrawn" ? "off" : ""}${changed.has(r.ref) ? " changed" : ""}">
+          <td class="id"><a href="/standards/${sourceId}/${documentId}/${r.ref}"><b>${r.label}</b></a>${r.parentRef ? html`<div class="note">in ${r.parentRef.toUpperCase()}</div>` : ""}</td>
+          <td>${r.title}${r.status === "withdrawn" ? html` <span class="chip del">withdrawn</span>` : ""}</td>
+          <td class="desc"><span>${(r.statement ?? r.guidance ?? "").slice(0, 240)}</span></td>
+          <td>${changed.has(r.ref) ? html`<span class="chip mod">changed here</span>` : ""}</td>
+        </tr>`,
+      )}</tbody>
+    </table></div>
+    <p class="small">${rows.length > 400 ? `Showing 400 of ${rows.length}; narrow with the search or a family.` : `${rows.length} of ${all.length}.`}</p>`;
+
+  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open });
+}
+
 export function renderRelease(options: { db: DatabaseSync; sourceId: string; documentId: number; now: Date } & Who): string | null {
   const { db, sourceId, documentId, owner, open } = options;
   const source = getSource(db, sourceId);
@@ -155,7 +200,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       ? html`<section class="box"><h2>Discussion, related-control and assessment updates <span class="count">${editorial.length}</span></h2>
           <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
       : ""}
-    <p class="small"><a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
+    <p class="small"><a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · <a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 
   return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open });
 }
