@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { looks, schemes, type Look, type Scheme } from "./look.ts";
 
 /**
  * Runtime configuration, read once from the environment.
@@ -34,6 +35,10 @@ export interface Config {
   digest: "daily" | "weekly" | "off";
   /** Local hour (in `timeZone`) at which the digest runs. */
   digestHour: number;
+  /** How pages are drawn unless a browser chose otherwise: the dense "console" or the paper "register". */
+  look: Look;
+  /** Light, dark, or "system" for whatever the device says. A browser may choose its own. */
+  scheme: Scheme;
 }
 
 function choice<T extends string>(env: Env, key: string, allowed: readonly T[], fallback: T): T {
@@ -106,5 +111,7 @@ export function loadConfig(env: Env = process.env): Config {
     llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
     digest: choice(env, "BW_DIGEST", ["daily", "weekly", "off"] as const, "daily"),
     digestHour: hour(env, "BW_DIGEST_HOUR", 7),
+    look: choice(env, "BW_LOOK", looks, "console"),
+    scheme: choice(env, "BW_SCHEME", schemes, "system"),
   };
 }

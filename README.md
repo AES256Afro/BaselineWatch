@@ -78,6 +78,8 @@ source immediately from that page.
 | `BW_NOTIFY_URL` | unset | `ntfy://host/topic`, `gotify://host/token` or an `https://` webhook. Receives KEV additions, watched CVE changes, standard releases and the digest. Email goes through ntfy or Apprise rather than SMTP here. |
 | `BW_DIGEST` | `daily` | `daily`, `weekly` (Mondays) or `off`. |
 | `BW_DIGEST_HOUR` | `7` | Local hour, in `TZ`, at which the digest is written. |
+| `BW_LOOK` | `console` | How pages are drawn unless a browser chooses otherwise: `console` (dense panels and charts) or `register` (paper). |
+| `BW_SCHEME` | `system` | `light`, `dark`, or `system` for whatever the device says. Each browser can pick its own from the masthead. |
 | `BW_LLM_URL` | unset | Ollama address. When set, each release with changes also gets a short summary badged as generated, beside the publisher's own words. |
 | `BW_LLM_MODEL` | `llama3.2:3b` | The Ollama model for those summaries. |
 | `TZ` | `Etc/UTC` | Time zone for digests. |

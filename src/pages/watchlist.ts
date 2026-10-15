@@ -1,10 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { html } from "../html.ts";
 import { loadWatchlist } from "../vulns.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
-export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; open: boolean; notice?: string | undefined }): string {
-  const { db, owner, open, notice } = options;
+export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; open: boolean; notice?: string | undefined; look: LookState }): string {
+  const { db, owner, open, notice, look } = options;
   const entries = loadWatchlist(db);
   const counts = new Map<number, number>();
   for (const e of entries) {
@@ -64,5 +65,5 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
       </aside>
     </div>`;
 
-  return page({ title: "Watchlist", active: "watchlist", content, meta: html`${entries.length} entries`, owner, open });
+  return page({ title: "Watchlist", active: "watchlist", content, meta: html`${entries.length} entries`, owner, open, look });
 }

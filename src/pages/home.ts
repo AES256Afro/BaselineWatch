@@ -2,10 +2,11 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
 import { latestDigest } from "../digest.ts";
-import { formatBytes, html, newTabIf } from "../html.ts";
+import { figure, formatBytes, html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { productName } from "../version.ts";
 
@@ -50,9 +51,10 @@ export interface HomeOptions {
   migrations: string[];
   owner: boolean;
   now: Date;
+  look: LookState;
 }
 
-export function renderHome({ config, db, migrations, owner, now }: HomeOptions): string {
+export function renderHome({ config, db, migrations, owner, now, look }: HomeOptions): string {
   const standards = db
     .prepare(
       `SELECT s.id, s.name, s.format, s.schedule, s.enabled, s.notes,
@@ -115,9 +117,9 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
     <div class="stats" aria-label="Totals">
       <div><small>Standards tracked</small><b>${stats.standards}</b></div>
       <div><small>Sources enabled</small><b>${stats.sources}</b></div>
-      <div><small>Snapshots</small><b>${stats.snapshots}</b></div>
-      <div><small>Changes</small><b>${stats.changes}</b></div>
-      <div><small>Wire, unread</small><b>${stats.unread}</b></div>
+      <div><small>Snapshots</small><b>${figure(stats.snapshots)}</b></div>
+      <div><small>Changes</small><b>${figure(stats.changes)}</b></div>
+      <div><small>Wire, unread</small><b>${figure(stats.unread)}</b></div>
       <div><small>Database</small><b>${formatBytes(stats.bytes)}</b></div>
     </div>
 
@@ -183,5 +185,6 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
     meta: html`Tracking ${stats.standards} standards · ${stats.snapshots} snapshots`,
     owner,
     open: !config.adminPassword,
+    look,
   });
 }

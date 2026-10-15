@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { html, newTabIf, type Html } from "../html.ts";
 import { relativeTime } from "../time.ts";
 import { listTriage, stateLabel, triageCounts, triageInbox, triageStates, type TriageCard, type TriageKind, type TriageState } from "../triage.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 /** The small form every page uses to move a subject to a state. */
@@ -48,8 +49,8 @@ function card(c: TriageCard, owner: boolean, now: Date): Html {
   </li>`;
 }
 
-export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; notice?: string | undefined }): string {
-  const { db, owner, open, now, notice } = options;
+export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; notice?: string | undefined; look: LookState }): string {
+  const { db, owner, open, now, notice, look } = options;
   const counts = triageCounts(db);
   const cards = listTriage(db, { limit: 300 });
   const byState = new Map<TriageState, TriageCard[]>();
@@ -92,5 +93,5 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
       ${column("done", (byState.get("dismissed") ?? []).length ? html`<p class="small">${counts.dismissed} marked not ours, kept out of the way.</p>` : html``)}
     </div>`;
 
-  return page({ title: "Triage", active: "triage", content, meta: html`${counts.affects + counts.reviewing} open`, owner, open });
+  return page({ title: "Triage", active: "triage", content, meta: html`${counts.affects + counts.reviewing} open`, owner, open, look });
 }

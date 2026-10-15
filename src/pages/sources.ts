@@ -3,6 +3,7 @@ import { adapterFor, fetchable } from "../adapters/index.ts";
 import type { SourceRow } from "../adapters/types.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import { shortStamp } from "../time.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 const groupLabel: Record<string, string> = {
@@ -16,9 +17,10 @@ export interface SourcesPageOptions {
   owner: boolean;
   open: boolean;
   notice: { sourceId: string; status: string; detail: string } | null;
+  look: LookState;
 }
 
-export function renderSources({ db, owner, open, notice }: SourcesPageOptions): string {
+export function renderSources({ db, owner, open, notice, look }: SourcesPageOptions): string {
   const rows = db
     .prepare(
       `SELECT s.*, (SELECT COUNT(*) FROM items i WHERE i.source_id = s.id) AS item_count
@@ -64,5 +66,5 @@ export function renderSources({ db, owner, open, notice }: SourcesPageOptions): 
     ${notice ? html`<div class="notice ${notice.status}"><b>${notice.sourceId}</b>: ${notice.status}${notice.detail ? html` · ${notice.detail}` : ""}</div>` : ""}
     ${tables}`;
 
-  return page({ title: "Sources", active: "sources", content, meta: html`${rows.length} sources`, owner, open });
+  return page({ title: "Sources", active: "sources", content, meta: html`${rows.length} sources`, owner, open, look });
 }

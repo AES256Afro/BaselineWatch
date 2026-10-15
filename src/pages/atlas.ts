@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { expectedNext, familyHeatmap, releaseTimeline, velocity } from "../atlas.ts";
 import { html, type Html } from "../html.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -60,8 +61,8 @@ function heatmapSvg(db: DatabaseSync): Html {
   </svg>`;
 }
 
-export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date }): string {
-  const { db, owner, open, now } = options;
+export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; look: LookState }): string {
+  const { db, owner, open, now, look } = options;
   const to = now;
   const from = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth() - 3, 1));
   const rows = releaseTimeline(db, from.toISOString(), to.toISOString());
@@ -104,5 +105,5 @@ export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: b
       </aside>
     </div>`;
 
-  return page({ title: "Atlas", active: "atlas", content, meta: html`${v.releases} releases, 12 months`, owner, open });
+  return page({ title: "Atlas", active: "atlas", content, meta: html`${v.releases} releases, 12 months`, owner, open, look });
 }
