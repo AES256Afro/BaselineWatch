@@ -46,6 +46,8 @@ jobs:
       IMAGE: ghcr.io/aes256afro/baselinewatch
     steps:
       - uses: actions/checkout@v4
+      # The container driver: the default docker driver cannot attach attestations to a push.
+      - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
