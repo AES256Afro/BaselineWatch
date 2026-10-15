@@ -7,6 +7,7 @@ import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
 import { nvdAdapter } from "./nvd.ts";
 import { nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
+import { osvAdapter } from "./osv.ts";
 import { redditAdapter } from "./reddit.ts";
 import { sctAdapter } from "./sct.ts";
 import type { Adapter, SourceRow } from "./types.ts";
@@ -16,6 +17,7 @@ const byId: Record<string, Adapter> = {
   "hn-algolia": hnAdapter,
   "nvd-cves": nvdAdapter,
   "first-epss": epssAdapter,
+  osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
   "fedramp-rules": fedrampRulesAdapter,
@@ -42,4 +44,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };
+export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };

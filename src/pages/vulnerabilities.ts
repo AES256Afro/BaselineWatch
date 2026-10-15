@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { getTriage } from "../triage.ts";
-import { getVuln, listVulns, vulnChanges, vulnStats, type VulnFilters, type VulnRow } from "../vulns.ts";
+import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type VulnFilters, type VulnRow } from "../vulns.ts";
 import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
 
@@ -62,7 +62,8 @@ export function renderVulnList({ db, filters, owner, open, now }: VulnListOption
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
     const products = parseJson<string[]>(r.products_json, []);
-    const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ");
+    const packages = parseJson<AffectedPackage[]>(r.packages_json, []);
+    const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ") || packages.slice(0, 3).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
     const watch = parseJson<string[]>(r.watch_labels_json, []);
     return html`<tr class="${r.watch_hit ? "hit" : ""}">
       <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
@@ -125,6 +126,11 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   if (!row) return null;
   const vendors = parseJson<string[]>(row.vendors_json, []);
   const products = parseJson<string[]>(row.products_json, []);
+  const packages = parseJson<AffectedPackage[]>(row.packages_json, []);
+  const aliases = parseJson<string[]>(row.aliases_json, []);
+  const isCve = /^CVE-/.test(row.cve_id);
+  const ghsa = [row.cve_id, ...aliases].find((id) => /^GHSA-/.test(id));
+  const osvId = [row.cve_id, ...aliases].find((id) => !/^CVE-/.test(id));
   const cpes = parseJson<string[]>(row.cpes_json, []);
   const cwes = parseJson<string[]>(row.cwes_json, []);
   const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []);
@@ -145,7 +151,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           <span class="chip">${row.vuln_status ?? "status unknown"}</span>
         </div>
       </div>
-      <div class="links"><a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" ${newTab}>NVD</a> · <a href="https://www.cve.org/CVERecord?id=${row.cve_id}" ${newTab}>CVE.org</a>${row.kev ? html` · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${row.cve_id}" ${newTab}>CISA KEV</a>` : ""}</div>
+      <div class="links">${isCve ? html`<a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" ${newTab}>NVD</a> · <a href="https://www.cve.org/CVERecord?id=${row.cve_id}" ${newTab}>CVE.org</a>` : ""}${row.kev ? html` · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${row.cve_id}" ${newTab}>CISA KEV</a>` : ""}${ghsa ? html`${isCve ? " · " : ""}<a href="https://github.com/advisories/${ghsa}" ${newTab}>GitHub advisory</a>` : ""}${osvId ? html` · <a href="https://osv.dev/vulnerability/${osvId}" ${newTab}>OSV</a>` : ""}</div>
     </div>
     <div class="cols">
       <section class="main">
@@ -164,6 +170,14 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           <h2>Affected (CPE criteria) <span class="count">${cpes.length}</span></h2>
           ${cpes.length ? html`<ul class="cpes">${cpes.slice(0, 40).map((c) => html`<li><code>${c}</code></li>`)}${cpes.length > 40 ? html`<li class="small">and ${cpes.length - 40} more</li>` : ""}</ul>` : html`<p class="small">NVD has not attached CPE configurations yet.</p>`}
         </section>
+        ${packages.length
+          ? html`<section class="box">
+          <h2>Affected packages <span class="count">${packages.length}</span></h2>
+          <ul class="cpes">${packages.map(
+            (p) => html`<li><code>${p.ecosystem}:${p.name}</code>${p.fixed.length ? html` · fixed in ${p.fixed.join(", ")}` : p.lastAffected.length ? html` · affected through ${p.lastAffected.join(", ")}` : html` · no fix listed`}<span class="small"> · ${p.advisory}</span></li>`,
+          )}</ul>
+        </section>`
+          : ""}
         <section class="box">
           <h2>References <span class="count">${references.length}</span></h2>
           <ul class="refs">${references.slice(0, 60).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a>${r.tags.length ? html` <span class="small">${r.tags.join(", ")}</span>` : ""}</li>`)}</ul>
@@ -189,6 +203,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
             <dt>Source</dt><dd>${row.source_identifier ?? "—"}</dd>
             <dt>Vendors</dt><dd>${vendors.join(", ") || "—"}</dd>
             <dt>Products</dt><dd>${products.join(", ") || "—"}</dd>
+            ${aliases.length ? html`<dt>Also known as</dt><dd>${aliases.join(", ")}</dd>` : ""}
           </dl>
         </section>
       </aside>

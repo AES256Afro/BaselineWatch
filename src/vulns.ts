@@ -16,6 +16,33 @@ export interface NormalizedVuln {
   products: string[];
   references: { url: string; tags: string[] }[];
   kev: { dateAdded: string | null; dueDate: string | null; requiredAction: string | null; name: string | null } | null;
+  /** Affected packages, from an advisory source; undefined when the source (NVD) says nothing about packages. */
+  packages?: AffectedPackage[];
+}
+
+/** A package an advisory names as affected, with the versions that introduced and fixed the flaw. */
+export interface AffectedPackage {
+  ecosystem: string;
+  name: string;
+  introduced: string[];
+  fixed: string[];
+  lastAffected: string[];
+  /** The advisory that named it: GHSA-..., PYSEC-..., DSA-... */
+  advisory: string;
+}
+
+/** A package advisory in the shape BaselineWatch keeps, from OSV.dev or the GitHub Advisory Database. */
+export interface NormalizedAdvisory {
+  id: string;
+  aliases: string[];
+  summary: string | null;
+  details: string | null;
+  publishedAt: string | null;
+  modifiedAt: string;
+  cvss: NormalizedVuln["cvss"];
+  cwes: string[];
+  references: { url: string; tags: string[] }[];
+  packages: AffectedPackage[];
 }
 
 export interface VulnRow {
@@ -48,19 +75,49 @@ export interface VulnRow {
   watch_labels_json: string | null;
   first_seen_at: string;
   last_seen_at: string;
+  packages_json: string | null;
+  aliases_json: string | null;
 }
 
 export interface VulnChange {
-  field: "new" | "cvss" | "description" | "cpes" | "references" | "cwes" | "status" | "kev" | "epss";
+  field: "new" | "cvss" | "description" | "cpes" | "references" | "cwes" | "status" | "kev" | "epss" | "packages";
   before: string | null;
   after: string | null;
 }
 
 export interface WatchEntry {
   id: number;
-  kind: "product" | "baseline" | "family" | "keyword";
+  kind: "product" | "baseline" | "family" | "keyword" | "package";
   value: string;
   label: string | null;
+}
+
+/** Ecosystems whose OSV name carries a release after a colon (Debian:12, Ubuntu:24.04:LTS, Alpine:v3.20). */
+const releaseEcosystems = new Set(["debian", "ubuntu", "alpine", "rocky linux", "almalinux", "mageia", "opensuse", "suse", "red hat", "chainguard", "wolfi", "photon os", "openeuler"]);
+
+/**
+ * A watchlist package value, `ecosystem:name`. Maven names carry their own colon
+ * (`Maven:org.apache.logging.log4j:log4j-core`), so the split is at the first colon, except for
+ * distributions, whose release sits between (`Debian:12:openssl`), which split at the last.
+ */
+export function parsePackageValue(value: string): { ecosystem: string; name: string } | null {
+  const trimmed = value.trim();
+  const first = trimmed.indexOf(":");
+  if (first <= 0 || first === trimmed.length - 1) return null;
+  const head = trimmed.slice(0, first);
+  if (releaseEcosystems.has(head.toLowerCase())) {
+    const last = trimmed.lastIndexOf(":");
+    return { ecosystem: trimmed.slice(0, last), name: trimmed.slice(last + 1) };
+  }
+  return { ecosystem: head, name: trimmed.slice(first + 1) };
+}
+
+/** Whether an affected package is the one a watchlist entry names; an entry without a release matches every release. */
+function packageMatches(entry: { ecosystem: string; name: string }, pkg: { ecosystem: string; name: string }): boolean {
+  if (pkg.name.toLowerCase() !== entry.name.toLowerCase()) return false;
+  const want = entry.ecosystem.toLowerCase();
+  const have = pkg.ecosystem.toLowerCase();
+  return have === want || (!want.includes(":") && have.split(":")[0] === want);
 }
 
 export function loadWatchlist(db: DatabaseSync): WatchEntry[] {
@@ -82,7 +139,7 @@ function parseJson<T>(text: string | null, fallback: T): T {
  * keyword entry is matched against the description.
  */
 export function matchWatch(
-  v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null },
+  v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null; packages?: { ecosystem: string; name: string }[] },
   entries: WatchEntry[],
 ): string[] {
   const hits: string[] = [];
@@ -90,6 +147,7 @@ export function matchWatch(
   const products = new Set(v.products.map((x) => x.toLowerCase()));
   const pairs = new Set(v.cpes.map((c) => c.split(":").slice(3, 5).join(":").toLowerCase()));
   const description = (v.description ?? "").toLowerCase();
+  const packages = v.packages ?? [];
   for (const entry of entries) {
     const value = entry.value.trim().toLowerCase();
     if (value === "") continue;
@@ -101,6 +159,9 @@ export function matchWatch(
       else hit = vendors.has(value) || products.has(value);
     } else if (entry.kind === "keyword") {
       hit = description.includes(value);
+    } else if (entry.kind === "package") {
+      const wanted = parsePackageValue(entry.value);
+      hit = wanted !== null && packages.some((p) => packageMatches(wanted, p));
     }
     if (hit) hits.push(label);
   }
@@ -139,7 +200,9 @@ export interface UpsertResult {
 /** Stores one normalised CVE, recording what changed since it was last seen. */
 export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: string, watch: WatchEntry[]): UpsertResult {
   const existing = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(n.cveId) as unknown as VulnRow | undefined;
-  const watchLabels = matchWatch(n, watch);
+  // A source that says nothing about packages (NVD) must not lose the ones an advisory attached.
+  const packages = n.packages ?? parseJson<AffectedPackage[]>(existing?.packages_json ?? null, []);
+  const watchLabels = matchWatch({ ...n, packages }, watch);
   const changes: VulnChange[] = [];
 
   if (!existing) {
@@ -218,6 +281,121 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   return { isNew: !existing, changes, watchLabels, row };
 }
 
+/** A CVE id, bare or with a distribution's prefix (DEBIAN-CVE-2026-1234, UBUNTU-CVE-2026-1234). */
+const cvePattern = /^(?:[A-Z]+-)?(CVE-\d{4}-\d{4,})$/i;
+
+/** The row an advisory lands on: its CVE when it has one, else the GHSA id among its ids, else its own id. */
+export function advisoryKey(a: { id: string; aliases: string[] }): string {
+  const ids = [a.id, ...a.aliases];
+  for (const id of ids) {
+    const cve = cvePattern.exec(id)?.[1];
+    if (cve) return cve.toUpperCase();
+  }
+  return (ids.find((x) => /^GHSA-/i.test(x)) ?? a.id).toUpperCase();
+}
+
+function packageKey(p: { ecosystem: string; name: string }): string {
+  return `${p.ecosystem}:${p.name}`.toLowerCase();
+}
+
+/** Affected packages from two sightings, merged by package with their version lists united. */
+function mergePackages(before: AffectedPackage[], after: AffectedPackage[]): AffectedPackage[] {
+  const out = new Map<string, AffectedPackage>();
+  for (const p of [...before, ...after]) {
+    const key = packageKey(p);
+    const seen = out.get(key);
+    if (!seen) {
+      out.set(key, { ...p, introduced: [...p.introduced], fixed: [...p.fixed], lastAffected: [...p.lastAffected] });
+      continue;
+    }
+    seen.introduced = [...new Set([...seen.introduced, ...p.introduced])];
+    seen.fixed = [...new Set([...seen.fixed, ...p.fixed])];
+    seen.lastAffected = [...new Set([...seen.lastAffected, ...p.lastAffected])];
+    if (!seen.advisory && p.advisory) seen.advisory = p.advisory;
+  }
+  return [...out.values()].sort((x, y) => packageKey(x).localeCompare(packageKey(y)));
+}
+
+function packagesText(packages: AffectedPackage[]): string {
+  return packages
+    .slice(0, 6)
+    .map((p) => `${p.ecosystem}:${p.name}${p.fixed.length ? ` (fixed in ${p.fixed.slice(0, 3).join(", ")})` : ""}`)
+    .join("; ");
+}
+
+/**
+ * Stores what a package advisory says, on the CVE it names when NVD has that CVE (then only the
+ * packages, the advisory ids and the watch marks change) or as a row of its own otherwise, so a
+ * GHSA that NVD has not analysed yet still shows. Records a `packages` change when the affected
+ * set moves.
+ */
+export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedAt: string, watch: WatchEntry[]): UpsertResult & { key: string } {
+  const key = advisoryKey(a);
+  const existing = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(key) as unknown as VulnRow | undefined;
+  const aliases = [...new Set([a.id, ...a.aliases].map((x) => x.toUpperCase()).filter((x) => x !== key))].sort();
+  const ownRow = existing === undefined || existing.source_identifier === "osv.dev" || existing.source_identifier === "github-advisories";
+  const before = parseJson<AffectedPackage[]>(existing?.packages_json ?? null, []);
+  const packages = mergePackages(before, a.packages);
+  const changes: VulnChange[] = [];
+  let result: UpsertResult;
+
+  if (ownRow) {
+    const description = [a.summary, a.details].filter((t): t is string => !!t && t.trim() !== "").join("\n\n").replace(/[ \t]+/g, " ").trim().slice(0, 2000) || null;
+    result = upsertVuln(
+      db,
+      {
+        cveId: key,
+        sourceIdentifier: /^GHSA-/i.test(a.id) ? "github-advisories" : "osv.dev",
+        publishedAt: a.publishedAt,
+        lastModifiedAt: a.modifiedAt,
+        vulnStatus: "Advisory",
+        description,
+        cvss: a.cvss,
+        ssvc: null,
+        cwes: a.cwes,
+        cpes: [],
+        vendors: [],
+        products: [],
+        references: a.references,
+        kev: null,
+        packages,
+      },
+      observedAt,
+      watch,
+    );
+    changes.push(...result.changes);
+  } else {
+    const watchLabels = matchWatch(
+      { cpes: parseJson<string[]>(existing.cpes_json, []), vendors: parseJson<string[]>(existing.vendors_json, []), products: parseJson<string[]>(existing.products_json, []), description: existing.description, packages },
+      watch,
+    );
+    result = { isNew: false, changes: [], watchLabels, row: existing };
+  }
+
+  const beforeKeys = new Set(before.map(packageKey));
+  const added = packages.filter((p) => !beforeKeys.has(packageKey(p)));
+  const fixedMoved = packages.some((p) => {
+    const was = before.find((b) => packageKey(b) === packageKey(p));
+    return was !== undefined && p.fixed.some((f) => !was.fixed.includes(f));
+  });
+  if (!result.isNew && (added.length || fixedMoved)) {
+    const change: VulnChange = { field: "packages", before: before.length ? packagesText(before) : null, after: packagesText(packages) };
+    changes.push(change);
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, ?, ?, ?, ?)").run(key, observedAt, a.modifiedAt, change.field, change.before, change.after);
+  }
+
+  db.prepare("UPDATE vulns SET packages_json = ?, aliases_json = ?, watch_hit = ?, watch_labels_json = ?, last_seen_at = ? WHERE cve_id = ?").run(
+    packages.length ? JSON.stringify(packages) : null,
+    aliases.length ? JSON.stringify(aliases) : null,
+    result.watchLabels.length ? 1 : 0,
+    result.watchLabels.length ? JSON.stringify(result.watchLabels) : null,
+    observedAt,
+    key,
+  );
+  const row = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(key) as unknown as VulnRow;
+  return { key, isNew: result.isNew, changes, watchLabels: result.watchLabels, row };
+}
+
 /** Flags a CVE as in CISA's KEV from the KEV catalog, for CVEs NVD has not marked yet. */
 export function applyKev(db: DatabaseSync, entries: { cveId: string; dateAdded: string | null; dueDate: string | null; ransomware: boolean }[], observedAt: string): number {
   const select = db.prepare("SELECT kev FROM vulns WHERE cve_id = ?");
@@ -282,7 +460,7 @@ export function applyEpss(db: DatabaseSync, scores: Iterable<EpssScore>, scoreDa
 /** Re-evaluates every CVE against the watchlist after it changes. */
 export function recomputeWatchHits(db: DatabaseSync): number {
   const entries = loadWatchlist(db);
-  const rows = db.prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description, watch_hit, watch_labels_json FROM vulns").all() as {
+  const rows = db.prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description, watch_hit, watch_labels_json, packages_json FROM vulns").all() as {
     cve_id: string;
     cpes_json: string | null;
     vendors_json: string | null;
@@ -290,6 +468,7 @@ export function recomputeWatchHits(db: DatabaseSync): number {
     description: string | null;
     watch_hit: number;
     watch_labels_json: string | null;
+    packages_json: string | null;
   }[];
   const update = db.prepare("UPDATE vulns SET watch_hit = ?, watch_labels_json = ? WHERE cve_id = ?");
   let changed = 0;
@@ -297,7 +476,13 @@ export function recomputeWatchHits(db: DatabaseSync): number {
   try {
     for (const r of rows) {
       const labels = matchWatch(
-        { cpes: parseJson<string[]>(r.cpes_json, []), vendors: parseJson<string[]>(r.vendors_json, []), products: parseJson<string[]>(r.products_json, []), description: r.description },
+        {
+          cpes: parseJson<string[]>(r.cpes_json, []),
+          vendors: parseJson<string[]>(r.vendors_json, []),
+          products: parseJson<string[]>(r.products_json, []),
+          description: r.description,
+          packages: parseJson<AffectedPackage[]>(r.packages_json, []),
+        },
         entries,
       );
       const json = labels.length ? JSON.stringify(labels) : null;
@@ -423,7 +608,8 @@ export function isNotable(row: VulnRow, isNew: boolean, observedAt: string): boo
 export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChange[], observedAt: string): void {
   const vendors = parseJson<string[]>(row.vendors_json, []);
   const products = parseJson<string[]>(row.products_json, []);
-  const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 2)])].join(", ");
+  const packages = parseJson<AffectedPackage[]>(row.packages_json, []);
+  const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 2)])].join(", ") || packages.slice(0, 2).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
   const title = `${row.cve_id}${who ? ` · ${who}` : ""}${row.cvss_score !== null ? ` · CVSS ${row.cvss_score.toFixed(1)}` : ""}`;
   const changeSummary = changes
     .filter((c) => c.field !== "new")
