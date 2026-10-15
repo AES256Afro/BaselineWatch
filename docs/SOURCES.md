@@ -186,6 +186,19 @@ new downloads).
 - **Diffability**: good. Stable ids; the affected set and fixed versions are diffed as a
   `packages` change.
 
+### More advisory feeds (added 2026-10-15 evening, in the vulnerabilities group)
+- CISA ICS Advisories, `https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml` (RSS,
+  hourly): ICSA and ICSMA advisories with their CVEs and products. Public domain.
+- Google Chrome stable releases, the Chrome Releases blog's "Stable updates" label (Atom, daily):
+  each post lists the security fixes and CVEs of a stable channel update.
+- GitLab security releases, `https://about.gitlab.com/security-releases.xml` (daily).
+- Jenkins security advisories, `https://www.jenkins.io/security/advisories/rss.xml` (daily):
+  core and plugin advisories.
+- Not added: Amazon Linux ALAS (the feed carries every advisory ever, 2,900 items), MSRC's
+  update-guide RSS (answers with no items), Oracle (refuses non-browser clients), Mozilla (no
+  feed at the documented path), Broadcom/VMware (HTML).
+- The Google Security Blog (Atom, daily) joins the news group.
+
 ### Vendor advisories (added 2026-10-15, all RSS, in the vulnerabilities group)
 | Source | Feed |
 | --- | --- |
