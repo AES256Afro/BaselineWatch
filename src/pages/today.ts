@@ -24,12 +24,19 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const { db, owner, open, now, hours } = options;
   const since = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
   const n = (sql: string, ...params: string[]) => (db.prepare(sql).get(...params) as { n: number }).n;
-  const kev = n("SELECT COUNT(*) AS n FROM items WHERE kind = 'kev' AND fetched_at >= ?", since);
-  const kevMine = n("SELECT COUNT(*) AS n FROM items i JOIN vulns v ON v.cve_id = i.external_id WHERE i.kind = 'kev' AND i.fetched_at >= ? AND v.watch_hit = 1", since);
+  // KEV entries date from when CISA added them, not from when this instance first saw the catalog.
+  const kev = n("SELECT COUNT(*) AS n FROM items WHERE kind = 'kev' AND published_at >= ?", since);
+  const kevMine = n("SELECT COUNT(*) AS n FROM items i JOIN vulns v ON v.cve_id = i.external_id WHERE i.kind = 'kev' AND i.published_at >= ? AND v.watch_hit = 1", since);
   const watched = n("SELECT COUNT(DISTINCT c.cve_id) AS n FROM vuln_changes c JOIN vulns v ON v.cve_id = c.cve_id WHERE c.observed_at >= ? AND v.watch_hit = 1", since);
   const releases = db
-    .prepare("SELECT title, url, summary, published_at FROM items WHERE kind = 'release' AND fetched_at >= ? ORDER BY published_at DESC LIMIT 8")
-    .all(since) as { title: string; url: string | null; summary: string | null; published_at: string | null }[];
+    .prepare("SELECT title, url, summary, published_at, signals_json FROM items WHERE kind = 'release' AND fetched_at >= ? ORDER BY published_at DESC LIMIT 12")
+    .all(since) as { title: string; url: string | null; summary: string | null; published_at: string | null; signals_json: string | null }[];
+  // A standard's first load into this instance is not a release; a version with changes is.
+  const realReleases = releases.filter((r) => {
+    const s = parseJson<{ added?: number; removed?: number; modified?: number }>(r.signals_json, {});
+    return (s.added ?? 0) + (s.removed ?? 0) + (s.modified ?? 0) > 0;
+  });
+  const sinceLabel = hours === 24 ? "yesterday" : hours === 72 ? "three days ago" : "a week ago";
   const counts = triageCounts(db);
   const inbox = triageInbox(db, 8);
   const latest = db
@@ -42,13 +49,13 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>Since ${relativeTime(since, now).replace(" ago", "")} ago<small>What changed in the things you watch. Everything else is on the Wire.</small></h1>
+      <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is on the Wire.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
     <div class="stats today">
       <a class="tile ${kev ? "bad" : ""}" href="/wire?kind=kev"><small>KEV additions</small><b>${kev}</b><span>${kevMine} match your stack</span></a>
       <a class="tile" href="/vulnerabilities?watch=1&changed=1"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
-      <a class="tile std" href="/"><small>Standard releases</small><b>${releases.length}</b><span>${releases[0] ? releases[0].title.split(":")[0] : "none in the window"}</span></a>
+      <a class="tile std" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
     </div>
     <div class="cols">
@@ -67,10 +74,10 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : html`<p class="small">Nothing waiting. New KEV entries, notable CVEs and standard releases appear here until placed.</p>`}
         </section>
         <section class="box">
-          <h2>Standards <span class="count">${releases.length} release(s) in the window</span></h2>
-          ${releases.length
-            ? html`<ul class="need">${releases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}">${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
-            : html`<p class="small">No standard moved. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
+          <h2>Standards <span class="count">${realReleases.length} release(s) with changes in the window</span></h2>
+          ${realReleases.length
+            ? html`<ul class="need">${realReleases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}">${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
+            : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
         </section>
         <section class="box">
           <h2>Wire, latest <span class="count"><a href="/wire">all</a></span></h2>
@@ -90,5 +97,5 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       </aside>
     </div>`;
 
-  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${releases.length} releases`, owner, open });
+  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${realReleases.length} releases`, owner, open });
 }
