@@ -112,7 +112,8 @@ describe("adapter registry", () => {
     expect(adapterFor({ id: "nvd-cves", format: "json" })?.id).toBe("nvd");
     expect(adapterFor({ id: "cvelist-v5", format: "json" })).toBeNull();
     expect(adapterFor({ id: "disa-stigs", format: "xccdf-zip" })?.id).toBe("disa-stig");
-    expect(adapterFor({ id: "cis-benchmarks", format: "pdf-upload" })).toBeNull();
+    expect(adapterFor({ id: "cis-benchmarks", format: "pdf-upload" })?.id).toBe("cis");
+    expect(adapterFor({ id: "complianceascode", format: "git" })).toBeNull();
   });
 });
 

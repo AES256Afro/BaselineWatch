@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { adapterFor } from "./adapters/index.ts";
+import { adapterFor, fetchable } from "./adapters/index.ts";
 import { canonicalUrl, type Adapter, type AlertDraft, type DocumentTarget, type ParsedDocument, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
@@ -72,29 +72,78 @@ export async function ingestDocumentTarget(
     }
     if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
     const parsed = await adapter.parseDocument(response.bytes, target, { db, source, http: deps.http });
-    const blob = putBlob(dataDir, response.bytes);
-    const snapshot = db
-      .prepare(
-        `INSERT INTO snapshots (source_id, document_key, sha256, bytes, media_type, blob_path, fetched_at, etag, last_modified)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(source.id, target.key, sha256, blob.bytes, response.contentType, blob.relativePath, fetchedAt, response.etag, response.lastModified);
-    const stored = storeDocument(db, { source, target, parsed, snapshotId: Number(snapshot.lastInsertRowid), fetchedAt });
-    if (deps.settings?.llmUrl && stored.previousId && stored.changes.length > 0) {
-      await addGeneratedSummary(db, deps.http, { url: deps.settings.llmUrl, model: deps.settings.llmModel ?? "llama3.2:3b" }, source, stored, parsed, fetchedAt);
+    return storeParsedDocument(db, dataDir, source, target, parsed, response.bytes, sha256, { fetchedAt, contentType: response.contentType, etag: response.etag, lastModified: response.lastModified, http: deps.http, ...(deps.settings ? { settings: deps.settings } : {}) });
+  } catch (error) {
+    return { ...base, status: "error", error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** The part of a document's ingestion after the bytes are in hand and parsed: snapshot, store, diff, summarise. */
+async function storeParsedDocument(
+  db: DatabaseSync,
+  dataDir: string,
+  source: SourceRow,
+  target: DocumentTarget,
+  parsed: ParsedDocument,
+  bytes: Uint8Array,
+  sha256: string,
+  options: { fetchedAt: string; contentType: string | null; etag: string | null; lastModified: string | null; http: HttpGet; settings?: PullSettings },
+): Promise<DocumentOutcome> {
+  const blob = putBlob(dataDir, bytes);
+  const snapshot = db
+    .prepare(
+      `INSERT INTO snapshots (source_id, document_key, sha256, bytes, media_type, blob_path, fetched_at, etag, last_modified)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(source.id, target.key, sha256, blob.bytes, options.contentType, blob.relativePath, options.fetchedAt, options.etag, options.lastModified);
+  const stored = storeDocument(db, { source, target, parsed, snapshotId: Number(snapshot.lastInsertRowid), fetchedAt: options.fetchedAt });
+  if (options.settings?.llmUrl && stored.previousId && stored.changes.length > 0) {
+    await addGeneratedSummary(db, options.http, { url: options.settings.llmUrl, model: options.settings.llmModel ?? "llama3.2:3b" }, source, stored, parsed, options.fetchedAt);
+  }
+  const versionLabel = target.versionLabel ?? parsed.versionLabel;
+  const summary = stored.previousId ? changeSummaryText(stored.summary) : `first version, ${parsed.requirements.length} requirements`;
+  return {
+    key: target.key,
+    status: "ok",
+    documentId: stored.documentId,
+    versionLabel,
+    summary,
+    error: null,
+    ...(stored.previousId && stored.changes.length
+      ? { alert: { kind: "release" as const, title: `${source.name} ${versionLabel ?? ""}: ${summary}`.trim(), body: parsed.rationale?.text.slice(0, 600) ?? summary, url: `/standards/${source.id}/${stored.documentId}` } }
+      : {}),
+  };
+}
+
+/**
+ * A document the owner brought by hand (a CIS Benchmark PDF): parsed first so the key can come
+ * from the document's own title, then stored and diffed like any fetched release.
+ */
+export async function storeUploadedDocument(
+  db: DatabaseSync,
+  dataDir: string,
+  source: SourceRow,
+  adapter: Adapter,
+  bytes: Uint8Array,
+  options: { filename: string; keyFor: (title: string | null) => string; versionLabel: string | null; publishedAt: string | null; now: () => Date },
+): Promise<DocumentOutcome> {
+  const base = { key: "", documentId: null as number | null, versionLabel: null as string | null, summary: null as string | null, error: null as string | null };
+  try {
+    if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
+    const probe: DocumentTarget = { key: "upload", url: `upload:${options.filename}`, versionLabel: options.versionLabel, publishedAt: options.publishedAt };
+    const parsed = await adapter.parseDocument(bytes, probe, { db, source, http: httpGet });
+    const key = options.keyFor(parsed.title);
+    const target: DocumentTarget = { ...probe, key };
+    const sha256 = sha256Hex(bytes);
+    const existing = db.prepare("SELECT id FROM snapshots WHERE source_id = ? AND document_key = ? AND sha256 = ?").get(source.id, key, sha256) as { id: number } | undefined;
+    if (existing) {
+      const doc = db.prepare("SELECT id, version_label FROM documents WHERE snapshot_id = ?").get(existing.id) as { id: number; version_label: string | null } | undefined;
+      return { ...base, key, status: "unchanged", documentId: doc?.id ?? null, versionLabel: doc?.version_label ?? null };
     }
-    const versionLabel = target.versionLabel ?? parsed.versionLabel;
-    const summary = stored.previousId ? changeSummaryText(stored.summary) : `first version, ${parsed.requirements.length} requirements`;
-    return {
-      ...base,
-      status: "ok",
-      documentId: stored.documentId,
-      versionLabel,
-      summary,
-      ...(stored.previousId && stored.changes.length
-        ? { alert: { kind: "release" as const, title: `${source.name} ${versionLabel ?? ""}: ${summary}`.trim(), body: parsed.rationale?.text.slice(0, 600) ?? summary, url: `/standards/${source.id}/${stored.documentId}` } }
-        : {}),
-    };
+    const fetchedAt = options.now().toISOString();
+    const outcome = await storeParsedDocument(db, dataDir, source, target, parsed, bytes, sha256, { fetchedAt, contentType: "application/pdf", etag: null, lastModified: null, http: httpGet });
+    db.prepare("UPDATE sources SET last_fetch_at = ?, last_status = 'ok', last_error = NULL, fetch_count = fetch_count + 1 WHERE id = ?").run(fetchedAt, source.id);
+    return outcome;
   } catch (error) {
     return { ...base, status: "error", error: error instanceof Error ? error.message : String(error) };
   }
@@ -221,6 +270,9 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
   const adapter = adapterFor(source);
   if (!adapter) {
     return done({ status: "skipped", error: "no adapter for this source yet" });
+  }
+  if (!fetchable(adapter)) {
+    return done({ status: "skipped", error: "this source is loaded by upload, not fetched" });
   }
 
   try {

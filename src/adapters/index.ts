@@ -1,3 +1,4 @@
+import { cisAdapter } from "./cis.ts";
 import { disaAdapter } from "./disa.ts";
 import { epssAdapter } from "./epss.ts";
 import { feedAdapter } from "./feed.ts";
@@ -18,10 +19,16 @@ const byId: Record<string, Adapter> = {
   "nist-sp-800-53b": nistBaselinesAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
+  "cis-benchmarks": cisAdapter,
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
   "reddit-blueteamsec": redditAdapter,
 };
+
+/** Whether the adapter can run on a schedule; a manual-upload adapter cannot. */
+export function fetchable(adapter: Adapter | null): boolean {
+  return adapter !== null && (adapter.parse !== undefined || adapter.pull !== undefined || adapter.documents !== undefined);
+}
 
 const byFormat: Record<string, Adapter> = {
   rss: feedAdapter,
@@ -33,4 +40,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { disaAdapter, epssAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };
+export { cisAdapter, disaAdapter, epssAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { adapterFor } from "../adapters/index.ts";
+import { adapterFor, fetchable } from "../adapters/index.ts";
 import type { SourceRow } from "../adapters/types.ts";
 import { html, type Html } from "../html.ts";
 import { shortStamp } from "../time.ts";
@@ -51,7 +51,7 @@ export function renderSources({ db, owner, open, notice }: SourcesPageOptions): 
               ? html`${shortStamp(s.last_fetch_at)} <span class="status ${s.last_status ?? ""}">${s.last_status ?? ""}</span>${s.last_duration_ms !== null ? html` <span class="small">${s.last_duration_ms} ms</span>` : ""}`
               : html`<span class="state wait">never</span>`}${s.last_error ? html`<div class="note err">${s.last_error}</div>` : ""}</td>
             <td>${s.licence ?? "—"}</td>
-            ${owner ? html`<td>${adapter ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : ""}</td>` : ""}
+            ${owner ? html`<td>${fetchable(adapter) ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : s.format === "pdf-upload" ? html`<a href="/standards/${s.id}">Upload</a>` : ""}</td>` : ""}
           </tr>`;
         })}</tbody>
       </table></div>

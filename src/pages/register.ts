@@ -18,10 +18,28 @@ interface Who {
 
 const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.startsWith("profile:") ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline` : key);
 
-export function renderStandard(options: { db: DatabaseSync; sourceId: string; now: Date } & Who): string | null {
-  const { db, sourceId, now, owner, open } = options;
+export function renderStandard(options: { db: DatabaseSync; sourceId: string; now: Date; notice?: string | undefined } & Who): string | null {
+  const { db, sourceId, now, owner, open, notice } = options;
   const source = getSource(db, sourceId);
   if (!source || source.group_name !== "standards") return null;
+  const upload =
+    source.format === "pdf-upload"
+      ? owner
+        ? html`<section class="box upload">
+            <h2>Upload a benchmark PDF</h2>
+            <p class="small">The PDF stays in this instance's data directory under your own CIS licence. Upload the same benchmark again when CIS publishes a new version and the Register shows what changed, recommendation by recommendation.</p>
+            <form method="post" action="/uploads/cis" enctype="multipart/form-data" class="stack">
+              <label for="cis-pdf">Benchmark PDF</label>
+              <input type="file" id="cis-pdf" name="pdf" accept="application/pdf,.pdf" required>
+              <label for="cis-version">Version (optional, read from the PDF when blank)</label>
+              <input type="text" id="cis-version" name="version" maxlength="40" placeholder="v1.1.0">
+              <label for="cis-published">Published (optional)</label>
+              <input type="date" id="cis-published" name="published">
+              <button type="submit" class="primary">Upload and diff</button>
+            </form>
+          </section>`
+        : html`<section class="box"><h2>Benchmarks by upload</h2><p class="small">CIS Benchmarks are licensed for internal use, so the owner uploads each PDF by hand; the Register then diffs it against the previous upload of the same benchmark.</p></section>`
+      : html``;
   const documents = listDocuments(db, sourceId);
   const byKey = new Map<string, DocumentRow[]>();
   for (const d of documents) byKey.set(d.document_key, [...(byKey.get(d.document_key) ?? []), d]);
@@ -48,8 +66,10 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
   const content = html`
     <h1>${source.name}</h1>
     <p class="lede">${source.notes ?? ""} <a href="${source.url}" rel="noopener">Source</a>${source.licence ? html` · ${source.licence}` : ""}.</p>
+    ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
+    ${upload}
     ${documents.length === 0
-      ? html`<div class="empty"><b>No version loaded yet.</b><p>${owner ? html`Fetch it from the <a href="/sources">Sources</a> page, or run <code>npm run backfill -- ${sourceId}</code> to load the published history first.` : "The owner can fetch it from the Sources page."}</p></div>`
+      ? html`<div class="empty"><b>No version loaded yet.</b><p>${source.format === "pdf-upload" ? "Nothing uploaded so far." : owner ? html`Fetch it from the <a href="/sources">Sources</a> page, or run <code>npm run backfill -- ${sourceId}</code> to load the published history first.` : "The owner can fetch it from the Sources page."}</p></div>`
       : sections}`;
 
   return page({ title: source.name, active: "register", content, meta: html`${documents.length} versions`, owner, open });

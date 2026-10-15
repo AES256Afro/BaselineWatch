@@ -1,0 +1,219 @@
+import type { DatabaseSync } from "node:sqlite";
+import { latestDigest } from "./digest.ts";
+import { listDocuments } from "./register.ts";
+import { listTriage, type TriageState } from "./triage.ts";
+import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
+import { listWire, type WireFilters } from "./wire.ts";
+
+/**
+ * The read-only JSON API, for BoxPilot's agents, dashboards and scripts. Same read gating as
+ * the pages. Every list takes `limit` (max 200) and most take `since` (ISO 8601).
+ */
+export interface ApiQuery {
+  [key: string]: unknown;
+}
+
+const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
+const limitOf = (v: unknown, fallback = 50): number => {
+  const n = Number(str(v));
+  return Number.isInteger(n) && n > 0 ? Math.min(n, 200) : fallback;
+};
+const sinceOf = (v: unknown): string | undefined => {
+  const s = str(v, 40);
+  if (!s) return undefined;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+};
+
+function parseJson<T>(text: string | null, fallback: T): T {
+  if (!text) return fallback;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+  const kind = str(q.kind);
+  const filters: WireFilters = {
+    source: str(q.source),
+    kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? kind : undefined,
+    q: str(q.q),
+    unread: str(q.unread) === "1",
+    limit: limitOf(q.limit),
+  };
+  const since = sinceOf(q.since);
+  return listWire(db, filters)
+    .filter((i) => !since || (i.published_at ?? i.fetched_at) >= since)
+    .map((i) => ({
+      id: i.id,
+      source: i.source_id,
+      sourceName: i.source_name,
+      kind: i.kind,
+      externalId: i.external_id,
+      title: i.title,
+      url: i.url && i.url.startsWith("/") ? `${baseUrl}${i.url}` : i.url,
+      summary: i.summary,
+      publishedAt: i.published_at,
+      fetchedAt: i.fetched_at,
+      signals: parseJson<Record<string, unknown>>(i.signals_json, {}),
+      read: i.read === 1,
+      starred: i.starred === 1,
+    }));
+}
+
+export function apiVulns(db: DatabaseSync, q: ApiQuery) {
+  const sort = str(q.sort);
+  const minCvss = Number(str(q.min_cvss));
+  const minEpss = Number(str(q.min_epss));
+  const filters: VulnFilters = {
+    watch: str(q.watch) === "1",
+    kev: str(q.kev) === "1",
+    minCvss: Number.isFinite(minCvss) ? minCvss : undefined,
+    minEpss: Number.isFinite(minEpss) ? minEpss : undefined,
+    changedSince: sinceOf(q.since),
+    q: str(q.q),
+    sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
+    limit: limitOf(q.limit),
+    offset: Math.max(0, Number(str(q.offset)) || 0),
+  };
+  const { rows, total } = listVulns(db, filters);
+  return { total, vulns: rows.map(vulnJson) };
+}
+
+function vulnJson(v: NonNullable<ReturnType<typeof getVuln>>) {
+  return {
+    cve: v.cve_id,
+    published: v.published_at,
+    modified: v.last_modified_at,
+    status: v.vuln_status,
+    description: v.description,
+    cvss: v.cvss_score === null ? null : { version: v.cvss_version, score: v.cvss_score, severity: v.cvss_severity, vector: v.cvss_vector, source: v.cvss_source },
+    epss: v.epss === null ? null : { score: v.epss, percentile: v.epss_percentile, date: v.epss_date },
+    kev: v.kev === 1 ? { dateAdded: v.kev_date_added, dueDate: v.kev_due_date, ransomware: v.kev_ransomware === 1 } : null,
+    ssvc: parseJson<Record<string, string>>(v.ssvc_json, {}),
+    cwes: parseJson<string[]>(v.cwes_json, []),
+    vendors: parseJson<string[]>(v.vendors_json, []),
+    products: parseJson<string[]>(v.products_json, []),
+    watch: parseJson<string[]>(v.watch_labels_json, []),
+  };
+}
+
+export function apiVuln(db: DatabaseSync, cveId: string) {
+  const v = getVuln(db, cveId);
+  if (!v) return null;
+  return {
+    ...vulnJson(v),
+    cpes: parseJson<string[]>(v.cpes_json, []),
+    references: parseJson<{ url: string; tags: string[] }[]>(v.references_json, []),
+    history: vulnChanges(db, v.cve_id).map((c) => ({ at: c.observed_at, field: c.field, before: c.before_text, after: c.after_text })),
+  };
+}
+
+export function apiStandards(db: DatabaseSync, baseUrl: string) {
+  const sources = db.prepare("SELECT id, name, url, licence, last_fetch_at, last_status FROM sources WHERE group_name = 'standards' AND kind <> 'article' ORDER BY name").all() as {
+    id: string;
+    name: string;
+    url: string;
+    licence: string | null;
+    last_fetch_at: string | null;
+    last_status: string | null;
+  }[];
+  return sources.map((s) => ({
+    id: s.id,
+    name: s.name,
+    publisherUrl: s.url,
+    licence: s.licence,
+    lastFetch: s.last_fetch_at,
+    lastStatus: s.last_status,
+    versions: listDocuments(db, s.id).map((d) => ({
+      id: d.id,
+      key: d.document_key,
+      version: d.version_label,
+      published: d.published_at,
+      requirements: d.requirement_count,
+      previous: d.previous_document_id,
+      url: `${baseUrl}/standards/${s.id}/${d.id}`,
+    })),
+  }));
+}
+
+export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+  const since = sinceOf(q.since);
+  const source = str(q.source);
+  const clauses: string[] = [];
+  const params: (string | number)[] = [];
+  if (since) {
+    clauses.push("d.published_at >= ?");
+    params.push(since);
+  }
+  if (source) {
+    clauses.push("c.source_id = ?");
+    params.push(source);
+  }
+  const rows = db
+    .prepare(
+      `SELECT c.id, c.source_id, c.document_key, c.to_document_id, c.ref, c.kind, c.field, c.before_text, c.after_text, d.version_label, d.published_at,
+              COALESCE(r.label, p.label) AS label, COALESCE(r.title, p.title) AS title,
+              (SELECT e.text FROM explanations e WHERE e.change_id = c.id AND e.kind = 'publisher' LIMIT 1) AS note
+       FROM changes c JOIN documents d ON d.id = c.to_document_id
+       LEFT JOIN requirements r ON r.document_id = c.to_document_id AND r.ref = c.ref
+       LEFT JOIN requirements p ON p.document_id = c.from_document_id AND p.ref = c.ref
+       ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+       ORDER BY d.published_at DESC, c.ref, c.field LIMIT ?`,
+    )
+    .all(...params, limitOf(q.limit, 100)) as {
+    id: number;
+    source_id: string;
+    document_key: string;
+    to_document_id: number;
+    ref: string;
+    kind: string;
+    field: string | null;
+    before_text: string | null;
+    after_text: string | null;
+    version_label: string | null;
+    published_at: string | null;
+    label: string | null;
+    title: string | null;
+    note: string | null;
+  }[];
+  return rows.map((c) => ({
+    id: c.id,
+    source: c.source_id,
+    document: c.document_key,
+    version: c.version_label,
+    published: c.published_at,
+    ref: c.ref,
+    label: c.label,
+    title: c.title,
+    kind: c.kind,
+    field: c.field,
+    before: c.before_text,
+    after: c.after_text,
+    publisherNote: c.note,
+    url: `${baseUrl}/standards/${c.source_id}/${c.to_document_id}/${c.ref}`,
+  }));
+}
+
+export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+  const state = str(q.state);
+  const valid: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
+  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200) }).map((c) => ({
+    kind: c.subject_kind,
+    id: c.subject_id,
+    key: c.subject_key || null,
+    state: c.state,
+    title: c.title,
+    url: c.url.startsWith("/") ? `${baseUrl}${c.url}` : c.url,
+    note: c.note,
+    due: c.due_at,
+    updated: c.updated_at,
+  }));
+}
+
+export function apiDigest(db: DatabaseSync) {
+  const d = latestDigest(db);
+  return d ? { period: d.period, coversFrom: d.covers_from, coversTo: d.covers_to, generatedAt: d.generated_at, text: d.text } : null;
+}

@@ -91,8 +91,11 @@ new downloads).
 - **Shape**: `requirement-set` from PDF text: recommendation number, title, profile level,
   description, rationale, audit, remediation, default value.
 - **Rationale**: the "Change History" appendix of each benchmark PDF.
-- **Diffability**: fair. PDF layout noise; recommendation numbers shift between versions, so
-  the differ matches on title similarity as a fallback.
+- **Diffability**: fair. PDF layout noise; recommendation numbers can shift between versions.
+  Implemented 2026-10-15 as an owner upload: the PDF's text is read with pdfjs, recommendations
+  are found by their numbered headings (`1.1.1 (L1) Ensure ... (Automated)`) and their labelled
+  sections (Description, Rationale, Audit, Remediation, Default Value, CIS Controls), and the
+  Remediation is the diffed statement. A renumbered recommendation shows as removed plus added.
 
 ### ComplianceAsCode/content
 - **Fetch**: `https://github.com/ComplianceAsCode/content` (git). Open-source STIG, CIS, PCI,

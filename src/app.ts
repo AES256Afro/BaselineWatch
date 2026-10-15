@@ -1,12 +1,15 @@
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import { cisAdapter, cisKey } from "./adapters/cis.ts";
 import type { ItemKind, PullSettings } from "./adapters/types.ts";
+import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
+import { boundaryOf, parseMultipart } from "./multipart.ts";
 import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader } from "./auth.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
-import { getSource, ingestSource, type IngestResult } from "./ingest.ts";
+import { getSource, ingestSource, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
@@ -140,6 +143,32 @@ export function createApp(ctx: AppContext): Express {
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(sameOriginOnly);
   app.use("/assets", express.static(publicDir, { index: false, maxAge: "1h", fallthrough: true }));
+  // The Register's typefaces, served from their packages so the strict CSP (font-src 'self') holds and nothing is fetched from Google.
+  for (const family of ["newsreader", "public-sans", "jetbrains-mono"]) {
+    app.use(`/assets/fonts/${family}`, express.static(path.join(import.meta.dirname, "..", "node_modules", "@fontsource-variable", family, "files"), { index: false, maxAge: "30d", immutable: true, fallthrough: true }));
+  }
+
+  // The read-only JSON API. Same read gating as the pages (applied below), same data.
+  const json = (res: Response, body: unknown): void => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json(body);
+  };
+  const apiRead = (handler: (req: Request, res: Response) => void) => (req: Request, res: Response) => {
+    const state = authState(req, config, now().getTime());
+    if (!config.publicRead && !state.owner) return res.status(401).json({ error: "sign in first" });
+    handler(req, res);
+  };
+  app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl) })));
+  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery))));
+  app.get("/api/v1/vulns/:cve", apiRead((req, res) => {
+    const v = apiVuln(db, String(req.params.cve));
+    if (!v) return res.status(404).json({ error: "no such CVE" });
+    json(res, v);
+  }));
+  app.get("/api/v1/standards", apiRead((_req, res) => json(res, { standards: apiStandards(db, config.baseUrl) })));
+  app.get("/api/v1/changes", apiRead((req, res) => json(res, { changes: apiChanges(db, req.query as ApiQuery, config.baseUrl) })));
+  app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl) })));
+  app.get("/api/v1/digest", apiRead((_req, res) => json(res, { digest: apiDigest(db) })));
 
   const health = (_req: Request, res: Response): void => {
     res.setHeader("Cache-Control", "no-store");
@@ -230,7 +259,7 @@ export function createApp(ctx: AppContext): Express {
 
   app.get("/standards", (_req, res) => res.redirect(302, "/"));
   app.get("/standards/:source", (req, res, next) => {
-    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(res), now: now() });
+    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(res), now: now(), notice: str(req.query.notice, 300) });
     if (!html) return next();
     res.type("html").send(html);
   });
@@ -323,6 +352,44 @@ export function createApp(ctx: AppContext): Express {
     const row = writeDigest(db, { now: now(), baseUrl: config.baseUrl, period });
     await notify(db, parseNotifyUrl(config.notifyUrl), { kind: "digest", title: `BaselineWatch ${period} digest`, body: row.text.slice(0, 3500), url: `${config.baseUrl}/digest` }, ctx.http, now);
     res.redirect(303, "/digest");
+  });
+
+  // CIS Benchmarks come in by hand: the owner uploads the PDF, the Register diffs it against the last upload of the same benchmark.
+  app.post("/uploads/cis", requireOwner, async (req, res) => {
+    const boundary = boundaryOf(req.headers["content-type"]);
+    if (!boundary) return res.status(400).type("text").send("Send the PDF as multipart/form-data.");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const limit = 60 * 1024 * 1024;
+    try {
+      for await (const chunk of req) {
+        size += (chunk as Buffer).length;
+        if (size > limit) {
+          res.status(413).type("text").send("That file is larger than 60 MB.");
+          return;
+        }
+        chunks.push(chunk as Buffer);
+      }
+    } catch {
+      return res.status(400).type("text").send("The upload did not complete.");
+    }
+    const form = parseMultipart(new Uint8Array(Buffer.concat(chunks)), boundary);
+    const file = form.files.find((f) => f.field === "pdf") ?? form.files[0];
+    if (!file || file.bytes.length === 0) return res.status(400).type("text").send("No PDF was attached.");
+    const source = getSource(db, "cis-benchmarks");
+    if (!source) return res.status(500).type("text").send("The CIS source is missing from the database.");
+    const versionLabel = str(form.fields.version, 40) ?? null;
+    const publishedAt = str(form.fields.published, 10);
+    const outcome = await storeUploadedDocument(db, config.dataDir, source, cisAdapter, file.bytes, {
+      filename: file.filename,
+      keyFor: (title) => cisKey(title, file.filename),
+      versionLabel,
+      publishedAt: publishedAt && /^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ? `${publishedAt}T00:00:00.000Z` : null,
+      now,
+    });
+    if (outcome.status === "error") return res.status(422).type("text").send(`Could not read that benchmark: ${outcome.error}`);
+    const notice = outcome.status === "unchanged" ? `${file.filename} was already loaded.` : `${file.filename} loaded as ${outcome.key} ${outcome.versionLabel ?? ""}: ${outcome.summary}`;
+    res.redirect(303, `/standards/cis-benchmarks?notice=${encodeURIComponent(notice)}`);
   });
 
   app.get("/sources", (req, res) => {
