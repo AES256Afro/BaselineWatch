@@ -42,6 +42,14 @@ export function raw(value: string): Html {
   return new Html(value);
 }
 
+/** `target` and `rel` for a link that leaves the site: a new tab, and no opener handle for the target. */
+export const newTab: Html = raw('target="_blank" rel="noopener"');
+
+/** `newTab` when the address is an absolute http(s) one; nothing for a path on this site. */
+export function newTabIf(href: string | null | undefined): Html {
+  return href && /^https?:\/\//i.test(href) ? newTab : raw("");
+}
+
 /** Formats a byte count the way a person reads it. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

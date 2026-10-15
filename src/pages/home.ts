@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
 import { latestDigest } from "../digest.ts";
-import { formatBytes, html } from "../html.ts";
+import { formatBytes, html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
@@ -108,7 +108,7 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
     } catch {
       due = "";
     }
-    return html`<li><a href="${k.url ?? "/wire?kind=kev"}" rel="noopener">${k.title}</a><span class="when">${relativeTime(k.published_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
+    return html`<li><a href="${k.url ?? "/wire?kind=kev"}" ${newTabIf(k.url ?? "/wire?kind=kev")}>${k.title}</a><span class="when">${relativeTime(k.published_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
   });
 
   const content = html`

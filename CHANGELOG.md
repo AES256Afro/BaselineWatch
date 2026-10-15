@@ -2,6 +2,11 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.10.1 — 2026-10-15
+
+- Links that leave the site (articles, advisories, NVD and CVE records, publishers' rationale,
+  the sources list, the footer's source link) open in a new tab; links within the site do not.
+
 ## 0.10.0 — 2026-10-15
 
 - Vendor security advisories on the Wire, apart from news: Ubuntu, Debian, Cisco, Palo Alto

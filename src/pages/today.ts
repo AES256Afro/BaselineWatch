@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { latestDigest } from "../digest.ts";
-import { html } from "../html.ts";
+import { html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
@@ -66,7 +66,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             ? html`<ul class="need">${inbox.map((i) => {
                 const s = parseJson<{ dueDate?: string; cvss?: number | null; epss?: number | null; kev?: boolean; watch?: string[] }>(i.signals_json, {});
                 return html`<li class="${i.kind === "kev" || s.kev ? "kev" : i.kind === "release" ? "std" : ""}">
-                  <div class="need-main"><b>${i.url ? html`<a href="${i.url}" rel="noopener">${i.title}</a>` : i.title}</b>
+                  <div class="need-main"><b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
                     <span class="small">${i.source_name} · ${relativeTime(i.published_at, now)}${s.dueDate ? ` · due ${s.dueDate}` : ""}${typeof s.cvss === "number" ? ` · CVSS ${s.cvss.toFixed(1)}` : ""}${typeof s.epss === "number" ? ` · EPSS ${(s.epss * 100).toFixed(0)}%` : ""}${s.watch?.length ? ` · ${s.watch.join(", ")}` : ""}</span></div>
                   ${owner ? triageButtons({ kind: "item", id: i.id }, null, `/today?since=${hours}`, { compact: true }) : ""}
                 </li>`;
@@ -76,12 +76,12 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         <section class="box">
           <h2>Standards <span class="count">${realReleases.length} release(s) with changes in the window</span></h2>
           ${realReleases.length
-            ? html`<ul class="need">${realReleases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}">${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
+            ? html`<ul class="need">${realReleases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}" ${newTabIf(r.url)}>${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
             : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
         </section>
         <section class="box">
           <h2>Wire, latest <span class="count"><a href="/wire">all</a></span></h2>
-          <ul class="latest">${latest.map((a) => html`<li><span class="src">${a.source_name}</span>${a.url ? html`<a href="${a.url}" rel="noopener">${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
+          <ul class="latest">${latest.map((a) => html`<li><span class="src">${a.source_name}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
         </section>
       </section>
       <aside class="side">
@@ -92,7 +92,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         <section class="box">
           <h2>Digest and alerts</h2>
           <p class="small">${digest ? html`Last digest <a href="/digest">${relativeTime(digest.generated_at, now)}</a>.` : html`<a href="/digest">No digest yet.</a>`}</p>
-          ${alerts.length ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}</span>${a.url ? html`<a href="${a.url}">${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
+          ${alerts.length ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
         </section>
       </aside>
     </div>`;

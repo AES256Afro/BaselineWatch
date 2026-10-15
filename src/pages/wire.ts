@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, type Html } from "../html.ts";
+import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime } from "../time.ts";
 import type { TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
@@ -53,7 +53,7 @@ function chips(item: WireItem): Html[] {
   }
   if (s.ransomware) out.push(html`<span class="chip kev">ransomware</span>`);
   if (s.cves?.length && item.kind !== "kev") out.push(html`<span class="chip">${s.cves.slice(0, 3).join(", ")}${s.cves.length > 3 ? html` +${s.cves.length - 3}` : ""}</span>`);
-  if (typeof s.score === "number" && s.thread) out.push(html`<a class="chip" href="${s.thread}" rel="noopener">${s.score} pts · ${s.comments ?? 0} comments</a>`);
+  if (typeof s.score === "number" && s.thread) out.push(html`<a class="chip" href="${s.thread}" ${newTab}>${s.score} pts · ${s.comments ?? 0} comments</a>`);
   if (item.starred) out.push(html`<span class="chip star">starred</span>`);
   return out;
 }
@@ -86,7 +86,7 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
         <span class="wi-src">${item.source_name}</span>
         <time class="wi-time" datetime="${item.published_at ?? item.fetched_at}">${relativeTime(item.published_at ?? item.fetched_at, now)}</time>
       </div>
-      <h3 class="wi-title">${item.url ? html`<a href="${item.url}" rel="noopener">${item.title}</a>` : item.title}</h3>
+      <h3 class="wi-title">${item.url ? html`<a href="${item.url}" ${newTabIf(item.url)}>${item.title}</a>` : item.title}</h3>
       ${item.summary ? html`<p class="wi-sum">${item.summary}</p>` : ""}
       <div class="wi-foot">
         <div class="chips">${chips(item)}</div>

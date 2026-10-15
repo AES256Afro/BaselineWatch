@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, type Html } from "../html.ts";
+import { html, newTabIf, type Html } from "../html.ts";
 import { relativeTime } from "../time.ts";
 import { listTriage, stateLabel, triageCounts, triageInbox, triageStates, type TriageCard, type TriageKind, type TriageState } from "../triage.ts";
 import { page } from "./layout.ts";
@@ -35,7 +35,7 @@ function card(c: TriageCard, owner: boolean, now: Date): Html {
   const s = c.signals as { cvss?: number | null; epss?: number | null; kev?: boolean; dueDate?: string; itemKind?: string; release?: boolean };
   return html`<li class="tcard ${c.subject_kind} ${s.kev ? "kev" : ""}">
     <div class="k"><span>${c.subject_kind === "vuln" ? "CVE" : c.subject_kind === "control" ? "control" : (s.itemKind ?? "item")}</span><span>${relativeTime(c.updated_at, now)}</span></div>
-    <b><a href="${c.url}" rel="noopener">${c.title}</a></b>
+    <b><a href="${c.url}" ${newTabIf(c.url)}>${c.title}</a></b>
     ${c.detail ? html`<p>${c.detail.length > 180 ? `${c.detail.slice(0, 179)}…` : c.detail}</p>` : ""}
     <div class="chips">
       ${s.kev ? html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>` : ""}
@@ -71,7 +71,7 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
         }
         return html`<li class="tcard inbox-card ${i.kind}">
           <div class="k"><span>${i.source_name}</span><span>${relativeTime(i.published_at, now)}</span></div>
-          <b>${i.url ? html`<a href="${i.url}" rel="noopener">${i.title}</a>` : i.title}</b>
+          <b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
           <div class="chips">${i.kind === "kev" || s.kev ? html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>` : ""}${typeof s.cvss === "number" ? html`<span class="chip">CVSS ${s.cvss.toFixed(1)}</span>` : ""}${i.kind === "release" ? html`<span class="chip">release</span>` : ""}</div>
           ${owner ? triageButtons({ kind: "item", id: i.id }, null, "/triage", { compact: true }) : ""}
         </li>`;
