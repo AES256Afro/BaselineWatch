@@ -48,8 +48,9 @@ Fetch one source, every enabled source, or whatever is due, from the shell:
 npm run fetch -- cisa-kev
 ```
 
-Load a standard's published history before its current version, so the Register starts with a
-real diff (NIST SP 800-53 Release 5.1.1 to 5.2.0 takes about a minute):
+Load a standard's published history, so the Register starts with a real diff (NIST SP 800-53
+Release 5.1.1 to 5.2.0 takes about a minute). It can run before or after the first scheduled
+fetch; versions are linked by publication date either way:
 
 ```bash
 npm run backfill -- nist-sp-800-53 && npm run backfill -- nist-sp-800-53b

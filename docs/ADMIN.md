@@ -63,7 +63,11 @@ npm run fetch -- due
 ```
 
 The owner can fetch any source immediately from the Sources page, and load a standard's
-published history with `npm run backfill -- <source>`.
+published history with `npm run backfill -- <source>`. Order does not matter: a version that
+arrives after a newer one is slotted into its place by publication date and the newer one is
+re-diffed against it. A chain linked before 0.10.2 (a backfill run after the scheduler had
+already fetched the current release) is repaired by `npm run relink -- <source>` or
+`npm run relink -- all`, which re-diffs only what was linked wrong and is safe to run again.
 
 ## What leaves the box
 

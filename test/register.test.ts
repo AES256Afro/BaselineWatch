@@ -10,7 +10,7 @@ import type { HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { normalizeCatalog, normalizeProfile, resolveParams, type OscalCatalog, type OscalProfile } from "../src/oscal.ts";
 import { redline, wordDiff } from "../src/redline.ts";
-import { baselinesFor, explanationsFor, latestDocument, listDocuments, releaseChanges } from "../src/register.ts";
+import { baselinesFor, explanationsFor, latestDocument, listDocuments, releaseChanges, relinkSource } from "../src/register.ts";
 import { listWire } from "../src/wire.ts";
 import { fixture, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -155,6 +155,67 @@ describe("Register ingestion", () => {
     expect(again.status).toBe("unchanged");
     expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(2);
     expect(getSource(db, "nist-sp-800-53")?.last_status).toBe("unchanged");
+  });
+
+  it("slots a history loaded after the current release into publication order", async () => {
+    // The scheduler got there first: the current catalog (the 5.2.0 bytes) is the only document.
+    const http = nistHttp();
+    const catalog = getSource(db, "nist-sp-800-53")!;
+    expect((await ingestSource(db, dataDir, catalog, { http, now: () => at })).status).toBe("ok");
+    const current = latestDocument(db, "nist-sp-800-53", "catalog")!;
+    expect(current.previous_document_id).toBeNull();
+    expect(explanationsFor(db, current.id)).toHaveLength(0);
+
+    // Then the backfill: 5.1.1 is older than what is loaded; the 5.2.0 entry is the same bytes.
+    const outcomes = [];
+    for (const target of nistCatalogAdapter.history!(catalog)) outcomes.push(await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at }));
+    expect(outcomes.map((o) => o.status)).toEqual(["ok", "unchanged"]);
+    expect(outcomes[0]?.summary).toBe("first version, 39 requirements");
+
+    const docs = listDocuments(db, "nist-sp-800-53");
+    expect(docs).toHaveLength(2);
+    const older = docs.find((d) => d.id !== current.id)!;
+    const latest = latestDocument(db, "nist-sp-800-53", "catalog")!;
+    expect(latest.id).toBe(current.id);
+    expect(older.previous_document_id).toBeNull();
+    expect(latest.previous_document_id).toBe(older.id);
+    expect(releaseChanges(db, older.id)).toHaveLength(0);
+    const changes = releaseChanges(db, latest.id);
+    expect(changes.some((c) => c.ref === "sa-24" && c.kind === "added")).toBe(true);
+    expect(changes.some((c) => c.kind === "removed")).toBe(false);
+    // The history entry knew why 5.2.0 happened, and the document had no reason yet: it adopts it.
+    expect(explanationsFor(db, latest.id).map((e) => e.kind)).toEqual(["publisher"]);
+
+    const releases = listWire(db, { kind: "release" }).filter((i) => i.source_id === "nist-sp-800-53");
+    expect(releases.find((i) => i.external_id === `catalog#${latest.id}`)?.title).toMatch(/5\.2\.0: 3 added/);
+    expect(releases.find((i) => i.external_id === `catalog#${older.id}`)?.title).toMatch(/5\.1\.1.*: loaded as the first version/);
+    expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 0 });
+  });
+
+  it("relink repairs a chain whose predecessors were wrong and leaves a correct one alone", async () => {
+    await loadNist(db, dataDir);
+    const catalog = getSource(db, "nist-sp-800-53")!;
+    const [newer, older] = listDocuments(db, "nist-sp-800-53");
+    expect(newer!.version_label).toBe("5.2.0");
+    expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 0 });
+
+    // What a backfill into a non-empty database used to produce: the old release hanging off the new one.
+    db.prepare("UPDATE documents SET previous_document_id = ? WHERE id = ?").run(newer!.id, older!.id);
+    db.prepare("UPDATE documents SET previous_document_id = NULL WHERE id = ?").run(newer!.id);
+    db.prepare("DELETE FROM changes WHERE to_document_id = ?").run(newer!.id);
+    expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 2 });
+
+    const latest = latestDocument(db, "nist-sp-800-53", "catalog")!;
+    expect(latest.id).toBe(newer!.id);
+    expect(latest.previous_document_id).toBe(older!.id);
+    expect(listDocuments(db, "nist-sp-800-53").find((d) => d.id === older!.id)?.previous_document_id).toBeNull();
+    expect(releaseChanges(db, latest.id).some((c) => c.ref === "sa-24" && c.kind === "added")).toBe(true);
+    expect(releaseChanges(db, older!.id)).toHaveLength(0);
+    // The publisher's reason stays with the release; the Wire entry says what changed again.
+    expect(explanationsFor(db, latest.id).map((e) => e.kind)).toEqual(["publisher"]);
+    const release = listWire(db, { kind: "release" }).find((i) => i.external_id === `catalog#${latest.id}`);
+    expect(release?.title).toMatch(/5\.2\.0: 3 added/);
+    expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 0 });
   });
 });
 

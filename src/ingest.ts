@@ -5,7 +5,7 @@ import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
 import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
-import { changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
+import { adoptRationale, changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
 
 export interface DocumentOutcome {
   key: string;
@@ -60,7 +60,10 @@ export async function ingestDocumentTarget(
       const seen = db
         .prepare("SELECT id, version_label FROM documents WHERE source_id = ? AND document_key = ? AND source_url = ? AND published_at = ? ORDER BY id DESC LIMIT 1")
         .get(source.id, target.key, target.url, target.publishedAt) as { id: number; version_label: string | null } | undefined;
-      if (seen) return { ...base, status: "unchanged", documentId: seen.id, versionLabel: seen.version_label };
+      if (seen) {
+        adoptRationale(db, seen.id, target.rationale, deps.now().toISOString());
+        return { ...base, status: "unchanged", documentId: seen.id, versionLabel: seen.version_label };
+      }
     }
     const response = await deps.http(target.url, { ...(adapter.headers ? { headers: adapter.headers } : {}), timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024 });
     const fetchedAt = deps.now().toISOString();
@@ -68,6 +71,8 @@ export async function ingestDocumentTarget(
     const existing = db.prepare("SELECT id FROM snapshots WHERE source_id = ? AND document_key = ? AND sha256 = ?").get(source.id, target.key, sha256) as { id: number } | undefined;
     if (existing) {
       const doc = db.prepare("SELECT id, version_label FROM documents WHERE snapshot_id = ?").get(existing.id) as { id: number; version_label: string | null } | undefined;
+      // The same bytes under a history entry that knows why the release happened: keep the reason.
+      if (doc) adoptRationale(db, doc.id, target.rationale, deps.now().toISOString());
       return { ...base, status: "unchanged", documentId: doc?.id ?? null, versionLabel: doc?.version_label ?? null };
     }
     if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);

@@ -1,6 +1,7 @@
 // Command line entry:
 //   node src/cli.ts fetch <source-id|all|due>     the same ingestion the scheduler runs, then exit
 //   node src/cli.ts backfill <source-id>          load a standard's published history, oldest first, then its current documents
+//   node src/cli.ts relink <source-id|all>        put a standard's versions back in publication order and re-diff the ones that were linked wrong
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { adapterFor } from "./adapters/index.ts";
@@ -8,12 +9,13 @@ import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { httpGet } from "./http.ts";
 import { getSource, ingestDocumentTarget, ingestSource, listSources } from "./ingest.ts";
+import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
 
 const [command, target] = process.argv.slice(2);
 
-if ((command !== "fetch" && command !== "backfill") || !target) {
-  console.error("usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>");
+if ((command !== "fetch" && command !== "backfill" && command !== "relink") || !target) {
+  console.error("usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>");
   process.exit(2);
 }
 
@@ -37,6 +39,16 @@ if (command === "backfill") {
     const outcome = await ingestDocumentTarget(db, config.dataDir, source, adapter, t, { http: httpGet, now: () => new Date() });
     console.log(`[backfill] ${source.id} ${t.key.padEnd(18)} ${(outcome.versionLabel ?? "").padEnd(8)} ${outcome.status.padEnd(9)} ${outcome.summary ?? outcome.error ?? ""}`);
     if (outcome.status === "error") failures += 1;
+  }
+} else if (command === "relink") {
+  const sources = target === "all" ? listSources(db) : [getSource(db, target)].filter((s) => s !== null);
+  if (sources.length === 0) {
+    console.error(`no such source: ${target}`);
+    process.exit(1);
+  }
+  for (const source of sources) {
+    const out = relinkSource(db, source, new Date().toISOString());
+    if (out.keys) console.log(`[relink] ${source.id.padEnd(18)} ${out.keys} document key(s), ${out.relinked} relinked`);
   }
 } else {
   const sources =

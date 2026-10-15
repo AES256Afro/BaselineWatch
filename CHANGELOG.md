@@ -2,6 +2,15 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.10.2 — 2026-10-15
+
+- A standard's versions are linked by publication date, whatever order they arrive in. A backfill
+  run after the scheduler had already fetched the current release used to hang the history off
+  that release, so the Register showed 5.1.1 as a reverse diff and 5.2.0 as "no control-level
+  changes"; now the older version slots in before it and the current one is re-diffed against it.
+- `npm run relink -- <source|all>` repairs a chain linked that way, re-diffing only what was wrong.
+- A history entry whose bytes are already loaded still lends the release its publisher's reason.
+
 ## 0.10.1 — 2026-10-15
 
 - Links that leave the site (articles, advisories, NVD and CVE records, publishers' rationale,
