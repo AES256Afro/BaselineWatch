@@ -18,8 +18,9 @@ Planning Note from the publication page, DISA's Revision History read out of the
 rule by rule, Microsoft's announcement from the zip. A local model can add a short summary, always
 badged as generated. The Wire (M1) carries news feeds, Reddit, Hacker News, CISA advisories and
 the KEV catalog; the Vulnerabilities page (M2) pulls every CVE NVD modifies with EPSS, KEV and
-your watchlist. Next: a Today page and an Atlas of standards change, then hardening and the
-BoxPilot catalog (M7).
+your watchlist. All five mockup directions are now pages: the Register (home), the Wire, the
+Board (Triage), the Console (Today, phone-first) and the Atlas (release timeline and the SP
+800-53 family heatmap). Next: hardening and the BoxPilot catalog (M7).
 Public home will be https://cybercard.net, a read-only information and teaching site.
 
 ## Run it

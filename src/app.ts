@@ -12,7 +12,9 @@ import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
 import { renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
+import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
+import { renderToday } from "./pages/today.ts";
 import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
@@ -186,6 +188,15 @@ export function createApp(ctx: AppContext): Express {
 
   app.get("/", (_req, res) => {
     res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner: who(res).owner, now: now() }));
+  });
+
+  app.get("/today", (req, res) => {
+    const since = Number(str(req.query.since));
+    const hours = since === 72 || since === 168 ? since : 24;
+    res.type("html").send(renderToday({ db, ...who(res), now: now(), hours }));
+  });
+  app.get("/atlas", (_req, res) => {
+    res.type("html").send(renderAtlas({ db, ...who(res), now: now() }));
   });
 
   app.get("/wire", (req, res) => {
