@@ -1,5 +1,10 @@
 /* BaselineWatch: the Register look. Paper, ink, one green accent, redline colours for diffs.
    Masthead across the top, content in a wide column with a narrow aside. */
+@font-face { font-family: "Newsreader Variable"; font-style: normal; font-weight: 200 800; font-display: swap; src: url("/assets/fonts/newsreader/newsreader-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader Variable"; font-style: italic; font-weight: 200 800; font-display: swap; src: url("/assets/fonts/newsreader/newsreader-latin-wght-italic.woff2") format("woff2"); }
+@font-face { font-family: "Public Sans Variable"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/assets/fonts/public-sans/public-sans-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Public Sans Variable"; font-style: italic; font-weight: 100 900; font-display: swap; src: url("/assets/fonts/public-sans/public-sans-latin-wght-italic.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono Variable"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("/assets/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); }
 :root {
   --paper: #f3f4f1;
   --card: #ffffff;
@@ -15,9 +20,9 @@
   --ins: #1b6e3a;
   --ins-bg: #e3f3e8;
   --gen: #7a4fb3;
-  --serif: "Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif;
-  --sans: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --serif: "Newsreader Variable", "Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Public Sans Variable", "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -331,6 +336,9 @@ details.box summary { cursor: pointer; }
 .due li { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
 .due li:last-child { border-bottom: 0; }
 .due .d { font: 500 12px var(--mono); color: var(--acc); }
+
+/* Upload */
+.upload input[type="file"] { font: inherit; font-size: 13.5px; }
 
 /* Sign-in */
 .login { max-width: 420px; margin: 40px auto; }

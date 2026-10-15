@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { adapterFor } from "./adapters/index.ts";
+import { adapterFor, fetchable } from "./adapters/index.ts";
 import type { SourceRow } from "./adapters/types.ts";
 import { digestDue, writeDigest } from "./digest.ts";
 import { httpGet } from "./http.ts";
@@ -19,7 +19,7 @@ const retryAfterErrorMs = 30 * 60 * 1000;
 /** Enabled sources with an adapter whose interval has elapsed (or that have never been fetched). */
 export function dueSources(db: DatabaseSync, now: Date): SourceRow[] {
   return listSources(db, { enabledOnly: true }).filter((source) => {
-    if (source.schedule === "manual" || !adapterFor(source)) return false;
+    if (source.schedule === "manual" || !fetchable(adapterFor(source))) return false;
     if (!source.last_fetch_at) return true;
     const elapsed = now.getTime() - new Date(source.last_fetch_at).getTime();
     const wait = source.last_status === "error" ? Math.min(intervalMs[source.schedule], retryAfterErrorMs) : intervalMs[source.schedule];

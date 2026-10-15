@@ -297,7 +297,23 @@ from each publisher's cadence.
 - **Done when**: installed on BigBox from the BoxPilot catalog, backed up by BoxPilot, updated by
   BoxPilot.
 
-### M8: Stretch
+### M7: Hardening and BoxPilot — 2026-10-15
+
+Done: HSTS behind TLS, the admin guide (`docs/ADMIN.md`), and the catalog manifest proposed as
+[AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472) with BoxPilot's
+catalog tests passing. The public site steps (BigBox, Cloudflare Tunnel, DNS, categorisation)
+are in `docs/DEPLOY.md` and wait on a signed-in Cloudflare session and the BigBox shell.
+
+### M8: Stretch — first three shipped 2026-10-15 as 0.9.0
+
+Shipped: CIS Benchmarks by owner upload (a multipart form, the PDF read with pdfjs, recommendations
+parsed from their numbered headings and labelled sections, diffed against the previous upload of
+the same benchmark); the read-only JSON API (`/api/v1/*`) for BoxPilot's agents and scripts; the
+Register's typefaces served from their packages so the strict CSP stands and nothing loads from
+Google. Still open: vendor PSIRTs, OSV and GHSA, Intune and FedRAMP baselines, an MCP server,
+multi-user.
+
+### M8 as planned
 - CIS Benchmarks in manual-upload mode (drop the PDF, get the diff against your last upload).
 - Vendor PSIRTs (Cisco openVuln, Red Hat, Ubuntu USN, Debian DSA), OSV, GHSA.
 - Intune baseline JSON, CMMC Level 2 mapping, FedRAMP Rev5 baselines (OSCAL).

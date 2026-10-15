@@ -79,9 +79,31 @@ source immediately from that page.
 | `BW_LLM_MODEL` | `llama3.2:3b` | The Ollama model for those summaries. |
 | `TZ` | `Etc/UTC` | Time zone for digests. |
 
+## API
+
+Read-only JSON, same read gating as the pages, for BoxPilot's agents and your own scripts:
+
+| Route | Returns |
+| --- | --- |
+| `/api/v1/items?kind=&source=&q=&since=&limit=` | Timeline items with their signals. |
+| `/api/v1/vulns?watch=1&kev=1&min_cvss=&min_epss=&since=&q=&sort=&limit=&offset=` | CVEs with CVSS, EPSS, KEV, SSVC, vendors and watchlist hits. |
+| `/api/v1/vulns/<CVE>` | One CVE with CPEs, references and its change history. |
+| `/api/v1/standards` | Every tracked standard and its loaded versions. |
+| `/api/v1/changes?source=&since=&limit=` | Control-level changes with before/after text and the publisher's note. |
+| `/api/v1/triage?state=` | The board. |
+| `/api/v1/digest` | The latest digest. |
+
+## CIS Benchmarks
+
+CIS Benchmarks are licensed for internal use, so they are not fetched. The owner uploads a
+benchmark PDF on its page under the Register; the next upload of the same benchmark is diffed
+recommendation by recommendation. The PDF stays in the data directory.
+
 ## Docs
 
 - [docs/PLAN.md](docs/PLAN.md): the plan, milestones and the three ways to build it.
+- [docs/ADMIN.md](docs/ADMIN.md): where the data lives, how a diff is computed, the scheduler,
+  what leaves the box, access and recovery.
 - [docs/SOURCES.md](docs/SOURCES.md): every feed and standard we track, with URL, format,
   cadence, licensing and how it is diffed.
 - [docs/mockups/](docs/mockups/): five design directions for the app.
