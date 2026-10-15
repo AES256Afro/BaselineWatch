@@ -1,0 +1,1204 @@
+{
+ "info": {
+  "title": "FedRAMP Consolidated Rules for 2026",
+  "description": "This datafile contains the Consolidated Rules for FedRAMP in structured machine-readable text. It includes definitions, requirements, recommendations, and key security indicators.",
+  "version": "2026.10.08.01",
+  "last_updated": "2026-10-08",
+  "default_artifacts": {
+   "FRR": [
+    "Explanation of how the rule is followed, or an explanation of the reason and resulting risk to customers for not following the rule.",
+    "Verification that the implementation is appropriate for the rule, or that the reason for not implementing is accepted by a senior official.",
+    "Validation that the implementation is in place and working as intended, or that the reason for not implementing is accepted by a senior official.",
+    "Independent verification.",
+    "Independent validation."
+   ],
+   "KSI": [
+    "Explanation of measures (and their objectives) that demonstrate the Key Security Indicator, or an explanation of the reason and resulting risk to customers for not having measures available for that Key Security Indicator.",
+    "Explanation of the cycle for any measures that are implemented persistently (if applicable).",
+    "Verification that the measures demonstrate the Key Security Indicator, or that the reason for not having them is accepted.",
+    "Verification that the automation in place is accurate and sufficient to demonstrate appropriate measures for the Key Security Indicator, or that automation is not necessary for each measure.",
+    "Validation that the measures are accurately produced and are in place and working as intended, or that the reason for not having them is valid."
+   ]
+  }
+ },
+ "FRD": {
+  "info": {
+   "name": "FedRAMP Definitions",
+   "short_name": "FRD",
+   "web_name": "definitions",
+   "purpose": "FedRAMP Definitions establish a shared understanding for terms when the plain-language meaning is not precise enough to support consistent use across the rules. When a defined term appears in a rule, the definition is a critical part of that rule and must be followed precisely, even if the term is commonly used differently elsewhere; when no definition exists, the plain-language meaning is expected.",
+   "status": "stable",
+   "effective": {
+    "is": "required",
+    "current_status": "Consolidated Rules for 2026",
+    "date": {
+     "obtain": "2026-07-04",
+     "maintain": "2026-07-04",
+     "optional_adoption": "2026-07-04",
+     "grace": {
+      "default": "2026-05-04",
+      "until_next_assessment": false
+     }
+    }
+   }
+  },
+  "data": {
+   "all": {
+    "FRD-ACV": {
+     "term": "Accepted Vulnerability",
+     "definition": "A vulnerability that the provider does not intend to fully mitigate or remediate, OR that has not or will not be fully mitigated or remediated within the maximum overdue period in FedRAMP Vulnerability Detection and Response rules.",
+     "tag": "Vulnerability",
+     "alts": [
+      "accepted vulnerability",
+      "accepted vulnerabilities"
+     ],
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ]
+    },
+    "FRD-ADP": {
+     "term": "Adaptive Change",
+     "definition": "A type of significant change that does not routinely recur and does not introduce substantive potential security risks that need to be assessed in depth.",
+     "note": "Adaptive changes typically require careful planning that focuses on engineering execution instead of customer adoption, can be verified with minor changes to existing automated validation procedures, and do not require large changes to operational procedures, deployment plans, or documentation.",
+     "tag": "Significant Changes",
+     "alts": [
+      "adaptive",
+      "adaptive change",
+      "adaptive changes"
+     ],
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ]
+    },
+    "FRD-ADV": {
+     "term": "Advisor",
+     "definition": "An entity that helps a provider understand, prepare for, or maintain FedRAMP Certification without replacing the provider's responsibility or the assessor's independence.",
+     "tag": "Stakeholder",
+     "alts": [
+      "advisor",
+      "advisors"
+     ],
+     "do_not_link": true,
+     "ignore_in_terms": true,
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ]
+    },
+    "FRD-AGY": {
+     "term": "Agency",
+     "definition": "Has the meaning given in 44 U.S. Code § 3502 (1), which is \"any executive department, military department, Government corporation, Government controlled corporation, or other establishment in the executive branch of the Government (including the Executive Office of the President), or any independent regulatory agency, but does not include—(A) the Government Accountability Office; (B) Federal Election Commission; (C) the governments of the District of Columbia and of the territories and possessions of the United States, and their various subdivisions; or (D) Government-owned contractor-operated facilities, including laboratories engaged in national defense research and production activities.\"",
+     "tag": "Stakeholder",
+     "alts": [
+      "agency",
+      "agencies"
+     ],
+     "do_not_link": true,
+     "ignore_in_terms": true,
+     "reference": "44 U.S. Code § 3502 (1)",
+     "reference_url": "https://www.govinfo.gov/app/details/USCODE-2023-title44/USCODE-2023-title44-chap35-subchapI-sec3502",
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ]
+    },
+    "FRD-AAP": {
+     "term": "All Affected Parties",
+     "definition": "All federal entities whose interests are affected directly or are likely to be affected directly in the event of a vulnerability or incident related to federal customer data. This always includes FedRAMP and directly impacted federal customer agencies.",
+     "tag": "Stakeholder",
+     "alts": [
+      "all affected parties"
+     ],
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ]
+    }
+   }
+  }
+ },
+ "FRR": {
+  "AFC": {
+   "info": {
+    "name": "Addressing FedRAMP Communication",
+    "short_name": "AFC",
+    "web_name": "addressing-fedramp-communication",
+    "purpose": "The Addressing FedRAMP Communication rules (formerly FedRAMP Security Inbox) ensure FedRAMP can reliably contact the security and compliance staff responsible for every FedRAMP-authorized cloud service offering. These rules also set expectations for urgent communications, response time testing, and routing important messages separately from general support or customer service channels.",
+    "status": "stable",
+    "tag": "assurance",
+    "effective": {
+     "is": "required",
+     "current_status": "Consolidated Rules for 2026",
+     "date": {
+      "obtain": "2026-01-05",
+      "maintain": "2026-01-05",
+      "grace": {
+       "default": "2026-07-01",
+       "until_next_assessment": false
+      }
+     }
+    },
+    "subsets": {
+     "FRP": {
+      "name": "FedRAMP Responsibilities",
+      "description": "These rules apply to FedRAMP when communicating with cloud service providers.",
+      "applicability": {
+       "types": [
+        "20x",
+        "Rev5"
+       ],
+       "paths": [
+        "Program",
+        "Agency"
+       ],
+       "classes": [
+        "B",
+        "C",
+        "D"
+       ],
+       "affects": [
+        "FedRAMP"
+       ]
+      }
+     },
+     "CSO": {
+      "name": "General Provider Responsibilities",
+      "description": "These rules apply to providers with any type of FedRAMP Certification.",
+      "applicability": {
+       "types": [
+        "20x",
+        "Rev5"
+       ],
+       "paths": [
+        "Program",
+        "Agency"
+       ],
+       "classes": [
+        "B",
+        "C",
+        "D"
+       ],
+       "affects": [
+        "Providers"
+       ]
+      }
+     }
+    }
+   },
+   "data": {
+    "all": {
+     "FRP": {
+      "AFC-FRP-VRE": {
+       "name": "Verified Emails",
+       "statement": "FedRAMP MUST send messages to cloud service providers using an official @fedramp.gov or @gsa.gov email address with properly configured Sender Policy Framework (SPF), DomainKeys Identified Mail (DKIM), and Domain-based Message Authentication Reporting and Conformance (DMARC) email authentication.",
+       "note": "Anyone at GSA can send email from @fedramp.gov or @gsa.gov - FedRAMP team members will typically have \"FedRAMP\" or \"F20B\" in their name but this is not universal or enforceable. The nature of government enterprise IT services makes it difficult for FedRAMP to isolate FedRAMP-specific team members with enforceable identifiers.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "terms": [],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-CDS": {
+       "name": "Criticality Designators",
+       "statement": "FedRAMP MUST convey the criticality of the message in the subject line, IF the message requires an elevated reaction, using one of the following designators:",
+       "following_information": [
+        "**Emergency:** There is a potential incident or crisis such that FedRAMP requires an extremely urgent reaction; emergency messages will contain aggressive timeframes for reaction and failure to meet these timeframes will result in corrective action.",
+        "**Emergency Test:** FedRAMP requires an extremely urgent reaction to confirm the functionality and effectiveness of the FedRAMP Security Inbox; emergency test messages will contain aggressive timeframes for reaction and failure to meet these timeframes will result in corrective action.",
+        "**Important:** There is an important issue that FedRAMP requires the cloud service provider to address; important messages will contain reasonable timeframes for reaction and failure to meet these timeframes may result in corrective action."
+       ],
+       "note": "Messages sent by FedRAMP without one of these designators are considered general communications and do not require an elevated reaction; these may be resolved in the normal course of business by the cloud service provider.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "terms": [
+        "FedRAMP Security Inbox",
+        "Incident"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-UFS": {
+       "name": "Use FedRAMP_Security Email in Emergencies",
+       "statement": "FedRAMP MUST send Emergency and Emergency Test designated messages from fedramp_security@gsa.gov OR fedramp_security@fedramp.gov.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-PNT": {
+       "name": "Public Notice of Emergency Tests",
+       "statement": "FedRAMP MUST post a public notice at least 10 business days in advance of sending an Emergency Test message; such notices MUST include explanation of the likely expected actions and timeframes for the Emergency Test message.",
+       "notes": [
+        "Public notice may include blog posts, social media posts, announcements during Community Updates, or e-blasts.",
+        "As this process matures, additional confirmed options may become available."
+       ],
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "timeframe_type": "bizdays",
+       "timeframe_num": 10,
+       "notification": [
+        {
+         "party": "Everyone",
+         "method": "web",
+         "target": "https://www.fedramp.gov/notices",
+         "name": "FedRAMP Public Notices"
+        }
+       ],
+       "terms": [
+        "Likely"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-RQA": {
+       "name": "Required Actions",
+       "statement": "FedRAMP MUST clearly specify the required actions in the body of messages that require an elevated reaction.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-ERT": {
+       "name": "Elevated Reaction Timeframes",
+       "statement": "FedRAMP MUST clearly specify the expected timeframe for completing required actions in the body of messages that require an elevated reaction; timeframes for actions will vary depending on the situation but the default timeframes to provide an estimated resolution time for Emergency and Emergency Test designated messages will be as follows:",
+       "following_information": [
+        "**Class D:** within 12 hours",
+        "**Class C:** by 3:00 p.m. Eastern Time on the 2nd business day",
+        "**Class B:** by 3:00 p.m. Eastern Time on the 3rd business day",
+        "**Class A:** by 3:00 p.m. Eastern Time on the 5th business day"
+       ],
+       "note": "FedRAMP Class D Certified cloud service providers are expected to address Emergency messages (including tests) from FedRAMP with a reaction time appropriate to operating a service where failure to react rapidly might have a severe or debilitating customer effect on the U.S. Government; some Emergency messages may require faster reaction and all such messages should be addressed as quickly as possible.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "terms": [
+        "Debilitating Customer Effect",
+        "FedRAMP Certified"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-COR": {
+       "name": "Explain Corrective Actions",
+       "statement": "FedRAMP MUST clearly specify the corrective actions that will result from failure to complete the required actions in the body of messages that require an elevated reaction; such actions may vary from negative ratings in the FedRAMP Marketplace to suspension of FedRAMP Certification depending on the severity of the event.",
+       "force": "MUST",
+       "affects": [
+        "FedRAMP"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-FRP-RPM": {
+       "name": "Reaction Metrics",
+       "statement": "FedRAMP MAY track and publicly share the time required by cloud service providers to take the actions specified in messages that require an elevated reaction.",
+       "force": "MAY",
+       "affects": [
+        "FedRAMP"
+       ],
+       "terms": [],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      }
+     },
+     "CSO": {
+      "AFC-CSO-INB": {
+       "name": "Maintain a FedRAMP Security Inbox",
+       "statement": "Providers MUST establish and maintain an email address to receive messages from FedRAMP; this inbox is a FedRAMP Security Inbox (FSI).",
+       "danger": "Be careful using a personal email tied to an individual for this inbox due to the significant risk to future communications after a change in personnel!",
+       "notes": [
+        "Unless otherwise notified, FedRAMP will use the listed Security Email on the Marketplace for these notifications.",
+        "If a provider establishes a new inbox in reaction to this guidance that is different from the Security Email then they must follow the AFC-CSO-NOC (Notification of Changes) rules to notify FedRAMP."
+       ],
+       "related": [
+        "AFC-CSO-NOC"
+       ],
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "Email address to receive messages from FedRAMP"
+        ]
+       },
+       "terms": [
+        "FedRAMP Security Inbox"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-NOC": {
+       "name": "Notification of Changes",
+       "statement": "Providers MUST immediately notify FedRAMP of any changes to the email address for their FedRAMP Security Inbox.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "Process, manual or automated, to notify FedRAMP of changes in the FedRAMP Security Inbox"
+        ]
+       },
+       "notification": [
+        {
+         "party": "FedRAMP",
+         "method": "form",
+         "target": "https://help.fedramp.gov/hc/en-us/requests/new?ticket_form_id=51829466938011",
+         "name": "[CSP] Notification of Changes"
+        }
+       ],
+       "terms": [
+        "FedRAMP Security Inbox"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-TFG": {
+       "name": "Trust @fedramp.gov and @gsa.gov",
+       "statement": "Providers MUST treat any email originating from an @fedramp.gov or @gsa.gov email address as if it was sent from FedRAMP by default; if such a message is confirmed to originate from someone other than FedRAMP then the FedRAMP Security Inbox rules no longer apply.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "Configuration settings for FSI mailbox",
+         "Automated validation to check FSI mailbox configuration"
+        ]
+       },
+       "terms": [
+        "FedRAMP Security Inbox"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-RCV": {
+       "name": "Receive Email Without Disruption",
+       "statement": "Providers MUST receive and react to email messages from FedRAMP without disruption and without requiring additional actions from FedRAMP.",
+       "note": "This requirement is intended to prevent cloud service providers from requiring FedRAMP to complete a CAPTCHA, log into a customer portal, or otherwise take service-specific actions that might prevent the security team from receiving the message.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-CRA": {
+       "name": "Complete Required Actions",
+       "statement": "Providers MUST complete the required actions in Emergency or Emergency Test designated messages sent by FedRAMP within the timeframe included in the message.",
+       "note": "Timeframes may vary by FedRAMP Certification class.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Certification Class"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-EMR": {
+       "name": "Emergency Message Routing",
+       "statement": "Providers MUST route Emergency designated messages sent by FedRAMP to a senior security official for their awareness.",
+       "note": "Senior security officials are determined by the provider.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "Configuration settings for FSI mailbox",
+         "Automated validation to check FSI mailbox configuration"
+        ]
+       },
+       "terms": [],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-IMA": {
+       "name": "Important Message Actions",
+       "statement": "Providers SHOULD complete the required actions in Important designated messages sent by FedRAMP within the timeframe specified in the message.",
+       "note": "Timeframes may vary by FedRAMP Certification class.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Certification Class"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "AFC-CSO-ACK": {
+       "name": "Acknowledge Receipt",
+       "statement": "Providers SHOULD promptly and automatically acknowledge the receipt of messages received from FedRAMP in their FedRAMP Security Inbox.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "FedRAMP Security Inbox",
+        "Promptly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  "CCM": {
+   "info": {
+    "name": "Collaborative Continuous Monitoring",
+    "short_name": "CCM",
+    "web_name": "collaborative-continuous-monitoring",
+    "purpose": "The Collaborative Continuous Monitoring rules help agencies use shared, current authorization information from providers as part of each agency's own Information Security Continuous Monitoring strategy. These rules reduce unnecessary manual burden by encouraging automated monitoring and review while allowing each agency to make its own risk-based decisions about ongoing authorization.",
+    "status": "stable",
+    "tag": "assurance",
+    "subsets": {
+     "AGM": {
+      "name": "Agency Guidance",
+      "description": "These rules for agencies apply to all agencies using a FedRAMP Certification.",
+      "applicability": {
+       "types": [
+        "20x",
+        "Rev5"
+       ],
+       "paths": [
+        "Program",
+        "Agency"
+       ],
+       "classes": [
+        "B",
+        "C",
+        "D"
+       ],
+       "affects": [
+        "Agencies"
+       ]
+      }
+     },
+     "OCR": {
+      "name": "Ongoing Certification Reports",
+      "description": "These rules for Ongoing Certification Reports apply to providers with any type of FedRAMP Certification.",
+      "applicability": {
+       "types": [
+        "20x",
+        "Rev5"
+       ],
+       "paths": [
+        "Program",
+        "Agency"
+       ],
+       "classes": [
+        "B",
+        "C",
+        "D"
+       ],
+       "affects": [
+        "Providers"
+       ]
+      }
+     },
+     "QTR": {
+      "name": "Quarterly Reviews",
+      "description": "These rules for Quarterly Reviews apply to providers with any type of FedRAMP Certification.",
+      "applicability": {
+       "types": [
+        "20x",
+        "Rev5"
+       ],
+       "paths": [
+        "Program",
+        "Agency"
+       ],
+       "classes": [
+        "B",
+        "C",
+        "D"
+       ],
+       "affects": [
+        "Providers"
+       ]
+      }
+     }
+    },
+    "20x": {
+     "effective": {
+      "is": "required",
+      "current_status": "Consolidated Rules for 2026",
+      "date": {
+       "obtain": "2026-07-04",
+       "maintain": "2027-01-01",
+       "optional_adoption": "2026-07-04",
+       "grace": {
+        "default": "2027-01-01",
+        "until_next_assessment": true
+       }
+      }
+     }
+    },
+    "rev5": {
+     "effective": {
+      "is": "required",
+      "current_status": "Consolidated Rules for 2026",
+      "date": {
+       "obtain": "2027-01-01",
+       "maintain": "2027-04-02",
+       "optional_adoption": "2026-07-04",
+       "grace": {
+        "default": "2027-10-01",
+        "until_next_assessment": false
+       }
+      }
+     }
+    }
+   },
+   "data": {
+    "all": {
+     "AGM": {
+      "CCM-AGM-ROR": {
+       "name": "Review Ongoing Reports",
+       "statement": "Agencies MUST review each Ongoing Certification Report to understand how changes to the cloud service offering may impact the previously agreed-upon risk tolerance documented in the agency's Authorization to Operate of a federal information system that includes the cloud service offering in its boundary.",
+       "note": "This is required by 44 USC § 35, OMB A-130, FIPS-200, and M-24-15.",
+       "force": "MUST",
+       "affects": [
+        "Agencies"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "FedRAMP Certification Report",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-AGM-CSC": {
+       "name": "Consider Security Category",
+       "statement": "Agencies SHOULD consider the Security Category noted in their Authorization to Operate of the federal information system that includes the cloud service offering in its boundary and assign appropriate information security resources for reviewing Ongoing Certification Reports, attending Quarterly Reviews, and other ongoing FedRAMP Certification Data.",
+       "force": "SHOULD",
+       "affects": [
+        "Agencies"
+       ],
+       "terms": [
+        "Certification Data",
+        "Cloud Service Offering",
+        "Ongoing Certification",
+        "Quarterly Review",
+        "Security Category"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      }
+     },
+     "OCR": {
+      "CCM-OCR-AVL": {
+       "name": "Report Availability",
+       "statement": "Providers MUST supply an Ongoing Certification Report to all necessary parties every 3 months, covering the entire period since the previous summary, in a consistent format that is human readable; this report MUST include high-level summaries of at least the following information (if applicable):",
+       "following_information": [
+        "Changes to FedRAMP Certification Data",
+        "Planned changes to FedRAMP Certification Data during at least the next 3 months",
+        "Accepted vulnerabilities",
+        "Transformative changes",
+        "Updated recommendations or best practices for security, configuration, usage, or similar aspects of the cloud service offering",
+        "A list of all agencies that are directly using the product",
+        "FedRAMP Reportable Incidents or an attestation that no such incidents occurred",
+        "Lessons learned and changes planned or made as a result of FedRAMP Reportable Incidents (if such occurred)"
+       ],
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "Most recent Ongoing Certification Report. If the report is not available, the provider MUST provide a sample report that includes all required information.",
+         "How the report will be delivered"
+        ]
+       },
+       "schema": {
+        "name": "FedRAMP Ongoing Certification Report (CCM-OCR-AVL)",
+        "url": "https://fedramp.gov/schemas/fedramp-ongoing-certification-report-schema-2026-06-24.json"
+       },
+       "timeframe_type": "months",
+       "timeframe_num": 3,
+       "terms": [
+        "Accepted Vulnerability",
+        "All Necessary Parties",
+        "Certification Data",
+        "Cloud Service Offering",
+        "FedRAMP Certification Report",
+        "FedRAMP Reportable Incident",
+        "Incident",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)",
+        "Transformative Change",
+        "Vulnerability"
+       ],
+       "updated": [
+        {
+         "date": "2026-09-13",
+         "comment": "Added (if applicable) to clarify that some of these items are not always required depending on the FedRAMP Certification Type or Class."
+        },
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-NRD": {
+       "name": "Next Report Date",
+       "statement": "Providers MUST supply the target date for their next Ongoing Certification Report with other public FedRAMP Certification Data.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Certification Data",
+        "FedRAMP Certification Report",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-FBM": {
+       "name": "Feedback Mechanism",
+       "statement": "Providers MUST supply an asynchronous mechanism for all necessary parties to provide feedback or ask questions about each Ongoing Certification Report.",
+       "note": "This could be email by default but providers are encouraged to consider something more interactive as appropriate.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "How to access the feedback mechanism."
+        ]
+       },
+       "terms": [
+        "All Necessary Parties",
+        "FedRAMP Certification Report",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-AFS": {
+       "name": "Anonymized Feedback Summary",
+       "statement": "Providers MUST supply an anonymized and desensitized summary of the feedback, questions, and answers about each Ongoing Certification Report as an addendum to the Ongoing Certification Report OR in the next Ongoing Certification Report.",
+       "note": "This is intended to encourage sharing of information and decrease the burden on the cloud service provider - providing this summary will reduce duplicate questions from agencies and ensure FedRAMP has access to this information. It is generally in the provider's interest to update this addendum frequently throughout the quarter.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "How the summary will be delivered"
+        ]
+       },
+       "terms": [
+        "FedRAMP Certification Report",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-LSI": {
+       "name": "Limit Sensitive Information",
+       "statement": "Providers MUST NOT irresponsibly disclose sensitive information in an Ongoing Certification Report that would likely have an adverse effect on the cloud service offering.",
+       "force": "MUST NOT",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "FedRAMP Certification Report",
+        "Likely",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-SOR": {
+       "name": "Spread Out Reports",
+       "statement": "Providers SHOULD establish a regular 3 month cycle for Ongoing Certification Reports that is spread out from the beginning, middle, or end of each quarter.",
+       "note": "This recommendation is intended to discourage hundreds of cloud service providers from releasing their Ongoing Certification Reports during the first or last week of each quarter because that is the easiest way for a single provider to track this deliverable; the result would overwhelm agencies with many cloud services. Widely used cloud service providers are encouraged to work with their customers to identify ideal timeframes for this cycle.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Ongoing Certification",
+        "Regularly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-OCR-RPS": {
+       "name": "Responsible Public Certification Report Sharing",
+       "statement": "Providers MAY responsibly supply some or all of the information an Ongoing Certification Report to the public or other parties if the provider determines doing so will NOT likely have an adverse effect on the cloud service offering.",
+       "force": "MAY",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "FedRAMP Certification Report",
+        "Likely",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)",
+        "Responsibly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      }
+     },
+     "QTR": {
+      "CCM-QTR-MTG": {
+       "name": "Quarterly Review Meeting",
+       "varies_by_class": {
+        "a": {
+         "statement": "Providers with Class A Certifications MAY host a synchronous Quarterly Review every 3 months, open to all necessary parties, to review aspects of the most recent Ongoing Certification Reports that the provider determines are of the most relevance to agencies.",
+         "force": "MAY",
+         "timeframe_type": "months",
+         "timeframe_num": 3,
+         "artifacts": {
+          "all": [
+           "selected ordinal recurrence for the synchronous Quarterly Review cycle if applicable."
+          ]
+         }
+        },
+        "b": {
+         "statement": "Providers with Class B Certifications SHOULD host a synchronous Quarterly Review every 3 months, open to all necessary parties, to review aspects of the most recent Ongoing Certification Reports that the provider determines are of the most relevance to agencies.",
+         "force": "SHOULD",
+         "timeframe_type": "months",
+         "timeframe_num": 3,
+         "artifacts": {
+          "all": [
+           "selected ordinal recurrence for the Ongoing Certification Report cycle if applicable OR explanation for why Ongoing Certification Reports are not being delivered."
+          ]
+         }
+        },
+        "c": {
+         "statement": "Providers with Class C Certifications MUST host a synchronous Quarterly Review every 3 months, open to all necessary parties, to review aspects of the most recent Ongoing Certification Reports that the provider determines are of the most relevance to agencies.",
+         "force": "MUST",
+         "timeframe_type": "months",
+         "timeframe_num": 3,
+         "artifacts": {
+          "all": [
+           "selected ordinal recurrence for the Ongoing Certification Report cycle."
+          ]
+         }
+        },
+        "d": {
+         "statement": "Providers with Class D Certifications MUST host a synchronous Quarterly Review every 3 months, open to all necessary parties, to review aspects of the most recent Ongoing Certification Reports that the provider determines are of the most relevance to agencies.",
+         "force": "MUST",
+         "timeframe_type": "months",
+         "timeframe_num": 3,
+         "artifacts": {
+          "all": [
+           "selected ordinal recurrence for the Ongoing Certification Report cycle."
+          ]
+         }
+        }
+       },
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "All Necessary Parties",
+        "Ongoing Certification",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-REG": {
+       "name": "Meeting Registration Info",
+       "statement": "Providers MUST supply either a registration link or a downloadable calendar file with meeting information for Quarterly Reviews to all necessary parties.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "artifacts": {
+        "all": [
+         "URL to the registration page or calendar file."
+        ]
+       },
+       "terms": [
+        "All Necessary Parties",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-NRD": {
+       "name": "Next Review Date",
+       "statement": "Providers MUST publicly supply the target date for their next Quarterly Review with other public FedRAMP Certification Data.",
+       "force": "MUST",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Certification Data",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-NID": {
+       "name": "No Irresponsible Disclosure",
+       "statement": "Providers MUST NOT irresponsibly disclose sensitive information in a Quarterly Review that would likely have an adverse effect on the cloud service offering.",
+       "force": "MUST NOT",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "Likely",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-SAR": {
+       "name": "Schedule Around Reports",
+       "statement": "Providers SHOULD regularly schedule Quarterly Reviews to occur at least 3 business days after releasing an Ongoing Certification Report AND within 10 business days of such release.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "timeframe_type": "bizdays",
+       "timeframe_num_min": 3,
+       "timeframe_num_max": 10,
+       "terms": [
+        "FedRAMP Certification Report",
+        "Ongoing Certification",
+        "Ongoing Certification Report (OCR)",
+        "Quarterly Review",
+        "Regularly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-ACT": {
+       "name": "Additional Content",
+       "statement": "Providers SHOULD supply additional information in Quarterly Reviews that the provider determines is of interest, use, or otherwise relevant to agencies.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-RTR": {
+       "name": "Record/Transcribe Reviews",
+       "statement": "Providers SHOULD record or transcribe Quarterly Reviews and supply them to all necessary parties.",
+       "force": "SHOULD",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "All Necessary Parties",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-RTP": {
+       "name": "Restrict Third Parties",
+       "statement": "Providers SHOULD NOT invite third parties to attend Quarterly Reviews intended for agencies unless they have specific relevance.",
+       "note": "This is because agencies are less likely to actively participate in meetings with third parties; the cloud service provider's independent assessor should be considered relevant by default.",
+       "force": "SHOULD NOT",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Likely",
+        "Quarterly Review"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-SRR": {
+       "name": "Share Recordings Responsibly",
+       "statement": "Providers MAY responsibly supply recordings or transcriptions of Quarterly Reviews to the public or other parties ONLY if the provider removes all agency information (comments, questions, names, etc.) AND determines doing so will NOT likely have an adverse effect on the cloud service offering.",
+       "force": "MAY",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "Likely",
+        "Quarterly Review",
+        "Responsibly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      },
+      "CCM-QTR-SCR": {
+       "name": "Share Content Responsibly",
+       "statement": "Providers MAY responsibly supply content prepared for a Quarterly Review to the public or other parties if the provider determines doing so will NOT likely have an adverse effect on the cloud service offering.",
+       "force": "MAY",
+       "affects": [
+        "Providers"
+       ],
+       "terms": [
+        "Cloud Service Offering",
+        "Likely",
+        "Quarterly Review",
+        "Responsibly"
+       ],
+       "updated": [
+        {
+         "date": "2026-06-24",
+         "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+        }
+       ]
+      }
+     }
+    }
+   }
+  }
+ },
+ "KSI": {
+  "CED": {
+   "id": "KSI-CED",
+   "name": "Cybersecurity Education",
+   "web_name": "cybersecurity-education",
+   "short_name": "CED",
+   "status": "stable",
+   "indicators": {
+    "KSI-CED-RAT": {
+     "name": "Reviewing All Training",
+     "statement": "The effectiveness of relevant cybersecurity education and training is persistently reviewed, including at least general training for all employees, role-specific training for employees in high risk roles, training for development and engineering staff on secure software delivery, and training for staff involved with incident response or disaster recovery.",
+     "controls": [
+      "cp-3",
+      "ir-2",
+      "ps-6",
+      "at-2",
+      "at-2.2",
+      "at-2.3",
+      "at-3.5",
+      "at-4",
+      "ir-2.3",
+      "at-3",
+      "sr-11.1"
+     ],
+     "updated": [
+      {
+       "date": "2026-06-24",
+       "comment": "Official launch of the FedRAMP Consolidated Rules for 2026."
+      }
+     ],
+     "terms": [
+      "Incident",
+      "Persistently",
+      "Vulnerability Response"
+     ]
+    }
+   }
+  }
+ },
+ "CTL": {
+  "AC": {
+   "AC-06-01": {
+    "parameters": [
+     {
+      "parameterId": "ac-06.01_odp.02",
+      "value": "all functions not publicly accessible"
+     },
+     {
+      "parameterId": "ac-06.01_odp.05",
+      "value": "all security-relevant information not publicly available"
+     }
+    ]
+   },
+   "AC-20": {
+    "guidance": [
+     "The interrelated controls of AC-20, CA-3, and SA-9 should be differentiated as follows:",
+     "AC-20 describes system access to and from external systems.",
+     "CA-3 describes documentation of an agreement between the respective system owners when data is exchanged between the CSO and an external system.",
+     "SA-9 describes the responsibilities of external system owners. These responsibilities would typically be captured in the agreement required by CA-3."
+    ]
+   },
+   "AC-06-02": {
+    "parameters": [
+     {
+      "parameterId": "ac-06.02_odp",
+      "value": "all security functions"
+     }
+    ]
+   },
+   "AC-06-08": {
+    "parameters": [
+     {
+      "parameterId": "ac-06.08_odp",
+      "value": "any software except software explicitly documented"
+     }
+    ]
+   }
+  }
+ }
+}

@@ -1,7 +1,7 @@
 services:
   baselinewatch:
     build: .
-    image: ghcr.io/aes256afro/baselinewatch:0.10.2
+    image: ghcr.io/aes256afro/baselinewatch:0.11.0
     container_name: baselinewatch
     restart: unless-stopped
     environment:

@@ -1,6 +1,7 @@
 import { cisAdapter } from "./cis.ts";
 import { disaAdapter } from "./disa.ts";
 import { epssAdapter } from "./epss.ts";
+import { fedrampRulesAdapter } from "./fedramp-rules.ts";
 import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
@@ -17,6 +18,7 @@ const byId: Record<string, Adapter> = {
   "first-epss": epssAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
+  "fedramp-rules": fedrampRulesAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
   "cis-benchmarks": cisAdapter,
@@ -40,4 +42,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cisAdapter, disaAdapter, epssAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };
+export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, redditAdapter, sctAdapter };
