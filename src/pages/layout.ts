@@ -1,19 +1,21 @@
 import { html, type Html } from "../html.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "register" | "wire" | "vulnerabilities" | "triage" | "watchlist" | "digest" | "sources";
+export type Area = "today" | "register" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources";
 
 /** Areas that have a page in this build. The rest are drawn as "soon", so the shape of the app is visible from day one. */
 const built: Record<Area, { label: string; path: string; milestone: string }> = {
+  today: { label: "Today", path: "/today", milestone: "" },
   register: { label: "Register", path: "/", milestone: "" },
   wire: { label: "Wire", path: "/wire", milestone: "" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "" },
   triage: { label: "Triage", path: "/triage", milestone: "" },
+  atlas: { label: "Atlas", path: "/atlas", milestone: "" },
   watchlist: { label: "Watchlist", path: "/watchlist", milestone: "" },
   digest: { label: "Digest", path: "/digest", milestone: "" },
   sources: { label: "Sources", path: "/sources", milestone: "" },
 };
-const order: Area[] = ["register", "wire", "vulnerabilities", "triage", "watchlist", "digest", "sources"];
+const order: Area[] = ["today", "register", "wire", "vulnerabilities", "triage", "atlas", "watchlist", "digest", "sources"];
 
 export interface PageOptions {
   title: string;

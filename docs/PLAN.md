@@ -279,6 +279,16 @@ followed (M4) and control families are stored for the Register. Email stays with
   ntfy, Gotify, Apprise, SMTP, generic webhook.
 - **Done when**: Monday's digest is the thing you read instead of six sites.
 
+### M6.5: The other three directions — shipped 2026-10-15 as 0.8.0
+
+Chris asked for all five mockups as pages, not one. The Register is the home and the Wire is the
+stream; the Board is the Triage page (M6); the Console is the Today page (`/today`): since you
+last looked, with tiles, the needs-you list, releases, the latest stories, failing sources and
+the last alerts, laid out for a phone first; the Atlas (`/atlas`) is the release timeline per
+standard and the SP 800-53 change-intensity map by control family, both drawn as inline SVG with
+positions as attributes so the strict CSP stands, plus change velocity and what is expected next
+from each publisher's cadence.
+
 ### M7: Hardening and BoxPilot (1 week)
 - Auth, CSRF, rate limits, backups guidance (the volume), SBOM and image signing in CI.
 - Catalog PR to AES256Afro/BoxPilot with pinned image, health check, secrets for NVD key and
