@@ -123,6 +123,8 @@ describe("the Wire", () => {
     expect(all.find((i) => i.url === "https://blog.example.test/2026/oauth-device-code")?.source_id).toBe("bleeping");
 
     expect(listWire(db, { source: "reddit-netsec" }).map((i) => i.external_id)).toEqual(["t3_1abcdg"]);
+    expect(listWire(db, { group: "news" })).toHaveLength(3);
+    expect(listWire(db, { group: "vulnerabilities" })).toHaveLength(0);
     expect(listWire(db, { q: "oauth" }).map((i) => i.title)).toEqual(["Abusing OAuth device code flow in enterprise SSO"]);
     expect(listWire(db, { q: "cve-2026-31417" })).toHaveLength(1);
     expect(listWire(db, { q: '"unbalanced' })).toHaveLength(0);

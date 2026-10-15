@@ -3,6 +3,8 @@ import type { ItemKind } from "./adapters/types.ts";
 
 export interface WireFilters {
   source?: string | undefined;
+  /** A source group: news, vulnerabilities or standards. */
+  group?: "news" | "vulnerabilities" | "standards" | undefined;
   kind?: ItemKind | undefined;
   q?: string | undefined;
   unread?: boolean;
@@ -50,6 +52,10 @@ function build(filters: WireFilters): Built {
   if (filters.source) {
     clauses.push("i.source_id = ?");
     params.push(filters.source);
+  }
+  if (filters.group) {
+    clauses.push("i.source_id IN (SELECT id FROM sources WHERE group_name = ?)");
+    params.push(filters.group);
   }
   if (filters.kind) {
     clauses.push("i.kind = ?");

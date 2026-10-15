@@ -140,10 +140,23 @@ new downloads).
 - **Cadence**: daily.
 - **Shape**: score join onto `vulnerability`.
 
-### Also planned (M8)
+### Vendor advisories (added 2026-10-15, all RSS, in the vulnerabilities group)
+| Source | Feed |
+| --- | --- |
+| Ubuntu Security Notices | `https://ubuntu.com/security/notices/rss.xml` |
+| Debian Security Advisories | `https://www.debian.org/security/dsa` (serves RSS) |
+| Cisco Security Advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` |
+| Palo Alto Networks | `https://security.paloaltonetworks.com/rss.xml` |
+| Fortinet PSIRT | `https://www.fortiguard.com/rss/ir.xml` |
+| Red Hat Security Blog | `https://www.redhat.com/en/rss/blog/channel/security` |
+
+The Wire's "Vendor advisories" filter shows these apart from news. CVE ids in their text are
+picked up as signals.
+
+### Also planned
 - OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); MSRC
-  CVRF `https://api.msrc.microsoft.com/cvrf/v3.0/updates`; Cisco openVuln; Red Hat CSAF; Ubuntu
-  USN and Debian DSA feeds; CERT/CC VINCE Atom `https://kb.cert.org/vuls/atomfeed/`.
+  CVRF `https://api.msrc.microsoft.com/cvrf/v3.0/updates`; Cisco openVuln; Red Hat CSAF/VEX;
+  CERT/CC VINCE Atom `https://kb.cert.org/vuls/atomfeed/`.
 
 ---
 

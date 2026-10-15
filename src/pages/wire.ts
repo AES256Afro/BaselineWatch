@@ -33,6 +33,7 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   const merged = { ...filters, ...overrides };
   const params = new URLSearchParams();
   if (merged.source) params.set("source", merged.source);
+  if (merged.group) params.set("group", merged.group);
   if (merged.kind) params.set("kind", merged.kind);
   if (merged.q) params.set("q", merged.q);
   if (merged.unread) params.set("unread", "1");
@@ -111,6 +112,7 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
           <h1>Wire${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : ""}</h1>
           <form method="get" action="/wire" class="search" role="search">
             ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
+            ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
             ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
             <label class="visually-hidden" for="q">Search the Wire</label>
             <input type="search" id="q" name="q" value="${filters.q ?? ""}" placeholder="Search titles and summaries">
@@ -118,10 +120,12 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
           </form>
         </div>
         <div class="filters">
-          <a class="${!filters.kind ? "on" : ""}" href="${query(filters, { kind: undefined, before: undefined })}">All</a>
-          <a class="${filters.kind === "article" ? "on" : ""}" href="${query(filters, { kind: "article", before: undefined })}">News</a>
-          <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", before: undefined })}">Known exploited</a>
-          <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", before: undefined })}">Notable CVEs</a>
+          <a class="${!filters.kind && !filters.group ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, before: undefined })}">All</a>
+          <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, before: undefined })}">News</a>
+          <a class="${filters.group === "vulnerabilities" && filters.kind === "article" ? "on" : ""}" href="${query(filters, { group: "vulnerabilities", kind: "article", before: undefined })}">Vendor advisories</a>
+          <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", group: undefined, before: undefined })}">Known exploited</a>
+          <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", group: undefined, before: undefined })}">Notable CVEs</a>
+          <a class="${filters.kind === "release" ? "on" : ""}" href="${query(filters, { kind: "release", group: undefined, before: undefined })}">Releases</a>
           <a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
