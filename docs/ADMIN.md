@@ -94,6 +94,22 @@ else reaches.
 Behind a reverse proxy or a Cloudflare Tunnel, the proxy terminates TLS and the app trusts
 `X-Forwarded-*` from loopback and private addresses only.
 
+## The image
+
+Every tag builds `ghcr.io/aes256afro/baselinewatch:<version>` in GitHub Actions and signs it
+keylessly through Sigstore: the signature names the workflow in this repository as the signer, and
+the record is in the public transparency log. The same run attaches an SPDX software bill of
+materials and a build-provenance attestation to the image. Before running a version, check the
+signature with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/):
+
+```bash
+cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp '^https://github.com/AES256Afro/BaselineWatch/' ghcr.io/aes256afro/baselinewatch:0.10.3
+```
+
+The SBOM comes back with `cosign verify-attestation --type spdxjson` and the same two flags, or
+with `cosign download attestation`. GitHub's own provenance check is
+`gh attestation verify oci://ghcr.io/aes256afro/baselinewatch:0.10.3 --owner AES256Afro`.
+
 ## Recovery
 
 - **A source keeps failing.** The Sources page shows the last error. Feed URLs move; a 403 or
