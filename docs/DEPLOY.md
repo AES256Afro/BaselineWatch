@@ -114,9 +114,12 @@ container looks like
 After a version that adds a standard, load it: `docker compose exec baselinewatch node
 --disable-warning=ExperimentalWarning src/cli.ts backfill fedramp-rules` (0.11.0); 800-171
 (0.14.0) loads itself on the next daily fetch. Package advisories (0.12.0) start once a package
-is on the watchlist. Once the catalog entry
-([AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472)) is merged and
-released, BoxPilot can install, back up and update it instead.
+is on the watchlist. The catalog entry
+([AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472)) was merged on
+2026-10-15 at image 0.17.0. The catalog ships inside BoxPilot, so the entry reaches an install with
+the next BoxPilot release; from then on BoxPilot can install, back up and update BaselineWatch
+instead. Later BaselineWatch tags are picked up by BoxPilot's daily catalog-updates workflow, which
+opens the bump pull request itself.
 
 ## Checks
 
