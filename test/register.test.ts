@@ -196,6 +196,17 @@ describe("Register pages", () => {
     expect(added).toContain("added");
     expect(added).not.toContain("<del>");
 
+    const browse = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/browse?family=SA`)).text();
+    expect(browse).toContain("SA-24");
+    expect(browse).toContain("Design For Cyber Resiliency");
+    expect(browse).toContain("changed here");
+    expect(browse).not.toContain("Integrity Verification"); // SI family filtered out
+    const search = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/browse?q=integrity+verification`)).text();
+    expect(search).toContain("SI-07(12)");
+    expect(search).toMatch(/\d+ of 42\./);
+    expect(search).not.toContain("SA-24");
+    expect(release).toContain("Read every requirement in this version");
+
     expect((await fetch(`${app.base}/standards/nope`)).status).toBe(404);
     expect((await fetch(`${app.base}/standards/nist-sp-800-53/999999`)).status).toBe(404);
     expect((await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/zz-99`)).status).toBe(404);

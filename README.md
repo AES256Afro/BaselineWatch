@@ -93,6 +93,10 @@ Read-only JSON, same read gating as the pages, for BoxPilot's agents and your ow
 | `/api/v1/triage?state=` | The board. |
 | `/api/v1/digest` | The latest digest. |
 
+Every loaded version can also be read whole: each release page links to a browsable, searchable
+list of all its requirements, filtered by family, with the ones that changed in that release
+marked.
+
 ## CIS Benchmarks
 
 CIS Benchmarks are licensed for internal use, so they are not fetched. The owner uploads a
