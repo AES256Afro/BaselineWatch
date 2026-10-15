@@ -95,9 +95,11 @@ const str = (v: unknown, max = 200): string | undefined => (typeof v === "string
 
 function wireFilters(query: Record<string, unknown>): WireFilters {
   const kind = str(query.kind);
+  const group = str(query.group);
   const before = Number(str(query.before));
   return {
     source: str(query.source),
+    group: group === "news" || group === "vulnerabilities" || group === "standards" ? group : undefined,
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? (kind as ItemKind) : undefined,
     q: str(query.q),
     unread: str(query.unread) === "1",
