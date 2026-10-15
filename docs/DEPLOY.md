@@ -27,11 +27,11 @@ git push -u origin main
 ```
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.8.0 && git push origin v0.8.0
 ```
 
 CI (`.github/workflows/ci.yml`) runs the checks, boots the container, and on the tag pushes
-`ghcr.io/aes256afro/baselinewatch:0.1.0`. The package is private by default on first push: open
+`ghcr.io/aes256afro/baselinewatch:0.8.0`. The package is private by default on first push: open
 https://github.com/users/AES256Afro/packages/container/baselinewatch/settings and set it to
 public so BigBox can pull without a token (BoxPilot's catalog expects a public image).
 
@@ -55,9 +55,10 @@ The compose file binds `8790:8790` on every interface; BigBox's firewall (BoxPil
 should leave 8790 closed to the LAN unless you want it reachable there too. The tunnel reaches it
 over loopback.
 
-Through BoxPilot instead (once `boxpilot/baselinewatch.yaml` is merged into
-`AES256Afro/BoxPilot/catalog/` and released): Apps → BaselineWatch → Install. BoxPilot then owns
-backups and updates for it.
+Through BoxPilot instead: the manifest is proposed in
+[AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472) (opened 2026-10-15,
+catalog tests passing). Once merged and released, Apps → BaselineWatch → Install; BoxPilot then
+owns backups and updates for it.
 
 ### 3. Publish through a Cloudflare Tunnel (BoxPilot or cloudflared)
 

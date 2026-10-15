@@ -79,7 +79,7 @@ export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: b
         <section class="box">
           <h2>Releases per standard <span class="count">dot size = requirements changed</span></h2>
           ${rows.length ? timelineSvg(db, from, to) : html`<p class="small">No releases loaded in this window yet.</p>`}
-          <p class="legend"><span class="key first">first version loaded</span><span class="key changed">release with changes</span><span class="key quiet">republished, no change</span></p>
+          <p class="atlas-legend"><span class="key first">first version loaded</span><span class="key changed">release with changes</span><span class="key quiet">republished, no change</span></p>
         </section>
         <section class="box">
           <h2>SP 800-53 change intensity by control family <span class="count">rows = releases · cells = controls touched</span></h2>

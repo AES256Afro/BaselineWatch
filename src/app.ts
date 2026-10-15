@@ -130,6 +130,13 @@ export function createApp(ctx: AppContext): Express {
   app.set("etag", "weak");
   app.set("trust proxy", "loopback, linklocal, uniquelocal");
   app.use(securityHeaders);
+  if (config.baseUrl.startsWith("https://")) {
+    // Behind TLS (a tunnel or a proxy), tell browsers to stay on it.
+    app.use((_req, res, next) => {
+      res.setHeader("Strict-Transport-Security", "max-age=15552000");
+      next();
+    });
+  }
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
   app.use(sameOriginOnly);
   app.use("/assets", express.static(publicDir, { index: false, maxAge: "1h", fallthrough: true }));
