@@ -41,7 +41,21 @@ new downloads).
   named (`GSA/fedramp-automation`) are no longer published; this file is FedRAMP's current
   machine-readable source.
 
-### NIST SP 800-171 r3 and 800-171A r3
+### NIST SP 800-171 r3 (added 2026-10-15; CMMC Level 2 is this set)
+- **Fetch**: OSCAL JSON from `https://github.com/usnistgov/oscal-content`
+  (`nist.gov/SP800-171/rev3/json/NIST_SP800-171_rev3_catalog.json`), which carries the 800-171A
+  assessment objectives inside each requirement.
+- **Cadence**: daily.
+- **Shape**: `requirement-set`. Requirement number (03.01.01) as ref and label, family as
+  "03.01 Access Control", statement items lettered a., b., organization-defined parameters,
+  assessment objective; requirements withdrawn from Revision 2 kept as withdrawn.
+- **Rationale**: none captured. The CSRC page's planning note only announces the HTML edition.
+- **Licence**: US Government work, public domain.
+- **Diffability**: good, with one caveat: the versions are NIST's OSCAL conversions, not editions
+  of the publication (May 2024). OSCAL 1.0.0 (August 2025) left 29 statements empty and 1.1.0
+  (May 2026) filled them in, so tracking starts at 1.1.0 and there is no backfill.
+
+### NIST SP 800-171A r3 (not loaded)
 - **Fetch**: CPRT JSON; convert with `https://github.com/usnistgov/capordino` to OSCAL, or
   parse the CPRT JSON directly.
 - **Shape**: `requirement-set`. Requirement id, statement, ODPs, 800-53 mapping.

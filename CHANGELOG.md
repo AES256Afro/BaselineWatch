@@ -2,6 +2,14 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.14.0 — 2026-10-15
+
+- NIST SP 800-171 Revision 3 in the Register, from NIST's OSCAL: the CUI requirements that make up
+  CMMC Level 2, numbered as the publication numbers them (03.01.01), grouped by family, with
+  statement items lettered, organization-defined parameters, assessment objectives and the
+  requirements withdrawn from Revision 2 kept as withdrawn. Tracking starts at OSCAL 1.1.0; the
+  Sources page says why there is no backfill.
+
 ## 0.13.0 — 2026-10-15
 
 - A read-only MCP server at `/mcp` (Streamable HTTP, stateless) for BoxPilot's agents, Claude Code

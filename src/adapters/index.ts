@@ -6,7 +6,7 @@ import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
 import { nvdAdapter } from "./nvd.ts";
-import { nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
+import { nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { osvAdapter } from "./osv.ts";
 import { redditAdapter } from "./reddit.ts";
 import { sctAdapter } from "./sct.ts";
@@ -20,6 +20,7 @@ const byId: Record<string, Adapter> = {
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
+  "nist-sp-800-171": nist171Adapter,
   "fedramp-rules": fedrampRulesAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
@@ -44,4 +45,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };
+export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };
