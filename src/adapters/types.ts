@@ -66,6 +66,14 @@ export interface PullContext {
   log: (line: string) => void;
 }
 
+/** Something worth telling the owner about right away. */
+export interface AlertDraft {
+  kind: "kev" | "release" | "watch";
+  title: string;
+  body: string;
+  url?: string | null;
+}
+
 export interface PullOutcome {
   /** Records the adapter handled. */
   items: number;
@@ -73,6 +81,8 @@ export interface PullOutcome {
   updated: number;
   /** A note for the Sources page, such as the cursor reached. */
   detail?: string;
+  /** Alerts the pull raised; the ingester sends them when a notifier is configured. */
+  alerts?: AlertDraft[];
 }
 
 /** One versioned document a standards source publishes: a catalog, a baseline profile, a STIG. */

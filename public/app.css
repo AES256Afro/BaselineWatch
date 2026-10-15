@@ -240,6 +240,44 @@ table.vulns tr.hit td.id a { color: var(--acc); }
 .refs a { overflow-wrap: anywhere; }
 select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); max-width: 100%; }
 
+/* Triage */
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 40px; }
+@media (max-width: 1000px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .board { grid-template-columns: 1fr; } }
+.tcol { min-width: 0; }
+.tcol h2 { font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.tcards { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tcard { background: var(--card); border: 1px solid var(--rule); border-top: 3px solid var(--rule); border-radius: 8px; padding: 9px 11px; display: grid; gap: 5px; min-width: 0; }
+.tcard.kev, .tcard.kev-card { border-top-color: var(--del); }
+.tcard.vuln { border-top-color: var(--warn); }
+.tcard.control, .tcard.release { border-top-color: var(--gen); }
+.tcard .k { display: flex; justify-content: space-between; gap: 6px; font: 500 11px var(--mono); color: var(--mute); }
+.tcard b { font-weight: 600; font-size: 13px; line-height: 1.35; }
+.tcard b a { color: var(--ink); text-decoration: none; }
+.tcard b a:hover { text-decoration: underline; }
+.tcard p { margin: 0; color: var(--mute); font-size: 12.5px; line-height: 1.4; }
+.tcard .note { background: var(--warn-bg); border: 1px solid transparent; border-radius: 5px; padding: 5px 7px; color: var(--warn); font-size: 12px; white-space: pre-wrap; }
+.triage-acts { flex-wrap: wrap; }
+.triage-acts button { font-size: 11px; padding: 3px 7px; }
+.triage-acts button.on { border-color: var(--acc); color: var(--acc); }
+.triage-form textarea { font: inherit; font-size: 13.5px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); resize: vertical; }
+.triage-form input[type="date"] { font: inherit; font-size: 13.5px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); max-width: 100%; }
+details.triage-box { margin: 14px 0; }
+details.triage-box summary { cursor: pointer; font-weight: 600; }
+.tcol h3.small { margin: 14px 0 6px; font-family: var(--sans); font-weight: 600; }
+
+/* Digest */
+.digest-body p { margin: 0 0 6px; font-weight: 600; }
+.digest-body li { font-size: 13.5px; margin: 2px 0 2px 18px; color: var(--ink); }
+.digest-body li + p { margin-top: 12px; }
+h2.later { margin: 22px 0 8px; font-size: 16px; }
+details.box summary { cursor: pointer; }
+.alerts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.alerts li { display: grid; gap: 2px; }
+.alerts .when { color: var(--mute); font-size: 11.5px; }
+.alerts li.failed .when { color: var(--del); }
+.alerts li.unconfigured .when { color: var(--warn); }
+
 /* Sign-in */
 .login { max-width: 420px; margin: 40px auto; }
 .stack { display: grid; gap: 8px; }

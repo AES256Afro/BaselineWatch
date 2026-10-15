@@ -1,7 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor } from "./adapters/index.ts";
 import type { SourceRow } from "./adapters/types.ts";
+import { digestDue, writeDigest } from "./digest.ts";
+import { httpGet } from "./http.ts";
 import { ingestSource, listSources, type IngestDeps, type IngestResult } from "./ingest.ts";
+import { notify } from "./notify.ts";
 
 const intervalMs: Record<SourceRow["schedule"], number> = {
   hourly: 60 * 60 * 1000,
@@ -34,6 +37,8 @@ export interface SchedulerOptions extends IngestDeps {
   /** Pause between two requests to the same host; Reddit answers 429 to a burst. */
   hostDelayMs?: number;
   log?: (line: string) => void;
+  /** When set, the digest is written and sent on its schedule from the same ticks. */
+  digest?: { period: "daily" | "weekly" | "off"; hour: number; timeZone: string };
 }
 
 function hostOf(url: string): string {
@@ -61,6 +66,8 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 export interface Scheduler {
   /** Fetches every due source now; resolves when all have finished. A run already in progress is joined, not duplicated. */
   runOnce(): Promise<IngestResult[]>;
+  /** Writes and sends the digest if it is due; true when one was written. */
+  runDigest(): Promise<boolean>;
   stop(): void;
 }
 
@@ -95,7 +102,14 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
       const due = dueSources(db, now());
       if (due.length === 0) return [];
       log(`[scheduler] ${due.length} source(s) due`);
-      const deps: IngestDeps = { now, log, ...(options.http ? { http: options.http } : {}), ...(options.settings ? { settings: options.settings } : {}) };
+      const deps: IngestDeps = {
+        now,
+        log,
+        ...(options.http ? { http: options.http } : {}),
+        ...(options.settings ? { settings: options.settings } : {}),
+        ...(options.transport !== undefined ? { transport: options.transport } : {}),
+        ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+      };
       const hostDelayMs = options.hostDelayMs ?? 3000;
       const perHost = groupByHost(due).map((group) => async () => {
         const results: IngestResult[] = [];
@@ -114,13 +128,23 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     return running;
   };
 
+  const runDigest = async (): Promise<boolean> => {
+    const d = options.digest;
+    if (!d || d.period === "off" || !digestDue(db, { now: now(), timeZone: d.timeZone, period: d.period, hour: d.hour })) return false;
+    const row = writeDigest(db, { now: now(), baseUrl: options.baseUrl ?? "", period: d.period });
+    log(`[digest] wrote ${d.period} digest #${row.id} covering ${row.covers_from.slice(0, 16)} to ${row.covers_to.slice(0, 16)}`);
+    await notify(db, options.transport ?? null, { kind: "digest", title: `BaselineWatch ${d.period} digest`, body: row.text.slice(0, 3500), url: options.baseUrl ? `${options.baseUrl}/digest` : null }, options.http ?? httpGet, now);
+    return true;
+  };
+
   const timer = setInterval(() => {
-    void runOnce();
+    void runOnce().then(() => runDigest());
   }, options.tickMs ?? 60_000);
   timer.unref();
 
   return {
     runOnce,
+    runDigest,
     stop: () => clearInterval(timer),
   };
 }

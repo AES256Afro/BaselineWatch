@@ -1,5 +1,5 @@
 import { isNotable, loadWatchlist, recordVulnItem, upsertVuln, type NormalizedVuln } from "../vulns.ts";
-import type { Adapter, PullContext, PullOutcome } from "./types.ts";
+import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 
 /** The parts of an NVD API 2.0 CVE record BaselineWatch reads. */
 export interface NvdCve {
@@ -130,12 +130,13 @@ function writeSetting(ctx: PullContext, key: string, value: string): void {
   );
 }
 
-/** Stores a page of records, returning counts. Exported so tests and the CLI can load fixtures without the network. */
-export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: { cve: NvdCve }[]): { inserted: number; updated: number } {
+/** Stores a page of records, returning counts and the alerts worth raising. Exported so tests and the CLI can load fixtures without the network. */
+export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: { cve: NvdCve }[]): { inserted: number; updated: number; alerts: AlertDraft[] } {
   const watch = loadWatchlist(ctx.db);
   const observedAt = ctx.now().toISOString();
   let inserted = 0;
   let updated = 0;
+  const alerts: AlertDraft[] = [];
   ctx.db.exec("BEGIN");
   try {
     for (const { cve } of records) {
@@ -144,6 +145,15 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
       else if (result.changes.length) updated += 1;
       if ((result.isNew || result.changes.length) && isNotable(result.row, result.isNew, observedAt)) {
         recordVulnItem(ctx.db, result.row, result.changes, observedAt);
+        if (result.row.watch_hit === 1) {
+          const what = result.isNew ? "new" : result.changes.map((c) => (c.field === "cvss" ? `CVSS ${c.before ?? "unscored"} → ${c.after ?? "unscored"}` : c.field)).join(", ");
+          alerts.push({
+            kind: "watch",
+            title: `${result.row.cve_id}: ${result.watchLabels.join(", ")}`,
+            body: `${what}. ${result.row.cvss_score !== null ? `CVSS ${result.row.cvss_score.toFixed(1)}. ` : ""}${result.row.kev ? "In CISA KEV. " : ""}${(result.row.description ?? "").slice(0, 240)}`,
+            url: `/vulnerabilities/${result.row.cve_id}`,
+          });
+        }
       }
     }
     ctx.db.exec("COMMIT");
@@ -151,7 +161,7 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
     ctx.db.exec("ROLLBACK");
     throw error;
   }
-  return { inserted, updated };
+  return { inserted, updated, alerts };
 }
 
 /**
@@ -172,6 +182,7 @@ export const nvdAdapter: Adapter = {
     let updated = 0;
     let items = 0;
     let pages = 0;
+    const alerts: AlertDraft[] = [];
     let windowStart = start;
     let newestSeen = cursor ? new Date(cursor) : start;
     let complete = true;
@@ -194,6 +205,7 @@ export const nvdAdapter: Adapter = {
         inserted += counts.inserted;
         updated += counts.updated;
         items += records.length;
+        if (cursor) alerts.push(...counts.alerts); // a first pull is a backfill, not news
         for (const { cve } of records) {
           const modified = nvdDate(cve.lastModified);
           if (modified && new Date(modified) > newestSeen) newestSeen = new Date(modified);
@@ -212,6 +224,7 @@ export const nvdAdapter: Adapter = {
       inserted,
       updated,
       detail: `${pages} page(s), cursor ${newCursor.toISOString().slice(0, 16)}${complete ? "" : " (more to pull next run)"}`,
+      alerts,
     };
   },
 };

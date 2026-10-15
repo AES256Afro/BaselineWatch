@@ -3,6 +3,7 @@ import path from "node:path";
 import { createApp, pullSettings } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
+import { parseNotifyUrl } from "./notify.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 
@@ -25,7 +26,17 @@ const server = app.listen(config.port, config.host, () => {
 
 let scheduler: Scheduler | null = null;
 if (config.scheduler) {
-  scheduler = startScheduler({ db, dataDir: config.dataDir, settings: pullSettings(config) });
+  scheduler = startScheduler({
+    db,
+    dataDir: config.dataDir,
+    settings: pullSettings(config),
+    transport: parseNotifyUrl(config.notifyUrl),
+    baseUrl: config.baseUrl,
+    digest: { period: config.digest, hour: config.digestHour, timeZone: config.timeZone },
+  });
+  if (config.notifyUrl && !parseNotifyUrl(config.notifyUrl)) {
+    console.log("[notify] BW_NOTIFY_URL is not an ntfy://, gotify:// or http(s):// address; alerts will be logged as unconfigured");
+  }
   setTimeout(() => {
     void scheduler?.runOnce();
   }, 10_000).unref();

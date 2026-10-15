@@ -1,8 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { html, type Html } from "../html.ts";
 import { relativeTime } from "../time.ts";
+import type { TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
 import { page } from "./layout.ts";
+import { triageButtons } from "./triage.ts";
 
 interface Signals {
   kev?: boolean;
@@ -66,6 +68,12 @@ export interface WirePageOptions {
 export function renderWire({ db, filters, owner, open, now }: WirePageOptions): string {
   const items = listWire(db, { ...filters, limit: 50 });
   const counts = sourceCounts(db).filter((c) => c.total > 0 || c.source_id === filters.source);
+  const triageState = new Map<number, TriageState>();
+  if (items.length) {
+    for (const r of db.prepare(`SELECT subject_id, state FROM triage WHERE subject_kind = 'item' AND subject_id IN (${items.map(() => "?").join(",")})`).all(...items.map((i) => i.id)) as { subject_id: number; state: TriageState }[]) {
+      triageState.set(r.subject_id, r.state);
+    }
+  }
   const totalUnread = counts.reduce((n, c) => n + (c.unread ?? 0), 0);
   const current = query(filters, {});
   const last = items[items.length - 1];
@@ -85,6 +93,7 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
           ? html`<div class="acts">
               <form method="post" action="/items/${item.id}/${item.read ? "unread" : "read"}">${back}<button type="submit">${item.read ? "Mark unread" : "Mark read"}</button></form>
               <form method="post" action="/items/${item.id}/${item.starred ? "unstar" : "star"}">${back}<button type="submit">${item.starred ? "Unstar" : "Star"}</button></form>
+              ${item.kind !== "article" ? triageButtons({ kind: "item", id: item.id }, triageState.get(item.id) ?? null, current, { compact: true }) : ""}
             </div>`
           : ""}
       </div>

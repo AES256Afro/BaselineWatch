@@ -30,6 +30,25 @@ export interface Config {
   llmUrl: string | null;
   /** The Ollama model name used for generated summaries. */
   llmModel: string;
+  /** How often the digest is written and sent. */
+  digest: "daily" | "weekly" | "off";
+  /** Local hour (in `timeZone`) at which the digest runs. */
+  digestHour: number;
+}
+
+function choice<T extends string>(env: Env, key: string, allowed: readonly T[], fallback: T): T {
+  const value = env[key]?.trim().toLowerCase();
+  if (!value) return fallback;
+  if (!(allowed as readonly string[]).includes(value)) throw new Error(`${key} must be one of ${allowed.join(", ")}, got "${value}"`);
+  return value as T;
+}
+
+function hour(env: Env, key: string, fallback: number): number {
+  const value = env[key];
+  if (value === undefined || value.trim() === "") return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0 || n > 23) throw new Error(`${key} must be an hour from 0 to 23, got "${value}"`);
+  return n;
 }
 
 function days(env: Env, key: string, fallback: number): number {
@@ -85,5 +104,7 @@ export function loadConfig(env: Env = process.env): Config {
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
     llmUrl: optional(env, "BW_LLM_URL"),
     llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
+    digest: choice(env, "BW_DIGEST", ["daily", "weekly", "off"] as const, "daily"),
+    digestHour: hour(env, "BW_DIGEST_HOUR", 7),
   };
 }

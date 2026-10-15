@@ -12,11 +12,16 @@ import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
 import { renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
+import { renderDigest } from "./pages/digest.ts";
+import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
 import { renderWire } from "./pages/wire.ts";
 import { productName, productVersion } from "./version.ts";
 import { recomputeWatchHits, type VulnFilters } from "./vulns.ts";
+import { writeDigest } from "./digest.ts";
+import { notify, parseNotifyUrl } from "./notify.ts";
+import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
 export interface AppContext {
@@ -261,6 +266,47 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, "/watchlist");
   });
 
+  app.get("/triage", (req, res) => {
+    res.type("html").send(renderTriage({ db, ...who(res), now: now(), notice: str(req.query.notice, 300) }));
+  });
+  app.get("/triage.csv", requireOwner, (_req, res) => {
+    res.setHeader("Content-Disposition", 'attachment; filename="baselinewatch-triage.csv"');
+    res.type("text/csv").send(triageCsv(db));
+  });
+  const triageSubject = (body: Record<string, unknown>): { kind: TriageKind; id: number; key: string } | null => {
+    const kind = str(body.kind);
+    const id = Number(str(body.id));
+    if ((kind !== "item" && kind !== "vuln" && kind !== "control") || !Number.isInteger(id) || id <= 0) return null;
+    return { kind, id, key: str(body.key, 200) ?? "" };
+  };
+  app.post("/triage", requireOwner, (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const subject = triageSubject(body);
+    const state = str(body.state);
+    if (!subject || !isTriageState(state)) return res.status(400).type("text").send("A subject and a state are needed.");
+    const note = body.note === undefined ? undefined : (str(body.note, 2000) ?? null);
+    const due = body.due === undefined ? undefined : (str(body.due, 10) ?? null);
+    if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return res.status(400).type("text").send("The due date must be YYYY-MM-DD.");
+    setTriage(db, subject, { state, note, dueAt: due }, now().toISOString());
+    res.redirect(303, safeBack(body.back, "/triage"));
+  });
+  app.post("/triage/clear", requireOwner, (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const subject = triageSubject(body);
+    if (subject) clearTriage(db, subject);
+    res.redirect(303, safeBack(body.back, "/triage"));
+  });
+
+  app.get("/digest", (_req, res) => {
+    res.type("html").send(renderDigest({ db, ...who(res), now: now(), period: config.digest, hour: config.digestHour, timeZone: config.timeZone, notifyConfigured: parseNotifyUrl(config.notifyUrl) !== null }));
+  });
+  app.post("/digest/run", requireOwner, async (_req, res) => {
+    const period = config.digest === "off" ? "daily" : config.digest;
+    const row = writeDigest(db, { now: now(), baseUrl: config.baseUrl, period });
+    await notify(db, parseNotifyUrl(config.notifyUrl), { kind: "digest", title: `BaselineWatch ${period} digest`, body: row.text.slice(0, 3500), url: `${config.baseUrl}/digest` }, ctx.http, now);
+    res.redirect(303, "/digest");
+  });
+
   app.get("/sources", (req, res) => {
     const q = req.query as Record<string, unknown>;
     const notice = typeof q.fetched === "string" && typeof q.status === "string" ? { sourceId: q.fetched, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
@@ -273,6 +319,8 @@ export function createApp(ctx: AppContext): Express {
       now,
       settings: pullSettings(config),
       log: (line) => console.log(line),
+      transport: parseNotifyUrl(config.notifyUrl),
+      baseUrl: config.baseUrl,
       ...(ctx.http ? { http: ctx.http } : {}),
     });
     const detail = result.status === "ok" ? (result.detail ?? `${result.items} items, ${result.inserted} new, ${result.updated} changed`) : (result.error ?? result.status);

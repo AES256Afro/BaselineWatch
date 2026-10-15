@@ -7,7 +7,9 @@ import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
 import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, notedChangeCount, notesFor, releaseChanges, type DocumentRow } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import { getTriage } from "../triage.ts";
 import { page } from "./layout.ts";
+import { triageForm } from "./triage.ts";
 
 interface Who {
   owner: boolean;
@@ -186,6 +188,11 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
     </div>
     ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" rel="noopener">${n.source_url}</a></cite>` : ""}</div>`)}
+    ${(() => {
+      const t = getTriage(db, "control", documentId, ref);
+      if (owner) return html`<details class="box triage-box" ${t ? "open" : ""}><summary>Triage${t ? html`: ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}` : ""}</summary>${triageForm({ kind: "control", id: documentId, key: ref }, t, `/standards/${sourceId}/${documentId}/${ref}`)}</details>`;
+      return t ? html`<div class="box triage-box"><b>Triage:</b> ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}${t.note ? html`<p class="small">${t.note}</p>` : ""}</div>` : "";
+    })()}
     ${field("title", "Title", before?.title ?? null, after?.title ?? null)}
     ${field("statement", "Control", before?.statement ?? null, after?.statement ?? null)}
     ${field("guidance", "Discussion", before?.guidance ?? null, after?.guidance ?? null)}
