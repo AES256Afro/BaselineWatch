@@ -95,6 +95,12 @@ Read-only JSON, same read gating as the pages, for BoxPilot's agents and your ow
 | `/api/v1/triage?state=` | The board. |
 | `/api/v1/digest` | The latest digest. |
 
+The same reads are an MCP server at `/mcp` (Streamable HTTP, stateless, no sessions), with the
+tools `list_standards`, `release`, `requirement`, `standard_changes`, `search_wire`,
+`vulnerabilities`, `vulnerability`, `triage` and `digest`, every one marked read-only. From
+Claude Code: `claude mcp add --transport http baselinewatch https://cybercard.net/mcp`. Nothing
+on it writes, uploads or fetches.
+
 Every loaded version can also be read whole: each release page links to a browsable, searchable
 list of all its requirements, filtered by family, with the ones that changed in that release
 marked.

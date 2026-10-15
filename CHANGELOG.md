@@ -2,6 +2,14 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.13.0 — 2026-10-15
+
+- A read-only MCP server at `/mcp` (Streamable HTTP, stateless) for BoxPilot's agents, Claude Code
+  and scripts: `list_standards`, `release`, `requirement`, `standard_changes`, `search_wire`,
+  `vulnerabilities`, `vulnerability`, `triage` and `digest`, every tool marked read-only and
+  answered from the instance's own database with links back. Same read gating as the pages and
+  the JSON API; nothing on it writes, uploads or fetches.
+
 ## 0.12.0 — 2026-10-15
 
 - Package advisories from OSV.dev and the GitHub Advisory Database. Add a package to the watchlist
