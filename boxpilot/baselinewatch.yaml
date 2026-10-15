@@ -10,8 +10,8 @@ description: "Security news, CVEs, CISA advisories and NIST publications in one 
 website: https://github.com/AES256Afro/BaselineWatch
 risk: low
 image:
-  reference: ghcr.io/aes256afro/baselinewatch:0.6.0
-  version: "0.6.0"
+  reference: ghcr.io/aes256afro/baselinewatch:0.7.0
+  version: "0.7.0"
 ports:
   - id: web
     label: Web UI
@@ -58,8 +58,18 @@ env:
     default: ""
   - name: BW_NOTIFY_URL
     label: Notification URL (optional)
-    description: An Apprise-style URL, for example ntfy://<this server>:8093/baselinewatch, for KEV additions and standard releases.
+    description: "ntfy://<this server>:8093/baselinewatch, gotify://<this server>:8080/<token>, or an https:// webhook. Receives KEV additions, changes to CVEs in your watchlist, standard releases and the digest."
     default: ""
+  - name: BW_DIGEST
+    label: Digest
+    description: How often the digest is written and sent.
+    default: daily
+    options: ["daily", "weekly", "off"]
+  - name: BW_DIGEST_HOUR
+    label: Digest hour
+    type: number
+    description: The local hour (0 to 23, in the time zone above) at which the digest runs.
+    default: "7"
   - name: BW_LLM_URL
     label: Local model URL (optional)
     description: An Ollama address such as http://<this server>:11434. When set, each release with changes also gets a short generated summary, badged as generated, next to the publisher's own words.

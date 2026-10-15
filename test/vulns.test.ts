@@ -78,7 +78,7 @@ describe("vulnerability store", () => {
     // The fixture keeps only the first two configurations of the Log4j record, which name Siemens firmware.
     db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('product', 'siemens', 'Plant', ?)").run(at.toISOString());
     const first = storeNvdRecords({ db, now: () => at }, windowFixture().vulnerabilities!);
-    expect(first).toEqual({ inserted: 3, updated: 0 });
+    expect(first).toMatchObject({ inserted: 3, updated: 0 });
     expect(countRows(db, "vulns")).toBe(3);
     const row = getVuln(db, "cve-2021-44228")!;
     expect(row.kev).toBe(1);
@@ -99,7 +99,7 @@ describe("vulnerability store", () => {
     db.prepare("UPDATE items SET read = 1 WHERE external_id = 'CVE-2021-44228'").run();
     const later = new Date("2026-10-15T02:00:00Z");
     const second = storeNvdRecords({ db, now: () => later }, [{ cve: changed }]);
-    expect(second).toEqual({ inserted: 0, updated: 1 });
+    expect(second).toMatchObject({ inserted: 0, updated: 1 });
     const fields = vulnChanges(db, "CVE-2021-44228").map((c) => c.field);
     expect(fields).toEqual(expect.arrayContaining(["cvss", "description", "cpes"]));
     const cvss = vulnChanges(db, "CVE-2021-44228").find((c) => c.field === "cvss")!;
@@ -111,7 +111,7 @@ describe("vulnerability store", () => {
     expect(item.summary).toContain("→ 9.8");
 
     // The same record again changes nothing.
-    expect(storeNvdRecords({ db, now: () => later }, [{ cve: changed }])).toEqual({ inserted: 0, updated: 0 });
+    expect(storeNvdRecords({ db, now: () => later }, [{ cve: changed }])).toMatchObject({ inserted: 0, updated: 0, alerts: [] });
   });
 
   it("joins KEV and EPSS onto known CVEs only, and re-marks the watchlist", () => {

@@ -1,8 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
+import { latestDigest } from "../digest.ts";
 import { formatBytes, html } from "../html.ts";
+import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
+import { triageCounts, triageInbox } from "../triage.ts";
 import { page } from "./layout.ts";
 import { productName } from "../version.ts";
 
@@ -79,6 +82,10 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
   const kevVersion = (db.prepare("SELECT version_label FROM documents WHERE source_id = 'cisa-kev' ORDER BY id DESC LIMIT 1").get() as { version_label: string } | undefined)
     ?.version_label;
   const lastFetch = (db.prepare("SELECT MAX(last_fetch_at) AS at FROM sources").get() as { at: string | null }).at;
+  const counts = triageCounts(db);
+  const inboxCount = triageInbox(db, 500).length;
+  const digest = latestDigest(db);
+  const alerts = recentAlerts(db, 1);
 
   const standardCards = standards.map((s) => {
     const state =
@@ -128,6 +135,16 @@ export function renderHome({ config, db, migrations, owner, now }: HomeOptions):
       </section>
 
       <aside class="side">
+        <section class="box">
+          <h2>Needs you</h2>
+          <dl class="kv">
+            <dt>Affects us</dt><dd><a href="/triage">${counts.affects}</a></dd>
+            <dt>Reviewing</dt><dd><a href="/triage">${counts.reviewing}</a></dd>
+            <dt>Inbox</dt><dd><a href="/triage">${inboxCount} not yet placed</a></dd>
+            <dt>Last digest</dt><dd>${digest ? html`<a href="/digest">${relativeTime(digest.generated_at, now)}</a>` : html`<a href="/digest">none yet</a>`}</dd>
+            ${alerts.length ? html`<dt>Last alert</dt><dd>${alerts[0]!.title} <span class="small">(${alerts[0]!.status}, ${relativeTime(alerts[0]!.sent_at, now)})</span></dd>` : ""}
+          </dl>
+        </section>
         <section class="box">
           <h2>Known exploited, newest${kevVersion ? html` <span class="count">catalog ${kevVersion}</span>` : ""}</h2>
           ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/wire?kind=kev">All KEV additions on the Wire</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}

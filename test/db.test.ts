@@ -50,7 +50,7 @@ describe("migrate", () => {
     expect(() =>
       db.prepare("INSERT INTO snapshots (source_id, document_key, sha256, bytes, blob_path, fetched_at) VALUES ('no-such-source', 'k', 'x', 1, 'p', 'now')").run(),
     ).toThrow(/FOREIGN KEY/);
-    expect(() => db.prepare("INSERT INTO triage (subject_kind, subject_id, state, updated_at) VALUES ('item', 1, 'bogus', 'now')").run()).toThrow(/CHECK/);
+    expect(() => db.prepare("INSERT INTO triage (subject_kind, subject_id, state, created_at, updated_at) VALUES ('item', 1, 'bogus', 'now', 'now')").run()).toThrow(/CHECK/);
     db.close();
   });
 

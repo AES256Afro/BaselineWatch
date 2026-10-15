@@ -262,7 +262,16 @@ publisher's words" above the redline when a note exists.
 - **Done when**: every change in the Register has either a quoted official reason or an explicit
   "publisher gave no reason" marker.
 
-### M6: Triage, watchlist v2, digest (1 to 2 weeks)
+### M6: Triage, watchlist v2, digest (1 to 2 weeks) — shipped 2026-10-15 as 0.7.0
+
+What landed: triage on any timeline item, CVE or requirement-in-a-release (New, Reviewing,
+Affects us, Done, Not ours) with notes and due dates, a board with an inbox of unplaced KEV
+entries, notable CVEs and releases, triage controls on the Wire, CVE and control pages, and a CSV
+export; alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and
+standard releases, never on a source's first load, five singly and the rest as one line, every
+attempt logged; a daily or weekly digest written at a local hour and sent the same way, kept on
+its own page with the alert log. Watchlist entries of kind `baseline` choose which STIGs are
+followed (M4) and control families are stored for the Register. Email stays with ntfy or Apprise.
 - Triage states and notes on any item (article, CVE, change). Bulk actions. Export CSV.
 - Watchlist v2: which baselines apply to you, which control families you own; the Register dims
   everything else.

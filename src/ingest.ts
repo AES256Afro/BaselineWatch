@@ -1,9 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor } from "./adapters/index.ts";
-import { canonicalUrl, type Adapter, type DocumentTarget, type ParsedDocument, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
+import { canonicalUrl, type Adapter, type AlertDraft, type DocumentTarget, type ParsedDocument, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
 import { summarizeRelease, type LlmSettings } from "./llm.ts";
+import { notify, type Transport } from "./notify.ts";
 import { changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
 
 export interface DocumentOutcome {
@@ -13,6 +14,8 @@ export interface DocumentOutcome {
   versionLabel: string | null;
   summary: string | null;
   error: string | null;
+  /** Set when a new version with changes arrived after an earlier one. */
+  alert?: AlertDraft;
 }
 
 /**
@@ -80,12 +83,17 @@ export async function ingestDocumentTarget(
     if (deps.settings?.llmUrl && stored.previousId && stored.changes.length > 0) {
       await addGeneratedSummary(db, deps.http, { url: deps.settings.llmUrl, model: deps.settings.llmModel ?? "llama3.2:3b" }, source, stored, parsed, fetchedAt);
     }
+    const versionLabel = target.versionLabel ?? parsed.versionLabel;
+    const summary = stored.previousId ? changeSummaryText(stored.summary) : `first version, ${parsed.requirements.length} requirements`;
     return {
       ...base,
       status: "ok",
       documentId: stored.documentId,
-      versionLabel: target.versionLabel ?? parsed.versionLabel,
-      summary: stored.previousId ? changeSummaryText(stored.summary) : `first version, ${parsed.requirements.length} requirements`,
+      versionLabel,
+      summary,
+      ...(stored.previousId && stored.changes.length
+        ? { alert: { kind: "release" as const, title: `${source.name} ${versionLabel ?? ""}: ${summary}`.trim(), body: parsed.rationale?.text.slice(0, 600) ?? summary, url: `/standards/${source.id}/${stored.documentId}` } }
+        : {}),
     };
   } catch (error) {
     return { ...base, status: "error", error: error instanceof Error ? error.message : String(error) };
@@ -112,6 +120,31 @@ export interface IngestDeps {
   now?: () => Date;
   settings?: PullSettings;
   log?: (line: string) => void;
+  /** Where alerts go; null or absent means they are only logged as unconfigured. */
+  transport?: Transport | null;
+  /** The address people use, to make alert links absolute. */
+  baseUrl?: string;
+}
+
+/** Sends a run's alerts, at most five singly and the rest as one line, and records each. */
+async function sendAlerts(db: DatabaseSync, deps: IngestDeps, drafts: AlertDraft[]): Promise<void> {
+  if (!drafts.length) return;
+  const http = deps.http ?? httpGet;
+  const now = deps.now ?? (() => new Date());
+  const absolute = (url: string | null | undefined) => (url && url.startsWith("/") && deps.baseUrl ? `${deps.baseUrl}${url}` : (url ?? null));
+  const transport = deps.transport ?? null;
+  const single = drafts.slice(0, 5);
+  for (const d of single) await notify(db, transport, { ...d, url: absolute(d.url) }, http, now);
+  if (drafts.length > single.length) {
+    const rest = drafts.slice(single.length);
+    await notify(
+      db,
+      transport,
+      { kind: rest[0]!.kind, title: `${rest.length} more ${rest[0]!.kind === "kev" ? "KEV additions" : rest[0]!.kind === "watch" ? "watched CVEs" : "releases"}`, body: rest.map((r) => r.title).join("\n").slice(0, 3000), url: absolute(rest[0]!.kind === "release" ? "/" : "/wire") },
+      http,
+      now,
+    );
+  }
 }
 
 export const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
@@ -195,6 +228,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       const outcome = await adapter.pull({ db, dataDir, source, http, now, settings: deps.settings ?? defaultPullSettings, log });
       const result = done({ status: "ok", items: outcome.items, inserted: outcome.inserted, updated: outcome.updated, detail: outcome.detail ?? null });
       recordOutcome(db, source, { status: "ok", fetchedAt: now().toISOString(), durationMs: result.durationMs });
+      if (outcome.alerts?.length) await sendAlerts(db, deps, outcome.alerts);
       return result;
     }
     if (adapter.documents) {
@@ -208,6 +242,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       const detail = outcomes.map((o) => `${o.key}${o.versionLabel ? ` ${o.versionLabel}` : ""}: ${o.status === "ok" ? o.summary : o.status === "error" ? o.error : "unchanged"}`).join("; ");
       const result = done({ status, items: outcomes.length, inserted: fresh.length, detail, error: errors.length ? errors.map((e) => `${e.key}: ${e.error}`).join("; ") : null });
       recordOutcome(db, source, { status, error: result.error, fetchedAt: now().toISOString(), durationMs: result.durationMs });
+      await sendAlerts(db, deps, outcomes.flatMap((o) => (o.alert ? [o.alert] : [])));
       return result;
     }
     if (!adapter.parse) throw new Error(`adapter ${adapter.id} can neither parse nor pull`);
@@ -251,10 +286,23 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       }
     }
 
+    const before = status === "unchanged" ? new Set<string>() : new Set((db.prepare("SELECT external_id FROM items WHERE source_id = ?").all(source.id) as { external_id: string }[]).map((r) => r.external_id));
     const counts = status === "unchanged" ? { inserted: 0, updated: 0 } : upsertItems(db, source.id, parsed.items, fetchedAt);
     if (status !== "unchanged") adapter.after?.(db, parsed.items, now());
     const result = done({ status, items: parsed.items.length, snapshotId, ...counts });
     recordOutcome(db, source, { status, etag: response.etag, lastModified: response.lastModified, fetchedAt, durationMs: result.durationMs });
+    // New KEV entries are news, except on a source's very first fetch, which loads the whole catalog.
+    if (status === "ok" && source.fetch_count > 0 && counts.inserted > 0) {
+      const fresh = parsed.items.filter((i) => i.kind === "kev" && !before.has(i.externalId));
+      await sendAlerts(
+        db,
+        deps,
+        fresh.map((i) => {
+          const s = (i.signals ?? {}) as { dueDate?: string; ransomware?: boolean };
+          return { kind: "kev" as const, title: `KEV: ${i.title}`, body: `${s.ransomware ? "Known ransomware use. " : ""}${s.dueDate ? `Due ${s.dueDate}. ` : ""}${i.summary ?? ""}`.slice(0, 600), url: i.url };
+        }),
+      );
+    }
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

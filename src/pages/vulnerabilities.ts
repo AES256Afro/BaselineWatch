@@ -1,8 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { html, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, vulnChanges, vulnStats, type VulnFilters, type VulnRow } from "../vulns.ts";
 import { page } from "./layout.ts";
+import { triageForm } from "./triage.ts";
 
 function parseJson<T>(text: string | null, fallback: T): T {
   if (!text) return fallback;
@@ -168,6 +170,12 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
         </section>
       </section>
       <aside class="side">
+        ${owner
+          ? html`<section class="box"><h2>Triage</h2>${triageForm({ kind: "vuln", id: row.id }, getTriage(db, "vuln", row.id), `/vulnerabilities/${row.cve_id}`)}</section>`
+          : (() => {
+              const t = getTriage(db, "vuln", row.id);
+              return t ? html`<section class="box"><h2>Triage</h2><p><span class="chip">${t.state}</span>${t.due_at ? html` due ${t.due_at}` : ""}</p>${t.note ? html`<p class="small">${t.note}</p>` : ""}</section>` : "";
+            })()}
         <section class="box">
           <h2>Scores</h2>
           <dl class="kv">
