@@ -1,146 +1,128 @@
-# Putting BaselineWatch on cybercard.net
+# BaselineWatch on cybercard.net
 
-*Written 2026-10-14. Nothing in this runbook has been done yet; each step says who does it.*
+*Written 2026-10-14 as a plan; rewritten 2026-10-15 after the switch, as a description of what
+runs and how to change it.*
 
-cybercard.net becomes BaselineWatch's public home: a read-only information, learning and
-teaching site with no private data. Today the domain serves the FinancialAuthority demo from
-GitHub Pages. The switch is: get the app running on BigBox, publish it through a Cloudflare
-Tunnel, move the DNS, retire the demo, then tell Cloudflare what kind of site it is.
+cybercard.net is BaselineWatch's public home: a read-only information, learning and teaching
+site with no private data. Until 2026-10-15 the domain served the FinancialAuthority demo from
+GitHub Pages; it now serves BaselineWatch from BigBox through a Cloudflare Tunnel.
 
-## What is there now
+## What is there
 
-| Piece | State on 2026-10-14 |
+| Piece | State since 2026-10-15 |
 | --- | --- |
-| Demo files | GitHub Pages from `AES256Afro/financialauthority-demo-cybercard` (public, branch `main`, CNAME `cybercard.net`, HTTPS not enforced). |
-| DNS in Cloudflare | DNS-only (grey cloud): four apex `A` records to GitHub Pages (185.199.108.153, .109.153, .110.153, .111.153) and `CNAME www` → `aes256afro.github.io`. |
-| Publisher | `FinancialAuthority/scripts/publish-demo.sh` pushes to that repo; `FinancialAuthority/docs/DEMO.md` documents it. |
-| BaselineWatch | M0 committed locally; not pushed, no image built, not running anywhere. |
+| App | BaselineWatch from `ghcr.io/aes256afro/baselinewatch:<version>` in `/opt/baselinewatch` on BigBox, started with `docker compose`, data in `/opt/baselinewatch/data`, port 8790 on loopback and the LAN. |
+| Tunnel | Cloudflare Tunnel named `Baseline Watch`, dashboard-managed, run by BoxPilot's Cloudflare Tunnel app (container `bp-cloudflared`, host network). Routes: `cybercard.net` and `www.cybercard.net` → `http://127.0.0.1:8790`. |
+| DNS in Cloudflare | Proxied `CNAME` records for the apex and `www` to the tunnel, created by the tunnel's routes. The old GitHub Pages `A` records and the `www` CNAME are gone. `_dmarc` TXT stays. |
+| Zone settings | Always Use HTTPS on. Encryption mode left at Cloudflare's Automatic (reads "Full"); tunnel traffic does not use it, cloudflared speaks plain HTTP to the container on loopback. Redirect rule 1 "Redirect from WWW to root" active (`www` → apex); redirect rule 2 "cybercard.net to rustyschool.com" **disabled, not deleted**: re-enabling it sends the whole site to rustyschool.com. |
+| Demo | GitHub Pages for `AES256Afro/financialauthority-demo-cybercard` has no custom domain any more; `FinancialAuthority/scripts/publish-demo.sh` and `docs/DEMO.md` name only demo.aes256afro.com. |
+| Categorisation | Requested 2026-10-15 in Security Center → Investigate: Education and Information Security. Cloudflare reviews it. |
 
-## Order of work
+## How it was set up
 
-Keep the demo live until BaselineWatch answers on the tunnel, so the domain is never dark.
-
-### 1. Publish the code and the image (from this machine)
+### 1. The code and the image (from the development machine)
 
 ```bash
-git push -u origin main
+git push -u origin main && git tag v0.10.0 && git push origin v0.10.0
 ```
 
+CI (`.github/workflows/ci.yml`) runs the checks, boots the container and on a tag pushes
+`ghcr.io/aes256afro/baselinewatch:<version>`. The package is public, so BigBox pulls without a
+token.
+
+### 2. Running it on BigBox (an SSH session as `bigbox@bigbox`)
+
 ```bash
-git tag v0.8.0 && git push origin v0.8.0
+sudo mkdir -p /opt/baselinewatch/data && sudo chown 1000:1000 /opt/baselinewatch/data
 ```
 
-CI (`.github/workflows/ci.yml`) runs the checks, boots the container, and on the tag pushes
-`ghcr.io/aes256afro/baselinewatch:0.8.0`. The package is private by default on first push: open
-https://github.com/users/AES256Afro/packages/container/baselinewatch/settings and set it to
-public so BigBox can pull without a token (BoxPilot's catalog expects a public image).
-
-### 2. Run it on BigBox (from your SSH session as `bigbox@bigbox`)
-
-Fastest, before the BoxPilot catalog entry exists:
+Docker creates a missing bind-mount directory as root and the image runs as `node` (uid 1000),
+so without this the database cannot be opened. Then:
 
 ```bash
-sudo mkdir -p /opt/baselinewatch && cd /opt/baselinewatch && sudo curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/AES256Afro/BaselineWatch/main/docker-compose.yml
-```
-
-```bash
-cd /opt/baselinewatch && sudo sed -i 's#build: \.#pull_policy: always#' docker-compose.yml && printf 'BW_BASE_URL=https://cybercard.net\nTZ=America/New_York\n' | sudo tee .env >/dev/null && sudo docker compose up -d
+cd /opt/baselinewatch && sudo curl -fsSLo docker-compose.yml https://raw.githubusercontent.com/AES256Afro/BaselineWatch/main/docker-compose.yml && sudo sed -i 's#build: \.#pull_policy: always#' docker-compose.yml && printf 'BW_BASE_URL=https://cybercard.net\nTZ=America/New_York\n' | sudo tee .env >/dev/null && docker compose up -d
 ```
 
 ```bash
 curl -s http://127.0.0.1:8790/health
 ```
 
-The compose file binds `8790:8790` on every interface; BigBox's firewall (BoxPilot → Firewall)
-should leave 8790 closed to the LAN unless you want it reachable there too. The tunnel reaches it
-over loopback.
-
-Through BoxPilot instead: the manifest is proposed in
-[AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472) (opened 2026-10-15,
-catalog tests passing). Once merged and released, Apps → BaselineWatch → Install; BoxPilot then
-owns backups and updates for it.
-
-### 3. Publish through a Cloudflare Tunnel (BoxPilot or cloudflared)
-
-BoxPilot way: Apps → Cloudflare Tunnel → Tunnel tab → add a public hostname `cybercard.net` →
-`http://localhost:8790` (and `www.cybercard.net` the same). BoxPilot creates the tunnel route
-and the proxied DNS record in the zone.
-
-cloudflared way, on BigBox:
+The `bigbox` user is in the `docker` group, so `docker compose` needs no sudo; the files under
+`/opt` do. Then the history, in either order relative to the first scheduled fetch (versions are
+linked by publication date since 0.10.2):
 
 ```bash
-cloudflared tunnel login && cloudflared tunnel create baselinewatch
+docker compose exec baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts backfill nist-sp-800-53
 ```
 
 ```bash
-cloudflared tunnel route dns baselinewatch cybercard.net && cloudflared tunnel route dns baselinewatch www.cybercard.net
+docker compose exec baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts backfill nist-sp-800-53b
 ```
 
-with `/etc/cloudflared/config.yml` sending both hostnames to `http://localhost:8790`, then
-`cloudflared service install`.
+A chain loaded by an earlier version in the wrong order is put right with
+`... src/cli.ts relink all`.
 
-Either way the result is a proxied (orange cloud) `CNAME cybercard.net` → `<tunnel-id>.cfargotunnel.com`.
-Cloudflare refuses to create it while the apex `A` records exist, which is step 4.
+### 3. The tunnel (BoxPilot and the Cloudflare dashboard)
 
-### 4. Move the DNS (Cloudflare dashboard, DNS → Records)
+A tunnel made in the dashboard (Networking → Tunnels → Create, token copied into BoxPilot → Apps →
+Cloudflare Tunnel → Install) runs as BoxPilot's app. Its public hostnames are routes on the
+tunnel in the dashboard ("Add route" → "Published application"): subdomain empty and `www`,
+domain `cybercard.net`, service `http://127.0.0.1:8790`. Each route creates its proxied DNS record.
 
-1. Delete the four apex `A` records (the GitHub Pages addresses).
-2. Delete `CNAME www` → `aes256afro.github.io`.
-3. Let the tunnel create (or create by hand) proxied `CNAME @` and `CNAME www` → the tunnel.
-4. SSL/TLS → Overview: **Full (strict)** is fine; the tunnel terminates TLS at Cloudflare and
-   speaks plain HTTP to the container on loopback.
-5. SSL/TLS → Edge Certificates: **Always Use HTTPS** on.
+BoxPilot's own Tunnel tab (Connect with an API token, then Publish) was not used for this site:
+its Publish takes only an app BoxPilot installed and a single DNS label, never the bare domain
+(BoxPilot ADR-011). It would do for a subdomain of another zone once BaselineWatch is installed
+from the catalog.
 
-Check:
+### 4. DNS and the zone (Cloudflare dashboard)
+
+The GitHub Pages `A` records and the `www` CNAME were deleted by hand before the tunnel routes
+were added, which is why the routes could create their CNAMEs. Then Always Use HTTPS was turned
+on, and the dormant redirect to rustyschool.com, which only fired once the zone became proxied,
+was disabled.
+
+### 5. The demo
 
 ```bash
-curl -sI https://cybercard.net | head -5
+gh api -X PUT repos/AES256Afro/financialauthority-demo-cybercard/pages -f cname=
 ```
 
-The response should carry the app's `Content-Security-Policy` header, which GitHub Pages never
-sent.
+and the two FinancialAuthority files edited; the repo holds only built files and still exists.
 
-### 5. Retire the demo (from this machine, `gh` is signed in)
+### 6. Categorisation
 
-1. Remove the custom domain so GitHub stops serving `cybercard.net`:
+Security Center → Investigate → `cybercard.net` → Add category → Education and Information
+Security → Submit. The guide is
+https://developers.cloudflare.com/security-center/investigate/change-categorization/.
 
-   ```bash
-   gh api -X PUT repos/AES256Afro/financialauthority-demo-cybercard/pages -f cname=
-   ```
+## Upgrading
 
-   or simply delete the repo's `CNAME` file. Archiving or deleting the repo is your call; it
-   holds only built files.
-2. In `FinancialAuthority/scripts/publish-demo.sh` remove the
-   `AES256Afro/financialauthority-demo-cybercard cybercard.net` line from `sites`, and update
-   `docs/DEMO.md` so it names only demo.aes256afro.com.
+A release is a tag; CI publishes the image. On BigBox:
 
-### 6. Tell Cloudflare what the site is (dashboard, needs a signed-in session)
+```bash
+cd /opt/baselinewatch && sudo sed -i 's#baselinewatch:OLD#baselinewatch:NEW#' docker-compose.yml && docker compose up -d && sleep 8 && curl -s http://127.0.0.1:8790/health
+```
 
-Cloudflare's content categories are what Gateway, 1.1.1.1 for Families and Radar show for a
-domain. The two that fit: **Education** (category 6, subcategory Education 90) and
-**Information Security** (subcategory 108). **Information Technology** (109) is a reasonable
-third.
+`pull_policy: always` fetches the new image; the data directory carries over and migrations run
+at start. Once the catalog entry ([AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472))
+is merged and released, BoxPilot can install, back up and update it instead.
 
-Security Center → Investigate → search `cybercard.net` → **Change categorization** → request
-Education and Information Security, with a one-line reason ("Public security-education site:
-security news, CVE and NIST baseline change tracking; no user data"). Cloudflare reviews the
-request; the guide is https://developers.cloudflare.com/security-center/investigate/change-categorization/.
+## Checks
 
-### 7. Done when
+```bash
+curl -sI https://cybercard.net/ | grep -i "^HTTP\|content-security-policy\|strict-transport"
+```
 
-- `https://cybercard.net/health` returns `{"ok":true,...}` with the BaselineWatch version.
-- `https://cybercard.net/` shows the Register with the strict CSP header.
-- GitHub Pages for the demo repo no longer lists `cybercard.net`.
-- The categorization request shows as submitted in Security Center.
+The answer is `200` with the app's `Content-Security-Policy` and `Strict-Transport-Security`
+headers; `https://cybercard.net/health` reports the running version. A browser that visited the
+domain while the rustyschool redirect was active may replay the cached 301 until its cache is
+cleared; a private window shows the live answer.
 
 ## Access needed, and from where
 
 | Step | Needs | From |
 | --- | --- | --- |
-| 1 | push rights on AES256Afro/BaselineWatch | this machine (`gh` and git are signed in) |
-| 2, 3 (cloudflared) | sudo on BigBox | your SSH session |
-| 3 (BoxPilot), 4, 6 | Cloudflare dashboard, signed in | the browser pane in this app, once you sign in there, or Claude in Chrome |
-| 5 | `gh` with `repo` scope | this machine |
-
-The wrangler login on this machine can read the zone and manage Workers, Pages and Tunnels, but
-it has no DNS-write scope, so step 4 is dashboard work.
+| Image | push rights on AES256Afro/BaselineWatch | the development machine (`gh` and git signed in) |
+| BigBox | sudo for files under `/opt`; docker without it | an SSH session |
+| Tunnel, DNS, zone settings, categorisation | Cloudflare dashboard, signed in | a browser signed in to Cloudflare |
+| Demo | `gh` with `repo` scope | the development machine |

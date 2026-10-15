@@ -301,8 +301,11 @@ from each publisher's cadence.
 
 Done: HSTS behind TLS, the admin guide (`docs/ADMIN.md`), and the catalog manifest proposed as
 [AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472) with BoxPilot's
-catalog tests passing. The public site steps (BigBox, Cloudflare Tunnel, DNS, categorisation)
-are in `docs/DEPLOY.md` and wait on a signed-in Cloudflare session and the BigBox shell.
+catalog tests passing. The public site went live on 2026-10-15: BaselineWatch runs on BigBox
+through a Cloudflare Tunnel at https://cybercard.net with the strict CSP, the demo is retired and
+the categorisation request is in; `docs/DEPLOY.md` describes the setup and how to upgrade it.
+Still open from the list above: SBOM and image signing in CI, and the install through BoxPilot
+once the catalog PR is merged.
 
 ### M8: Stretch — first three shipped 2026-10-15 as 0.9.0
 
@@ -310,7 +313,10 @@ Shipped: CIS Benchmarks by owner upload (a multipart form, the PDF read with pdf
 parsed from their numbered headings and labelled sections, diffed against the previous upload of
 the same benchmark); the read-only JSON API (`/api/v1/*`) for BoxPilot's agents and scripts; the
 Register's typefaces served from their packages so the strict CSP stands and nothing loads from
-Google. Still open: vendor PSIRTs, OSV and GHSA, Intune and FedRAMP baselines, an MCP server,
+Google. Since then: a browsable, searchable view of every requirement in a version (0.9.1);
+vendor security advisories on the Wire, Ubuntu, Debian, Cisco, Palo Alto Networks, Fortinet and
+Red Hat (0.10.0); off-site links in a new tab (0.10.1); versions linked by publication date and
+`relink` (0.10.2). Still open: OSV and GHSA, Intune, CMMC and FedRAMP baselines, an MCP server,
 multi-user.
 
 ### M8 as planned
