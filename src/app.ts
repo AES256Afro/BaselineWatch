@@ -10,6 +10,7 @@ import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
 import { getSource, ingestSource, storeUploadedDocument, type IngestResult } from "./ingest.ts";
+import { handleMcpRequest } from "./mcp.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
@@ -143,6 +144,28 @@ export function createApp(ctx: AppContext): Express {
     });
   }
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
+
+  // The MCP endpoint: the read-only API as tools for agents. It sits before the same-origin guard
+  // because its clients are programs, not pages, and nothing it offers writes. Stateless: one
+  // server and transport per POST, no sessions, so GET (a stream) and DELETE (a session) are not.
+  app.post("/mcp", async (req, res) => {
+    const state = authState(req, config, now().getTime());
+    if (!config.publicRead && !state.owner) {
+      res.status(401).json({ jsonrpc: "2.0", error: { code: -32001, message: "Reading is not public on this instance; sign in first." }, id: null });
+      return;
+    }
+    try {
+      await handleMcpRequest(db, config.baseUrl, req, res);
+    } catch {
+      if (!res.headersSent) res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error." }, id: null });
+    }
+  });
+  const postOnly = (_req: Request, res: Response): void => {
+    res.status(405).set("Allow", "POST").json({ jsonrpc: "2.0", error: { code: -32000, message: "This MCP endpoint is stateless: POST only." }, id: null });
+  };
+  app.get("/mcp", postOnly);
+  app.delete("/mcp", postOnly);
+
   app.use(sameOriginOnly);
   app.use("/assets", express.static(publicDir, { index: false, maxAge: "1h", fallthrough: true }));
   // The Register's typefaces, served from their packages so the strict CSP (font-src 'self') holds and nothing is fetched from Google.
