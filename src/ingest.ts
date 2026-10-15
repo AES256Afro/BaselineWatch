@@ -289,8 +289,12 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       return result;
     }
     if (adapter.documents) {
+      // A source's first fetch loads its published history too, oldest first, so the Register
+      // opens on a real diff without a separate backfill. A back catalogue is not news: no alerts.
+      const firstLoad = adapter.history !== undefined && (db.prepare("SELECT COUNT(*) AS n FROM documents WHERE source_id = ?").get(source.id) as { n: number }).n === 0;
+      const targets = [...(firstLoad && adapter.history ? adapter.history(source) : []), ...(await adapter.documents(source, { db, http, now }))];
       const outcomes: DocumentOutcome[] = [];
-      for (const target of await adapter.documents(source, { db, http, now })) {
+      for (const target of targets) {
         outcomes.push(await ingestDocumentTarget(db, dataDir, source, adapter, target, { http, now, ...(deps.settings ? { settings: deps.settings } : {}) }));
       }
       const errors = outcomes.filter((o) => o.status === "error");
@@ -299,7 +303,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       const detail = outcomes.map((o) => `${o.key}${o.versionLabel ? ` ${o.versionLabel}` : ""}: ${o.status === "ok" ? o.summary : o.status === "error" ? o.error : "unchanged"}`).join("; ");
       const result = done({ status, items: outcomes.length, inserted: fresh.length, detail, error: errors.length ? errors.map((e) => `${e.key}: ${e.error}`).join("; ") : null });
       recordOutcome(db, source, { status, error: result.error, fetchedAt: now().toISOString(), durationMs: result.durationMs });
-      await sendAlerts(db, deps, outcomes.flatMap((o) => (o.alert ? [o.alert] : [])));
+      if (!firstLoad) await sendAlerts(db, deps, outcomes.flatMap((o) => (o.alert ? [o.alert] : [])));
       return result;
     }
     if (!adapter.parse) throw new Error(`adapter ${adapter.id} can neither parse nor pull`);

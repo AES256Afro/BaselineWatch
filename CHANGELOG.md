@@ -2,6 +2,14 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.16.0 — 2026-10-15
+
+- A standard's first scheduled fetch loads its published history before the current file, so a
+  fresh install opens on the real NIST SP 800-53 5.1.1 to 5.2.0 diff within minutes with no
+  backfill command. A back catalogue raises no alerts. `npm run backfill` remains for doing it now.
+- The admin guide says what the OSV and GitHub fetches send out and how /mcp is gated; the
+  BoxPilot manifest describes the current product and first run.
+
 ## 0.15.0 — 2026-10-15
 
 - More advisories on the Wire: CISA's ICS advisories, Google Chrome stable releases, GitLab
