@@ -61,6 +61,29 @@ export function latestDocument(db: DatabaseSync, sourceId: string, key: string):
   );
 }
 
+/**
+ * The document a new version follows: the newest one published on or before it, so a historic
+ * release loaded after the current one slots into its place in time instead of hanging off the
+ * end. A version with no date is taken to follow the newest of all.
+ */
+export function previousFor(db: DatabaseSync, sourceId: string, key: string, publishedAt: string | null): DocumentRow | null {
+  if (!publishedAt) return latestDocument(db, sourceId, key);
+  return (
+    (db
+      .prepare("SELECT * FROM documents WHERE source_id = ? AND document_key = ? AND (published_at <= ? OR published_at IS NULL) ORDER BY published_at DESC, id DESC LIMIT 1")
+      .get(sourceId, key, publishedAt) as unknown as DocumentRow | undefined) ?? null
+  );
+}
+
+/** The document published next after a date: the one to re-diff when a version arrives out of order. */
+function successorOf(db: DatabaseSync, sourceId: string, key: string, publishedAt: string, excludeId: number): DocumentRow | null {
+  return (
+    (db
+      .prepare("SELECT * FROM documents WHERE source_id = ? AND document_key = ? AND published_at > ? AND id <> ? ORDER BY published_at ASC, id ASC LIMIT 1")
+      .get(sourceId, key, publishedAt, excludeId) as unknown as DocumentRow | undefined) ?? null
+  );
+}
+
 export function listDocuments(db: DatabaseSync, sourceId: string): DocumentRow[] {
   return db.prepare("SELECT * FROM documents WHERE source_id = ? ORDER BY document_key, published_at DESC, id DESC").all(sourceId) as unknown as DocumentRow[];
 }
@@ -128,7 +151,7 @@ export function storeDocument(
   const { source, target, parsed, snapshotId, fetchedAt } = options;
   const publishedAt = target.publishedAt ?? parsed.publishedAt ?? fetchedAt;
   const versionLabel = target.versionLabel ?? parsed.versionLabel;
-  const previous = latestDocument(db, source.id, target.key);
+  const previous = previousFor(db, source.id, target.key, publishedAt);
 
   db.exec("BEGIN");
   try {
@@ -203,30 +226,21 @@ export function storeDocument(
       );
     }
 
-    const label = versionLabel ? `${versionLabel}` : publishedAt.slice(0, 10);
-    const title = previous
-      ? `${source.name} ${label}: ${changeSummaryText(summary)}`
-      : `${source.name} ${label}: loaded as the first version (${parsed.requirements.length} requirements)`;
-    // A republication of the same version with no control-level change is kept as a document
-    // (the bytes moved) but is not news.
-    const republished = previous !== null && changes.length === 0 && (previous.version_label ?? null) === (versionLabel ?? null);
-    if (!republished) db.prepare(
-      `INSERT INTO items (source_id, kind, external_id, title, url, canonical_url, summary, published_at, fetched_at, signals_json)
-       VALUES (?, 'release', ?, ?, ?, NULL, ?, ?, ?, ?)`,
-    ).run(
-      source.id,
-      `${target.key}#${documentId}`,
-      title,
-      `/standards/${source.id}/${documentId}`,
-      previous
-        ? [summary.added.length ? `Added: ${summary.added.slice(0, 8).join(", ")}${summary.added.length > 8 ? "…" : ""}` : null, summary.substantive.length ? `Revised: ${summary.substantive.slice(0, 8).join(", ")}${summary.substantive.length > 8 ? "…" : ""}` : null, summary.removed.length ? `Removed: ${summary.removed.slice(0, 8).join(", ")}` : null]
-            .filter(Boolean)
-            .join(". ") || "Editorial changes only."
-        : parsed.title,
-      publishedAt,
+    writeReleaseItem(
+      db,
+      source,
+      { id: documentId, key: target.key, versionLabel: versionLabel ?? null, publishedAt, title: parsed.title, requirementCount: parsed.requirements.length },
+      previous,
+      changes,
+      summary,
       fetchedAt,
-      JSON.stringify({ release: true, documentKey: target.key, added: summary.added.length, removed: summary.removed.length, modified: summary.modified.length }),
     );
+
+    // A version that arrived out of order (a backfill run after the current release was already
+    // loaded) has a successor in time: that one is re-diffed against the newcomer, so the chain
+    // reads in publication order whatever order the documents came in.
+    const successor = successorOf(db, source.id, target.key, publishedAt, documentId);
+    if (successor) relinkDocument(db, source, successor, getDocument(db, documentId), fetchedAt);
 
     db.exec("COMMIT");
     return { documentId, previousId: previous?.id ?? null, changes, summary };
@@ -234,6 +248,20 @@ export function storeDocument(
     db.exec("ROLLBACK");
     throw error;
   }
+}
+
+/**
+ * Gives a stored document the publisher's reason when a later pass knows it (a history entry that
+ * turned out to be the bytes already loaded) and the document has none; the "no stated reason"
+ * marker goes with it. Returns whether anything was written.
+ */
+export function adoptRationale(db: DatabaseSync, documentId: number, rationale: { text: string; url: string | null } | null | undefined, at: string): boolean {
+  if (!rationale) return false;
+  const has = (db.prepare("SELECT COUNT(*) AS n FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind = 'publisher'").get(documentId) as { n: number }).n > 0;
+  if (has) return false;
+  db.prepare("DELETE FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind = 'none'").run(documentId);
+  db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'publisher', ?, ?, ?)").run(documentId, rationale.text, rationale.url, at);
+  return true;
 }
 
 export function releaseChanges(db: DatabaseSync, documentId: number): ChangeRow[] {
@@ -285,4 +313,136 @@ export interface StandardSummary {
 export function changeSummaryFor(db: DatabaseSync, documentId: number): ChangeSummary {
   const rows = releaseChanges(db, documentId);
   return summarizeChanges(rows.map((r) => ({ ref: r.ref, kind: r.kind, field: r.field as RequirementChange["field"], before: r.before_text, after: r.after_text })));
+}
+
+interface ReleaseDoc {
+  id: number;
+  key: string;
+  versionLabel: string | null;
+  publishedAt: string;
+  title: string | null;
+  requirementCount: number;
+}
+
+/**
+ * The Wire entry for a release, written the first time and rewritten when the release is re-diffed.
+ * A republication of the same version with no control-level change is kept as a document (the
+ * bytes moved) but is not news, so it gets no entry and loses one it had.
+ */
+function writeReleaseItem(db: DatabaseSync, source: SourceRow, doc: ReleaseDoc, previous: DocumentRow | null, changes: RequirementChange[], summary: ChangeSummary, at: string): void {
+  const externalId = `${doc.key}#${doc.id}`;
+  const republished = previous !== null && changes.length === 0 && (previous.version_label ?? null) === (doc.versionLabel ?? null);
+  if (republished) {
+    db.prepare("DELETE FROM items WHERE source_id = ? AND external_id = ?").run(source.id, externalId);
+    return;
+  }
+  const label = doc.versionLabel ?? doc.publishedAt.slice(0, 10);
+  const title = previous
+    ? `${source.name} ${label}: ${changeSummaryText(summary)}`
+    : `${source.name} ${label}: loaded as the first version (${doc.requirementCount} requirements)`;
+  const text = previous
+    ? [
+        summary.added.length ? `Added: ${summary.added.slice(0, 8).join(", ")}${summary.added.length > 8 ? "…" : ""}` : null,
+        summary.substantive.length ? `Revised: ${summary.substantive.slice(0, 8).join(", ")}${summary.substantive.length > 8 ? "…" : ""}` : null,
+        summary.removed.length ? `Removed: ${summary.removed.slice(0, 8).join(", ")}` : null,
+      ]
+        .filter(Boolean)
+        .join(". ") || "Editorial changes only."
+    : doc.title;
+  db.prepare(
+    `INSERT INTO items (source_id, kind, external_id, title, url, canonical_url, summary, published_at, fetched_at, signals_json)
+     VALUES (?, 'release', ?, ?, ?, NULL, ?, ?, ?, ?)
+     ON CONFLICT (source_id, external_id) DO UPDATE SET title = excluded.title, summary = excluded.summary, published_at = excluded.published_at, signals_json = excluded.signals_json`,
+  ).run(
+    source.id,
+    externalId,
+    title,
+    `/standards/${source.id}/${doc.id}`,
+    text,
+    doc.publishedAt,
+    at,
+    JSON.stringify({ release: true, documentKey: doc.key, added: summary.added.length, removed: summary.removed.length, modified: summary.modified.length }),
+  );
+}
+
+/**
+ * Gives a stored document a different predecessor: its changes are recomputed against the new one,
+ * the publisher's per-requirement notes are matched back by ref, the "no stated reason" marker and
+ * any generated summary follow the new diff, and the Wire entry is rewritten. Runs inside the
+ * caller's transaction.
+ */
+export function relinkDocument(db: DatabaseSync, source: SourceRow, doc: DocumentRow, previous: DocumentRow | null, at: string): ChangeSummary {
+  const notes = db
+    .prepare("SELECT c.ref, e.kind, e.text, e.source_url FROM explanations e JOIN changes c ON c.id = e.change_id WHERE c.to_document_id = ? ORDER BY e.id")
+    .all(doc.id) as { ref: string; kind: string; text: string; source_url: string | null }[];
+  db.prepare("DELETE FROM explanations WHERE change_id IN (SELECT id FROM changes WHERE to_document_id = ?)").run(doc.id);
+  db.prepare("DELETE FROM changes WHERE to_document_id = ?").run(doc.id);
+  db.prepare("DELETE FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind IN ('none', 'generated')").run(doc.id);
+
+  const changes = previous ? diffRequirements(loadRequirements(db, previous.id), loadRequirements(db, doc.id)) : [];
+  const insertChange = db.prepare(
+    `INSERT INTO changes (source_id, document_key, from_document_id, to_document_id, ref, kind, field, before_text, after_text, computed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const c of changes) insertChange.run(source.id, doc.document_key, previous?.id ?? null, doc.id, c.ref, c.kind, c.field, c.before, c.after, at);
+
+  const changeIds = db.prepare("SELECT id FROM changes WHERE to_document_id = ? AND ref = ?");
+  const insertNote = db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (?, NULL, ?, ?, ?, ?)");
+  const seen = new Set<string>();
+  for (const note of notes) {
+    const once = `${note.ref}\n${note.text}`;
+    if (seen.has(once)) continue;
+    seen.add(once);
+    for (const row of changeIds.all(doc.id, note.ref) as { id: number }[]) insertNote.run(row.id, note.kind, note.text, note.source_url, at);
+  }
+
+  db.prepare("UPDATE documents SET previous_document_id = ? WHERE id = ?").run(previous?.id ?? null, doc.id);
+  const explained = (db.prepare("SELECT COUNT(*) AS n FROM explanations WHERE to_document_id = ? AND change_id IS NULL").get(doc.id) as { n: number }).n > 0;
+  if (previous && changes.length && !explained) {
+    db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'none', ?, NULL, ?)").run(
+      doc.id,
+      "No stated reason was captured with this release. Check the publisher's release notes.",
+      at,
+    );
+  }
+  const summary = summarizeChanges(changes);
+  writeReleaseItem(
+    db,
+    source,
+    { id: doc.id, key: doc.document_key, versionLabel: doc.version_label, publishedAt: doc.published_at ?? doc.parsed_at, title: doc.title, requirementCount: doc.requirement_count },
+    previous,
+    changes,
+    summary,
+    at,
+  );
+  return summary;
+}
+
+/**
+ * Puts every document of a source back in publication order and re-diffs the ones whose
+ * predecessor was wrong. Repairs a history that was backfilled after the current release had
+ * already been fetched; a chain already in order is left alone, so it is safe to run again.
+ */
+export function relinkSource(db: DatabaseSync, source: SourceRow, at: string): { keys: number; relinked: number } {
+  const keys = db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = ? ORDER BY document_key").all(source.id) as { document_key: string }[];
+  let relinked = 0;
+  db.exec("BEGIN");
+  try {
+    for (const { document_key } of keys) {
+      const docs = db
+        .prepare("SELECT * FROM documents WHERE source_id = ? AND document_key = ? ORDER BY published_at ASC, id ASC")
+        .all(source.id, document_key) as unknown as DocumentRow[];
+      docs.forEach((doc, i) => {
+        const expected = i > 0 ? (docs[i - 1] ?? null) : null;
+        if ((doc.previous_document_id ?? null) === (expected?.id ?? null)) return;
+        relinkDocument(db, source, doc, expected, at);
+        relinked += 1;
+      });
+    }
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return { keys: keys.length, relinked };
 }

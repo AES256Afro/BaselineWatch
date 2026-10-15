@@ -1,6 +1,6 @@
 {
   "name": "baselinewatch",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "private": true,
   "description": "Security news, CVEs and advisories in one timeline, plus a change register for the standards themselves.",
   "type": "module",
@@ -12,6 +12,7 @@
     "start": "node --disable-warning=ExperimentalWarning src/server.ts",
     "fetch": "node --disable-warning=ExperimentalWarning src/cli.ts fetch",
     "backfill": "node --disable-warning=ExperimentalWarning src/cli.ts backfill",
+    "relink": "node --disable-warning=ExperimentalWarning src/cli.ts relink",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test scripts",
