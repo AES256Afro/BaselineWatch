@@ -26,6 +26,21 @@ new downloads).
 - **Licence**: US Government work, public domain.
 - **Diffability**: excellent. Stable ids, structured fields.
 
+### FedRAMP Consolidated Rules for 2026 (added 2026-10-15; current: 2026.10.13.01)
+- **Fetch**: one JSON file, `fedramp-consolidated-rules.json`, from `https://github.com/FedRAMP/rules`
+  (raw, branch `main`); the backfill reads four earlier commits from July to October 2026.
+- **Cadence**: daily.
+- **Shape**: `requirement-set`. FRR rules by family and subset (name, statement with its listed
+  items, note, force word, who it affects, timeframes, mapped controls), KSI indicators (statement,
+  mapped controls), FRD definitions, and CTL entries (the parameter values and guidance FedRAMP
+  sets on NIST SP 800-53 controls, kept as parameters).
+- **Rationale**: every entry carries dated `updated` notes; the newest is attached to the entry's
+  changes, and the notes dated on the file's `last_updated` day are the release's reason.
+- **Licence**: US Government work, public domain.
+- **Diffability**: excellent. Stable ids, structured fields. The Rev5 OSCAL baselines the plan
+  named (`GSA/fedramp-automation`) are no longer published; this file is FedRAMP's current
+  machine-readable source.
+
 ### NIST SP 800-171 r3 and 800-171A r3
 - **Fetch**: CPRT JSON; convert with `https://github.com/usnistgov/capordino` to OSCAL, or
   parse the CPRT JSON directly.

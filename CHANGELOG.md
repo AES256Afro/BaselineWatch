@@ -2,6 +2,17 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.11.0 — 2026-10-15
+
+- FedRAMP's Consolidated Rules for 2026 in the Register: the FRR rules by family and subset, the
+  Key Security Indicators, the definitions and the parameter values and guidance FedRAMP sets on
+  NIST SP 800-53 controls, read from FedRAMP's own JSON on GitHub and diffed entry by entry. Each
+  entry's dated change note sits beside the changes it explains, and the notes dated on the
+  release day are the release's reason. The backfill loads four earlier versions from July 2026.
+  It takes the place of the Rev5 OSCAL baselines, whose repository is gone.
+- Tag builds sign the image (Sigstore, keyless), attach an SPDX SBOM and record build provenance;
+  the admin guide shows how to verify them.
+
 ## 0.10.2 — 2026-10-15
 
 - A standard's versions are linked by publication date, whatever order they arrive in. A backfill

@@ -316,8 +316,9 @@ Register's typefaces served from their packages so the strict CSP stands and not
 Google. Since then: a browsable, searchable view of every requirement in a version (0.9.1);
 vendor security advisories on the Wire, Ubuntu, Debian, Cisco, Palo Alto Networks, Fortinet and
 Red Hat (0.10.0); off-site links in a new tab (0.10.1); versions linked by publication date and
-`relink` (0.10.2). Still open: OSV and GHSA, Intune, CMMC and FedRAMP baselines, an MCP server,
-multi-user.
+`relink` (0.10.2); FedRAMP's Consolidated Rules for 2026 in the Register (0.11.0), in place of
+the Rev5 OSCAL baselines, whose repository GSA has taken down. Still open: OSV and GHSA, Intune
+and CMMC, an MCP server, multi-user.
 
 ### M8 as planned
 - CIS Benchmarks in manual-upload mode (drop the PDF, get the diff against your last upload).
