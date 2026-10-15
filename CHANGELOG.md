@@ -2,6 +2,14 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.15.0 — 2026-10-15
+
+- More advisories on the Wire: CISA's ICS advisories, Google Chrome stable releases, GitLab
+  security releases and Jenkins security advisories, filed with the vendor advisories; and the
+  Google Security Blog among the news.
+- DEPLOY.md: how to roll without sudo once /opt/baselinewatch is the docker user's, and what to
+  load after a version that adds a standard.
+
 ## 0.14.0 — 2026-10-15
 
 - NIST SP 800-171 Revision 3 in the Register, from NIST's OSCAL: the CUI requirements that make up

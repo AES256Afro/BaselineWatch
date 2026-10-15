@@ -104,8 +104,18 @@ cd /opt/baselinewatch && sudo sed -i 's#baselinewatch:OLD#baselinewatch:NEW#' do
 ```
 
 `pull_policy: always` fetches the new image; the data directory carries over and migrations run
-at start. Once the catalog entry ([AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472))
-is merged and released, BoxPilot can install, back up and update it instead.
+at start. The `sudo` is only for the root-owned compose file: after a one-time
+`sudo chown -R bigbox:bigbox /opt/baselinewatch` the whole roll runs as the `bigbox` user, who is
+in the `docker` group. A one-off command against the data directory without touching the running
+container looks like
+`docker run --rm -v /opt/baselinewatch/data:/data ghcr.io/aes256afro/baselinewatch:NEW node --disable-warning=ExperimentalWarning src/cli.ts relink all`.
+
+After a version that adds a standard, load it: `docker compose exec baselinewatch node
+--disable-warning=ExperimentalWarning src/cli.ts backfill fedramp-rules` (0.11.0); 800-171
+(0.14.0) loads itself on the next daily fetch. Package advisories (0.12.0) start once a package
+is on the watchlist. Once the catalog entry
+([AES256Afro/BoxPilot#472](https://github.com/AES256Afro/BoxPilot/pull/472)) is merged and
+released, BoxPilot can install, back up and update it instead.
 
 ## Checks
 
