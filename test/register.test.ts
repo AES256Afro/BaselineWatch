@@ -11,6 +11,7 @@ import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts"
 import { normalizeCatalog, normalizeProfile, resolveParams, type OscalCatalog, type OscalProfile } from "../src/oscal.ts";
 import { redline, wordDiff } from "../src/redline.ts";
 import { baselinesFor, explanationsFor, latestDocument, listDocuments, releaseChanges, relinkSource } from "../src/register.ts";
+import { parseNotifyUrl, recentAlerts } from "../src/notify.ts";
 import { listWire } from "../src/wire.ts";
 import { fixture, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -157,11 +158,29 @@ describe("Register ingestion", () => {
     expect(getSource(db, "nist-sp-800-53")?.last_status).toBe("unchanged");
   });
 
+  it("loads a standard's history on its first scheduled fetch, quietly, and only the current document after that", async () => {
+    const http = nistHttp();
+    const transport = parseNotifyUrl("ntfy://h/t");
+    const catalog = getSource(db, "nist-sp-800-53")!;
+    const first = await ingestSource(db, dataDir, catalog, { http, now: () => at, transport });
+    expect(first.status).toBe("ok");
+    expect(first.items).toBe(3); // the two history entries, then the current file, which is the 5.2.0 bytes again
+    const docs = listDocuments(db, "nist-sp-800-53");
+    expect(docs.map((d) => d.version_label)).toEqual(["5.2.0", "5.1.1+u4"]);
+    expect(releaseChanges(db, docs[0]!.id).some((c) => c.ref === "sa-24" && c.kind === "added")).toBe(true);
+    expect(recentAlerts(db, 10)).toHaveLength(0); // a back catalogue is not news
+
+    const again = await ingestSource(db, dataDir, catalog, { http, now: () => at, transport });
+    expect(again.status).toBe("unchanged");
+    expect(again.items).toBe(1);
+    expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(2);
+  });
+
   it("slots a history loaded after the current release into publication order", async () => {
-    // The scheduler got there first: the current catalog (the 5.2.0 bytes) is the only document.
+    // The current catalog (the 5.2.0 bytes) arrived first, on its own, and is the only document.
     const http = nistHttp();
     const catalog = getSource(db, "nist-sp-800-53")!;
-    expect((await ingestSource(db, dataDir, catalog, { http, now: () => at })).status).toBe("ok");
+    expect((await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, { key: "catalog", url: catalog.url }, { http, now: () => at })).status).toBe("ok");
     const current = latestDocument(db, "nist-sp-800-53", "catalog")!;
     expect(current.previous_document_id).toBeNull();
     expect(explanationsFor(db, current.id)).toHaveLength(0);

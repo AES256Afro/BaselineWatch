@@ -48,8 +48,9 @@ curl -s http://127.0.0.1:8790/health
 ```
 
 The `bigbox` user is in the `docker` group, so `docker compose` needs no sudo; the files under
-`/opt` do. Then the history, in either order relative to the first scheduled fetch (versions are
-linked by publication date since 0.10.2):
+`/opt` do. Since 0.16.0 the first scheduled fetch of each standard loads its published history
+by itself; to load it at once instead (which also works after the first fetch, versions being
+linked by publication date):
 
 ```bash
 docker compose exec baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts backfill nist-sp-800-53

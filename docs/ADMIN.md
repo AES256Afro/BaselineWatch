@@ -62,8 +62,9 @@ Switch the scheduler off with `BW_SCHEDULER=false` and run the same work from cr
 npm run fetch -- due
 ```
 
-The owner can fetch any source immediately from the Sources page, and load a standard's
-published history with `npm run backfill -- <source>`. Order does not matter: a version that
+The owner can fetch any source immediately from the Sources page. A standard's first fetch loads
+its published history before the current file, without alerts; `npm run backfill -- <source>`
+does the same on demand. Order does not matter: a version that
 arrives after a newer one is slotted into its place by publication date and the newer one is
 re-diffed against it. A chain linked before 0.10.2 (a backfill run after the scheduler had
 already fetched the current release) is repaired by `npm run relink -- <source>` or
@@ -77,6 +78,10 @@ already fetched the current release) is repaired by `npm run relink -- <source>`
   bodies and links back to this instance.
 - Prompts to `BW_LLM_URL` when a local model is configured: the before/after text and the
   publisher's note of a release, nothing else.
+- For each package on the watchlist, a query to OSV.dev naming that package and its ecosystem
+  (`POST https://api.osv.dev/v1/query`), once a day. Nothing else from the watchlist leaves.
+- The standards' files from `raw.githubusercontent.com` (NIST's OSCAL, FedRAMP's rules) and the
+  publishers' own sites, as the Sources page lists them.
 
 Nothing is sent anywhere else. CIS and Microsoft content stays in the data directory under the
 owner's own licence; the pages quote it and the API never serves it whole.
@@ -87,9 +92,10 @@ Reading is open when `BW_PUBLIC_READ` is true (the default; the public site hold
 data). Every write needs the owner: marking items, triage, the watchlist, fetching sources,
 writing a digest, the CSV export. The owner signs in with `BW_ADMIN_PASSWORD`; the session is a
 signed HttpOnly SameSite=Strict cookie for thirty days, Secure behind TLS. Five wrong passwords
-from one address wait ten minutes. Every POST must come from the site's own pages. Without a
-password the instance is in single-user mode and writes are open: only for a machine nobody
-else reaches.
+from one address wait ten minutes. Every POST must come from the site's own pages, except
+`/mcp`: the MCP endpoint takes JSON-RPC posts from programs, follows the same read gating as the
+pages and the API, and offers no tool that writes. Without a password the instance is in
+single-user mode and writes are open: only for a machine nobody else reaches.
 
 Behind a reverse proxy or a Cloudflare Tunnel, the proxy terminates TLS and the app trusts
 `X-Forwarded-*` from loopback and private addresses only.
