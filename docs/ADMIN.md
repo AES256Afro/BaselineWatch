@@ -1,0 +1,103 @@
+# Running BaselineWatch
+
+What an owner needs to know: where the data lives, how a diff is computed, what the scheduler
+does, how to recover, and what reaches the outside world.
+
+## Data
+
+Everything is under the data directory (`BW_DATA_DIR`, `/data` in the container):
+
+| Path | What |
+| --- | --- |
+| `baselinewatch.db` (+ `-wal`, `-shm`) | SQLite, WAL mode: sources, snapshots index, documents, requirements, changes, explanations, vulnerabilities, items, triage, watchlist, alerts, digests. |
+| `blobs/<aa>/<sha256>` | Every fetched document, as received, named by its SHA-256. A document fetched twice with the same bytes is stored once. |
+
+Back up the directory. Restoring it on another machine is the whole restore. In BoxPilot the
+app's volume is backed up with the app.
+
+Sizes to expect: a day of NVD modifications is 4,000 to 5,000 CVEs; a month is roughly 100 MB
+of database. Standards snapshots are a few MB per release (the 800-53 catalog is 10 MB). EPSS is
+joined daily without being stored.
+
+## How a diff is computed
+
+1. **Snapshot.** The adapter names the versioned documents of a standard (the 800-53 catalog, the
+   four 800-53B profiles, each followed STIG zip, each Microsoft baseline zip). Each is fetched
+   and hashed. A listing that gives a file URL and a publication date is compared first, so an
+   unchanged release costs one small request. Same bytes as a stored snapshot: nothing happens.
+2. **Normalise.** The bytes become one `document` row and one `requirement` row per control,
+   enhancement, rule or setting: a stable `ref` (800-53 control id, STIG Group id `V-nnnnnn`,
+   GPO-scope plus setting path), the printed label, title, control text with parameters
+   resolved, discussion, related controls, status, and format-specific extras (check and fix
+   text, CCIs, registry type and data, the 800-53A assessment objective).
+3. **Diff.** The new document is compared with the previous document of the same key, by `ref`,
+   field by field, with whitespace ignored. Each difference is one `changes` row: added,
+   removed, or modified with the field and the before/after text. A requirement whose control
+   text, title, parameters or status moved is *substantive*; one whose discussion, related
+   controls or assessment text moved is *editorial*. The pages draw a word-level redline from
+   the two texts, splitting punctuation from words so "software." and "software" match.
+4. **Explain.** The publisher's reason is stored as an `explanation` of kind `publisher`: NIST's
+   Planning Note from the publication page, DISA's Revision History split per rule and attached to
+   the exact changes it names, Microsoft's Announcement from the zip. When none is found the
+   release is marked `none`. If a local model is configured, a summary of kind `generated` is
+   added beside it, and every page badges it.
+5. **Announce.** A release with changes becomes a `release` item on the Wire and an alert; a
+   republication of the same version with no control-level change is kept but not announced.
+
+Vulnerabilities take a shorter path: NVD records are normalised into `vulns` on arrival, the
+differences from the last sighting into `vuln_changes`, and only notable CVEs (KEV, the
+watchlist, new criticals, EPSS over 50%, active exploitation per SSVC) reach the Wire.
+
+## The scheduler
+
+In-process, one tick a minute. A source is due when its interval (hourly, daily, weekly) has
+passed since its last fetch; a failed source is retried after thirty minutes; the first fetch of
+each source happens ten seconds after start. Requests to one host go one after another with a
+pause between (Reddit answers 429 to a burst); different hosts run three at a time. The digest
+runs on the same ticks at the configured local hour.
+
+Switch the scheduler off with `BW_SCHEDULER=false` and run the same work from cron:
+
+```bash
+npm run fetch -- due
+```
+
+The owner can fetch any source immediately from the Sources page, and load a standard's
+published history with `npm run backfill -- <source>`.
+
+## What leaves the box
+
+- Requests to the sources on the Sources page, with the User-Agent
+  `BaselineWatch/<version> (+https://cybercard.net; ...)`.
+- Alerts and the digest to `BW_NOTIFY_URL` (ntfy, Gotify or a webhook), with titles, short
+  bodies and links back to this instance.
+- Prompts to `BW_LLM_URL` when a local model is configured: the before/after text and the
+  publisher's note of a release, nothing else.
+
+Nothing is sent anywhere else. CIS and Microsoft content stays in the data directory under the
+owner's own licence; the pages quote it and the API never serves it whole.
+
+## Access
+
+Reading is open when `BW_PUBLIC_READ` is true (the default; the public site holds no private
+data). Every write needs the owner: marking items, triage, the watchlist, fetching sources,
+writing a digest, the CSV export. The owner signs in with `BW_ADMIN_PASSWORD`; the session is a
+signed HttpOnly SameSite=Strict cookie for thirty days, Secure behind TLS. Five wrong passwords
+from one address wait ten minutes. Every POST must come from the site's own pages. Without a
+password the instance is in single-user mode and writes are open: only for a machine nobody
+else reaches.
+
+Behind a reverse proxy or a Cloudflare Tunnel, the proxy terminates TLS and the app trusts
+`X-Forwarded-*` from loopback and private addresses only.
+
+## Recovery
+
+- **A source keeps failing.** The Sources page shows the last error. Feed URLs move; a 403 or
+  429 from Reddit is a pacing problem; a parse error after a publisher changes a format needs an
+  adapter change (the fixture tests in `test/` are where it shows).
+- **A bad release loaded.** Delete its `documents` row (requirements and changes cascade) and
+  the matching `snapshots` row; the next fetch reloads it.
+- **Start over on vulnerabilities.** Delete the `nvd.cursor` row from `app_settings`; the next
+  pull backfills `BW_NVD_BACKFILL_DAYS` again.
+- **Lost the owner password.** Set a new `BW_ADMIN_PASSWORD`; changing `BW_SESSION_SECRET`
+  signs every browser out.
