@@ -3,6 +3,7 @@ import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime } from "../time.ts";
 import type { TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
 
@@ -64,9 +65,10 @@ export interface WirePageOptions {
   owner: boolean;
   open: boolean;
   now: Date;
+  look: LookState;
 }
 
-export function renderWire({ db, filters, owner, open, now }: WirePageOptions): string {
+export function renderWire({ db, filters, owner, open, now, look }: WirePageOptions): string {
   const items = listWire(db, { ...filters, limit: 50 });
   const counts = sourceCounts(db).filter((c) => c.total > 0 || c.source_id === filters.source);
   const triageState = new Map<number, TriageState>();
@@ -153,5 +155,5 @@ export function renderWire({ db, filters, owner, open, now }: WirePageOptions): 
       </aside>
     </div>`;
 
-  return page({ title: "Wire", active: "wire", content, meta: html`${totalUnread} unread`, owner, open });
+  return page({ title: "Wire", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, look });
 }

@@ -1,7 +1,8 @@
 import { html } from "../html.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
-export function renderLogin(options: { error?: string | undefined; next: string; open: boolean }): string {
+export function renderLogin(options: { error?: string | undefined; next: string; open: boolean; look: LookState }): string {
   const content = html`
     <section class="login">
       <h1>Owner sign-in</h1>
@@ -16,5 +17,5 @@ export function renderLogin(options: { error?: string | undefined; next: string;
             <button type="submit" class="primary">Sign in</button>
           </form>`}
     </section>`;
-  return page({ title: "Sign in", active: "register", content });
+  return page({ title: "Sign in", active: "register", content, look: options.look });
 }

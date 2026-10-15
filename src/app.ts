@@ -23,6 +23,8 @@ import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
 import { renderWire } from "./pages/wire.ts";
+import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
+import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
 import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { writeDigest } from "./digest.ts";
@@ -86,11 +88,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction): void
   next();
 }
 
-/** A path on this site to send the browser back to; anything else becomes the fallback. */
-export function safeBack(value: unknown, fallback: string): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return fallback;
-  return value;
-}
+export { safeBack } from "./paths.ts";
 
 const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
 
@@ -207,7 +205,7 @@ export function createApp(ctx: AppContext): Express {
   // Sign-in is reachable even when reading is closed.
   app.get("/login", (req, res) => {
     const state = authState(req, config, now().getTime());
-    res.type("html").send(renderLogin({ next: safeBack(req.query.next, "/"), open: state.open }));
+    res.type("html").send(renderLogin({ next: safeBack(req.query.next, "/"), open: state.open, look: lookState(req, config) }));
   });
   app.post("/login", (req, res) => {
     const state = authState(req, config, now().getTime());
@@ -215,12 +213,12 @@ export function createApp(ctx: AppContext): Express {
     if (state.open) return res.redirect(303, next);
     const key = req.ip ?? "unknown";
     if (throttle.blocked(key, now().getTime())) {
-      return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again." }));
+      return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookState(req, config) }));
     }
     const given = (req.body as Record<string, unknown>).password;
     if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given)) {
       throttle.fail(key, now().getTime());
-      return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right." }));
+      return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookState(req, config) }));
     }
     throttle.clear(key);
     res.setHeader("Set-Cookie", sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)));
@@ -231,13 +229,26 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, "/");
   });
 
+  // The look and the colour scheme, per browser: two cookies and nothing else, so it sits before
+  // the read gate (a closed instance still shows its sign-in page the way the browser asked). One
+  // button's name and value is the whole request; the other setting keeps its current value.
+  app.post("/look", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const current = lookState(req, config);
+    const look = body.look === undefined ? current.look : body.look;
+    const scheme = body.scheme === undefined ? current.scheme : body.scheme;
+    if (!isLook(look) || !isScheme(scheme)) return res.status(400).type("text").send("That look or colour scheme is not one this build has.");
+    res.setHeader("Set-Cookie", lookCookieHeaders({ look, scheme }, secureCookies(req)));
+    res.redirect(303, safeBack(body.back, "/"));
+  });
+
   // Reading may be closed to everyone but the owner.
   app.use((req, res, next) => {
     const state = authState(req, config, now().getTime());
     res.locals.owner = state.owner;
     res.locals.open = state.open;
     if (config.publicRead || state.owner) return next();
-    if (req.method === "GET") return res.status(401).type("html").send(renderLogin({ next: req.originalUrl, open: false }));
+    if (req.method === "GET") return res.status(401).type("html").send(renderLogin({ next: req.originalUrl, open: false, look: lookState(req, config) }));
     res.status(401).type("text").send("Sign in first.");
   });
 
@@ -245,23 +256,24 @@ export function createApp(ctx: AppContext): Express {
     if (res.locals.owner === true) return next();
     res.status(403).type("text").send("Only the owner can do that. Sign in at /login.");
   };
-  const who = (res: Response): { owner: boolean; open: boolean } => ({ owner: res.locals.owner === true, open: res.locals.open === true });
+  const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookState(req, config) });
 
-  app.get("/", (_req, res) => {
-    res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner: who(res).owner, now: now() }));
+  app.get("/", (req, res) => {
+    const { owner, look } = who(req, res);
+    res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner, look, now: now() }));
   });
 
   app.get("/today", (req, res) => {
     const since = Number(str(req.query.since));
     const hours = since === 72 || since === 168 ? since : 24;
-    res.type("html").send(renderToday({ db, ...who(res), now: now(), hours }));
+    res.type("html").send(renderToday({ db, ...who(req, res), now: now(), hours }));
   });
-  app.get("/atlas", (_req, res) => {
-    res.type("html").send(renderAtlas({ db, ...who(res), now: now() }));
+  app.get("/atlas", (req, res) => {
+    res.type("html").send(renderAtlas({ db, ...who(req, res), now: now() }));
   });
 
   app.get("/wire", (req, res) => {
-    res.type("html").send(renderWire({ db, filters: wireFilters(req.query as Record<string, unknown>), ...who(res), now: now() }));
+    res.type("html").send(renderWire({ db, filters: wireFilters(req.query as Record<string, unknown>), ...who(req, res), now: now() }));
   });
 
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {
@@ -284,45 +296,45 @@ export function createApp(ctx: AppContext): Express {
 
   app.get("/standards", (_req, res) => res.redirect(302, "/"));
   app.get("/standards/:source", (req, res, next) => {
-    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(res), now: now(), notice: str(req.query.notice, 300) });
+    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(req, res), now: now(), notice: str(req.query.notice, 300) });
     if (!html) return next();
     res.type("html").send(html);
   });
   app.get("/standards/:source/:doc", (req, res, next) => {
     const documentId = Number(req.params.doc);
     if (!Number.isInteger(documentId) || documentId <= 0) return next();
-    const html = renderRelease({ db, sourceId: String(req.params.source), documentId, ...who(res), now: now() });
+    const html = renderRelease({ db, sourceId: String(req.params.source), documentId, ...who(req, res), now: now() });
     if (!html) return next();
     res.type("html").send(html);
   });
   app.get("/standards/:source/:doc/browse", (req, res, next) => {
     const documentId = Number(req.params.doc);
     if (!Number.isInteger(documentId) || documentId <= 0) return next();
-    const html = renderBrowse({ db, sourceId: String(req.params.source), documentId, q: str(req.query.q, 100), family: str(req.query.family, 40), ...who(res) });
+    const html = renderBrowse({ db, sourceId: String(req.params.source), documentId, q: str(req.query.q, 100), family: str(req.query.family, 40), ...who(req, res) });
     if (!html) return next();
     res.type("html").send(html);
   });
   app.get("/standards/:source/:doc/:ref", (req, res, next) => {
     const documentId = Number(req.params.doc);
     if (!Number.isInteger(documentId) || documentId <= 0) return next();
-    const html = renderControl({ db, sourceId: String(req.params.source), documentId, ref: String(req.params.ref).toLowerCase(), ...who(res), now: now() });
+    const html = renderControl({ db, sourceId: String(req.params.source), documentId, ref: String(req.params.ref).toLowerCase(), ...who(req, res), now: now() });
     if (!html) return next();
     res.type("html").send(html);
   });
 
   app.get("/vulnerabilities", (req, res) => {
-    res.type("html").send(renderVulnList({ db, filters: vulnFilters(req.query as Record<string, unknown>, now()), ...who(res), now: now() }));
+    res.type("html").send(renderVulnList({ db, filters: vulnFilters(req.query as Record<string, unknown>, now()), ...who(req, res), now: now() }));
   });
   app.get("/vulnerabilities/:cve", (req, res, next) => {
     const cveId = String(req.params.cve).toUpperCase();
     if (!/^CVE-\d{4}-\d{4,7}$/.test(cveId)) return next();
-    const html = renderVulnDetail({ db, cveId, ...who(res), now: now() });
+    const html = renderVulnDetail({ db, cveId, ...who(req, res), now: now() });
     if (!html) return next();
     res.type("html").send(html);
   });
 
   app.get("/watchlist", (req, res) => {
-    res.type("html").send(renderWatchlist({ db, ...who(res), notice: str(req.query.notice, 300) }));
+    res.type("html").send(renderWatchlist({ db, ...who(req, res), notice: str(req.query.notice, 300) }));
   });
   app.post("/watchlist", requireOwner, (req, res) => {
     const body = req.body as Record<string, unknown>;
@@ -349,7 +361,7 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/triage", (req, res) => {
-    res.type("html").send(renderTriage({ db, ...who(res), now: now(), notice: str(req.query.notice, 300) }));
+    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: str(req.query.notice, 300) }));
   });
   app.get("/triage.csv", requireOwner, (_req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="baselinewatch-triage.csv"');
@@ -379,8 +391,8 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/triage"));
   });
 
-  app.get("/digest", (_req, res) => {
-    res.type("html").send(renderDigest({ db, ...who(res), now: now(), period: config.digest, hour: config.digestHour, timeZone: config.timeZone, notifyConfigured: parseNotifyUrl(config.notifyUrl) !== null }));
+  app.get("/digest", (req, res) => {
+    res.type("html").send(renderDigest({ db, ...who(req, res), now: now(), period: config.digest, hour: config.digestHour, timeZone: config.timeZone, notifyConfigured: parseNotifyUrl(config.notifyUrl) !== null }));
   });
   app.post("/digest/run", requireOwner, async (_req, res) => {
     const period = config.digest === "off" ? "daily" : config.digest;
@@ -430,7 +442,7 @@ export function createApp(ctx: AppContext): Express {
   app.get("/sources", (req, res) => {
     const q = req.query as Record<string, unknown>;
     const notice = typeof q.fetched === "string" && typeof q.status === "string" ? { sourceId: q.fetched, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
-    res.type("html").send(renderSources({ db, ...who(res), notice }));
+    res.type("html").send(renderSources({ db, ...who(req, res), notice }));
   });
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
     const source = getSource(db, String(req.params.id));
@@ -455,7 +467,7 @@ export function createApp(ctx: AppContext): Express {
     } catch {
       // A malformed escape sequence is shown as sent.
     }
-    res.status(404).type("html").send(renderNotFound(shown));
+    res.status(404).type("html").send(renderNotFound(shown, lookState(req, config)));
   });
 
   app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {

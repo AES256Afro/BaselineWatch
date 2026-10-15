@@ -1,8 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, newTab, newTabIf, type Html } from "../html.ts";
+import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type VulnFilters, type VulnRow } from "../vulns.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
 
@@ -47,9 +48,10 @@ export interface VulnListOptions {
   owner: boolean;
   open: boolean;
   now: Date;
+  look: LookState;
 }
 
-export function renderVulnList({ db, filters, owner, open, now }: VulnListOptions): string {
+export function renderVulnList({ db, filters, owner, open, now, look }: VulnListOptions): string {
   const limit = 50;
   const { rows, total } = listVulns(db, { ...filters, limit });
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -77,11 +79,11 @@ export function renderVulnList({ db, filters, owner, open, now }: VulnListOption
 
   const content = html`
     <div class="stats" aria-label="Totals">
-      <div><small>CVEs known</small><b>${stats.total}</b></div>
-      <div><small>New, 24 h</small><b>${stats.newSince}</b></div>
-      <div><small>Changed, 24 h</small><b>${stats.changedSince}</b></div>
-      <div><small>In KEV</small><b>${stats.kev}</b></div>
-      <div><small>Match watchlist</small><b>${stats.watch}</b></div>
+      <div><small>CVEs known</small><b>${figure(stats.total)}</b></div>
+      <div><small>New, 24 h</small><b>${figure(stats.newSince)}</b></div>
+      <div><small>Changed, 24 h</small><b>${figure(stats.changedSince)}</b></div>
+      <div><small>In KEV</small><b>${figure(stats.kev)}</b></div>
+      <div><small>Match watchlist</small><b>${figure(stats.watch)}</b></div>
       <div><small>EPSS scores</small><b>${epssDate ?? "—"}</b></div>
     </div>
     <div class="wire-top">
@@ -117,11 +119,11 @@ export function renderVulnList({ db, filters, owner, open, now }: VulnListOption
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
     <p class="small">NVD cursor: ${cursor ? shortStamp(cursor) : "no pull yet"}. The Wire shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
-  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open });
+  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look });
 }
 
-export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; owner: boolean; open: boolean; now: Date }): string | null {
-  const { db, cveId, owner, open, now } = options;
+export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; owner: boolean; open: boolean; now: Date; look: LookState }): string | null {
+  const { db, cveId, owner, open, now, look } = options;
   const row = getVuln(db, cveId);
   if (!row) return null;
   const vendors = parseJson<string[]>(row.vendors_json, []);
@@ -209,5 +211,5 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
       </aside>
     </div>`;
 
-  return page({ title: row.cve_id, active: "vulnerabilities", content, owner, open });
+  return page({ title: row.cve_id, active: "vulnerabilities", content, owner, open, look });
 }

@@ -86,6 +86,16 @@ already fetched the current release) is repaired by `npm run relink -- <source>`
 Nothing is sent anywhere else. CIS and Microsoft content stays in the data directory under the
 owner's own licence; the pages quote it and the API never serves it whole.
 
+## Looks
+
+Pages come in two looks, each in light and dark: **console**, the dense dashboard with panels,
+charts and large figures, and **register**, the paper look with a serif masthead. `BW_LOOK` and
+`BW_SCHEME` set the instance's defaults (`console` and `system`, where `system` follows the
+device's own light or dark setting). The switch in the masthead lets each browser choose for
+itself: two cookies, `bw_look` and `bw_scheme`, a year long, holding one of a few fixed words
+and nothing else. No script is involved; the stylesheet reads `data-look` and `data-scheme` on
+the page, so the content security policy stays as strict as before.
+
 ## Access
 
 Reading is open when `BW_PUBLIC_READ` is true (the default; the public site holds no private

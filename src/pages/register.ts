@@ -8,18 +8,20 @@ import { lines, redline } from "../redline.ts";
 import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, notedChangeCount, notesFor, releaseChanges, type DocumentRow } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { getTriage } from "../triage.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
 
 interface Who {
   owner: boolean;
   open: boolean;
+  look: LookState;
 }
 
 const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.startsWith("profile:") ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline` : key);
 
 export function renderStandard(options: { db: DatabaseSync; sourceId: string; now: Date; notice?: string | undefined } & Who): string | null {
-  const { db, sourceId, now, owner, open, notice } = options;
+  const { db, sourceId, now, owner, open, notice, look } = options;
   const source = getSource(db, sourceId);
   if (!source || source.group_name !== "standards") return null;
   const upload =
@@ -72,7 +74,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
       ? html`<div class="empty"><b>No version loaded yet.</b><p>${source.format === "pdf-upload" ? "Nothing uploaded so far." : owner ? html`Fetch it from the <a href="/sources">Sources</a> page, or run <code>npm run backfill -- ${sourceId}</code> to load the published history first.` : "The owner can fetch it from the Sources page."}</p></div>`
       : sections}`;
 
-  return page({ title: source.name, active: "register", content, meta: html`${documents.length} versions`, owner, open });
+  return page({ title: source.name, active: "register", content, meta: html`${documents.length} versions`, owner, open, look });
 }
 
 function fieldLabel(field: string | null): string {
@@ -98,7 +100,7 @@ function fieldLabel(field: string | null): string {
 
 /** Every requirement of one version, for reading the standard itself rather than its changes. */
 export function renderBrowse(options: { db: DatabaseSync; sourceId: string; documentId: number; q: string | undefined; family: string | undefined } & Who): string | null {
-  const { db, sourceId, documentId, q, family, owner, open } = options;
+  const { db, sourceId, documentId, q, family, owner, open, look } = options;
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
@@ -138,11 +140,11 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
     </table></div>
     <p class="small">${rows.length > 400 ? `Showing 400 of ${rows.length}; narrow with the search or a family.` : `${rows.length} of ${all.length}.`}</p>`;
 
-  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open });
+  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open, look });
 }
 
 export function renderRelease(options: { db: DatabaseSync; sourceId: string; documentId: number; now: Date } & Who): string | null {
-  const { db, sourceId, documentId, owner, open } = options;
+  const { db, sourceId, documentId, owner, open, look } = options;
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
@@ -202,7 +204,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       : ""}
     <p class="small"><a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · <a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 
-  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open });
+  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open, look });
 }
 
 function paramsText(r: NormalizedRequirement): string | null {
@@ -211,7 +213,7 @@ function paramsText(r: NormalizedRequirement): string | null {
 }
 
 export function renderControl(options: { db: DatabaseSync; sourceId: string; documentId: number; ref: string; now: Date } & Who): string | null {
-  const { db, sourceId, documentId, ref, owner, open } = options;
+  const { db, sourceId, documentId, ref, owner, open, look } = options;
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
@@ -267,7 +269,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}`;
 
   const shortTitle = shown.title.length > 70 ? `${shown.title.slice(0, 69).trimEnd()}…` : shown.title;
-  return page({ title: `${shown.label} ${shortTitle}`, active: "register", content, owner, open });
+  return page({ title: `${shown.label} ${shortTitle}`, active: "register", content, owner, open, look });
 }
 
 export type { SourceRow };

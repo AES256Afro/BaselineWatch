@@ -3,14 +3,15 @@ import { latestDigest, listDigests, type DigestRow } from "../digest.ts";
 import { html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 function body(d: DigestRow) {
   return html`${d.text.split("\n").map((line) => (line.startsWith("- ") ? html`<li>${line.slice(2)}</li>` : line === "" ? html`` : html`<p>${line}</p>`))}`;
 }
 
-export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; period: string; hour: number; timeZone: string; notifyConfigured: boolean }): string {
-  const { db, owner, open, now } = options;
+export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; period: string; hour: number; timeZone: string; notifyConfigured: boolean; look: LookState }): string {
+  const { db, owner, open, now, look } = options;
   const latest = latestDigest(db);
   const older = listDigests(db, 20).filter((d) => d.id !== latest?.id);
   const alerts = recentAlerts(db, 25);
@@ -38,5 +39,5 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
       </aside>
     </div>`;
 
-  return page({ title: "Digest", active: "digest", content, meta: latest ? html`last ${relativeTime(latest.generated_at, now)}` : html`none yet`, owner, open });
+  return page({ title: "Digest", active: "digest", content, meta: latest ? html`last ${relativeTime(latest.generated_at, now)}` : html`none yet`, owner, open, look });
 }

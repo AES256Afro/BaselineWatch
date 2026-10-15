@@ -50,6 +50,11 @@ export function newTabIf(href: string | null | undefined): Html {
   return href && /^https?:\/\//i.test(href) ? newTab : raw("");
 }
 
+/** A count with thousands separators, the way a person reads one: 7,340. */
+export function figure(n: number): string {
+  return Number.isFinite(n) ? Math.round(n).toLocaleString("en-US") : "";
+}
+
 /** Formats a byte count the way a person reads it. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

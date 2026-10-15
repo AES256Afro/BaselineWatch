@@ -2,6 +2,17 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- A second look, **Console**: the dense dashboard of a security console, with panels, uppercase
+  mono titles, large thin figures, hexagon severity marks and charts drawn on the server, in light
+  and dark. The Register's paper look stays as **Paper**. A switch in the masthead chooses the look
+  and the colours (auto, light, dark) per browser with two cookies and no script; `BW_LOOK` and
+  `BW_SCHEME` set the instance's defaults, and the BoxPilot manifest exposes both.
+- Today gets six glance panels under its tiles: KEV additions by vendor over 30 days, Wire items
+  a day over 14 days, watched CVEs that changed by CVSS severity, every CVE by EPSS band, triage
+  by state, and each source's last fetch. Every chart is inline SVG with its figures in words.
+
 ## 0.16.1 — 2026-10-15
 
 - At start, every standard's versions are put in publication order before anything is served:
