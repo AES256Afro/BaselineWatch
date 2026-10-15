@@ -2,7 +2,7 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.17.0 — 2026-10-15
 
 - A second look, **Console**: the dense dashboard of a security console, with panels, uppercase
   mono titles, large thin figures, hexagon severity marks and charts drawn on the server, in light
