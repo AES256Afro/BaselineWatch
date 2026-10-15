@@ -304,8 +304,8 @@ Done: HSTS behind TLS, the admin guide (`docs/ADMIN.md`), and the catalog manife
 catalog tests passing. The public site went live on 2026-10-15: BaselineWatch runs on BigBox
 through a Cloudflare Tunnel at https://cybercard.net with the strict CSP, the demo is retired and
 the categorisation request is in; `docs/DEPLOY.md` describes the setup and how to upgrade it.
-Still open from the list above: SBOM and image signing in CI, and the install through BoxPilot
-once the catalog PR is merged.
+Tag builds sign the image and attach an SBOM and provenance since 0.11.0. Still open from the
+list above: the install through BoxPilot once the catalog PR is merged.
 
 ### M8: Stretch — first three shipped 2026-10-15 as 0.9.0
 
