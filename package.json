@@ -1,6 +1,6 @@
 {
   "name": "baselinewatch",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "private": true,
   "description": "Security news, CVEs and advisories in one timeline, plus a change register for the standards themselves.",
   "type": "module",
