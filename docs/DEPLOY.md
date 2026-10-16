@@ -18,7 +18,7 @@ backs up and restores it like any other app on the box.
 | DNS in Cloudflare | Proxied `CNAME` records for the apex and `www` to the tunnel, created by the tunnel's routes. The old GitHub Pages `A` records and the `www` CNAME are gone. `_dmarc` TXT stays. |
 | Zone settings | Always Use HTTPS on. Encryption mode left at Cloudflare's Automatic (reads "Full"); tunnel traffic does not use it, cloudflared speaks plain HTTP to the container on loopback. Redirect rule 1 "Redirect from WWW to root" active (`www` → apex); redirect rule 2 "cybercard.net to rustyschool.com" **disabled, not deleted**: re-enabling it sends the whole site to rustyschool.com. |
 | Backups | BoxPilot's per-app backup from the card: the Compose project, `.env` and the `data` volume, archived under `/var/lib/boxpilot-managed/backups/catalog` and copied off the box with the rest of BoxPilot's backups. |
-| Old instance | The hand-run compose project in `/opt/baselinewatch` (compose file, `.env`, `data/`) is stopped and kept as the fallback copy of the data until the move is confirmed; then it can go. |
+| Old instance | Gone. The hand-run compose project in `/opt/baselinewatch` (compose file, `.env`, `data/`) was stopped for the move and removed the same day once the managed instance was confirmed, with the images before 0.17.0. |
 | Demo | GitHub Pages for `AES256Afro/financialauthority-demo-cybercard` has no custom domain any more; `FinancialAuthority/scripts/publish-demo.sh` and `docs/DEMO.md` name only demo.aes256afro.com. |
 | Categorisation | Requested 2026-10-15 in Security Center → Investigate: Education and Information Security. Cloudflare reviews it. |
 
@@ -90,7 +90,9 @@ docker stop bp-baselinewatch && docker run --rm --user 0 --entrypoint sh -v /var
 
 `/health` on the managed container then reported the old instance's counts (sources 44, items
 3698, vulns 21675) and cybercard.net answered through the tunnel again. The same recipe restores
-a copy of `data/` taken from anywhere else.
+a copy of `data/` taken from anywhere else. `/opt/baselinewatch` was then emptied as `bigbox` and
+its entry in root-owned `/opt` removed through the same kind of helper container (`rmdir` only),
+and the unused images were removed with `docker rmi`.
 
 ### 4. The tunnel (BoxPilot and the Cloudflare dashboard)
 
