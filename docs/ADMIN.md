@@ -131,6 +131,28 @@ Exports carry the publishers' attributions and never include CIS text or anythin
 Microsoft's values appear as the page quotes them. The printable HTML links to this instance's
 stylesheet and reads fine without it.
 
+## Platform watch entries and the Fix panel
+
+A watchlist entry of kind `platform` (windows, apple, linux, android, chrome, firefox, edge,
+network) marks every CVE on that platform as the person's stack. The platform comes from the
+CVE's CPE criteria (the operating system or browser named), then from NVD's vendor and product,
+then, for a CVE NVD has not analysed yet, from the way the description names the platform
+("This issue is fixed in macOS Sequoia 15.6"). A matched CVE goes on the Wire, into the digest's
+"your stack" lines, and raises an alert worded "New Apple CVE: CVE-…" when it is new (or the
+usual "CVE-…: Apple" when it changed). Every CVE is re-checked when the list changes.
+
+The Fix panel on a CVE page gathers what has been published that fixes or mitigates it: NVD's
+references tagged Patch, Vendor Advisory or Mitigation; the vendor advisory items the Wire holds
+for the CVE (any vulnerabilities-group feed that names it); CISA KEV's required action and due
+date (from the KEV item's signals, or its summary for items stored before 0.22.0); the package
+advisories' fixed versions; and the STIG rules that mitigate the class of flaw. That last part
+is the owner's mapping, `data/mitigations.yaml`: each entry names CVE ids or words to look for
+in the description and the KEV name, the phrase the mitigating rules' titles carry, a sentence
+on why, and the publisher's statement that connects the two; the panel finds the rules across
+the followed STIGs' latest versions and quotes them. When none of this exists the panel says
+"nothing published yet" rather than guessing. The Wire's CVE and KEV items carry the same facts
+as one line, and the JSON API's CVE record carries them as `fix`.
+
 ## Test plans
 
 `/baselines/<platform>/tests` is what to test when a new OS release lands so the baseline still

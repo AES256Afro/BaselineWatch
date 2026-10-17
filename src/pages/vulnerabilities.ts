@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { fixContext, fixesFor, type Fix } from "../fix.ts";
 import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { getTriage } from "../triage.ts";
@@ -122,6 +123,41 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look });
 }
 
+/** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
+export function fixPanel(fix: Fix): Html {
+  if (fix.empty) {
+    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory on the Wire for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
+  }
+  return html`<section class="box fix">
+    <h2>Fix</h2>
+    ${fix.kev?.requiredAction
+      ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
+      : ""}
+    ${fix.references.length
+      ? html`<h3 class="small">Patch, vendor advisory and mitigation references on NVD <span class="count">${fix.references.length}</span></h3>
+          <ul class="refs">${fix.references.slice(0, 20).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a> <span class="small">${r.tags.join(", ")}</span></li>`)}</ul>`
+      : ""}
+    ${fix.advisories.length
+      ? html`<h3 class="small">Vendor advisories on the Wire <span class="count">${fix.advisories.length}</span></h3>
+          <ul class="refs">${fix.advisories.map((a) => html`<li><a href="${a.url ?? "/wire"}" ${newTabIf(a.url)}>${a.title}</a> <span class="small">${a.source}${a.publishedAt ? html` · ${a.publishedAt.slice(0, 10)}` : ""}</span></li>`)}</ul>`
+      : ""}
+    ${fix.packages.length
+      ? html`<h3 class="small">Fixed package versions</h3>
+          <ul class="refs">${fix.packages.map((p) => html`<li><code>${p.ecosystem}:${p.name}</code> fixed in ${p.fixed.join(", ")} <span class="small">${p.advisory}</span></li>`)}</ul>`
+      : ""}
+    ${fix.mitigations.length
+      ? html`<h3 class="small">STIG rules that mitigate this class</h3>
+          ${fix.mitigations.map(
+            (m) => html`<div class="fix-mitigation">
+              <p>${m.note} ${m.source ? html`<cite><a href="${m.source.url}" ${newTab}>${m.source.title}</a></cite>` : ""} <span class="small">(the owner's mapping, <code>data/mitigations.yaml</code>: ${m.id})</span></p>
+              <ul class="change-list">${m.rules.slice(0, 8).map((r) => html`<li><a href="/standards/disa-stigs/${r.stig.latest.id}/${r.rule.ref}"><b>${r.rule.label}</b></a> <span class="chip sev ${r.rule.family === "CAT I" ? "critical" : r.rule.family === "CAT II" ? "high" : "medium"}">${r.rule.family ?? ""}</span> ${r.rule.title} <span class="small">${r.stig.product}</span></li>`)}${m.rules.length > 8 ? html`<li class="small">and ${m.rules.length - 8} more</li>` : ""}</ul>
+            </div>`,
+          )}`
+      : ""}
+    <p class="small">Every line above is quoted from NVD, CISA, the vendor's own advisory or DISA; nothing is generated.</p>
+  </section>`;
+}
+
 export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; owner: boolean; open: boolean; now: Date; look: LookState }): string | null {
   const { db, cveId, owner, open, now, look } = options;
   const row = getVuln(db, cveId);
@@ -139,6 +175,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   const ssvc = parseJson<Record<string, string>>(row.ssvc_json, {});
   const watch = parseJson<string[]>(row.watch_labels_json, []);
   const changes = vulnChanges(db, row.cve_id);
+  const fix = fixesFor(db, fixContext(db), row);
 
   const content = html`
     <div class="vuln-head">
@@ -158,6 +195,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
     <div class="cols">
       <section class="main">
         <p class="lede">${row.description ?? "No description."}</p>
+        ${fixPanel(fix)}
         <section class="box">
           <h2>Change history <span class="count">${changes.length}</span></h2>
           ${changes.length

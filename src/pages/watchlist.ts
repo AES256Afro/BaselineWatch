@@ -14,7 +14,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
     counts.set(e.id, n);
   }
 
-  const kindLabel: Record<string, string> = { product: "Product", keyword: "Keyword", baseline: "Baseline", family: "Control family", package: "Package" };
+  const kindLabel: Record<string, string> = { product: "Product", keyword: "Keyword", baseline: "Baseline", family: "Control family", package: "Package", platform: "Platform" };
 
   const content = html`
     <h1>Watchlist</h1>
@@ -46,6 +46,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
                 <select id="kind" name="kind">
                   <option value="product">Product: vendor, product, vendor:product or CPE prefix</option>
                   <option value="package">Package: ecosystem:name (npm:express, PyPI:django, Maven:group:artifact, Debian:12:openssl), advisories from OSV and GitHub</option>
+                  <option value="platform">Platform: windows, apple, linux, android, chrome, firefox, edge or network, so every CVE on it is your stack</option>
                   <option value="keyword">Keyword in the description</option>
                   <option value="baseline">Baseline I follow (Register, M3)</option>
                   <option value="family">Control family I own (Register, M3)</option>
@@ -60,7 +61,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
           : html`<section class="box"><h2>Owner only</h2><p class="small">Sign in to change the watchlist.</p></section>`}
         <section class="box">
           <h2>How matching works</h2>
-          <p class="small">Product entries match the CPE criteria NVD attaches to a CVE: a bare name matches the vendor or the product field, <code>vendor:product</code> matches both, and a <code>cpe:2.3:</code> prefix matches literally. CVEs that have no CPE yet match only by keyword. Every CVE is re-checked when the list changes.</p>
+          <p class="small">Product entries match the CPE criteria NVD attaches to a CVE: a bare name matches the vendor or the product field, <code>vendor:product</code> matches both, and a <code>cpe:2.3:</code> prefix matches literally. A platform entry matches by the CPE's operating system or browser, then NVD's vendor and product, then the way the description names the platform for a CVE NVD has not analysed yet, so a new macOS CVE reaches the Wire, the alerts ("New Apple CVE") and the digest at once. CVEs that have no CPE yet otherwise match only by keyword. Every CVE is re-checked when the list changes.</p>
         </section>
       </aside>
     </div>`;

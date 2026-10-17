@@ -47,6 +47,7 @@ export const kevAdapter: Adapter = {
         vendor: v.vendorProject,
         product: v.product,
         dueDate: v.dueDate,
+        requiredAction: v.requiredAction,
         ransomware: v.knownRansomwareCampaignUse === "Known",
         ...(v.cwes?.length ? { cwes: v.cwes } : {}),
         ...(v.notes ? { notes: v.notes } : {}),

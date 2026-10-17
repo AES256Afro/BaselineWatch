@@ -149,7 +149,10 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
           const what = result.isNew ? "new" : result.changes.map((c) => (c.field === "cvss" ? `CVSS ${c.before ?? "unscored"} → ${c.after ?? "unscored"}` : c.field)).join(", ");
           alerts.push({
             kind: "watch",
-            title: `${result.row.cve_id}: ${result.watchLabels.join(", ")}`,
+            title:
+              result.isNew && result.watchPlatforms.length && result.watchPlatforms.length === result.watchLabels.length
+                ? `New ${result.watchPlatforms.join(", ")} CVE: ${result.row.cve_id}`
+                : `${result.row.cve_id}: ${result.watchLabels.join(", ")}`,
             body: `${what}. ${result.row.cvss_score !== null ? `CVSS ${result.row.cvss_score.toFixed(1)}. ` : ""}${result.row.kev ? "In CISA KEV. " : ""}${(result.row.description ?? "").slice(0, 240)}`,
             url: `/vulnerabilities/${result.row.cve_id}`,
           });
