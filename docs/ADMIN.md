@@ -177,6 +177,19 @@ new file shows at once. The same form as the builder: untick, Rebuild, export as
 (printable HTML with checkboxes, Markdown task list, CSV with a `done` column, JSON) from
 `/baselines/<platform>/tests/export`; `templates=0` leaves the owner's steps out.
 
+Like the builder, the page draws one area at a time, so a phone loads one area's procedures
+rather than the whole plan (a RHEL 9 plan is over four hundred checks; its largest area,
+everything else, is about 150 KB). The areas are `authentication`, `browsers`, `encryption`,
+`logging`, `network`, `updates`, `mdm` and `other`; a row of buttons switches between those
+with checks and `?section=<area>` opens one directly (the first area with checks when the name
+is unknown or empty). Each check's procedure is folded into its row. A hidden `shown` field
+names the area whose checkboxes are on the page, and the other areas' dropped ids ride along as
+hidden `drop` fields, so a redraw, a Rebuild or an export from any area covers the whole plan; a
+`drop` for an id the plan no longer holds is forgotten, and unticking "Owner's templates" drops
+their steps along with any carried drops of them. A form that sends every kept id without
+`shown` still drops everything it does not keep. The GET export with `drop=<id>`
+(`/baselines/linux/tests/export?format=md&drop=test:stig:v-257879`) is unchanged.
+
 ## Looks
 
 Pages come in two looks, each in light and dark: **console**, the dense dashboard with panels,

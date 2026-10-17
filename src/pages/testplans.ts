@@ -3,7 +3,7 @@ import { builderPlatforms, type BuilderPlatform, type DocChoice } from "../basel
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { lines } from "../redline.ts";
-import { areas, type PlanItem, type TestPlan } from "../testplans.ts";
+import { areas, planAreas, type Area, type PlanItem, type TestPlan } from "../testplans.ts";
 import { page } from "./layout.ts";
 
 interface Who {
@@ -15,31 +15,39 @@ interface Who {
 const platformName = (p: BuilderPlatform): string => builderPlatforms.find((b) => b.id === p)?.label ?? p;
 const choiceValue = (c: DocChoice): string => `${c.key}@${c.documentId}`;
 
+/**
+ * One check: the checkbox, the label and title, the source, and the procedure folded away. Kept
+ * tight: an area draws up to a couple of hundred of these and a phone loads them all.
+ */
 function item(i: PlanItem): Html {
   const sev = i.severity ? html` <span class="chip sev ${i.severity === "CAT I" || i.severity === "high" ? "critical" : i.severity === "CAT II" || i.severity === "medium" ? "high" : "medium"}">${i.severity}</span>` : html``;
-  return html`<li class="pitem ${i.included ? "" : "off"} ${i.source}">
-    <label class="pitem-head">
-      <input type="checkbox" name="keep" value="${i.id}" ${i.included ? "checked" : ""}>
-      ${i.source === "template" ? html`<span class="chip">owner's template</span>` : html`<a href="${i.url ?? "#"}"><b>${i.label}</b></a>`}${sev}
-      <span class="pitem-title">${i.title}</span>
-    </label>
-    ${i.sourceTitle ? html`<div class="pitem-meta"><span class="small">${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.sourceTitle}</a>` : i.sourceTitle}</span></div>` : ""}
-    ${i.expected ? html`<div class="pitem-meta"><span>Expect: ${i.expected}</span></div>` : ""}
-    ${i.procedure ? html`<details><summary>Procedure</summary><p class="prose">${lines(i.procedure)}</p></details>` : ""}
-  </li>`;
+  return html`<li class="pitem ${i.included ? "" : "off"} ${i.source}"><label class="pitem-head"><input type="checkbox" name="keep" value="${i.id}" ${i.included ? "checked" : ""}> ${i.source === "template" ? html`<span class="chip">owner's template</span>` : html`<a href="${i.url ?? "#"}"><b>${i.label}</b></a>`}${sev} <span class="pitem-title">${i.title}</span></label>${i.sourceTitle ? html`<div class="pitem-meta"><span class="small">${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.sourceTitle}</a>` : i.sourceTitle}</span></div>` : ""}${i.expected ? html`<div class="pitem-meta"><span>Expect: ${i.expected}</span></div>` : ""}${i.procedure ? html`<details><summary>Procedure</summary><p class="prose">${lines(i.procedure)}</p></details>` : ""}</li>
+`;
 }
 
-export function renderTestPlan(options: { db: DatabaseSync; plan: TestPlan } & Who): string {
+export interface TestPlanOptions extends Who {
+  db: DatabaseSync;
+  plan: TestPlan;
+  /** The area to draw; the first with checks when absent or empty. */
+  area?: Area | undefined;
+}
+
+export function renderTestPlan(options: TestPlanOptions): string {
   const { plan, owner, open, look } = options;
   const p = plan.platform;
   const name = platformName(p);
   const c = plan.profile.components;
-  const groups = areas.map((a) => ({ area: a, items: plan.items.filter((i) => i.area === a.id) })).filter((g) => g.items.length);
+  const sections = planAreas(plan);
+  const current = sections.find((s) => s.id === options.area) ?? sections[0];
+  // The other areas' drops ride along as hidden fields; the current area's are its unticked boxes.
+  const carried = current ? plan.items.filter((i) => !i.included && i.area !== current.id) : [];
 
   const main = !c.stig
     ? html`<div class="empty"><b>No ${name} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> and fetch the DISA library from <a href="/sources">Sources</a>.` : "The owner can follow one through the watchlist."}</p></div>`
     : html`<form method="post" action="/baselines/${p}/tests" class="builder">
         <input type="hidden" name="applied" value="1">
+        ${current ? html`<input type="hidden" name="shown" value="${current.id}">` : ""}
+        ${carried.map((i) => html`<input type="hidden" name="drop" value="${i.id}">`)}
         <fieldset class="build-from">
           <legend>Derive from</legend>
           <label for="stig">STIG</label>
@@ -55,14 +63,10 @@ export function renderTestPlan(options: { db: DatabaseSync; plan: TestPlan } & W
           <button type="submit" formaction="/baselines/${p}/tests/export" name="format" value="md">Markdown</button>
           <button type="submit" formaction="/baselines/${p}/tests/export" name="format" value="csv">CSV</button>
           <button type="submit" formaction="/baselines/${p}/tests/export" name="format" value="json">JSON</button>
-          <span class="small">Untick a check, then Rebuild or export; the form carries the state and nothing is stored.</span>
+          <span class="small">Untick a check, then Rebuild or export; the form carries the state and nothing is stored. One area is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole plan.</span>
         </fieldset>
-        ${groups.map(
-          (g) => html`<details class="box pgroup" open>
-            <summary><b>${g.area.label}</b> <span class="count">${g.items.filter((i) => i.included).length} of ${g.items.length} kept</span></summary>
-            <ol class="pitems">${g.items.map(item)}</ol>
-          </details>`,
-        )}
+        <nav class="ptabs" aria-label="Areas of the plan">${sections.map((s) => html`<button type="submit" name="section" value="${s.id}" class="${s.id === current?.id ? "on" : ""}" ${s.id === current?.id ? html`aria-current="true"` : ""}>${s.label} <span class="count">${s.kept} of ${s.items.length}</span></button>`)}</nav>
+        ${current ? html`<h2>${current.label} <span class="count">${current.kept} kept</span></h2><ol class="pitems">${current.items.map(item)}</ol>` : html`<p class="small">The plan has no checks to draw.</p>`}
       </form>`;
 
   const aside = html`
