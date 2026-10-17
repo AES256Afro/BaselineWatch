@@ -62,7 +62,7 @@ footer{font-size:7.5pt;color:var(--muted);margin-top:16px}
 <div class="title"><h1>macOS 26 Security Baseline and Test Report</h1><span class="lbls"><span class="lbl">STIG V1R4</span><span class="lbl">mSCP tahoe</span><span class="lbl">800-53 High</span></span></div>
 
 <section class="epic">
-  <div><span class="k"><i></i>EPIC · BW-MACOS26-2026-10</span><h2>Ship the macOS 26 baseline to 340 managed Macs</h2>
+  <div><span class="k"><i></i>EPIC · BW-MACOS26-2026-10</span><h2>macOS 26 baseline</h2>
   <div style="font-size:8.5pt;color:var(--muted)">DISA Apple macOS 26 (Tahoe) STIG — Version 1, Release 4 · NIST macOS Security Compliance Project — tahoe · 800-53r5 High · NIST SP 800-53 Rev. 5 — High baseline (SP 800-53B)</div>
   <div class="prog"><i style="width:87.73584905660378%;background:var(--green)"></i><i style="width:6.60377358490566%;background:#e2b203"></i><i style="width:5.660377358490567%;background:var(--red)"></i></div>
   <div style="font-size:8pt;color:var(--muted)">212 recommended · 186 applied · 14 modified · 12 not applying</div>
@@ -100,20 +100,20 @@ footer{font-size:7.5pt;color:var(--muted);margin-top:16px}
 <div class="ft"><span class="type task"></span><span class="key">BW-109</span><span class="pri md" title="CAT II">▲</span><span class="sp"></span><span>T-AUTH-05</span><span class="av" title="Endpoint Engineering">EE</span></div></div></div><div class="lane"><header><span>Modified</span><span>2</span></header>
 <div class="issue"><div class="sum">Limit consecutive failed logon attempts</div>
 <div class="rec"><b>Publisher recommends</b>Lock the account after 3 consecutive invalid attempts within 15 minutes.</div>
-<div class="our Modified"><b>Our decision: Modified</b>Lock after 5 attempts; 15-minute lockout.<br><i>Users sign in through Platform SSO with Entra ID, whose smart lockout also applies. A threshold of 3 drove 40+ helpdesk unlocks a week during the pilot; 5 keeps AC-7 intent with the cloud lockout as a second layer.</i></div>
+<div class="our Modified"><b>Our decision: Modified</b>Lock after 5 attempts; 15-minute lockout.<br><i>Sign-in uses Platform SSO with Entra ID, which has its own lockout. At 3 attempts the pilot had 40+ helpdesk unlocks a week.</i></div>
 <div class="lbls" style="margin-bottom:6px"><span class="lbl">APPL-26-000022</span><span class="lbl">pwpolicy_account_lockout_enforce</span><span class="lbl">AC-7</span></div>
 <div class="ft"><span class="type task"></span><span class="key">BW-101</span><span class="pri md" title="CAT II">▲</span><span class="sp"></span><span>T-AUTH-06</span><span class="av" title="Endpoint Engineering">EE</span></div></div><div class="issue"><div class="sum">Disable SSH (Remote Login)</div>
 <div class="rec"><b>Publisher recommends</b>Disable the SSH server unless documented as an operational requirement.</div>
-<div class="our Modified"><b>Our decision: Modified</b>Off on all endpoints except 14 build hosts, where only the admin group may connect.<br><i>The iOS build farm needs SSH for CI agents. Limited to a named Smart Group, keys only, FIPS ciphers (BW-106) and logged to the SIEM.</i></div>
+<div class="our Modified"><b>Our decision: Modified</b>Off on all endpoints except 14 build hosts, where only the admin group may connect.<br><i>CI agents on the iOS build hosts need SSH. Limited to one Smart Group, key auth only, FIPS ciphers (BW-106), logged to the SIEM.</i></div>
 <div class="lbls" style="margin-bottom:6px"><span class="lbl">APPL-26-000100</span><span class="lbl">system_settings_ssh_disable</span><span class="lbl">CM-7</span><span class="lbl">AC-17</span></div>
 <div class="ft"><span class="type task"></span><span class="key">BW-105</span><span class="pri md" title="CAT II">▲</span><span class="sp"></span><span>T-NET-04</span><span class="av" title="Platform Engineering">PE</span></div></div></div><div class="lane"><header><span>Not applying</span><span>2</span></header>
 <div class="issue"><div class="sum">Enforce smart card authentication</div>
 <div class="rec"><b>Publisher recommends</b>Require a PIV/CAC smart card for login and authorisation.</div>
-<div class="our Not"><b>Our decision: Not applying</b>Platform SSO with a Secure Enclave key (phishing-resistant).<br><i>PIV cards are not issued to macOS users. Multifactor, phishing-resistant authentication is met by the Platform SSO Secure Enclave key bound to Entra ID with Conditional Access. Risk accepted as EXC-2026-007.</i></div>
+<div class="our Not"><b>Our decision: Not applying</b>Platform SSO with a Secure Enclave key (phishing-resistant).<br><i>PIV cards are not issued to macOS users. MFA is met by the Platform SSO Secure Enclave key with Entra ID Conditional Access. Risk accepted: EXC-2026-007.</i></div>
 <div class="lbls" style="margin-bottom:6px"><span class="lbl">APPL-26-000060</span><span class="lbl">auth_smartcard_enforce</span><span class="lbl">IA-2(1)</span><span class="lbl">IA-2(2)</span><span class="lbl">IA-2(12)</span></div>
 <div class="ft"><span class="type task"></span><span class="key">BW-102</span><span class="pri md" title="CAT II">▲</span><span class="sp"></span><span>T-AUTH-07</span><span class="av" title="Identity and Access">IA</span></div></div><div class="issue"><div class="sum">Disable Bluetooth</div>
 <div class="rec"><b>Publisher recommends</b>Turn off Bluetooth unless an approved peripheral requires it.</div>
-<div class="our Not"><b>Our decision: Not applying</b>Bluetooth on; sharing and discoverability off.<br><i>Keyboards, headsets and Continuity are business-essential. Bluetooth Sharing stays disabled (applied control). Risk accepted as EXC-2026-008.</i></div>
+<div class="our Not"><b>Our decision: Not applying</b>Bluetooth on; sharing and discoverability off.<br><i>Keyboards, headsets and Continuity need Bluetooth. Bluetooth Sharing stays off. Risk accepted: EXC-2026-008.</i></div>
 <div class="lbls" style="margin-bottom:6px"><span class="lbl">APPL-26-002080</span><span class="lbl">system_settings_bluetooth_disable</span><span class="lbl">AC-18</span><span class="lbl">AC-18(3)</span></div>
 <div class="ft"><span class="type task"></span><span class="key">BW-110</span><span class="pri md" title="CAT II">▲</span><span class="sp"></span><span class="av" title="Endpoint Engineering">EE</span></div></div></div></div>
 

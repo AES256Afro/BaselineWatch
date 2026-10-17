@@ -31,8 +31,6 @@
 
 ## 1. Executive summary
 
-200 of 212 recommended rules are in force (14 with our own value); 12 are not applied under an accepted risk. 19 of 24 test steps pass and 3 fail, each with a POA&M item.
-
 | Baseline | Rules | | Tests | Steps |
 |---|---:|---|---|---:|
 | Recommended | 212 | | ✅ Pass | 19 |
@@ -42,7 +40,7 @@
 
 ## 2. Decision register
 
-*10 of 212 decisions: every deviation plus a sample of applied rules.*
+*10 of 212 decisions shown.*
 
 ### BW-101 · Limit consecutive failed logon attempts
 
@@ -52,7 +50,7 @@
 |---|---|
 | Lock the account after 3 consecutive invalid attempts within 15 minutes. | **🟡 Modified** — Lock after 5 attempts; 15-minute lockout. |
 
-> **Why:** Users sign in through Platform SSO with Entra ID, whose smart lockout also applies. A threshold of 3 drove 40+ helpdesk unlocks a week during the pilot; 5 keeps AC-7 intent with the cloud lockout as a second layer.  
+> **Why:** Sign-in uses Platform SSO with Entra ID, which has its own lockout. At 3 attempts the pilot had 40+ helpdesk unlocks a week.  
 > **Owner:** Endpoint Engineering · **Verified by:** T-AUTH-06
 
 ### BW-102 · Enforce smart card authentication
@@ -63,7 +61,7 @@
 |---|---|
 | Require a PIV/CAC smart card for login and authorisation. | **🔴 Not applying** — Platform SSO with a Secure Enclave key (phishing-resistant). |
 
-> **Why:** PIV cards are not issued to macOS users. Multifactor, phishing-resistant authentication is met by the Platform SSO Secure Enclave key bound to Entra ID with Conditional Access. Risk accepted as EXC-2026-007.  
+> **Why:** PIV cards are not issued to macOS users. MFA is met by the Platform SSO Secure Enclave key with Entra ID Conditional Access. Risk accepted: EXC-2026-007.  
 > **Owner:** Identity and Access · **Verified by:** T-AUTH-07
 
 ### BW-103 · Enforce FileVault and escrow the recovery key
@@ -96,7 +94,7 @@
 |---|---|
 | Disable the SSH server unless documented as an operational requirement. | **🟡 Modified** — Off on all endpoints except 14 build hosts, where only the admin group may connect. |
 
-> **Why:** The iOS build farm needs SSH for CI agents. Limited to a named Smart Group, keys only, FIPS ciphers (BW-106) and logged to the SIEM.  
+> **Why:** CI agents on the iOS build hosts need SSH. Limited to one Smart Group, key auth only, FIPS ciphers (BW-106), logged to the SIEM.  
 > **Owner:** Platform Engineering · **Verified by:** T-NET-04
 
 ### BW-106 · Use FIPS-validated SSH ciphers and MACs
@@ -107,7 +105,7 @@
 |---|---|
 | Limit sshd to FIPS 140-validated ciphers, MACs and key exchange. | **🟢 Apply** — As recommended on the 14 hosts where SSH is enabled. |
 
-> **Why:** Tested only because BW-105 leaves SSH on for build hosts.  
+> **Why:** SSH is on for build hosts (BW-105).  
 > **Owner:** Platform Engineering · **Verified by:** T-NET-03
 
 ### BW-107 · Configure audit flags and retention
@@ -151,12 +149,12 @@
 |---|---|
 | Turn off Bluetooth unless an approved peripheral requires it. | **🔴 Not applying** — Bluetooth on; sharing and discoverability off. |
 
-> **Why:** Keyboards, headsets and Continuity are business-essential. Bluetooth Sharing stays disabled (applied control). Risk accepted as EXC-2026-008.  
+> **Why:** Keyboards, headsets and Continuity need Bluetooth. Bluetooth Sharing stays off. Risk accepted: EXC-2026-008.  
 > **Owner:** Endpoint Engineering
 
 ## 3. Test plan
 
-Steps are derived only from applied and modified rules.
+Applied and modified rules only.
 
 ### 3.1 Authentication and SSO
 
@@ -184,7 +182,7 @@ Steps are derived only from applied and modified rules.
 
 ### 3.3 Network
 
-*SSH is tested only because BW-105/BW-106 leave it on for build hosts.*
+*SSH tested on build hosts only (BW-105, BW-106).*
 
 | ID | Step | Procedure | Expected | Result | Evidence | Tester |
 |---|---|---|---|---|---|---|
@@ -216,7 +214,7 @@ Steps are derived only from applied and modified rules.
 
 ### 3.7 Browsers
 
-*Safari, Chrome, Edge and Firefox each signing in with Entra ID.*
+*Entra ID sign-in in Safari, Chrome, Edge and Firefox.*
 
 | ID | Step | Procedure | Expected | Result | Evidence | Tester |
 |---|---|---|---|---|---|---|
