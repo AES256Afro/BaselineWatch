@@ -517,3 +517,36 @@ table.browse tr.changed td.id a { color: var(--acc); }
 .change-list .note { color: var(--mute); font-size: 12.5px; margin-top: 2px; }
 .change-list a { text-decoration: none; }
 .box h3.small { margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--mute); }
+
+/* The baseline builder (M9.3): one form, a checkbox per item, folded groups, the apply lines */
+.builder fieldset { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 14px; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--card); }
+.builder legend { font: 600 10.5px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); padding: 0 4px; }
+.builder fieldset label { font-size: 12.5px; color: var(--mute); }
+.builder fieldset select { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--rule-2); border-radius: 6px; background: var(--card); color: var(--ink); max-width: 100%; }
+.builder .inline-check { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.builder h2 { margin: 18px 0 6px; }
+details.pgroup { margin: 8px 0; }
+details.pgroup summary { cursor: pointer; padding: 2px 0; }
+details.pgroup summary .count { margin-left: 6px; }
+.pitems { list-style: none; margin: 8px 0 0; padding: 0; }
+.pitem { padding: 10px 0; border-top: 1px solid var(--rule); }
+.pitem:first-child { border-top: 0; }
+.pitem.off { opacity: 0.55; }
+.pitem-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; cursor: pointer; }
+.pitem-head input { margin: 0; }
+.pitem-head a { text-decoration: none; color: var(--ink); font-family: var(--mono); font-size: 12.5px; }
+.pitem-title { flex: 1 1 24ch; font-size: 14px; }
+.pitem-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 4px 0 0 24px; font-size: 12.5px; }
+.pitem-meta a { margin-right: 2px; }
+.pitem-apply { margin: 6px 0 0 24px; font-size: 12.5px; display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; }
+.pitem-apply dt { color: var(--mute); }
+.pitem-apply dd { margin: 0; overflow-wrap: anywhere; }
+.pitem details { margin: 4px 0 0 24px; }
+.pitem details summary { cursor: pointer; font-size: 12.5px; color: var(--mute); }
+.pitem details h4.small { margin: 8px 0 2px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--mute); }
+.export-item { margin: 12px 0; padding: 10px 0; border-top: 1px solid var(--rule); }
+.export dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font-size: 13px; }
+.export dl dt { color: var(--mute); }
+.export dl dd { margin: 0; }
+.export pre { white-space: pre-wrap; font: 12.5px/1.5 var(--mono); }
+@media print { .mast, .foot, .builder fieldset, .pitem-head input { display: none; } .pitem details { display: block; } }

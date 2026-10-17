@@ -393,7 +393,17 @@ matched to platforms by vendor and product. Checked against the real Windows 11 
   screen-lock rules of every followed STIG, and the CISA panel for macOS shows Apple's KEV
   entries and no Cisco directive.
 
-#### M9.3: Baseline builder (`/baselines`) — 0.20.0
+#### M9.3: Baseline builder (`/baselines`) — shipped 2026-10-17 as 0.20.0
+
+What landed: the three sources (mSCP at its exact commit, DISA's Intune package, the GPO
+package's checklists), the builder for Windows, macOS and Linux with the joins by registry path
+and STIG id, DISA's definitions matched by policy name, the four formats in four flavours, and
+"current versus next". Against the real October 2026 data the Windows 11 profile is 242 rules,
+108 with a DISA settings-catalog definition and all 242 with DISA's checklist verdict (190 set
+by its policy, 40 outside its scope), 50 joined to a Microsoft baseline value, 373 settings
+Microsoft adds, and 370 High controls. Not done: a named profile the owner can save (the form
+carries the state instead), and the Intune flavour cannot name a definition where DISA's package
+has none (account lockout and password policies are not in its Windows 11 policy).
 
 - `/baselines/<platform>` for `windows`, `macos` and `linux`. The **strictest published
   profile**: every CAT I and CAT II rule of the chosen STIG; for Windows, the Microsoft SCT

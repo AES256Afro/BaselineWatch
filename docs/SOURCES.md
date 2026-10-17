@@ -113,6 +113,52 @@ new downloads).
 - **Licence**: US Government work, public domain.
 - **Diffability**: good; ids are stable and definitions change rarely.
 
+### DISA STIG Intune policy package and GPO package checklists (added 2026-10-17)
+- **Fetch**: both are dated entries in the STIG library listing: "Intune Policy - October 2026"
+  (`U_Intune_Policy_Package_October_2026.zip`, 1.1 MB) and "Group Policy Objects (GPOs) -
+  October 2026" (`U_STIG_GPO_Package_October_2026.zip`, 7 MB), updated with each quarterly
+  release; the listing's date gates the download.
+- **Shape**: `intune:package`, a `setting-set` of every setting in the package's
+  `Intune Policies/Settings Catalog/*.json` (Microsoft Graph `configurationPolicies` exports;
+  18 policies and 1,019 settings in October 2026, among them "DoD Windows 11 STIG v2r11 Settings
+  Catalog" with 174): the policy without its version as the family, the settings-catalog
+  definition id as the ref and label, the value (choice suffix, simple value, children) as the
+  text. `gpo:checklists`, a `requirement-set` of every rule in the package's
+  `Support Files/Checklist Files/*.ckl` (19 STIG Viewer checklists, 3,465 rules): DISA's own
+  verdict per rule, NotAFinding with "GPO - ... / Intune - ..." when its policies set it,
+  Not_Applicable with "Outside scope of GPO configurations" when they cannot, Open or Not
+  Reviewed otherwise. The GPO backups, ADMX files and scripts are not parsed.
+- **Why they are here**: the baseline builder's Intune flavour names the definition DISA uses for
+  a rule (matched by the policy's name in the STIG fix text) and quotes DISA's verdict when a rule
+  is outside what Intune can set. DISA's readme says the policies carry the most restrictive STIG
+  settings and must be tested before production; the pages say the same.
+- **Licence**: US Government work, public domain.
+- **Diffability**: good; definition ids and V-ids are stable, so a quarter's changes are the
+  settings DISA changed.
+
+### NIST macOS Security Compliance Project (mSCP) (added 2026-10-17)
+- **Fetch**: `https://github.com/usnistgov/macos_security`, one branch per macOS release
+  (`tahoe` for macOS 26, `sequoia` for 15; `sonoma`, `ventura` and the iOS and visionOS branches
+  exist too). The GitHub commits API (`/repos/usnistgov/macos_security/commits/<branch>`, no
+  token, 60 requests an hour) gives the branch's current commit, and the zip for that exact
+  commit (`codeload.github.com/.../zip/<sha>`, about 1 MB) is fetched only when it moved. A
+  watchlist entry of kind `baseline` written `mscp: <branch>` follows other branches.
+- **Cadence**: daily; the project commits often between revisions, and every commit is a version
+  here (the label is the revision from `VERSION.yaml` plus the short commit, the reason is the
+  commit's first line).
+- **Shape**: `requirement-set`. Each `rules/<section>/<id>.yaml` is a rule: id as ref and label,
+  title, the check as the text, the discussion as guidance, the SP 800-53 r5 references as
+  related controls, and in the extras the fix, the expected result, severity, the configuration
+  profile payloads (`mobileconfig_info`, domain and keys), declarative management, the
+  organisation-defined values per baseline (`odv`), tags, the STIG, SRG, CCI, CCE, 800-171 r3,
+  CMMC and CIS references, and which `baselines/*.yaml` list it (800-53 High, Moderate and Low,
+  DISA STIG, CIS Level 1 and 2, CMMC, CNSSI 1253, and the rest). Tahoe, Revision 3.0: 335 rules,
+  332 with a STIG id, 141 with a payload, 217 in the High baseline, 165 in the DISA STIG baseline.
+- **Why it is here**: the macOS profile and its Jamf flavour come from it: the rule id, the
+  payload domain and keys, and the join to the macOS STIG by STIG id.
+- **Licence**: NIST software, public domain in the United States (the repository's LICENSE).
+- **Diffability**: excellent; ids are stable and the YAML is structured.
+
 ### Microsoft Security Baselines (Security Compliance Toolkit, Intune)
 - **Fetch**: toolkit download page `https://www.microsoft.com/en-us/download/details.aspx?id=55319`
   (the page lists a "Date Published", last seen 2026-02-23, and the baseline zips: Windows 11

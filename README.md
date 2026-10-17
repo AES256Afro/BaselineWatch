@@ -12,8 +12,12 @@ Runs on its own (one container, one SQLite volume) or from the
 STIG's rules by CAT with check and fix text, the NIST SP 800-53 controls each rule maps to
 through DISA's CCI list (and, on each control's page, the rules that implement it), what changed
 in the latest release, and CISA's known-exploited entries and directives for that platform. The
-plan for the rest of M9 (baseline builder, test plans, platform alerts and a Fix panel) is in
-[docs/PLAN.md](docs/PLAN.md); what comparable tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
+Baselines area (`/baselines`) builds the strictest published profile per platform (STIG rules,
+Microsoft's baseline or NIST's macOS rules, DISA's Intune definitions and checklist, the SP
+800-53 High controls), lets you untick what you cannot do, and exports the rest as HTML,
+Markdown, CSV or JSON in a Jamf, Intune, Linux or plain flavour. The plan for the rest of M9
+(test plans, platform alerts and a Fix panel) is in [docs/PLAN.md](docs/PLAN.md); what comparable
+tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
 Before that: triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
 alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
 releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the

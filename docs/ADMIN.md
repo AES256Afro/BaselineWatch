@@ -84,6 +84,9 @@ already fetched the current release) is repaired by `npm run relink -- <source>`
   publishers' own sites, as the Sources page lists them. DISA's listing call is made once for the
   STIGs and once for the CCI list; a zip is downloaded only when the listing's date has moved.
 - CISA's directive listing (`cisa.gov/news-events/directives/all`, three pages), once a day.
+- For each followed mSCP branch, the GitHub commits API once a day and the branch's zip from
+  `codeload.github.com` when the commit moved; DISA's Intune and GPO packages when the listing's
+  date moves.
 
 Nothing is sent anywhere else. CIS and Microsoft content stays in the data directory under the
 owner's own licence; the pages quote it and the API never serves it whole.
@@ -102,6 +105,31 @@ DISA's Revision History notes, and "CISA on this platform": KEV entries whose ve
 belong to the platform (CISA's words, matched by vendor and product name) and the directives
 whose titles name it. Nothing on these pages is generated; a rule without a CCI, or a CCI
 without an index, is shown as such.
+
+## The baseline builder
+
+`/baselines/<platform>` (windows, macos, linux) draws the strictest published profile from the
+Register's rows: the chosen STIG's CAT I and CAT II rules (CAT III on request); on Windows the
+Microsoft Security Compliance Toolkit baseline for the same product, joined to rules by registry
+path where the check text names one and listed as "Microsoft's baseline adds" otherwise; on
+macOS the mSCP rules in the SP 800-53 High and DISA STIG baselines, joined by STIG id, with the
+rest as "mSCP adds"; and every SP 800-53 High baseline control with the kept rules that implement
+it through the CCIs. Where DISA ships a settings-catalog policy and a checklist for the STIG,
+each rule shows the definition DISA uses (matched by the policy's display name in the fix text)
+and DISA's verdict (set by its policy, or outside its scope).
+
+The page is one form. Selects pick the versions; a checkbox per item keeps or drops it; Rebuild
+redraws; the export buttons send the same fields to `/baselines/<platform>/export` with a
+format (html, md, csv, json) and a flavour (plain, jamf, intune, linux). Nothing is stored: the
+form carries the state, so the urlencoded limit on `/baselines` is 1 MB and 5,000 fields rather
+than the 16 KB the rest of the site allows. A GET with the same query fields answers too, with
+`drop=<item id>` for what to leave out, so `/baselines/windows/export?format=json&flavour=intune`
+is an API. "Current versus next" compares the chosen STIG, Microsoft baseline or mSCP branch with
+the next version loaded and lists what the strict set gains, loses and changes.
+
+Exports carry the publishers' attributions and never include CIS text or anything a model wrote;
+Microsoft's values appear as the page quotes them. The printable HTML links to this instance's
+stylesheet and reads fine without it.
 
 ## Looks
 
