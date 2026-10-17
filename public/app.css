@@ -493,3 +493,27 @@ table.browse tr.changed td.id a { color: var(--acc); }
 [data-look="console"] .why p, [data-look="console"] .field .prose { font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* STIG pages (M9): rules by CAT with check and fix folded, the CCI mapping line, the CISA aside */
+.cat-pick { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 4px; }
+.cat-pick label { font-size: 12px; color: var(--mute); }
+.cat-pick select { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--rule-2); border-radius: 6px; background: var(--card); color: var(--ink); max-width: 100%; }
+.filters a b { font-weight: 600; margin-left: 4px; }
+.rules { list-style: none; margin: 0; padding: 0; }
+.rule { padding: 12px 0; border-top: 1px solid var(--rule); }
+.rule:first-child { border-top: 0; padding-top: 4px; }
+.rule-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12.5px; }
+.rule-head a { text-decoration: none; color: var(--ink); }
+.rule-head .small { color: var(--mute); }
+.rule h3 { margin: 4px 0 6px; font-size: 15px; line-height: 1.35; }
+.rule-controls { font-size: 12.5px; color: var(--ink); margin: 0 0 6px; }
+.rule-controls a, .rule-controls code { margin-right: 2px; }
+.rule details { margin: 4px 0; }
+.rule details summary { cursor: pointer; font-size: 12.5px; color: var(--mute); }
+.rule details .prose, p.prose { margin: 6px 0 0; font: 400 13.5px/1.6 var(--sans); max-width: 90ch; background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 14px; overflow-wrap: anywhere; }
+.change-list { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; }
+.change-list li { padding: 6px 0; border-top: 1px solid var(--rule); }
+.change-list li:first-child { border-top: 0; }
+.change-list .note { color: var(--mute); font-size: 12.5px; margin-top: 2px; }
+.change-list a { text-decoration: none; }
+.box h3.small { margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--mute); }

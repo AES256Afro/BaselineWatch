@@ -68,7 +68,7 @@ export interface PullContext {
 
 /** Something worth telling the owner about right away. */
 export interface AlertDraft {
-  kind: "kev" | "release" | "watch";
+  kind: "kev" | "release" | "watch" | "directive";
   title: string;
   body: string;
   url?: string | null;

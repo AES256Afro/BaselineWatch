@@ -7,9 +7,11 @@ import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
 import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, notedChangeCount, notesFor, releaseChanges, type DocumentRow } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
+import { mappingLine } from "./stigs.ts";
 import { triageForm } from "./triage.ts";
 
 interface Who {
@@ -226,6 +228,22 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   const changedFields = new Set(releaseChanges(db, documentId).filter((c) => c.ref === ref).map((c) => c.field ?? c.kind));
   const kind = !before ? (previous ? "added" : "first") : !after ? "removed" : changedFields.size ? "modified" : "unchanged";
   const notes = notesFor(db, documentId, ref);
+  // The CCI join, both ways: a STIG rule names the controls it implements; a control lists the followed rules that implement it.
+  const map = sourceId === "disa-stigs" || sourceId === "nist-sp-800-53" ? cciMap(db) : null;
+  const mapping = map && sourceId === "disa-stigs" ? html`<p class="rule-controls">${mappingLine(shown, map, controlPageBase(db))}</p>` : html``;
+  const implementers = map && sourceId === "nist-sp-800-53" && map.documentId !== null ? stigRulesForControl(db, ref, map) : [];
+  const implementedBy =
+    map && sourceId === "nist-sp-800-53" && map.documentId !== null
+      ? html`<section class="box">
+          <h2>STIG rules that implement this control <span class="count">${implementers.reduce((n, h) => n + h.rules.length, 0)}</span></h2>
+          ${implementers.length
+            ? implementers.map(
+                (hit) => html`<h3 class="small"><a href="/stigs/${hit.stig.platform}?stig=${encodeURIComponent(hit.stig.key)}">${hit.stig.product}</a> ${hit.stig.latest.version_label ?? ""}</h3>
+                  <ul class="change-list">${hit.rules.map((r) => html`<li><a href="/standards/disa-stigs/${hit.stig.latest.id}/${r.ref}"><b>${r.label}</b></a> <span class="chip sev ${r.family === "CAT I" ? "critical" : r.family === "CAT II" ? "high" : "medium"}">${r.family ?? ""}</span> ${r.title}</li>`)}</ul>`,
+              )
+            : html`<p class="small">No followed STIG rule cites a CCI indexed to this control (CCI list ${map.version ?? ""}).</p>`}
+        </section>`
+      : html``;
 
   const field = (name: string, label: string, b: string | null, a: string | null): Html => {
     const changed = changedFields.has(name) || (b ?? "") !== (a ?? "");
@@ -254,6 +272,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       ${baselines.map((b) => html`<span class="pill">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</span>`)}
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
     </div>
+    ${mapping}
     ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" ${newTabIf(n.source_url)}>${n.source_url}</a></cite>` : ""}</div>`)}
     ${(() => {
       const t = getTriage(db, "control", documentId, ref);
@@ -266,7 +285,8 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("params", "Parameters", before ? paramsText(before) : null, after ? paramsText(after) : null)}
     ${field("related", "Related controls", before?.related.length ? [...before.related].sort().join(", ") : null, after?.related.length ? [...after.related].sort().join(", ") : null)}
     ${field("extra", "Fix", typeof before?.extra.fix === "string" ? before.extra.fix : null, typeof after?.extra.fix === "string" ? after.extra.fix : null)}
-    ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}`;
+    ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}
+    ${implementedBy}`;
 
   const shortTitle = shown.title.length > 70 ? `${shown.title.slice(0, 69).trimEnd()}…` : shown.title;
   return page({ title: `${shown.label} ${shortTitle}`, active: "register", content, owner, open, look });

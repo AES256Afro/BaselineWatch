@@ -8,7 +8,13 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M6. Triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
+**Status**: M9 in progress. The STIGs area (`/stigs`) shows, per platform, every followed
+STIG's rules by CAT with check and fix text, the NIST SP 800-53 controls each rule maps to
+through DISA's CCI list (and, on each control's page, the rules that implement it), what changed
+in the latest release, and CISA's known-exploited entries and directives for that platform. The
+plan for the rest of M9 (baseline builder, test plans, platform alerts and a Fix panel) is in
+[docs/PLAN.md](docs/PLAN.md); what comparable tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
+Before that: triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
 alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
 releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the
 DISA STIGs you follow (XCCDF, rule by rule) and every Microsoft Security Baseline in the
@@ -121,6 +127,8 @@ recommendation by recommendation. The PDF stays in the data directory.
   what leaves the box, access and recovery.
 - [docs/SOURCES.md](docs/SOURCES.md): every feed and standard we track, with URL, format,
   cadence, licensing and how it is diffed.
+- [docs/COMPETITION.md](docs/COMPETITION.md): what comparable tools do, and what BaselineWatch
+  borrows or leaves alone.
 - [docs/mockups/](docs/mockups/): five design directions for the app.
 - [boxpilot/baselinewatch.yaml](boxpilot/baselinewatch.yaml): the BoxPilot catalog manifest
   (draft).

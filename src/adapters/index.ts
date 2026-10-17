@@ -1,4 +1,6 @@
+import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
+import { cisaDirectivesAdapter } from "./cisa-directives.ts";
 import { disaAdapter } from "./disa.ts";
 import { epssAdapter } from "./epss.ts";
 import { fedrampRulesAdapter } from "./fedramp-rules.ts";
@@ -24,6 +26,8 @@ const byId: Record<string, Adapter> = {
   "fedramp-rules": fedrampRulesAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
+  "disa-cci": cciAdapter,
+  "cisa-directives": cisaDirectivesAdapter,
   "cis-benchmarks": cisAdapter,
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
@@ -45,4 +49,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cisAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };
+export { cciAdapter, cisAdapter, cisaDirectivesAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };

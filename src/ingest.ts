@@ -1,11 +1,14 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "./adapters/index.ts";
-import { canonicalUrl, type Adapter, type AlertDraft, type DocumentTarget, type ParsedDocument, type ParsedItem, type PullSettings, type SourceRow } from "./adapters/types.ts";
+import type { Adapter, AlertDraft, DocumentTarget, ParsedDocument, PullSettings, SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
+import { upsertItems } from "./items.ts";
 import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
 import { adoptRationale, changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
+
+export { upsertItems } from "./items.ts";
 
 export interface DocumentOutcome {
   key: string;
@@ -194,7 +197,7 @@ async function sendAlerts(db: DatabaseSync, deps: IngestDeps, drafts: AlertDraft
     await notify(
       db,
       transport,
-      { kind: rest[0]!.kind, title: `${rest.length} more ${rest[0]!.kind === "kev" ? "KEV additions" : rest[0]!.kind === "watch" ? "watched CVEs" : "releases"}`, body: rest.map((r) => r.title).join("\n").slice(0, 3000), url: absolute(rest[0]!.kind === "release" ? "/" : "/wire") },
+      { kind: rest[0]!.kind, title: `${rest.length} more ${rest[0]!.kind === "kev" ? "KEV additions" : rest[0]!.kind === "watch" ? "watched CVEs" : rest[0]!.kind === "directive" ? "CISA directives" : "releases"}`, body: rest.map((r) => r.title).join("\n").slice(0, 3000), url: absolute(rest[0]!.kind === "release" ? "/" : "/wire") },
       http,
       now,
     );
@@ -221,42 +224,6 @@ function recordOutcome(
     `UPDATE sources SET last_fetch_at = ?, last_status = ?, last_error = ?, etag = COALESCE(?, etag), last_modified = COALESCE(?, last_modified),
        last_duration_ms = ?, fetch_count = fetch_count + 1 WHERE id = ?`,
   ).run(outcome.fetchedAt, outcome.status, outcome.error ? outcome.error.slice(0, 500) : null, outcome.etag ?? null, outcome.lastModified ?? null, outcome.durationMs, source.id);
-}
-
-/** Inserts new items and updates changed ones; read and starred flags are never touched. */
-export function upsertItems(db: DatabaseSync, sourceId: string, items: ParsedItem[], fetchedAt: string): { inserted: number; updated: number } {
-  const exists = db.prepare("SELECT title, url, summary, published_at, signals_json FROM items WHERE source_id = ? AND external_id = ?");
-  const insert = db.prepare(
-    `INSERT INTO items (source_id, kind, external_id, title, url, canonical_url, summary, published_at, fetched_at, signals_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  );
-  const update = db.prepare(
-    `UPDATE items SET title = ?, url = ?, canonical_url = ?, summary = ?, published_at = COALESCE(?, published_at), signals_json = ?
-     WHERE source_id = ? AND external_id = ?`,
-  );
-  let inserted = 0;
-  let updated = 0;
-  db.exec("BEGIN");
-  try {
-    for (const item of items) {
-      const signals = item.signals ? JSON.stringify(item.signals) : null;
-      const current = exists.get(sourceId, item.externalId) as
-        | { title: string; url: string | null; summary: string | null; published_at: string | null; signals_json: string | null }
-        | undefined;
-      if (!current) {
-        insert.run(sourceId, item.kind, item.externalId, item.title, item.url, canonicalUrl(item.url), item.summary, item.publishedAt, fetchedAt, signals);
-        inserted += 1;
-      } else if (current.title !== item.title || current.url !== item.url || current.summary !== item.summary || current.signals_json !== signals) {
-        update.run(item.title, item.url, canonicalUrl(item.url), item.summary, item.publishedAt, signals, sourceId, item.externalId);
-        updated += 1;
-      }
-    }
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
-  return { inserted, updated };
 }
 
 /**
