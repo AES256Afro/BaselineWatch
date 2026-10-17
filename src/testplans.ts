@@ -34,11 +34,11 @@ export function areaLabel(id: Area): string {
 const patterns: { area: Area; title: RegExp; body?: RegExp }[] = [
   { area: "mdm", title: /\bmdm\b|enrol|enroll|device management|managed by|management profile|supervis/i },
   { area: "encryption", title: /bitlocker|filevault|encrypt|\bluks\b|dm-crypt|cryptsetup|\btpm\b|secure enclave|data at rest/i, body: /bitlocker|filevault|cryptsetup|\bluks\b/i },
-  { area: "updates", title: /\bupdates?\b|\bpatch|wsus|softwareupdate|upgrade|end of life|end-of-life|unsupported|supported release|current version|security-relevant software/i },
+  { area: "updates", title: /\bupdates?\b|\bpatch|wsus|softwareupdate|upgrade|end of life|end-of-life|unsupported|supported release|servicing level|current version|security-relevant software/i },
   { area: "browsers", title: /\bedge\b|chrome|chromium|firefox|safari|\bbrowser/i },
   { area: "authentication", title: /password|passphrase|passcode|\blogon\b|\blogin\b|lock(out|ed)|smart ?card|\bpiv\b|\bcac\b|kerberos|ntlm|\bsso\b|single sign|credential|biometric|touch ?id|face ?id|\bpam\b|\bsudo\b|session lock|screen ?saver|inactivity|multifactor|multi-factor|\bmfa\b|authenticat|account|administrator|guest|\bsu\b|apple watch|hot corner/i },
   { area: "logging", title: /\baudit|\blog(ging|s|ged)?\b|event log|syslog|rsyslog|journal|auditd|\basl\b|diagnostic|crash report|time ?stamp/i },
-  { area: "network", title: /firewall|ipv6|ipv4|\bsmb|\bssh\b|sshd|\btls\b|\bssl\b|cipher|wireless|wi-?fi|bluetooth|bonjour|airdrop|remote desktop|\brdp\b|winrm|\bdns\b|\bntp\b|chrony|proxy|\bvpn\b|\bport\b|protocol|network|remote management|screen sharing|file sharing|internet sharing|\bnfs\b|\bftp\b|\bhttp|llmnr|netbios|icloud|handoff|continuity|nearby/i },
+  { area: "network", title: /firewall|ipv6|ipv4|\bsmb|\bssh\b|sshd|\btls\b|\bssl\b|cipher|wireless|wi-?fi|bluetooth|bonjour|airdrop|remote desktop|\brdp\b|winrm|\bdns\b|\bntp\b|chrony|proxy|\bvpn\b|\bport\b|protocol|network|remote management|screen sharing|file sharing|internet sharing|file shares?\b|\bnfs\b|\bftp\b|\bhttp|llmnr|netbios|icloud|handoff|continuity|nearby/i },
 ];
 
 /** The area a check belongs to, from its title first and its procedure second; "other" when none fits. */

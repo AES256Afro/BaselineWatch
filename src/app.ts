@@ -33,6 +33,7 @@ import { renderWire } from "./pages/wire.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
+import { isPlatformKey, platformKeys } from "./platforms.ts";
 import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
@@ -432,13 +433,16 @@ export function createApp(ctx: AppContext): Express {
     const kind = str(body.kind);
     const value = str(body.value);
     const label = str(body.label, 60) ?? null;
-    if (!kind || !["product", "keyword", "baseline", "family", "package"].includes(kind) || !value) {
+    if (!kind || !["product", "keyword", "baseline", "family", "package", "platform"].includes(kind) || !value) {
       return res.status(400).type("text").send("A kind and a value are needed.");
     }
     if (kind === "package" && !parsePackageValue(value)) {
       return res.status(400).type("text").send("A package is written ecosystem:name, such as npm:express or PyPI:django.");
     }
-    db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, value, label, now().toISOString());
+    if (kind === "platform" && !isPlatformKey(value.toLowerCase())) {
+      return res.status(400).type("text").send(`A platform is one of ${platformKeys.join(", ")}.`);
+    }
+    db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, kind === "platform" ? value.toLowerCase() : value, label, now().toISOString());
     const changed = recomputeWatchHits(db);
     res.redirect(303, `/watchlist?notice=${encodeURIComponent(`Added ${value}; ${changed} CVE(s) re-marked.`)}`);
   });

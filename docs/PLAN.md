@@ -454,7 +454,16 @@ a file, and the checklist exports. The data folder ships in the image.
   areas, the browser area holds the Edge, Chrome and Firefox STIG checks, and a Markdown export
   ticks like a checklist.
 
-#### M9.5: Platform alerts and the fix — 0.22.0
+#### M9.5: Platform alerts and the fix — shipped 2026-10-17 as 0.22.0
+
+What landed: `src/platforms.ts` (windows, apple, linux, android, chrome, firefox, edge, network;
+a CVE's platform from its CPEs, then NVD's names, then the description), the watchlist kind
+`platform` with the alert worded "New Apple CVE", the Fix panel on the CVE page with its line on
+the Wire and its facts in the JSON API, and `data/mitigations.yaml` with eleven owner's entries
+that find the mitigating rules by title across the followed STIGs. The other session's
+`src/platforms.ts` for 0.18.0 was not on main when this shipped; whoever merges it reconciles
+the two files (the watchlist and the Fix panel import `platformsOf`, `isPlatformKey`,
+`platformKeys` and `platformName` from it).
 
 - A watchlist entry of kind `platform` names one of the product's platform ids
   (`src/platforms.ts`: windows, apple, linux, android, chrome and the rest). A CVE whose vendor,

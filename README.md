@@ -17,9 +17,11 @@ Microsoft's baseline or NIST's macOS rules, DISA's Intune definitions and checkl
 800-53 High controls), lets you untick what you cannot do, and exports the rest as HTML,
 Markdown, CSV or JSON in a Jamf, Intune, Linux or plain flavour; its test plans
 (`/baselines/<platform>/tests`) say what to test on a new OS release, by area, from the same
-checks plus the owner's YAML templates. The plan for the rest of M9 (platform alerts and a Fix
-panel) is in [docs/PLAN.md](docs/PLAN.md); what comparable tools do is in
-[docs/COMPETITION.md](docs/COMPETITION.md).
+checks plus the owner's YAML templates. A watchlist entry can name a platform (apple, windows,
+linux, android, chrome, firefox, edge, network) so every CVE on it is your stack, and every CVE
+page carries a Fix panel: the patch, advisory, KEV action, fixed package version and mitigating
+STIG rule already published, or "nothing published yet". The M9 plan is in
+[docs/PLAN.md](docs/PLAN.md); what comparable tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
 Before that: triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
 alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
 releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the

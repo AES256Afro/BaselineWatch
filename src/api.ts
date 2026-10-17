@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { latestDigest } from "./digest.ts";
+import { fixContext, fixesFor, fixSummary } from "./fix.ts";
 import { listDocuments } from "./register.ts";
 import { listTriage, type TriageState } from "./triage.ts";
 import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
@@ -103,11 +104,22 @@ function vulnJson(v: NonNullable<ReturnType<typeof getVuln>>) {
 export function apiVuln(db: DatabaseSync, cveId: string) {
   const v = getVuln(db, cveId);
   if (!v) return null;
+  const fix = fixesFor(db, fixContext(db), v);
   return {
     ...vulnJson(v),
     cpes: parseJson<string[]>(v.cpes_json, []),
     references: parseJson<{ url: string; tags: string[] }[]>(v.references_json, []),
     history: vulnChanges(db, v.cve_id).map((c) => ({ at: c.observed_at, field: c.field, before: c.before_text, after: c.after_text })),
+    // The Fix panel's facts: what has been published, or an empty with the summary saying so.
+    fix: {
+      summary: fixSummary(fix),
+      published: !fix.empty,
+      references: fix.references,
+      advisories: fix.advisories.map((a) => ({ source: a.source, title: a.title, url: a.url, published: a.publishedAt })),
+      kev: fix.kev,
+      packages: fix.packages,
+      mitigations: fix.mitigations.map((m) => ({ id: m.id, note: m.note, source: m.source, rules: m.rules.map((r) => ({ stig: r.stig.product, label: r.rule.label, title: r.rule.title, severity: r.rule.family })) })),
+    },
   };
 }
 

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { isPlatformKey, platformName, platformsOf } from "./platforms.ts";
 
 /** A CVE in the shape BaselineWatch keeps, whatever it came from. */
 export interface NormalizedVuln {
@@ -87,7 +88,7 @@ export interface VulnChange {
 
 export interface WatchEntry {
   id: number;
-  kind: "product" | "baseline" | "family" | "keyword" | "package";
+  kind: "product" | "baseline" | "family" | "keyword" | "package" | "platform";
   value: string;
   label: string | null;
 }
@@ -142,7 +143,24 @@ export function matchWatch(
   v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null; packages?: { ecosystem: string; name: string }[] },
   entries: WatchEntry[],
 ): string[] {
-  const hits: string[] = [];
+  return matchWatchDetailed(v, entries).map((h) => h.label);
+}
+
+/** A platform entry's label defaults to the platform's name, so a chip reads "Apple". */
+export function watchLabel(entry: Pick<WatchEntry, "kind" | "value" | "label">): string {
+  const own = entry.label?.trim();
+  if (own) return own;
+  const value = entry.value.trim().toLowerCase();
+  return entry.kind === "platform" && isPlatformKey(value) ? platformName(value) : entry.value;
+}
+
+/** The entries a vulnerability matches, with their kinds, so a platform match can be told from a product one. */
+export function matchWatchDetailed(
+  v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null; packages?: { ecosystem: string; name: string }[] },
+  entries: WatchEntry[],
+): { label: string; kind: WatchEntry["kind"] }[] {
+  const hits: { label: string; kind: WatchEntry["kind"] }[] = [];
+  const platforms: string[] = entries.some((e) => e.kind === "platform") ? platformsOf(v) : [];
   const vendors = new Set(v.vendors.map((x) => x.toLowerCase()));
   const products = new Set(v.products.map((x) => x.toLowerCase()));
   const pairs = new Set(v.cpes.map((c) => c.split(":").slice(3, 5).join(":").toLowerCase()));
@@ -151,7 +169,7 @@ export function matchWatch(
   for (const entry of entries) {
     const value = entry.value.trim().toLowerCase();
     if (value === "") continue;
-    const label = entry.label?.trim() || entry.value;
+    const label = watchLabel(entry);
     let hit = false;
     if (entry.kind === "product") {
       if (value.startsWith("cpe:2.3:")) hit = v.cpes.some((c) => c.toLowerCase().startsWith(value));
@@ -162,8 +180,10 @@ export function matchWatch(
     } else if (entry.kind === "package") {
       const wanted = parsePackageValue(entry.value);
       hit = wanted !== null && packages.some((p) => packageMatches(wanted, p));
+    } else if (entry.kind === "platform") {
+      hit = platforms.includes(value);
     }
-    if (hit) hits.push(label);
+    if (hit) hits.push({ label, kind: entry.kind });
   }
   return hits;
 }
@@ -194,6 +214,8 @@ export interface UpsertResult {
   isNew: boolean;
   changes: VulnChange[];
   watchLabels: string[];
+  /** The labels among them that came from platform entries ("Apple"), for the alert's wording. */
+  watchPlatforms: string[];
   row: VulnRow;
 }
 
@@ -202,7 +224,9 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   const existing = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(n.cveId) as unknown as VulnRow | undefined;
   // A source that says nothing about packages (NVD) must not lose the ones an advisory attached.
   const packages = n.packages ?? parseJson<AffectedPackage[]>(existing?.packages_json ?? null, []);
-  const watchLabels = matchWatch({ ...n, packages }, watch);
+  const hits = matchWatchDetailed({ ...n, packages }, watch);
+  const watchLabels = hits.map((h) => h.label);
+  const watchPlatforms = hits.filter((h) => h.kind === "platform").map((h) => h.label);
   const changes: VulnChange[] = [];
 
   if (!existing) {
@@ -278,7 +302,7 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   for (const c of changes) insertChange.run(n.cveId, observedAt, n.lastModifiedAt, c.field, c.before, c.after);
 
   const row = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(n.cveId) as unknown as VulnRow;
-  return { isNew: !existing, changes, watchLabels, row };
+  return { isNew: !existing, changes, watchLabels, watchPlatforms, row };
 }
 
 /** A CVE id, bare or with a distribution's prefix (DEBIAN-CVE-2026-1234, UBUNTU-CVE-2026-1234). */
@@ -369,7 +393,7 @@ export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedA
       { cpes: parseJson<string[]>(existing.cpes_json, []), vendors: parseJson<string[]>(existing.vendors_json, []), products: parseJson<string[]>(existing.products_json, []), description: existing.description, packages },
       watch,
     );
-    result = { isNew: false, changes: [], watchLabels, row: existing };
+    result = { isNew: false, changes: [], watchLabels, watchPlatforms: [], row: existing };
   }
 
   const beforeKeys = new Set(before.map(packageKey));
@@ -393,7 +417,7 @@ export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedA
     key,
   );
   const row = db.prepare("SELECT * FROM vulns WHERE cve_id = ?").get(key) as unknown as VulnRow;
-  return { key, isNew: result.isNew, changes, watchLabels: result.watchLabels, row };
+  return { key, isNew: result.isNew, changes, watchLabels: result.watchLabels, watchPlatforms: result.watchPlatforms, row };
 }
 
 /** Flags a CVE as in CISA's KEV from the KEV catalog, for CVEs NVD has not marked yet. */

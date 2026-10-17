@@ -1,5 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
+import { fixContext, fixesFor, fixSummary, kevFor } from "../fix.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
+import { getVuln } from "../vulns.ts";
 import { relativeTime } from "../time.ts";
 import type { TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
@@ -80,6 +82,16 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
   const totalUnread = counts.reduce((n, c) => n + (c.unread ?? 0), 0);
   const current = query(filters, {});
   const last = items[items.length - 1];
+  // The fix line on a CVE or KEV item: the same facts as the CVE page's Fix panel, in one sentence.
+  const fixes = items.some((i) => i.kind === "vulnerability" || i.kind === "kev") ? fixContext(db) : null;
+  const fixLine = (item: WireItem): Html => {
+    if (!fixes || (item.kind !== "vulnerability" && item.kind !== "kev")) return html``;
+    const cve = item.kind === "kev" ? item.external_id : (signals(item).cves?.[0] ?? item.external_id);
+    const row = getVuln(db, cve);
+    if (row) return html`<p class="wi-fix"><b>Fix:</b> ${fixSummary(fixesFor(db, fixes, row))} <a href="/vulnerabilities/${row.cve_id}">Fix panel</a></p>`;
+    const kev = kevFor(db, cve);
+    return kev?.requiredAction ? html`<p class="wi-fix"><b>Fix:</b> CISA: ${kev.requiredAction}${kev.dueDate ? html` (due ${kev.dueDate})` : ""}</p>` : html``;
+  };
 
   const rows = items.map((item) => {
     const back = html`<input type="hidden" name="back" value="${current}">`;
@@ -90,6 +102,7 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
       </div>
       <h3 class="wi-title">${item.url ? html`<a href="${item.url}" ${newTabIf(item.url)}>${item.title}</a>` : item.title}</h3>
       ${item.summary ? html`<p class="wi-sum">${item.summary}</p>` : ""}
+      ${fixLine(item)}
       <div class="wi-foot">
         <div class="chips">${chips(item)}</div>
         ${owner
