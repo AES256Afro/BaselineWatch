@@ -88,16 +88,17 @@ describe("test plans", () => {
 
   it("draws the page, keeps unticked checks out through a redraw, and exports a checklist", async () => {
     const base = app.base;
-    const html = await (await fetch(`${base}/baselines/windows/tests`)).text();
+    const html = await (await fetch(`${base}/baselines/windows/tests?section=encryption`)).text();
     expect(html).toContain("Windows <span class=\"arrow\">test plan</span>");
-    expect(html).toContain("<b>Disk encryption</b>");
+    expect(html).toContain('<h2>Disk encryption <span class="count">');
     expect(html).toContain('name="keep" value="test:stig:v-253260" checked');
     expect(html).toContain("owner's template");
     expect(html).toContain("BitLocker with TPM and PIN, recovery keys backed up to Microsoft Entra ID");
     expect(html).toContain('<a href="/baselines/windows">');
 
     const kept = buildTestPlan(app.db, { platform: "windows" }).items.map((i) => i.id).filter((id) => id !== "test:stig:v-253260" && !id.startsWith("template:mdm-enrolment"));
-    const body = new URLSearchParams({ applied: "1", templates: "1" });
+    // A form without `shown` (an older page or a script) drops everything it does not keep.
+    const body = new URLSearchParams({ applied: "1", templates: "1", section: "encryption" });
     for (const id of kept) body.append("keep", id);
     const post = (p: string, b: URLSearchParams) => fetch(`${base}${p}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "sec-fetch-site": "same-origin" }, body: b.toString() });
     const redrawn = await (await post("/baselines/windows/tests", body)).text();
@@ -131,5 +132,79 @@ describe("test plans", () => {
     const direct = exportPlan(buildTestPlan(app.db, { platform: "linux", templates: false }), "csv", { baseUrl: "https://example.test", generatedAt: at.toISOString(), version: "0.21.0" });
     expect(direct.body.split("\r\n").length).toBe(3 + 2); // header, three rules, trailing newline
     expect((await fetch(`${base}/baselines/amiga/tests`)).status).toBe(404);
+  });
+
+  it("carries a drop made in one area through a redraw of another and into the export", async () => {
+    const base = app.base;
+    const all = buildTestPlan(app.db, { platform: "windows" }).items;
+    const ids = (area: string) => all.filter((i) => i.area === area).map((i) => i.id);
+    const post = async (fields: Record<string, string>, keep: string[], drop: string[], path = "/baselines/windows/tests") => {
+      const body = new URLSearchParams(fields);
+      for (const id of keep) body.append("keep", id);
+      for (const id of drop) body.append("drop", id);
+      const response = await fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "sec-fetch-site": "same-origin" }, body: body.toString() });
+      expect(response.status).toBe(200);
+      return response;
+    };
+    const pin = "test:stig:v-253260"; // WN11-00-000031, BitLocker PIN: disk encryption
+    const smb = "test:stig:v-253287"; // WN11-00-000165, SMBv1: network
+
+    // On disk encryption, untick the BitLocker PIN check and open network: the drop rides along hidden.
+    const network = await (await post({ applied: "1", templates: "1", shown: "encryption", section: "network" }, ids("encryption").filter((id) => id !== pin), [])).text();
+    expect(network).toContain('name="shown" value="network"');
+    expect(network).toContain(`<input type="hidden" name="drop" value="${pin}">`);
+    expect(network).not.toContain(`name="keep" value="${pin}"`); // only the shown area's checkboxes are drawn
+    expect(network).toContain(`name="keep" value="${smb}" checked`);
+    expect(network).toContain("; 1 dropped");
+    expect(network).toContain(`<button type="submit" name="section" value="encryption" class="" >Disk encryption <span class="count">${ids("encryption").length - 1} of ${ids("encryption").length}</span></button>`);
+
+    // On network, untick SMBv1 and go back to disk encryption: both drops hold, each where it belongs.
+    const encryption = await (await post({ applied: "1", templates: "1", shown: "network", section: "encryption" }, ids("network").filter((id) => id !== smb), [pin])).text();
+    expect(encryption).toContain('name="shown" value="encryption"');
+    expect(encryption).toContain(`name="keep" value="${pin}" >`);
+    expect(encryption).toContain(`<input type="hidden" name="drop" value="${smb}">`);
+    expect(encryption).not.toContain(`name="drop" value="${pin}"`); // the shown area speaks through its checkboxes
+    expect(encryption).toContain("; 2 dropped");
+
+    // Rebuild redraws the same area with the same state.
+    const rebuilt = await (await post({ applied: "1", templates: "1", shown: "encryption", action: "rebuild" }, ids("encryption").filter((id) => id !== pin), [smb])).text();
+    expect(rebuilt).toContain('name="shown" value="encryption"');
+    expect(rebuilt).toContain(`name="keep" value="${pin}" >`);
+    expect(rebuilt).toContain("; 2 dropped");
+
+    // An export from the disk encryption area covers the whole plan: both drops reach it and the areas never drawn stay whole.
+    const json = (await (await post({ applied: "1", templates: "1", shown: "encryption", format: "json" }, ids("encryption").filter((id) => id !== pin), [smb], "/baselines/windows/tests/export")).json()) as { counts: { dropped: number; template: number }; items: { id: string; area: string }[] };
+    expect(json.counts.dropped).toBe(2);
+    expect(json.items.map((i) => i.id)).toEqual(all.map((i) => i.id).filter((id) => id !== pin && id !== smb));
+    expect(json.items.filter((i) => i.area === "MDM enrolment")).toHaveLength(ids("mdm").length);
+    expect(json.counts.template).toBe(all.filter((i) => i.source === "template").length);
+
+    // Unticking the owner's templates leaves their steps out; a carried template drop goes with them.
+    const bare = await (await post({ applied: "1", shown: "encryption", section: "authentication" }, ids("encryption").filter((id) => id !== pin), [smb, "template:mdm-enrolment:1"])).text();
+    expect(bare).toContain('name="templates" value="1" >');
+    expect(bare).not.toContain("<span class=\"chip\">owner's template</span>");
+    expect(bare).not.toContain("template:mdm-enrolment:1");
+    expect(bare).toContain(`<input type="hidden" name="drop" value="${pin}">`);
+    expect(bare).toContain("; 2 dropped");
+    const bareExport = (await (await post({ applied: "1", shown: "encryption", format: "json" }, ids("encryption").filter((id) => id !== pin), [smb], "/baselines/windows/tests/export")).json()) as { counts: { template: number } };
+    expect(bareExport.counts.template).toBe(0);
+
+    // A carried drop for an id the plan no longer holds is forgotten.
+    const stale = await (await post({ applied: "1", templates: "1", shown: "network", section: "other" }, ids("network"), ["test:stig:v-999999", pin])).text();
+    expect(stale).toContain(`<input type="hidden" name="drop" value="${pin}">`);
+    expect(stale).not.toContain("v-999999");
+    expect(stale).toContain("; 1 dropped");
+
+    // ?section= opens an area directly; one the plan has no checks in falls back to the first.
+    const direct = await (await fetch(`${base}/baselines/windows/tests?section=network`)).text();
+    expect(direct).toContain('name="shown" value="network"');
+    expect(direct).toContain('<h2>Network <span class="count">');
+    expect(direct).not.toContain('name="drop"');
+    const fallback = await (await fetch(`${base}/baselines/windows/tests?section=nowhere`)).text();
+    expect(fallback).toContain('name="shown" value="authentication"');
+
+    // The GET export API is unchanged.
+    const api = (await (await fetch(`${base}/baselines/windows/tests/export?format=json&drop=${pin}&drop=${smb}`)).json()) as { counts: { dropped: number } };
+    expect(api.counts.dropped).toBe(2);
   });
 });

@@ -31,6 +31,10 @@ export function areaLabel(id: Area): string {
   return areas.find((a) => a.id === id)?.label ?? id;
 }
 
+export function isArea(value: unknown): value is Area {
+  return typeof value === "string" && areas.some((a) => a.id === value);
+}
+
 const patterns: { area: Area; title: RegExp; body?: RegExp }[] = [
   { area: "mdm", title: /\bmdm\b|enrol|enroll|device management|managed by|management profile|supervis/i },
   { area: "encryption", title: /bitlocker|filevault|encrypt|\bluks\b|dm-crypt|cryptsetup|\btpm\b|secure enclave|data at rest/i, body: /bitlocker|filevault|cryptsetup|\bluks\b/i },
@@ -99,7 +103,7 @@ export function loadTemplates(dir: string = templatesDir): { templates: Template
       const title = str(doc.title);
       if (!title) throw new Error("no title");
       const platforms = (Array.isArray(doc.platforms) ? doc.platforms : ["all"]).map((p) => String(p)).filter((p): p is Template["platforms"][number] => ["windows", "macos", "linux", "all"].includes(p));
-      const area = areas.some((a) => a.id === doc.area) ? (doc.area as Area) : "other";
+      const area = isArea(doc.area) ? doc.area : "other";
       const steps = (Array.isArray(doc.steps) ? doc.steps : []).map((s) => {
         const step = obj(s);
         const source = obj(step.source);
@@ -204,6 +208,28 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
       byArea,
     },
   };
+}
+
+/**
+ * The page draws one area at a time, so a phone loads one area's procedures rather than the
+ * whole plan: the form carries the other areas' dropped ids as hidden fields, so a redraw or an
+ * export from any area covers the plan.
+ */
+export interface PlanArea {
+  id: Area;
+  label: string;
+  items: PlanItem[];
+  kept: number;
+}
+
+/** The areas the plan has checks in, in page order, each with its kept count. */
+export function planAreas(plan: TestPlan): PlanArea[] {
+  return areas
+    .map((a) => {
+      const items = plan.items.filter((i) => i.area === a.id);
+      return { id: a.id, label: a.label, items, kept: items.filter((i) => i.included).length };
+    })
+    .filter((a) => a.items.length);
 }
 
 export type PlanFormat = "html" | "md" | "csv" | "json";

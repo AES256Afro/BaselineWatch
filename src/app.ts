@@ -19,7 +19,7 @@ import { renderSources } from "./pages/sources.ts";
 import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
 import { renderBaselinesIndex, renderBuilder } from "./pages/baselines.ts";
 import { renderTestPlan } from "./pages/testplans.ts";
-import { buildTestPlan, exportPlan, isPlanFormat } from "./testplans.ts";
+import { buildTestPlan, exportPlan, isArea, isPlanFormat } from "./testplans.ts";
 import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "./baselines.ts";
 import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./exports.ts";
 import { isPlatformId, type Cat } from "./stigs.ts";
@@ -392,22 +392,31 @@ export function createApp(ctx: AppContext): Express {
   app.get("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, (req.body ?? {}) as Record<string, unknown>));
 
-  // Test plans: the same form shape over the derived checks and the owner's templates.
+  // Test plans: the same form shape over the derived checks and the owner's templates, drawn one
+  // area at a time the way the builder draws one section: `shown` names the area whose checkboxes
+  // are in the form, hidden `drop` fields carry the other areas' drops, `section` picks the next.
   const planOptions = (platform: ProfileOptions["platform"], fields: Record<string, unknown>) => {
     const applied = str(fields.applied) === "1";
     const keep = applied ? new Set(list(fields.keep).slice(0, 5000)) : null;
     const drop = list(fields.drop).slice(0, 5000);
+    const shown = str(fields.shown, 20);
     const base = { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1", templates: applied ? str(fields.templates) === "1" : str(fields.templates) !== "0" };
     if (keep) {
-      const all = buildTestPlan(db, base).items.map((i) => i.id);
-      return { ...base, drop: all.filter((id) => !keep.has(id)) };
+      const all = buildTestPlan(db, base).items;
+      if (isArea(shown)) {
+        // Only one area's checkboxes were drawn; the other areas' drops rode along as hidden fields.
+        const carried = new Set(drop);
+        return { ...base, drop: all.filter((i) => (i.area === shown ? !keep.has(i.id) : carried.has(i.id))).map((i) => i.id) };
+      }
+      return { ...base, drop: all.filter((i) => !keep.has(i.id)).map((i) => i.id) };
     }
     return drop.length ? { ...base, drop } : base;
   };
   const drawPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
-    res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), ...who(req, res) }));
+    const area = str(fields.section, 20) ?? str(fields.shown, 20);
+    res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), area: isArea(area) ? area : undefined, ...who(req, res) }));
   };
   app.get("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, (req.body ?? {}) as Record<string, unknown>));
