@@ -118,13 +118,23 @@ it through the CCIs. Where DISA ships a settings-catalog policy and a checklist 
 each rule shows the definition DISA uses (matched by the policy's display name in the fix text)
 and DISA's verdict (set by its policy, or outside its scope).
 
-The page is one form. Selects pick the versions; a checkbox per item keeps or drops it; Rebuild
-redraws; the export buttons send the same fields to `/baselines/<platform>/export` with a
-format (html, md, csv, json) and a flavour (plain, jamf, intune, linux). Nothing is stored: the
-form carries the state, so the urlencoded limit on `/baselines` is 1 MB and 5,000 fields rather
-than the 16 KB the rest of the site allows. A GET with the same query fields answers too, with
-`drop=<item id>` for what to leave out, so `/baselines/windows/export?format=json&flavour=intune`
-is an API. "Current versus next" compares the chosen STIG, Microsoft baseline or mSCP branch with
+The page is one form drawn a section at a time, so a phone loads a few hundred kilobytes rather
+than the whole profile (a Windows 11 build is about a thousand items). The sections are the
+STIG's rules by CAT (`cat1`, `cat2`, and `cat3` when included), "Microsoft's baseline adds"
+(`sct`), "mSCP adds" (`mscp`) and the SP 800-53 High controls (`controls`); a row of buttons
+switches between them and `?section=<id>` opens one directly. Selects pick the versions; a
+checkbox per item keeps or drops it; Rebuild redraws the same section; the export buttons send
+the same fields to `/baselines/<platform>/export` with a format (html, md, csv, json) and a
+flavour (plain, jamf, intune, linux). Nothing is stored: the form carries the state. A hidden
+`shown` field names the section whose checkboxes are on the page, and the other sections' dropped
+ids ride along as hidden `drop` fields, so a redraw or an export from any section covers the whole
+profile; a `drop` for an id the profile no longer holds is forgotten. The "apply with" lines are
+folded into each row; "Show check and fix text" (`text=1`) folds the rule text in too, which
+roughly doubles a section. The urlencoded limit on `/baselines` stays at 1 MB and 5,000 fields,
+and a form that sends every kept id without `shown` still works. A GET with the same query fields
+answers too, with `drop=<item id>` for what to leave out, so
+`/baselines/windows/export?format=json&flavour=intune&drop=stig:v-253287` is an API and is
+unchanged. "Current versus next" compares the chosen STIG, Microsoft baseline or mSCP branch with
 the next version loaded and lists what the strict set gains, loses and changes.
 
 Exports carry the publishers' attributions and never include CIS text or anything a model wrote;

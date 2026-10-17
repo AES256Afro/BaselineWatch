@@ -20,7 +20,7 @@ import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
 import { renderBaselinesIndex, renderBuilder } from "./pages/baselines.ts";
 import { renderTestPlan } from "./pages/testplans.ts";
 import { buildTestPlan, exportPlan, isPlanFormat } from "./testplans.ts";
-import { buildProfile, isBuilderPlatform, type ProfileOptions } from "./baselines.ts";
+import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "./baselines.ts";
 import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./exports.ts";
 import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
@@ -345,17 +345,24 @@ export function createApp(ctx: AppContext): Express {
 
   // The baseline builder: ordinary forms, nothing stored. GET draws the strict profile; POST
   // redraws it with the unticked items dropped; export answers either way, so a JSON export
-  // with query fields is also an API.
+  // with query fields is also an API. The page draws one section at a time: `shown` names the
+  // section whose checkboxes are in the form, hidden `drop` fields carry the other sections'
+  // drops, and a `section` button picks the next one to draw.
   const list = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x)) : typeof v === "string" ? [v] : []);
   const profileOptions = (platform: ProfileOptions["platform"], fields: Record<string, unknown>): ProfileOptions => {
     const applied = str(fields.applied) === "1";
     const keep = applied ? new Set(list(fields.keep).slice(0, 5000)) : null;
     const drop = list(fields.drop).slice(0, 5000);
+    const shown = str(fields.shown, 20);
     const options: ProfileOptions = { platform, stig: str(fields.stig, 160), sct: str(fields.sct, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1" };
     if (keep) {
       // The form sends what is kept; the profile wants what is dropped: everything it holds that was not sent.
-      const all = buildProfile(db, options).items.map((i) => i.id);
-      options.drop = all.filter((id) => !keep.has(id));
+      const all = buildProfile(db, options).items;
+      if (isSectionId(shown)) {
+        // Only one section's checkboxes were drawn; the other sections' drops rode along as hidden fields.
+        const carried = new Set(drop);
+        options.drop = all.filter((i) => (sectionOf(i) === shown ? !keep.has(i.id) : carried.has(i.id))).map((i) => i.id);
+      } else options.drop = all.filter((i) => !keep.has(i.id)).map((i) => i.id);
     } else if (drop.length) options.drop = drop;
     return options;
   };
@@ -367,7 +374,8 @@ export function createApp(ctx: AppContext): Express {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
     const profile = buildProfile(db, profileOptions(platform, fields));
-    res.type("html").send(renderBuilder({ db, profile, flavour: flavourOf(fields), ...who(req, res) }));
+    const section = str(fields.section, 20) ?? str(fields.shown, 20);
+    res.type("html").send(renderBuilder({ db, profile, flavour: flavourOf(fields), section: isSectionId(section) ? section : undefined, text: str(fields.text) === "1", ...who(req, res) }));
   };
   app.get("/baselines/:platform", (req, res, next) => drawBuilder(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform", (req, res, next) => drawBuilder(req, res, next, (req.body ?? {}) as Record<string, unknown>));

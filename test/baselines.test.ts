@@ -1,6 +1,6 @@
 import { zipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildProfile, defaultMscp, defaultSct, gpoPathFromFix, matchIntune, registryFromCheck, registryKey } from "../src/baselines.ts";
+import { buildProfile, defaultMscp, defaultSct, gpoPathFromFix, matchIntune, registryFromCheck, registryKey, sectionOf } from "../src/baselines.ts";
 import { exportProfile } from "../src/exports.ts";
 import { getSource, ingestDocumentTarget } from "../src/ingest.ts";
 import { loadBaselineFixtures } from "./baseline-fixtures.ts";
@@ -111,26 +111,35 @@ describe("the baseline builder", () => {
 
   it("drops what is unticked, keeps the drops through a redraw, and exports in every format and flavour", async () => {
     const base = app.base;
+    // The first page is the CAT I section: the CAT II rules wait behind their own tab.
     const page = await (await fetch(`${base}/baselines/windows`)).text();
     expect(page).toContain("Windows <span class=\"arrow\">strictest published profile</span>");
-    expect(page).toContain('name="keep" value="stig:v-253287" checked');
+    expect(page).toContain('name="shown" value="cat1"');
+    expect(page).toContain('name="keep" value="stig:v-253284" checked');
+    expect(page).not.toContain('name="keep" value="stig:v-253287"');
     expect(page).toContain("Intune: 1 definition");
     expect(page).toContain("DISA: Not applicable to the policy");
-    expect(page).toContain("Microsoft's baseline adds");
+    expect(page).toContain('<button type="submit" name="section" value="cat2" class="" >STIG rules: CAT II <span class="count">2 of 2</span></button>');
+    expect(page).toContain("Microsoft&#39;s baseline adds");
     expect(page).toContain("SP 800-53 High baseline controls");
     expect(page).toContain('aria-current="page">Baselines</a>');
+    const cat2 = await (await fetch(`${base}/baselines/windows?section=cat2`)).text();
+    expect(cat2).toContain('name="shown" value="cat2"');
+    expect(cat2).toContain('name="keep" value="stig:v-253287" checked');
+    expect(cat2).not.toContain('name="keep" value="stig:v-253284"');
 
-    // The form sends only what is kept; the SMBv1 rule and one control are unticked.
+    // A form that sends every kept id (no `shown`) still works: the SMBv1 rule and one control are unticked.
     const all = buildProfile(app.db, { platform: "windows" }).items.map((i) => i.id);
     const kept = all.filter((id) => id !== "stig:v-253287" && id !== "control:cm-7");
-    const fields: Record<string, string> = { applied: "1", stig: `stig:microsoft-windows-11@${win11Doc}`, flavour: "intune" };
+    const fields: Record<string, string> = { applied: "1", stig: `stig:microsoft-windows-11@${win11Doc}`, flavour: "intune", section: "cat2" };
     const body = new URLSearchParams(fields);
     for (const id of kept) body.append("keep", id);
     const redrawn = await fetch(`${base}/baselines/windows`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "sec-fetch-site": "same-origin" }, body: body.toString() });
     expect(redrawn.status).toBe(200);
     const html = await redrawn.text();
     expect(html).toContain('name="keep" value="stig:v-253287" >');
-    expect(html).toContain('name="keep" value="stig:v-253284" checked');
+    expect(html).toContain('<input type="hidden" name="drop" value="control:cm-7">');
+    expect(html).not.toContain('name="drop" value="stig:v-253284"');
     expect(html).toContain("(2 dropped)");
     expect(html).toContain('<option value="intune" selected>');
 
@@ -166,6 +175,74 @@ describe("the baseline builder", () => {
     expect(direct.filename).toBe("baselinewatch-linux-red-hat-enterprise-linux-9-v2r10-linux.md");
     expect(direct.body).toContain("Configure the operating system to use");
     expect((await formPost(base, "/baselines/amiga", { applied: "1" })).status).toBe(404);
+  });
+
+  it("carries a drop made in one section through a redraw of another and into the export", async () => {
+    const base = app.base;
+    const all = buildProfile(app.db, { platform: "windows" }).items;
+    const ids = (section: string) => all.filter((i) => sectionOf(i) === section).map((i) => i.id);
+    const post = async (fields: Record<string, string>, keep: string[], drop: string[], path = "/baselines/windows") => {
+      const body = new URLSearchParams(fields);
+      for (const id of keep) body.append("keep", id);
+      for (const id of drop) body.append("drop", id);
+      const response = await fetch(`${base}${path}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", origin: base, "sec-fetch-site": "same-origin" }, body: body.toString() });
+      expect(response.status).toBe(200);
+      return response;
+    };
+    const row = (html: string, id: string) => html.split('<li class="pitem').find((part) => part.includes(`value="${id}"`)) ?? "";
+
+    // On the CAT II section, untick the SMBv1 rule and open the controls section: the drop rides along hidden.
+    const controls = await (await post({ applied: "1", shown: "cat2", section: "controls" }, ids("cat2").filter((id) => id !== "stig:v-253287"), [])).text();
+    expect(controls).toContain('name="shown" value="controls"');
+    expect(controls).toContain('<input type="hidden" name="drop" value="stig:v-253287">');
+    expect(controls).toContain("(1 dropped)");
+    expect(controls).toContain('name="keep" value="control:cm-7" checked');
+    expect(row(controls, "control:cm-7")).not.toContain("WN11-00-000165"); // the dropped rule no longer implements CM-7
+    expect(controls).toContain('<button type="submit" name="section" value="cat2" class="" >STIG rules: CAT II <span class="count">1 of 2</span></button>');
+
+    // On the controls section, untick CM-7 and go back to CAT II: both drops hold, each where it belongs.
+    const cat2 = await (await post({ applied: "1", shown: "controls", section: "cat2" }, ids("controls").filter((id) => id !== "control:cm-7"), ["stig:v-253287"])).text();
+    expect(cat2).toContain('name="shown" value="cat2"');
+    expect(cat2).toContain('name="keep" value="stig:v-253287" >');
+    expect(cat2).toContain('<input type="hidden" name="drop" value="control:cm-7">');
+    expect(cat2).not.toContain('name="drop" value="stig:v-253287"'); // the shown section speaks through its checkboxes
+    expect(cat2).toContain("(2 dropped)");
+
+    // Rebuild redraws the same section with the same state.
+    const rebuilt = await (await post({ applied: "1", shown: "cat2", action: "rebuild", flavour: "intune" }, ids("cat2").filter((id) => id !== "stig:v-253287"), ["control:cm-7"])).text();
+    expect(rebuilt).toContain('name="shown" value="cat2"');
+    expect(rebuilt).toContain('name="keep" value="stig:v-253287" >');
+    expect(rebuilt).toContain("(2 dropped)");
+
+    // An export from the CAT II section covers the whole profile: both drops reach it and the sections never drawn stay whole.
+    const json = (await (await post({ applied: "1", shown: "cat2", format: "json", flavour: "intune" }, ids("cat2").filter((id) => id !== "stig:v-253287"), ["control:cm-7"], "/baselines/windows/export")).json()) as { dropped: string[]; items: { kind: string; label: string }[] };
+    expect(json.dropped).toEqual(["stig:v-253287", "control:cm-7"]);
+    expect(json.items.some((i) => i.label === "WN11-00-000165")).toBe(false);
+    expect(json.items.some((i) => i.label === "CM-7")).toBe(false);
+    expect(json.items.filter((i) => i.kind === "sct")).toHaveLength(10);
+    expect(json.items.filter((i) => i.kind === "stig")).toHaveLength(5);
+
+    // A carried drop for an id the profile no longer holds is forgotten.
+    const stale = await (await post({ applied: "1", shown: "cat2", section: "cat1" }, ids("cat2"), ["stig:v-999999", "control:cm-7"])).text();
+    expect(stale).toContain('<input type="hidden" name="drop" value="control:cm-7">');
+    expect(stale).not.toContain("v-999999");
+    expect(stale).toContain("(1 dropped)");
+
+    // The GET export API is unchanged.
+    const api = (await (await fetch(`${base}/baselines/windows/export?format=json&flavour=intune&drop=stig:v-253287&drop=control:cm-7`)).json()) as { dropped: string[] };
+    expect(api.dropped).toEqual(["stig:v-253287", "control:cm-7"]);
+
+    // The check and fix text is folded into each row only when asked for; the apply lines are always folded.
+    const plain = await (await fetch(`${base}/baselines/windows?section=cat2`)).text();
+    expect(plain).toContain("<details><summary>How to apply</summary><dl class=\"pitem-apply\">");
+    expect(plain).not.toContain('<h4 class="small">Check</h4>');
+    const withText = await (await fetch(`${base}/baselines/windows?section=cat2&text=1`)).text();
+    expect(withText).toContain('name="text" value="1" checked');
+    expect(withText).toContain("<summary>How to apply, check and fix</summary>");
+    expect(withText).toContain('<h4 class="small">Check</h4>');
+    const macos = await (await fetch(`${base}/baselines/macos?section=mscp`)).text();
+    expect(macos).toContain("<h2>mSCP adds <span class=\"count\">2 kept</span></h2>");
+    expect(macos).toContain('name="keep" value="mscp:');
   });
 
   it("shows current versus next when a newer STIG version is loaded", async () => {

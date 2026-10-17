@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { builderPlatforms, builderSummary, type BuilderPlatform, type DocChoice, type NextComparison, type Profile, type ProfileItem } from "../baselines.ts";
+import { builderPlatforms, builderSummary, profileSections, sectionOf, type BuilderPlatform, type DocChoice, type NextComparison, type Profile, type ProfileItem, type ProfileSection, type SectionId } from "../baselines.ts";
 import { applyLines, flavours, type Flavour } from "../exports.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
@@ -66,26 +66,30 @@ function severityChip(item: ProfileItem): Html {
   return html`<span class="chip sev ${level}">${item.severity}</span>`;
 }
 
-function itemRow(item: ProfileItem, flavour: Flavour, base: string | null): Html {
-  const apply = applyLines(item, flavour).filter((l) => l.label !== "Check" && l.label !== "Fix");
-  return html`<li class="pitem ${item.included ? "" : "off"} ${item.kind}">
-    <label class="pitem-head">
-      <input type="checkbox" name="keep" value="${item.id}" ${item.included ? "checked" : ""}>
-      <a href="${item.url}"><b>${item.label}</b></a> ${severityChip(item)} <span class="pitem-title">${item.title}</span>
-    </label>
-    <div class="pitem-meta">
-      ${item.controls.length ? html`<span>${item.controls.map((c, i) => html`${i ? ", " : ""}${base ? html`<a href="${base}/${c}">${controlLabel(c)}</a>` : controlLabel(c)}`)}</span>` : item.kind === "stig" ? html`<span class="small">no control mapping</span>` : ""}
-      ${item.kind === "control" ? html`<span class="small">${item.implementedBy.length ? html`implemented by ${item.implementedBy.slice(0, 8).join(", ")}${item.implementedBy.length > 8 ? html` and ${item.implementedBy.length - 8} more` : ""}` : "organisational: no technical rule in this profile"}</span>` : ""}
-      ${item.mscp ? html`<span class="chip">mSCP ${item.mscp.id}</span>` : ""}
-      ${item.intune.length ? html`<span class="chip ins">Intune: ${item.intune.length} definition${item.intune.length === 1 ? "" : "s"}</span>` : ""}
-      ${item.checklist ? html`<span class="chip ${item.checklist.status === "NotAFinding" ? "ins" : item.checklist.status === "Not_Applicable" ? "mod" : ""}">DISA: ${item.checklist.label}</span>` : ""}
-      ${item.sctValue !== null && item.kind === "stig" ? html`<span class="chip">Microsoft baseline: ${item.sctValue}</span>` : ""}
-    </div>
-    ${apply.length ? html`<dl class="pitem-apply">${apply.map((l) => html`<dt>${l.label}</dt><dd>${l.text.length > 400 ? `${l.text.slice(0, 399)}…` : l.text}</dd>`)}</dl>` : ""}
-    ${item.check || item.fix
-      ? html`<details><summary>${item.check && item.fix ? "Check and fix" : item.check ? "Check" : "Fix"}</summary>${item.check ? html`<h4 class="small">Check</h4><p class="prose">${lines(item.check)}</p>` : ""}${item.fix ? html`<h4 class="small">Fix</h4><p class="prose">${lines(item.fix)}</p>` : ""}</details>`
-      : ""}
-  </li>`;
+/**
+ * One item: the checkbox, the label and title, the facts as chips, and the apply lines (and the
+ * check and fix text when asked for) folded away. Kept tight: a section draws a few hundred of
+ * these and a phone loads them all. A Microsoft setting's title is its registry path and its
+ * value is a chip, so it carries no apply lines; a control's implementers are in its chips.
+ */
+function itemRow(item: ProfileItem, flavour: Flavour, base: string | null, text: boolean): Html {
+  const apply = item.kind === "control" || item.kind === "sct" ? [] : applyLines(item, flavour).filter((l) => l.label !== "Check" && l.label !== "Fix");
+  const meta: Html[] = [];
+  if (item.kind === "control") meta.push(html`<span class="small">${item.implementedBy.length ? html`implemented by ${item.implementedBy.slice(0, 8).join(", ")}${item.implementedBy.length > 8 ? html` and ${item.implementedBy.length - 8} more` : ""}` : "organisational: no technical rule in this profile"}</span>`);
+  else if (item.controls.length) meta.push(html`<span>${item.controls.map((c, i) => html`${i ? ", " : ""}${base ? html`<a href="${base}/${c}">${controlLabel(c)}</a>` : controlLabel(c)}`)}</span>`);
+  else if (item.kind === "stig") meta.push(html`<span class="small">no control mapping</span>`);
+  if (item.mscp) meta.push(html`<span class="chip">mSCP ${item.mscp.id}</span>`);
+  if (item.intune.length) meta.push(html`<span class="chip ins">Intune: ${item.intune.length} definition${item.intune.length === 1 ? "" : "s"}</span>`);
+  if (item.checklist) meta.push(html`<span class="chip ${item.checklist.status === "NotAFinding" ? "ins" : item.checklist.status === "Not_Applicable" ? "mod" : ""}">DISA: ${item.checklist.label}</span>`);
+  if (item.sctValue !== null) meta.push(html`<span class="chip">Microsoft baseline: ${item.sctValue}</span>`);
+  const withText = text && (item.check !== null || item.fix !== null);
+  const summary = apply.length && withText ? "How to apply, check and fix" : apply.length ? "How to apply" : item.check && item.fix ? "Check and fix" : item.check ? "Check" : "Fix";
+  const folded =
+    apply.length || withText
+      ? html`<details><summary>${summary}</summary>${apply.length ? html`<dl class="pitem-apply">${apply.map((l) => html`<dt>${l.label}</dt><dd>${l.text.length > 400 ? `${l.text.slice(0, 399)}…` : l.text}</dd>`)}</dl>` : ""}${withText && item.check ? html`<h4 class="small">Check</h4><p class="prose">${lines(item.check)}</p>` : ""}${withText && item.fix ? html`<h4 class="small">Fix</h4><p class="prose">${lines(item.fix)}</p>` : ""}</details>`
+      : "";
+  return html`<li class="pitem ${item.included ? "" : "off"} ${item.kind}"><label class="pitem-head"><input type="checkbox" name="keep" value="${item.id}" ${item.included ? "checked" : ""}> <a href="${item.url}"><b>${item.label}</b></a> ${severityChip(item)} <span class="pitem-title">${item.title}</span></label>${meta.length ? html`<div class="pitem-meta">${meta.map((m, i) => (i ? html` ${m}` : m))}</div>` : ""}${folded}</li>
+`;
 }
 
 function nextBox(n: NextComparison): Html {
@@ -103,27 +107,51 @@ export interface BuilderOptions extends Who {
   db: DatabaseSync;
   profile: Profile;
   flavour: Flavour;
+  /** The section to draw; the first with items when absent or empty. */
+  section?: SectionId | undefined;
+  /** Whether to fold each rule's check and fix text into its row (a megabyte on a big STIG). */
+  text?: boolean;
+}
+
+/** What a section is, under its heading. */
+function sectionBlurb(section: ProfileSection, profile: Profile): string {
+  const c = profile.components;
+  switch (section.id) {
+    case "cat1":
+      return `Every CAT I rule of ${c.stig?.label ?? "the STIG"}: the ones DISA rates most severe.`;
+    case "cat2":
+      return `Every CAT II rule of ${c.stig?.label ?? "the STIG"}.`;
+    case "cat3":
+      return `The CAT III rules of ${c.stig?.label ?? "the STIG"}, included because you asked for them.`;
+    case "sct":
+      return `Settings in ${c.sct?.label ?? "the Microsoft baseline"} that no rule of the STIG names by registry path. Values are Microsoft's, quoted from this instance's copy.`;
+    case "mscp":
+      return `Rules in ${c.mscp?.label ?? "mSCP"}'s SP 800-53 High or DISA STIG baseline that join no rule of the chosen STIG.`;
+    case "controls":
+      return `Every control in the High baseline, each with the kept rules that implement it through DISA's CCIs${profile.platform === "macos" ? " and mSCP's references" : ""}. A control with none is organisational: policy, process or something no technical rule reaches.`;
+  }
 }
 
 export function renderBuilder(options: BuilderOptions): string {
-  const { db, profile, flavour, owner, open, look } = options;
+  const { db, profile, flavour, owner, open, look, text = false } = options;
   const p = profile.platform;
   const name = platformName(p);
   const base = controlPageBase(db);
   const c = profile.components;
+  const sections = profileSections(profile);
+  const current = sections.find((s) => s.id === options.section) ?? sections[0];
+  // The other sections' drops ride along as hidden fields; the current section's are its unticked boxes.
+  const carried = current ? profile.items.filter((i) => !i.included && sectionOf(i) !== current.id) : [];
   const groups: { section: string; items: ProfileItem[] }[] = [];
-  for (const item of profile.items) {
+  for (const item of current?.items ?? []) {
     const last = groups[groups.length - 1];
     if (last && last.section === item.section) last.items.push(item);
     else groups.push({ section: item.section, items: [item] });
   }
-  const stigGroups = groups.filter((g) => g.items[0]!.kind === "stig");
-  const sctGroups = groups.filter((g) => g.items[0]!.kind === "sct");
-  const mscpGroups = groups.filter((g) => g.items[0]!.kind === "mscp");
-  const controlGroups = groups.filter((g) => g.items[0]!.kind === "control");
-  const section = (g: { section: string; items: ProfileItem[] }, openByDefault: boolean): Html => html`<details class="box pgroup" ${openByDefault ? "open" : ""}>
+  const list = (items: ProfileItem[]): Html => html`<ol class="pitems">${items.map((i) => itemRow(i, flavour, base, text))}</ol>`;
+  const group = (g: { section: string; items: ProfileItem[] }): Html => html`<details class="box pgroup">
     <summary><b>${g.section}</b> <span class="count">${g.items.filter((i) => i.included).length} of ${g.items.length} kept</span></summary>
-    <ol class="pitems">${g.items.map((i) => itemRow(i, flavour, base))}</ol>
+    ${list(g.items)}
   </details>`;
   const platformFlavours = flavours.filter((f) => f.id === "plain" || (p === "macos" && f.id === "jamf") || (p === "windows" && f.id === "intune") || (p === "linux" && f.id === "linux"));
 
@@ -131,12 +159,15 @@ export function renderBuilder(options: BuilderOptions): string {
     ? html`<div class="empty"><b>No ${name} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> and fetch the DISA library from <a href="/sources">Sources</a>.` : "The owner can follow one through the watchlist."}</p></div>`
     : html`<form method="post" action="/baselines/${p}" class="builder">
         <input type="hidden" name="applied" value="1">
+        ${current ? html`<input type="hidden" name="shown" value="${current.id}">` : ""}
+        ${carried.map((i) => html`<input type="hidden" name="drop" value="${i.id}">`)}
         <fieldset class="build-from">
           <legend>Build from</legend>
           ${select("stig", "STIG", profile.choices.stigs, c.stig, "No STIG loaded")}
           ${p === "windows" ? select("sct", "Microsoft baseline", profile.choices.scts, c.sct, "No Microsoft baseline loaded (fetch the Security Compliance Toolkit from Sources)") : ""}
           ${p === "macos" ? select("mscp", "mSCP branch", profile.choices.mscps, c.mscp, "No mSCP branch loaded (fetch the macOS Security Compliance Project from Sources)") : ""}
           <label class="inline-check"><input type="checkbox" name="cat3" value="1" ${profile.options.cat3 ? "checked" : ""}> Include CAT III</label>
+          <label class="inline-check"><input type="checkbox" name="text" value="1" ${text ? "checked" : ""}> Show check and fix text</label>
           <button type="submit" name="action" value="rebuild">Rebuild</button>
         </fieldset>
         <fieldset class="export-row">
@@ -147,13 +178,11 @@ export function renderBuilder(options: BuilderOptions): string {
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="md">Markdown</button>
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="csv">CSV</button>
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="json">JSON</button>
-          <span class="small">${platformFlavours.find((f) => f.id === flavour)?.blurb ?? ""} Untick an item, then Rebuild or export; the form carries the state and nothing is stored.</span>
+          <span class="small">${platformFlavours.find((f) => f.id === flavour)?.blurb ?? ""} Untick an item, then Rebuild or export; the form carries the state and nothing is stored. One section is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole profile.</span>
         </fieldset>
-        <h2>STIG rules <span class="count">${profile.counts.byKind.stig} kept</span></h2>
-        ${stigGroups.map((g) => section(g, true))}
-        ${sctGroups.length ? html`<h2>Microsoft's baseline adds <span class="count">${profile.counts.byKind.sct} kept</span></h2><p class="small">Settings in ${c.sct?.label ?? "the Microsoft baseline"} that no rule of the STIG names by registry path. Values are Microsoft's, quoted from this instance's copy.</p>${sctGroups.map((g) => section(g, false))}` : ""}
-        ${mscpGroups.length ? html`<h2>mSCP adds <span class="count">${profile.counts.byKind.mscp} kept</span></h2><p class="small">Rules in ${c.mscp?.label ?? "mSCP"}'s SP 800-53 High or DISA STIG baseline that join no rule of the chosen STIG.</p>${mscpGroups.map((g) => section(g, false))}` : ""}
-        ${controlGroups.length ? html`<h2>SP 800-53 High baseline controls <span class="count">${profile.counts.byKind.control} kept</span></h2><p class="small">Every control in the High baseline, each with the kept rules that implement it through DISA's CCIs${p === "macos" ? " and mSCP's references" : ""}. A control with none is organisational: policy, process or something no technical rule reaches.</p>${controlGroups.map((g) => section(g, false))}` : html`<p class="small">The SP 800-53 High baseline is not loaded; fetch NIST SP 800-53B from Sources to close the list with its controls.</p>`}
+        <nav class="ptabs" aria-label="Sections of the profile">${sections.map((s) => html`<button type="submit" name="section" value="${s.id}" class="${s.id === current?.id ? "on" : ""}" ${s.id === current?.id ? html`aria-current="true"` : ""}>${s.label} <span class="count">${s.kept} of ${s.items.length}</span></button>`)}</nav>
+        ${current ? html`<h2>${current.label} <span class="count">${current.kept} kept</span></h2><p class="small">${sectionBlurb(current, profile)}</p>${groups.length === 1 ? list(groups[0]!.items) : groups.map(group)}` : html`<p class="small">The STIG has no CAT I or CAT II rules to draw.</p>`}
+        ${sections.some((s) => s.id === "controls") ? "" : html`<p class="small">The SP 800-53 High baseline is not loaded; fetch NIST SP 800-53B from Sources to close the list with its controls.</p>`}
       </form>`;
 
   const aside = html`
