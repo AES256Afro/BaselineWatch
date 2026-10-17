@@ -2,6 +2,17 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.21.0 — 2026-10-17
+
+- **Test plans** (`/baselines/<platform>/tests`, M9.4): what to test when a new OS release lands
+  so the baseline still holds. Every check procedure of the profile's STIG and mSCP rules, filed
+  by area (authentication and SSO, browsers, disk encryption, logging and audit, network,
+  updates, MDM enrolment, everything else), plus the owner's templates kept as YAML in the
+  repository (SSO through Intune and through Jamf with each browser, FileVault, BitLocker and
+  LUKS key escrow, conditional access, enrolment), each step citing the publisher's document it
+  follows and labelled as the owner's. Untick, rebuild, and export the checklist as printable
+  HTML, Markdown, CSV or JSON.
+
 ## 0.20.0 — 2026-10-17
 
 - **Baselines**, a new area (`/baselines`, M9.3): per platform, the strictest published profile
