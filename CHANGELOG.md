@@ -2,6 +2,23 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.23.0 — 2026-10-17
+
+- **The baseline builder draws one section at a time**, so a phone can use it: the STIG's rules
+  by CAT, "Microsoft's baseline adds", "mSCP adds" and the SP 800-53 High controls, each behind
+  a button and each a few hundred kilobytes at most, where the whole Windows 11 profile came to a
+  megabyte of HTML on one page. The form still carries the state and nothing is stored: a hidden
+  field names the section on the page and the other sections' dropped ids ride along as hidden
+  fields, so untick in one section, open another, rebuild or export, and the whole profile is
+  covered. The "apply with" lines fold into each row, and "Show check and fix text" folds the
+  rule text in on request. `?section=<id>` opens a section directly; the GET export API
+  (`/baselines/<platform>/export?format=json&flavour=intune&drop=...`) is unchanged.
+- The test-plan templates and the mitigations map (`data/test-plans/`, `data/mitigations.yaml`)
+  are in the repository now. `.gitignore` and `.dockerignore` left the whole `data/` folder out,
+  so CI failed for 0.21.0 and 0.22.0 and neither image was built: 0.23.0 is the first image with
+  test plans, platform watch entries and the Fix panel. The database and snapshots under a local
+  `data/` stay ignored.
+
 ## 0.22.0 — 2026-10-17
 
 - **Platform watch entries** (M9.5): a watchlist entry of kind Platform names windows, apple,
