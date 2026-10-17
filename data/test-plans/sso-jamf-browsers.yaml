@@ -1,0 +1,26 @@
+id: sso-jamf-browsers
+title: Platform single sign-on on a Jamf-managed Mac, in each browser
+platforms: [macos]
+area: authentication
+notes: Platform SSO needs the identity provider's extension (for Microsoft Entra, the Enterprise SSO plug-in) and a Platform SSO payload from the MDM. Test on the new macOS release with a device enrolled through Automated Device Enrollment.
+steps:
+  - do: Confirm the Platform SSO payload and the identity provider's app are installed, then register the user (System Settings, Users & Groups, or the registration prompt at login).
+    expect: System Settings shows the account registered with the identity provider; app-sso platform -s reports the registration.
+    source:
+      title: Apple Platform Deployment, "Platform SSO for macOS"
+      url: https://support.apple.com/guide/deployment/platform-sso-for-macos-dep7bbb05313/web
+  - do: Open a Microsoft 365 site in Safari and confirm sign-in completes without a password prompt.
+    expect: Signed in silently through the SSO extension.
+    source:
+      title: Microsoft Learn, "Microsoft Enterprise SSO plug-in for Apple devices"
+      url: https://learn.microsoft.com/entra/identity-platform/apple-sso-plugin
+  - do: Repeat in Google Chrome and Microsoft Edge, which take SSO from the system extension, and in Mozilla Firefox, which does not (expect an interactive sign-in there unless the identity provider's browser extension is installed).
+    expect: Chrome and Edge sign in silently; Firefox prompts once, then holds the session.
+    source:
+      title: Microsoft Learn, "Microsoft Enterprise SSO plug-in for Apple devices"
+      url: https://learn.microsoft.com/entra/identity-platform/apple-sso-plugin
+  - do: Lock the screen and unlock with the identity provider password (or the platform credential where secure enclave keys are used) to confirm the local account's password stays in sync.
+    expect: Unlock succeeds with the same password that signs in to the identity provider.
+    source:
+      title: Apple Platform Deployment, "Platform SSO for macOS"
+      url: https://support.apple.com/guide/deployment/platform-sso-for-macos-dep7bbb05313/web

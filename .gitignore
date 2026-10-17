@@ -1,6 +1,10 @@
 node_modules/
 dist/
-data/
+# data/ is also the default BW_DATA_DIR (the database and snapshots); only the repository's
+# own files under it are tracked: the test-plan templates and the mitigations map.
+data/*
+!data/test-plans/
+!data/mitigations.yaml
 *.local.md
 .env
 *.tsbuildinfo

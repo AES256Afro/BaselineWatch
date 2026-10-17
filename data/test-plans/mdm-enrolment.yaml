@@ -1,0 +1,21 @@
+id: mdm-enrolment
+title: Automated enrolment and the baseline profiles on a wiped device
+platforms: [all]
+area: mdm
+notes: The first thing to test on a new release is that a wiped device enrols without a hand on it and receives the baseline.
+steps:
+  - do: Wipe a test device and let it enrol automatically (Windows Autopilot, Apple Automated Device Enrollment, or the Linux enrolment your MDM uses).
+    expect: The device enrols without a local account being created first and shows in the MDM within minutes.
+    source:
+      title: Microsoft Learn, "Windows Autopilot"
+      url: https://learn.microsoft.com/autopilot/
+  - do: Confirm every baseline profile the MDM assigns reports as installed on the device, and compare the device's configuration against the profile exported from the baseline page.
+    expect: No profile in an error state; the settings the export lists are present on the device.
+    source:
+      title: Apple Platform Deployment guide (MDM profiles)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Check the device's compliance state and the time it took to become compliant after enrolment.
+    expect: Compliant within the window your Conditional Access grace period allows.
+    source:
+      title: Microsoft Learn, "Device compliance policies in Microsoft Intune"
+      url: https://learn.microsoft.com/mem/intune/protect/device-compliance-get-started

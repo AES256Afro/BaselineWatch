@@ -1,0 +1,21 @@
+id: conditional-access
+title: Conditional Access holds on the new release
+platforms: [all]
+area: authentication
+notes: Whatever the platform, the new OS release must still satisfy the compliance and device-state signals the Conditional Access policies ask for.
+steps:
+  - do: With the test account, open the Conditional Access "What If" tool for the new device and confirm which policies apply.
+    expect: The policies requiring a compliant device and multifactor authentication are listed as applying.
+    source:
+      title: Microsoft Learn, "Troubleshoot Conditional Access with the What If tool"
+      url: https://learn.microsoft.com/entra/identity/conditional-access/what-if-tool
+  - do: Sign in from the new device and confirm the multifactor prompt appears once, then the session holds.
+    expect: One multifactor challenge; later sign-ins within the session lifetime are silent.
+    source:
+      title: Microsoft Learn, "Plan a Conditional Access deployment"
+      url: https://learn.microsoft.com/entra/identity/conditional-access/plan-conditional-access
+  - do: Make the device non-compliant (lapse one compliance setting) and confirm access is blocked, then restore it and confirm access returns after the next check-in.
+    expect: Blocked while non-compliant; allowed again after the device reports compliant.
+    source:
+      title: Microsoft Learn, "Plan a Conditional Access deployment"
+      url: https://learn.microsoft.com/entra/identity/conditional-access/plan-conditional-access

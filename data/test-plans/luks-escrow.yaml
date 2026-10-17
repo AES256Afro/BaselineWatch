@@ -1,0 +1,21 @@
+id: luks-escrow
+title: LUKS encryption on every data volume, with a header backup kept off the host
+platforms: [linux]
+area: encryption
+notes: The STIG requires encrypted storage for data at rest; this template tests the install-time encryption and the recovery material on the new release.
+steps:
+  - do: Install the new release with encrypted volumes, then list the block devices and confirm every data volume is a LUKS device.
+    expect: lsblk shows a crypt layer under each data volume; cryptsetup luksDump on each reports LUKS2.
+    source:
+      title: Red Hat Enterprise Linux 9, Security hardening, "Encrypting block devices using LUKS"
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/encrypting-block-devices-using-luks_security-hardening
+  - do: Reboot and confirm the passphrase (or the network-bound or TPM-bound unlock, where used) is required before the system starts.
+    expect: The volume does not open without the configured unlock.
+    source:
+      title: Red Hat Enterprise Linux 9, Security hardening, "Configuring automated unlocking of encrypted volumes"
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/configuring-automated-unlocking-of-encrypted-volumes-using-policy-based-decryption_security-hardening
+  - do: Back up each LUKS header with cryptsetup luksHeaderBackup to a location off the host, and restore one onto a scratch device to prove the backup opens.
+    expect: The restored header opens the volume with the known passphrase.
+    source:
+      title: Red Hat Enterprise Linux 9, Security hardening, "Encrypting block devices using LUKS"
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/encrypting-block-devices-using-luks_security-hardening

@@ -1,0 +1,26 @@
+id: filevault-escrow
+title: FileVault enforced with the recovery key escrowed to the MDM
+platforms: [macos]
+area: encryption
+notes: The mSCP rule system_settings_filevault_enforce and its FileVault supplemental describe the profile; this template tests that the escrow still works on the new release.
+steps:
+  - do: Enrol a wiped test Mac, let the FileVault payload apply, and sign in so the enablement prompt appears.
+    expect: FileVault turns on at the first sign-in; the user cannot defer past the configured limit.
+    source:
+      title: macOS Security Compliance Project, FileVault supplemental
+      url: https://github.com/usnistgov/macos_security/blob/main/rules/supplemental/supplemental_filevault.yaml
+  - do: Run fdesetup status and confirm the volume is encrypted; then confirm the MDM's inventory record for the device shows a personal recovery key.
+    expect: FileVault is On; the MDM holds a valid personal recovery key for the device.
+    source:
+      title: Apple Platform Deployment guide (FileVault and recovery-key escrow)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Rotate the recovery key from the MDM (or with fdesetup changerecovery -personal) and confirm the new key reaches the MDM.
+    expect: The inventory record shows the new key within the MDM's check-in interval.
+    source:
+      title: Apple Platform Deployment guide (FileVault and recovery-key escrow)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Boot to the FileVault unlock screen, choose the recovery option, and unlock with the escrowed key.
+    expect: The escrowed key unlocks the volume and the OS prompts for a new password.
+    source:
+      title: Apple Support (FileVault recovery)
+      url: https://support.apple.com/
