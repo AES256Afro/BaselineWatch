@@ -15,9 +15,11 @@ in the latest release, and CISA's known-exploited entries and directives for tha
 Baselines area (`/baselines`) builds the strictest published profile per platform (STIG rules,
 Microsoft's baseline or NIST's macOS rules, DISA's Intune definitions and checklist, the SP
 800-53 High controls), lets you untick what you cannot do, and exports the rest as HTML,
-Markdown, CSV or JSON in a Jamf, Intune, Linux or plain flavour. The plan for the rest of M9
-(test plans, platform alerts and a Fix panel) is in [docs/PLAN.md](docs/PLAN.md); what comparable
-tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
+Markdown, CSV or JSON in a Jamf, Intune, Linux or plain flavour; its test plans
+(`/baselines/<platform>/tests`) say what to test on a new OS release, by area, from the same
+checks plus the owner's YAML templates. The plan for the rest of M9 (platform alerts and a Fix
+panel) is in [docs/PLAN.md](docs/PLAN.md); what comparable tools do is in
+[docs/COMPETITION.md](docs/COMPETITION.md).
 Before that: triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
 alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
 releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the
