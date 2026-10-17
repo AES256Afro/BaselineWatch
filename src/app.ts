@@ -17,6 +17,9 @@ import { renderNotFound } from "./pages/not-found.ts";
 import { renderBrowse, renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
 import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
+import { renderBaselinesIndex, renderBuilder } from "./pages/baselines.ts";
+import { buildProfile, isBuilderPlatform, type ProfileOptions } from "./baselines.ts";
+import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./exports.ts";
 import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
@@ -143,6 +146,8 @@ export function createApp(ctx: AppContext): Express {
       next();
     });
   }
+  // The baseline builder's form carries one checkbox per rule, a few hundred fields; everything else stays small.
+  app.use("/baselines", express.urlencoded({ extended: false, limit: "1mb", parameterLimit: 5000 }));
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
 
   // The MCP endpoint: the read-only API as tools for agents. It sits before the same-origin guard
@@ -334,6 +339,47 @@ export function createApp(ctx: AppContext): Express {
     const cat: Cat | undefined = catParam === "1" ? "CAT I" : catParam === "2" ? "CAT II" : catParam === "3" ? "CAT III" : undefined;
     res.type("html").send(renderStigPlatform({ db, platform, stigKey: str(req.query.stig, 120), cat, ...who(req, res), now: now() }));
   });
+
+  // The baseline builder: ordinary forms, nothing stored. GET draws the strict profile; POST
+  // redraws it with the unticked items dropped; export answers either way, so a JSON export
+  // with query fields is also an API.
+  const list = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x)) : typeof v === "string" ? [v] : []);
+  const profileOptions = (platform: ProfileOptions["platform"], fields: Record<string, unknown>): ProfileOptions => {
+    const applied = str(fields.applied) === "1";
+    const keep = applied ? new Set(list(fields.keep).slice(0, 5000)) : null;
+    const drop = list(fields.drop).slice(0, 5000);
+    const options: ProfileOptions = { platform, stig: str(fields.stig, 160), sct: str(fields.sct, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1" };
+    if (keep) {
+      // The form sends what is kept; the profile wants what is dropped: everything it holds that was not sent.
+      const all = buildProfile(db, options).items.map((i) => i.id);
+      options.drop = all.filter((id) => !keep.has(id));
+    } else if (drop.length) options.drop = drop;
+    return options;
+  };
+  const flavourOf = (fields: Record<string, unknown>): Flavour => (isFlavour(fields.flavour) ? fields.flavour : "plain");
+  app.get("/baselines", (req, res) => {
+    res.type("html").send(renderBaselinesIndex({ db, ...who(req, res) }));
+  });
+  const drawBuilder = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const profile = buildProfile(db, profileOptions(platform, fields));
+    res.type("html").send(renderBuilder({ db, profile, flavour: flavourOf(fields), ...who(req, res) }));
+  };
+  app.get("/baselines/:platform", (req, res, next) => drawBuilder(req, res, next, req.query as Record<string, unknown>));
+  app.post("/baselines/:platform", (req, res, next) => drawBuilder(req, res, next, (req.body ?? {}) as Record<string, unknown>));
+  const sendExport = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const format = isExportFormat(fields.format) ? fields.format : "json";
+    const profile = buildProfile(db, profileOptions(platform, fields));
+    const out = exportProfile(profile, format, flavourOf(fields), { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
+    res.setHeader("Content-Disposition", `attachment; filename="${out.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.type(out.contentType).send(out.body);
+  };
+  app.get("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, req.query as Record<string, unknown>));
+  app.post("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, (req.body ?? {}) as Record<string, unknown>));
 
   app.get("/vulnerabilities", (req, res) => {
     res.type("html").send(renderVulnList({ db, filters: vulnFilters(req.query as Record<string, unknown>, now()), ...who(req, res), now: now() }));

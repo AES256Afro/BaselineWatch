@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { entryText, findEntry, unzipAll } from "../zip.ts";
-import { listingRequest, type DisaListingItem } from "./disa.ts";
+import { fetchListing, type DisaListingItem } from "./disa.ts";
 import { plainText, type Adapter, type DocumentTarget, type ParsedDocument, type SourceRow } from "./types.ts";
 
 /**
@@ -124,20 +124,11 @@ export const cciAdapter: Adapter = {
   headers: { accept: "application/zip, application/octet-stream, */*" },
   async documents(source: SourceRow, ctx) {
     // The STIG library's own listing names the zip with an upload date; a date that has not moved means no download.
-    const listingUrl = (ctx.db.prepare("SELECT url FROM sources WHERE id = 'disa-stigs'").get() as { url: string } | undefined)?.url;
-    if (listingUrl) {
-      try {
-        const response = await ctx.http(listingUrl, {
-          body: listingRequest,
-          headers: { "content-type": "application/json", accept: "application/json", referer: "https://www.cyber.mil/stigs/downloads/", origin: "https://www.cyber.mil" },
-          timeoutMs: 90_000,
-        });
-        const listing = JSON.parse(new TextDecoder("utf-8").decode(response.bytes)) as { returnValue?: DisaListingItem[] };
-        const target = cciListingTarget(listing.returnValue ?? []);
-        if (target) return [target];
-      } catch {
-        // The listing is a convenience; the fixed address below still works.
-      }
+    try {
+      const target = cciListingTarget(await fetchListing(ctx));
+      if (target) return [target];
+    } catch {
+      // The listing is a convenience; the fixed address below still works.
     }
     return [{ key: "cci", url: source.url }];
   },

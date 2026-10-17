@@ -2,11 +2,14 @@ import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
 import { cisaDirectivesAdapter } from "./cisa-directives.ts";
 import { disaAdapter } from "./disa.ts";
+import { disaGpoAdapter } from "./disa-gpo.ts";
+import { disaIntuneAdapter } from "./disa-intune.ts";
 import { epssAdapter } from "./epss.ts";
 import { fedrampRulesAdapter } from "./fedramp-rules.ts";
 import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
+import { mscpAdapter } from "./mscp.ts";
 import { nvdAdapter } from "./nvd.ts";
 import { nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { osvAdapter } from "./osv.ts";
@@ -27,6 +30,9 @@ const byId: Record<string, Adapter> = {
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
   "disa-cci": cciAdapter,
+  "disa-intune": disaIntuneAdapter,
+  "disa-gpo": disaGpoAdapter,
+  "nist-mscp": mscpAdapter,
   "cisa-directives": cisaDirectivesAdapter,
   "cis-benchmarks": cisAdapter,
   "reddit-netsec": redditAdapter,
@@ -49,4 +55,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cciAdapter, cisAdapter, cisaDirectivesAdapter, disaAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };
+export { cciAdapter, cisAdapter, cisaDirectivesAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };

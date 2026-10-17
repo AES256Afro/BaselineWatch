@@ -77,6 +77,33 @@ export function stigTarget(item: DisaListingItem): DocumentTarget | null {
   };
 }
 
+const clean = (name: string | undefined): string => (name ?? "").split(String.fromCharCode(0x200b)).join("").trim();
+
+/** The library listing, through the Apex call the page itself makes; the URL is the DISA source's. */
+export async function fetchListing(ctx: Pick<ListingContext, "db" | "http">, listingUrl?: string): Promise<DisaListingItem[]> {
+  const url = listingUrl ?? (ctx.db.prepare("SELECT url FROM sources WHERE id = 'disa-stigs'").get() as { url: string } | undefined)?.url;
+  if (!url) throw new Error("the DISA STIG library source is missing");
+  const response = await ctx.http(url, {
+    body: listingRequest,
+    headers: { "content-type": "application/json", accept: "application/json", referer: "https://www.cyber.mil/stigs/downloads/", origin: "https://www.cyber.mil" },
+    timeoutMs: 90_000,
+  });
+  const listing = JSON.parse(new TextDecoder("utf-8").decode(response.bytes)) as { returnValue?: DisaListingItem[] };
+  if (!Array.isArray(listing.returnValue)) throw new Error("STIG library listing has no returnValue array");
+  return listing.returnValue;
+}
+
+/**
+ * The listing entry for one of DISA's dated packages ("Intune Policy - October 2026", "Group
+ * Policy Objects (GPOs) - October 2026"): the month is the version, the upload date the publication date.
+ */
+export function packageTarget(items: DisaListingItem[], key: string, namePattern: RegExp): DocumentTarget | null {
+  const item = items.find((i) => namePattern.test(clean(i.FileName)) && /\.zip$/i.test(i.DownloadLink ?? ""));
+  if (!item) return null;
+  const month = namePattern.exec(clean(item.FileName))?.[1]?.trim() ?? null;
+  return { key, url: item.DownloadLink, versionLabel: month, publishedAt: item.UploadDate ? `${item.UploadDate}T00:00:00.000Z` : null };
+}
+
 /** The STIGs to follow: the watchlist's baseline entries, or the defaults. */
 export function followedPatterns(ctx: Pick<ListingContext, "db">): string[] {
   const rows = ctx.db.prepare("SELECT value FROM watchlist WHERE kind = 'baseline'").all() as { value: string }[];
@@ -193,14 +220,7 @@ export const disaAdapter: Adapter = {
   id: "disa-stig",
   headers: { accept: "application/json, application/zip, */*" },
   async documents(source: SourceRow, ctx) {
-    const response = await ctx.http(source.url, {
-      body: listingRequest,
-      headers: { "content-type": "application/json", accept: "application/json", referer: "https://www.cyber.mil/stigs/downloads/", origin: "https://www.cyber.mil" },
-      timeoutMs: 90_000,
-    });
-    const listing = JSON.parse(new TextDecoder("utf-8").decode(response.bytes)) as { returnValue?: DisaListingItem[] };
-    if (!Array.isArray(listing.returnValue)) throw new Error("STIG library listing has no returnValue array");
-    return selectStigs(listing.returnValue, followedPatterns(ctx));
+    return selectStigs(await fetchListing(ctx, source.url), followedPatterns(ctx));
   },
   async parseDocument(bytes, target): Promise<ParsedDocument> {
     const entries = unzipAll(bytes);
