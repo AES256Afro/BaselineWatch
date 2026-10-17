@@ -1,6 +1,6 @@
 # BaselineWatch: plan and milestones
 
-*Written 2026-10-14. Owner: Chris (AES256Afro). Status: scoping, nothing built yet.*
+*Written 2026-10-14. Owner: Chris (AES256Afro). M0 to M8 shipped by 2026-10-15; M9 planned 2026-10-17.*
 
 BaselineWatch is one page that keeps a security practitioner in tune with the whole landscape:
 security news, new and changed CVEs, CISA advisories and the Known Exploited Vulnerabilities list,
@@ -23,6 +23,7 @@ to be installed from the BoxPilot catalog on BigBox.
 | 2026-10-14 | Build follows **Path C**, the recommended middle: Register built properly, Wire and Vulnerabilities thin, server-rendered HTML first, React only if the UI outgrows it. |
 | 2026-10-14 | Public home is **https://cybercard.net**, replacing the FinancialAuthority demo there. It is a read-only information, learning and teaching site: no private data, anyone may read, writes need the owner's sign-in (M7). Hosted on BigBox, published through Cloudflare. |
 | 2026-10-14 | Stack: Node 24 running TypeScript directly (no build step), Express 5, `node:sqlite`, one stylesheet, strict CSP with no inline script. |
+| 2026-10-17 | **M9 Baselines** turns the tracked standards into guidance: STIG pages per operating system, a baseline builder per platform with exports for Jamf, Intune and Linux, test plans for a new OS release, platform alerts and a Fix panel. No generative AI in that path: every line derives from DISA, NIST, Microsoft and CISA text and refreshes with the sources. CIS stays upload-only. Survey of comparable tools in [COMPETITION.md](COMPETITION.md). |
 
 ---
 
@@ -329,6 +330,128 @@ server at `/mcp` (0.13.0); NIST SP 800-171 Rev 3 in the Register, which is the C
 - Public read-only API and an MCP server so BoxPilot agents can answer "what changed in 800-53
   this quarter?".
 - Multi-user with roles.
+
+
+### M9: Baselines (planned 2026-10-17)
+
+M0 to M8 made BaselineWatch *watch*: news, CVEs and the standards themselves, each change with
+its publisher's reason. M9 makes it *guide*. The standards the Register already tracks (DISA
+STIGs, Microsoft's baselines, NIST SP 800-53 and its baselines) become, per operating system,
+something a practitioner can act on: which rules apply, what they map to in 800-53, what CISA
+says about that platform, a strictest-published profile to trim and export for Jamf, Intune or
+a Linux shell, a test plan for the next OS release, and on every CVE the fix that has already
+been published. The survey of comparable tools and what to borrow or avoid is
+[COMPETITION.md](COMPETITION.md).
+
+**Rule for the whole milestone: no generative AI in the path.** Every sentence on these pages
+is quoted or derived from DISA, NIST, Microsoft or CISA text and refreshes when those sources
+do. Where a mapping exists only in someone's head (which Intune setting a STIG rule becomes),
+the page says so rather than inventing one. Curated lists kept in the repository (test-plan
+templates, CVE-to-rule mitigations) are plain YAML, cite their source, and are labelled as the
+owner's. CIS Benchmarks stay upload-only and are never exported.
+
+**New sources** (each an adapter with a fixture test, a row in a migration, a line in
+`src/adapters/index.ts`; details in [SOURCES.md](SOURCES.md)):
+
+| Source | Format | What it gives M9 |
+| --- | --- | --- |
+| DISA CCI list (`disa-cci`) | zip with `CCI_List.xml`, from the STIG library listing's "CCI List" entry (dated, so an unchanged list costs one small request) | CCI → NIST SP 800-53 Rev 5 (and Rev 4) control index per CCI; the join between every STIG rule and the Register's control pages |
+| CISA directives (`cisa-directives`) | the HTML listing at `cisa.gov/news-events/directives/all` (27 entries over three pages, teaser markup with date, kind and title; CISA offers no feed for it) | Binding Operational Directives and Emergency Directives as Wire items, matched to platforms by what they name (Cisco, Exchange, F5, Ivanti, cloud services, edge devices) |
+| NIST macOS Security Compliance Project (`nist-mscp`) | one GitHub branch zip per macOS release (`tahoe`, `sequoia`; about 1 MB each), `VERSION.yaml` for the version and date, `rules/**/*.yaml` and `baselines/*.yaml` | 335 rules with check and fix, mobileconfig payload keys, 800-53 r5, 800-171 r3, CCI, STIG and CIS references; which rules sit in the 800-53 High, 800-171 and DISA STIG baselines |
+| DISA Intune policy package (`disa-intune`) | zip from the listing's "Intune Policy - <month year>" entry; `Settings Catalog/*.json` are Graph `configurationPolicies` exports (Windows 11 v2r11: 174 settings) | the Intune settings-catalog definition ids and values DISA itself ships for each Windows STIG |
+| DISA GPO package checklists (`disa-gpo`) | zip from the listing's "Group Policy Objects (GPOs) - <month year>" entry (7 MB); `Support Files/Checklist Files/*.ckl` | per STIG rule, DISA's own statement of whether its GPO and Intune policies cover it ("GPO - DoD Windows 11 Computer STIG v2r11 / Intune - DoD Windows 11 STIG v2r11 Settings Catalog") or it is "Outside scope of GPO configurations" |
+
+The DISA source's default followed list grows to what a practitioner expects: Windows 11,
+Windows Server 2025 and 2022, Red Hat Enterprise Linux 9 and 10, Ubuntu 24.04 and 22.04,
+Apple macOS 26 and 15, Microsoft Edge, Google Chrome, Mozilla Firefox, plus the Cisco IOS XE
+Router and Application Security and Development STIGs already followed. Watchlist entries of
+kind `baseline` still replace the defaults.
+
+#### M9.1: Plan and survey — this document and COMPETITION.md
+
+#### M9.2: STIG pages (`/stigs`) — 0.19.0
+
+- `/stigs`: the operating systems the Register follows (Windows, Linux, macOS; then network
+  devices, browsers, applications and anything else DISA publishes that is followed), each with
+  its STIGs, their latest version and date, rule counts by CAT, and the last release's change
+  summary.
+- `/stigs/<os>`: one STIG at a time (a select), its rules grouped CAT I, CAT II, CAT III, each
+  with the STIG id, title, check text and fix text (collapsed), and the NIST SP 800-53 controls
+  it maps to through its CCIs, linked to the control's page in the Register. "What changed":
+  the latest release's added, removed and revised rules, with DISA's Revision History note where
+  the Register has one. "CISA on this platform": KEV entries whose vendor and product belong to
+  the platform (newest first, due dates), and the directives that name it.
+- The Register's control page gains the reverse view: the STIG rules, across the followed STIGs,
+  whose CCIs map to that control.
+- **Done when**: every Windows 11 rule shows its controls, the control page for AC-11 lists the
+  screen-lock rules of every followed STIG, and the CISA panel for macOS shows Apple's KEV
+  entries and no Cisco directive.
+
+#### M9.3: Baseline builder (`/baselines`) — 0.20.0
+
+- `/baselines/<platform>` for `windows`, `macos` and `linux`. The **strictest published
+  profile**: every CAT I and CAT II rule of the chosen STIG; for Windows, the Microsoft SCT
+  baseline settings for the same product (joined to STIG rules by registry path where the
+  check text names one, the rest listed as "Microsoft's baseline adds"); for macOS, the mSCP
+  rules in the 800-53 High and DISA STIG baselines joined to the STIG rules by STIG id; and
+  the NIST SP 800-53 High baseline controls, each with the rules that implement it and the
+  controls no technical rule reaches (the organisational layer).
+- Ordinary forms: selects for the STIG version, the SCT baseline, the mSCP branch and whether
+  CAT III joins; a checkbox per item; a POST that redraws with the unticked items dropped.
+  Nothing is stored; the form carries the state. (The urlencoded body limit is raised for these
+  routes: a Windows profile is a few hundred fields.)
+- **Exports** of the trimmed profile: printable HTML, Markdown, CSV and JSON, each in an
+  "apply with" flavour: **Jamf** (mSCP rule id, the mobileconfig payload domain and keys, the
+  STIG id), **Intune** (DISA's settings-catalog definition id and value where its package has
+  one for the rule, the GPO path from the STIG fix text, and DISA's checklist verdict when the
+  rule is outside what Intune can set), **Linux** (the STIG fix procedure, verbatim), and a
+  plain flavour. Every export carries the publisher attributions; CIS text never appears and
+  Microsoft text appears only as the page already quotes it. Exports also answer to GET with
+  the same fields, so a JSON export is an API.
+- **Current versus next**: when the Register holds a newer version of the STIG, SCT baseline or
+  mSCP branch than the one chosen (or the next macOS release's branch), the page lists what the
+  strict profile gains and loses: rules added, removed, moved into or out of CAT I/II, settings
+  whose value changed.
+- **Done when**: the Windows 11 export in Intune flavour names DISA's settings-catalog
+  definition for SMBv1 and says which rules Intune cannot set; the macOS export in Jamf flavour
+  lists the payload keys for FileVault enforcement; a CSV opens in a spreadsheet with one row
+  per item.
+
+#### M9.4: Test plans (`/baselines/<platform>/tests`) — 0.21.0
+
+- What to test when a new OS release lands so the baseline still holds, derived from the STIG
+  and mSCP check procedures and grouped by area: authentication and SSO, browsers, disk
+  encryption, logging and audit, network, updates, MDM enrolment, and the rest. Each item is
+  the rule's check text with its id and severity.
+- Curated templates in `data/test-plans/*.yaml` (SSO through Intune or Jamf with each browser,
+  FileVault and BitLocker key escrow, conditional access, MDM enrolment), each step citing the
+  publisher's document it comes from; the owner extends them by adding YAML. Labelled on the
+  page as the owner's templates, not the publisher's text.
+- Export as a checklist in the same four formats.
+- **Done when**: the macOS plan for Tahoe lists the smart-card and FileVault checks under their
+  areas, the browser area holds the Edge, Chrome and Firefox STIG checks, and a Markdown export
+  ticks like a checklist.
+
+#### M9.5: Platform alerts and the fix — 0.22.0
+
+- A watchlist entry of kind `platform` names one of the product's platform ids
+  (`src/platforms.ts`: windows, apple, linux, android, chrome and the rest). A CVE whose vendor,
+  product or CPE belongs to that platform is marked as the person's stack, reaches the Wire,
+  the alert channel and the digest as "new Apple CVE" (or changed), like a product entry does.
+- A **Fix** panel on every CVE page and Wire item: the remediation already published, quoted
+  and linked: NVD references tagged Patch, Vendor Advisory or Mitigation; the vendor advisory
+  items the Wire holds for that CVE (Ubuntu, Debian, Red Hat, Cisco, Palo Alto, Fortinet,
+  Chrome, GitLab, Jenkins, CISA ICS); CISA KEV's required action and due date; the package
+  advisories' fixed versions; and the STIG or baseline rule that mitigates it when a mapping
+  exists (`data/mitigations.yaml`, curated, each entry naming the rule and the source that
+  connects them). When nothing is published the panel says so.
+- **Done when**: a KEV entry for Windows shows CISA's required action, Microsoft's advisory link
+  and the due date in one panel; an Apple platform entry alerts on a new macOS CVE; a CVE with
+  no published fix says "nothing published yet".
+
+**Out of scope for M9**: scanning or assessing a host (that is SCAP, CIS-CAT, Nessus), storing
+per-host state, generating remediation scripts beyond quoting the publisher's, and any model in
+the loop. Multi-user profiles and saved named baselines are M10 candidates.
 
 ---
 
