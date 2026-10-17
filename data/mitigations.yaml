@@ -1,0 +1,102 @@
+# Which STIG rules mitigate which classes of vulnerability. The Fix panel on a CVE page checks a
+# CVE against these entries (by CVE id, or by words in its description and its CISA KEV name) and,
+# when one applies, lists the rules of the followed STIGs whose titles contain the phrase, quoting
+# the rule's own discussion. Each entry cites the publisher's statement that connects the two.
+# This list is the owner's; add an entry and the panel reads it on the next request.
+#
+#   id: smbv1                       stable
+#   cves: [CVE-2017-0144]           exact ids (optional)
+#   keywords: ["SMBv1", "SMB1"]     matched case-insensitively against the description and the KEV name (optional)
+#   rule_title_contains: ...        the phrase the mitigating rules' titles carry, across every followed STIG
+#   note: one sentence on why the rule mitigates the class
+#   source: { title, url }          the publisher's statement (https only)
+
+- id: smbv1
+  cves: [CVE-2017-0143, CVE-2017-0144, CVE-2017-0145, CVE-2017-0146, CVE-2017-0147, CVE-2017-0148, CVE-2020-0796]
+  keywords: ["SMBv1", "SMB1", "SMB v1", "Server Message Block 1.0"]
+  rule_title_contains: "Server Message Block (SMB) v1 protocol must be disabled"
+  note: A system with the SMBv1 server and client disabled does not speak the protocol the flaw is in.
+  source:
+    title: Microsoft Learn, "Detect, enable and disable SMBv1, SMBv2, and SMBv3 in Windows"
+    url: https://learn.microsoft.com/windows-server/storage/file-server/troubleshoot/detect-enable-and-disable-smbv1-v2-v3
+
+- id: bluekeep-nla
+  cves: [CVE-2019-0708, CVE-2019-1181, CVE-2019-1182, CVE-2019-1222, CVE-2019-1226]
+  keywords: ["Remote Desktop Protocol", "Remote Desktop Services", "BlueKeep", "DejaBlue"]
+  rule_title_contains: "Network Level Authentication"
+  note: Network Level Authentication makes a client authenticate before a session is created, which CISA named as a mitigation for BlueKeep where patching was delayed.
+  source:
+    title: CISA alert, "Microsoft Operating Systems BlueKeep Vulnerability" (June 2019)
+    url: https://www.cisa.gov/news-events/alerts/2019/06/17/microsoft-operating-systems-bluekeep-vulnerability
+
+- id: llmnr
+  keywords: ["LLMNR", "Link-Local Multicast Name Resolution"]
+  rule_title_contains: "Link-Local Multicast Name Resolution (LLMNR)"
+  note: With LLMNR off, a host does not answer the broadcast name queries that poisoning attacks rely on.
+  source:
+    title: DISA STIG rule discussion (the rule's own text, quoted on the rule page)
+    url: https://www.cyber.mil/stigs/downloads/
+
+- id: wdigest
+  keywords: ["WDigest"]
+  rule_title_contains: "WDigest Authentication must be disabled"
+  note: With WDigest off, LSASS no longer keeps plaintext credentials in memory for the protocol.
+  source:
+    title: Microsoft Security Advisory 2871997, "Update to improve credentials protection and management"
+    url: https://learn.microsoft.com/security-updates/securityadvisories/2016/2871997
+
+- id: ntlmv1
+  keywords: ["NTLMv1", "LAN Manager", "LM hash", "LANMAN"]
+  rule_title_contains: "LAN Manager authentication level must be set to send NTLMv2 response only"
+  note: Refusing LM and NTLMv1 responses removes the weak hashes and the downgrade the class of flaw depends on.
+  source:
+    title: Microsoft Learn, "Network security - LAN Manager authentication level"
+    url: https://learn.microsoft.com/windows/security/threat-protection/security-policy-settings/network-security-lan-manager-authentication-level
+
+- id: autorun
+  keywords: ["AutoRun", "AutoPlay", "autorun.inf"]
+  rule_title_contains: "Autoplay must be disabled for all drives"
+  note: With AutoPlay off, inserting removable media does not run what is on it.
+  source:
+    title: DISA STIG rule discussion (the rule's own text, quoted on the rule page)
+    url: https://www.cyber.mil/stigs/downloads/
+
+- id: powershell2
+  keywords: ["PowerShell 2.0", "PowerShell version 2", "PowerShell v2"]
+  rule_title_contains: "Windows PowerShell 2.0 feature must be disabled"
+  note: PowerShell 2.0 has none of the logging and script-block controls later versions enforce; removing it closes the downgrade.
+  source:
+    title: Microsoft Learn, "Windows PowerShell 2.0 deprecation"
+    url: https://learn.microsoft.com/powershell/scripting/windows-powershell/wmf/overview
+
+- id: office-macros
+  keywords: ["VBA macro", "macro-enabled", "Visual Basic for Applications"]
+  rule_title_contains: "VBA macros"
+  note: Blocking VBA macros from files that came from the internet stops the common delivery of this class.
+  source:
+    title: Microsoft Learn, "Macros from the internet are blocked by default in Office"
+    url: https://learn.microsoft.com/deployoffice/security/internet-macros-blocked
+
+- id: gatekeeper
+  keywords: ["Gatekeeper"]
+  rule_title_contains: "must enable gatekeeper"
+  note: With Gatekeeper enforced, an unsigned or unnotarised app does not run, which is the step most Gatekeeper bypasses need.
+  source:
+    title: Apple Platform Security, "Gatekeeper and runtime protection in macOS"
+    url: https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web
+
+- id: sip
+  keywords: ["System Integrity Protection", "SIP bypass"]
+  rule_title_contains: "System Integrity Protection"
+  note: With SIP enabled, protected files, processes and kernel extensions cannot be modified even by root.
+  source:
+    title: Apple Platform Security, "System Integrity Protection"
+    url: https://support.apple.com/guide/security/system-integrity-protection-secb7ea06b49/web
+
+- id: credential-guard
+  keywords: ["Credential Guard", "LSASS", "lsass.exe"]
+  rule_title_contains: "Credential Guard must be running"
+  note: Credential Guard isolates NTLM hashes and Kerberos tickets from the LSASS process the class of flaw reads.
+  source:
+    title: Microsoft Learn, "Credential Guard overview"
+    url: https://learn.microsoft.com/windows/security/identity-protection/credential-guard/

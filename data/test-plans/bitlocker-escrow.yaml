@@ -1,0 +1,26 @@
+id: bitlocker-escrow
+title: BitLocker with TPM and PIN, recovery keys backed up to Microsoft Entra ID
+platforms: [windows]
+area: encryption
+notes: The STIG rules WN11-00-000030, 000031 and 000032 require BitLocker, a pre-boot PIN and a six-digit minimum; this template tests the enforcement and the escrow on the new release.
+steps:
+  - do: Enrol a wiped test device, let the BitLocker policy apply, and confirm encryption starts without the user doing anything.
+    expect: The output of manage-bde -status shows the OS volume encrypting or fully encrypted with XTS-AES.
+    source:
+      title: Microsoft Learn, "BitLocker CSP"
+      url: https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp
+  - do: Reboot and confirm the pre-boot PIN prompt appears; try a five-digit PIN at setup and confirm it is refused.
+    expect: A PIN is required at startup; a PIN shorter than six digits is rejected.
+    source:
+      title: Microsoft Learn, "BitLocker CSP" (SystemDrivesMinimumPINLength)
+      url: https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp
+  - do: In the Entra admin centre, open the device record and confirm a BitLocker recovery key is listed for the OS volume.
+    expect: The recovery key, with its key id, is present under the device's BitLocker keys.
+    source:
+      title: Microsoft Learn, "BitLocker recovery overview"
+      url: https://learn.microsoft.com/windows/security/operating-system-security/data-protection/bitlocker/recovery-overview
+  - do: Trigger recovery (for example, by changing the boot order) and enter the escrowed key.
+    expect: The volume unlocks with the escrowed key; Windows boots and the TPM re-seals on the next restart.
+    source:
+      title: Microsoft Learn, "BitLocker recovery overview"
+      url: https://learn.microsoft.com/windows/security/operating-system-security/data-protection/bitlocker/recovery-overview

@@ -1,5 +1,7 @@
 node_modules
-data
+data/*
+!data/test-plans
+!data/mitigations.yaml
 docs
 test
 boxpilot

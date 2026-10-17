@@ -1,0 +1,31 @@
+id: sso-intune-browsers
+title: Single sign-on through Microsoft Entra on an Intune-managed Windows device, in each browser
+platforms: [windows]
+area: authentication
+notes: Run on a freshly enrolled device after the OS upgrade, signed in with a test account that has a Conditional Access policy requiring a compliant device.
+steps:
+  - do: Sign in to Windows with the test account and confirm the device shows as Entra joined and Intune compliant (Settings, Accounts, Access work or school; and the device record in the Intune admin centre).
+    expect: Joined to Microsoft Entra ID; compliance state Compliant.
+    source:
+      title: Microsoft Learn, "Windows Autopilot"
+      url: https://learn.microsoft.com/autopilot/
+  - do: In Microsoft Edge, open a Microsoft 365 site and confirm sign-in completes without a prompt (Edge uses the Windows account by default).
+    expect: Signed in silently as the test account; the site's account menu shows it.
+    source:
+      title: Microsoft Learn, "Microsoft Edge identity support and configuration"
+      url: https://learn.microsoft.com/deployedge/microsoft-edge-security-identity
+  - do: In Google Chrome, with the CloudAPAuthEnabled policy applied, open the same site and confirm silent sign-in; then check chrome://policy shows the policy as applied.
+    expect: Signed in silently; chrome://policy lists CloudAPAuthEnabled with status OK.
+    source:
+      title: Chrome Enterprise policy list, "CloudAPAuthEnabled"
+      url: https://chromeenterprise.google/policies/#CloudAPAuthEnabled
+  - do: In Mozilla Firefox, with the WindowsSSO policy applied, open the same site and confirm silent sign-in; then check about:policies shows the policy as active.
+    expect: Signed in silently; about:policies lists WindowsSSO as true.
+    source:
+      title: Mozilla policy templates, "WindowsSSO"
+      url: https://mozilla.github.io/policy-templates/#windowssso
+  - do: Make the device non-compliant (for example, let one compliance setting lapse on a test volume) and repeat the sign-in in one browser.
+    expect: Conditional Access blocks the sign-in with the "device is not compliant" message until compliance is restored.
+    source:
+      title: Microsoft Learn, "Plan a Conditional Access deployment"
+      url: https://learn.microsoft.com/entra/identity/conditional-access/plan-conditional-access
