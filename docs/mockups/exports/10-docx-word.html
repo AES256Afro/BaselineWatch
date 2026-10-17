@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>macOS 26 Security Baseline and Test Report — Word</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap">
+<style>
+@page{size:letter;margin:1in;@top-right{content:"macOS 26 Security Baseline and Test Report";font:9pt Carlito,Calibri,sans-serif;color:#7f7f7f}@bottom-left{content:"BW-MACOS26-2026-10 · v1.3";font:9pt Carlito,Calibri,sans-serif;color:#7f7f7f}@bottom-right{content:"Page " counter(page) " of " counter(pages);font:9pt Carlito,Calibri,sans-serif;color:#7f7f7f}}
+@page:first{@top-right{content:none}@bottom-left{content:none}@bottom-right{content:none}}
+:root{--h:#2f5496;--h2:#2f5496;--acc:#4472c4;--band:#d9e2f3;--ink:#000;--muted:#595959}
+*{box-sizing:border-box}
+body{margin:0;background:#e6e6e6;color:var(--ink);font:11pt/1.15 Carlito,Calibri,"Segoe UI",sans-serif}
+.chrome{position:sticky;top:0;z-index:2;background:#185abd;color:#fff;font:9.5pt "Segoe UI",system-ui,sans-serif;display:flex;justify-content:space-between;gap:10px;padding:6px 16px}
+.chrome span{opacity:.85}
+.ribbon{background:#f3f3f3;border-bottom:1px solid #d1d1d1;font:9pt "Segoe UI",system-ui,sans-serif;color:#444;display:flex;flex-wrap:wrap;gap:4px 18px;padding:6px 16px}
+.ribbon b{color:#185abd;border-bottom:2px solid #185abd}
+.pg{background:#fff;width:8.5in;min-height:11in;margin:22px auto;padding:1in;position:relative;box-shadow:0 0 0 1px #d0d0d0,0 2px 6px rgba(0,0,0,.15)}
+.rh,.rf{position:absolute;left:1in;right:1in;font-size:9pt;color:#7f7f7f;display:flex;justify-content:space-between}
+.rh{top:.5in}.rf{bottom:.5in}
+h1.title{font:300 26pt/1.1 Carlito,"Calibri Light",sans-serif;color:var(--h);margin:2.2in 0 6pt;border-bottom:1px solid var(--acc);padding-bottom:8pt}
+.subtitle{font-size:14pt;color:var(--muted);margin:0 0 .5in}
+h1{font:16pt/1.2 Carlito,"Calibri Light",sans-serif;color:var(--h);margin:0 0 6pt;padding-top:12pt;break-after:avoid}
+h2{font:13pt/1.2 Carlito,"Calibri Light",sans-serif;color:var(--h2);margin:14pt 0 4pt;break-after:avoid}
+p{margin:0 0 8pt}
+.toc p{margin:0 0 4pt;display:flex;gap:4pt}
+.toc p::after{content:"";flex:1;border-bottom:1.5px dotted #000;order:1;margin-bottom:3pt}
+.toc p span:last-child{order:2}
+.toc .l2{padding-left:.25in}
+.toch{font:16pt Carlito,"Calibri Light",sans-serif;color:var(--h);margin:0 0 8pt}
+table{width:100%;border-collapse:collapse;font-size:9.5pt;margin:4pt 0 10pt}
+th,td{border:1px solid #8eaadb;padding:3pt 5pt;vertical-align:top;text-align:left}
+thead th{background:var(--acc);color:#fff;border-color:var(--acc);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+tbody tr:nth-child(odd) td{background:var(--band);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+thead{display:table-header-group}tr{break-inside:avoid}
+table.plain td{background:none!important;border:0;border-bottom:1px solid #bfbfbf;padding:3pt 0}
+table.plain td:first-child{font-weight:700;width:1.8in}
+table.card{break-inside:avoid;margin-bottom:8pt}
+table.card td{background:#fff!important}
+table.card .hdr td{background:#d9e2f3!important;font-weight:700}
+table.card td.l{width:50%}
+.cap{font-size:9pt;font-style:italic;color:#44546a;margin:-4pt 0 10pt}
+code{font:8.5pt Consolas,"Courier New",monospace}
+.k{font-size:8pt;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block}
+.fail{color:#c00000;font-weight:700}.pass{color:#00703c;font-weight:700}
+.sigline{height:28pt}
+.foot{font-size:8.5pt;color:var(--muted)}
+@media print{body{background:#fff}.chrome,.ribbon,.rh,.rf{display:none}.pg{width:auto;min-height:0;margin:0;padding:0;box-shadow:none;break-after:page}.pg:last-child{break-after:auto}h1.title{margin-top:2in}}
+@media screen and (max-width:860px){.pg{width:auto;min-height:0;margin:12px 8px;padding:40px 16px}.rh,.rf{left:16px;right:16px}.rh{top:12px}.rf{bottom:10px}h1.title{margin-top:.6in}.tw{overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="chrome"><b>BW-MACOS26-2026-10.docx</b><span>Saved · Word</span></div>
+<div class="ribbon"><span>File</span><b>Home</b><span>Insert</span><span>Design</span><span>Layout</span><span>References</span><span>Review</span><span>View</span></div>
+<section class="pg"><h1 class="title">macOS 26 Security Baseline and Test Report</h1><p class="subtitle">macOS 26 “Tahoe” · decisions against DISA and NIST, and the test plan that proves them</p>
+<table class="plain"><tbody>
+<tr><td>Document ID</td><td>BW-MACOS26-2026-10</td></tr><tr><td>Version</td><td>1.3 (Final for approval)</td></tr><tr><td>Date</td><td>17 October 2026</td></tr>
+<tr><td>Platform</td><td>macOS 26 “Tahoe”</td></tr>
+<tr><td>Standards applied</td><td>DISA Apple macOS 26 (Tahoe) STIG, Version 1, Release 4<br>NIST macOS Security Compliance Project, tahoe · 800-53r5 High<br>NIST SP 800-53 Rev. 5, High baseline (SP 800-53B)</td></tr>
+<tr><td>Scope</td><td>340 managed Macs (Intune fleet 212, Jamf Pro fleet 128), Apple silicon only</td></tr>
+<tr><td>Prepared by</td><td>Jordan Rivera, Endpoint Security Engineer</td></tr><tr><td>Organisation</td><td>Example Agency · Endpoint Engineering</td></tr></tbody></table>
+<p class="foot" style="margin-top:1.2in">Mockup with sample data. Names, counts and evidence references are invented.</p></section>
+
+<section class="pg"><div class="rh"><span>Example Agency</span><span>macOS 26 Security Baseline and Test Report</span></div><h1>Document control</h1>
+<h2>Approval</h2>
+<table><thead><tr><th style="width:18%">Role</th><th style="width:34%">Name and title</th><th>Signature</th><th style="width:15%">Date</th></tr></thead><tbody>
+<tr><td>Prepared</td><td>Jordan Rivera<br><span class="foot">Endpoint Security Engineer</span></td><td class="sigline"></td><td></td></tr><tr><td>Reviewed</td><td>Alex Chen<br><span class="foot">Information System Security Manager</span></td><td class="sigline"></td><td></td></tr><tr><td>Approved</td><td>Morgan Okafor<br><span class="foot">Authorizing Official’s Designated Representative</span></td><td class="sigline"></td><td></td></tr></tbody></table>
+<h2>Revision history</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Summary</th></tr></thead><tbody>
+<tr><td>1.0</td><td>2 Sep 2026</td><td>JR</td><td>First baseline for macOS 26.0</td></tr><tr><td>1.2</td><td>3 Oct 2026</td><td>JR</td><td>STIG V1R4 absorbed</td></tr><tr><td>1.3</td><td>17 October 2026</td><td>JR, SP</td><td>Test results for 26.0.1</td></tr></tbody></table>
+<div class="toc"><div class="toch">Contents</div>
+<p><span>1 Executive summary</span><span>3</span></p>
+<p><span>2 Decision register</span><span>3</span></p>
+<p><span>3 Test plan and results</span><span>5</span></p>
+<p class="l2"><span>3.1 Authentication and SSO</span><span>5</span></p><p class="l2"><span>3.2 Disk encryption</span><span>5</span></p><p class="l2"><span>3.3 Network</span><span>5</span></p><p class="l2"><span>3.4 Logging and audit</span><span>6</span></p><p class="l2"><span>3.5 Updates</span><span>6</span></p><p class="l2"><span>3.6 MDM enrolment</span><span>6</span></p><p class="l2"><span>3.7 Browsers</span><span>7</span></p>
+<p><span>4 Findings and exceptions (POA&amp;M)</span><span>8</span></p>
+<p><span>5 Attribution</span><span>8</span></p></div><div class="rf"><span>BW-MACOS26-2026-10 · v1.3</span><span>Page 2</span></div></section>
+
+<section class="pg"><div class="rh"><span>Example Agency</span><span>macOS 26 Security Baseline and Test Report</span></div><h1>1 Executive summary</h1>
+<p>200 of the 212 rules recommended by DISA and NIST for macOS 26 are in force; 14 of those use an organisation-defined value. 12 rules are not applied, each under a recorded risk acceptance. 19 of 24 test steps passed; the 3 failures are tracked as POA&amp;M items due by 30 November 2026.</p>
+<table><thead><tr><th>Baseline decisions</th><th style="text-align:right">Rules</th><th style="text-align:right">%</th></tr></thead><tbody>
+<tr><td>Recommended</td><td style="text-align:right">212</td><td style="text-align:right">100</td></tr>
+<tr><td>Applied as recommended</td><td style="text-align:right">186</td><td style="text-align:right">88</td></tr>
+<tr><td>Modified</td><td style="text-align:right">14</td><td style="text-align:right">7</td></tr>
+<tr><td>Not applied</td><td style="text-align:right">12</td><td style="text-align:right">6</td></tr></tbody></table>
+<p class="cap">Table 1. Baseline decisions</p>
+<table><thead><tr><th>Test results</th><th style="text-align:right">Steps</th><th style="text-align:right">%</th></tr></thead><tbody>
+<tr><td>Pass</td><td style="text-align:right">19</td><td style="text-align:right">79</td></tr><tr><td>Fail</td><td style="text-align:right">3</td><td style="text-align:right">13</td></tr><tr><td>N/A</td><td style="text-align:right">1</td><td style="text-align:right">4</td></tr><tr><td>Not tested</td><td style="text-align:right">1</td><td style="text-align:right">4</td></tr></tbody></table>
+<p class="cap">Table 2. Test results</p>
+<h1>2 Decision register</h1>
+<p>Each card sets the publisher's recommendation beside our decision. Shown: 10 of 212.</p>
+<table class="card"><tbody><tr class="hdr"><td colspan="2">BW-101 · Limit consecutive failed logon attempts — Modified</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Lock the account after 3 consecutive invalid attempts within 15 minutes.</td><td><span class="k">Our decision: Modified</span>Lock after 5 attempts; 15-minute lockout.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-000022 (CAT II)<br>mSCP <code>pwpolicy_account_lockout_enforce</code><br>SP 800-53: AC-7</td><td><span class="k">Justification · owner</span>Users sign in through Platform SSO with Entra ID, whose smart lockout also applies. A threshold of 3 drove 40+ helpdesk unlocks a week during the pilot; 5 keeps AC-7 intent with the cloud lockout as a second layer.<br><i>Endpoint Engineering</i> · test T-AUTH-06</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-102 · Enforce smart card authentication — Not applying</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Require a PIV/CAC smart card for login and authorisation.</td><td><span class="k">Our decision: Not applying</span>Platform SSO with a Secure Enclave key (phishing-resistant).</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-000060 (CAT II)<br>mSCP <code>auth_smartcard_enforce</code><br>SP 800-53: IA-2(1), IA-2(2), IA-2(12)</td><td><span class="k">Justification · owner</span>PIV cards are not issued to macOS users. Multifactor, phishing-resistant authentication is met by the Platform SSO Secure Enclave key bound to Entra ID with Conditional Access. Risk accepted as EXC-2026-007.<br><i>Identity and Access</i> · test T-AUTH-07</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-103 · Enforce FileVault and escrow the recovery key — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Enable FileVault on all volumes; escrow the recovery key to the MDM.</td><td><span class="k">Our decision: Apply</span>As recommended; personal recovery key escrowed to Intune or Jamf Pro.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-005020 (CAT II)<br>mSCP <code>system_settings_filevault_enforce</code><br>SP 800-53: SC-28, SC-28(1)</td><td><span class="k">Justification · owner</span>No deviation.<br><i>Endpoint Engineering</i> · test T-DISK-01</td></tr></tbody></table><div class="rf"><span>BW-MACOS26-2026-10 · v1.3</span><span>Page 3</span></div></section>
+
+<section class="pg"><div class="rh"><span>Example Agency</span><span>macOS 26 Security Baseline and Test Report</span></div><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-104 · Enable the application firewall — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Turn on the macOS application firewall.</td><td><span class="k">Our decision: Apply</span>As recommended, plus stealth mode.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-005050 (CAT II)<br>mSCP <code>system_settings_firewall_enable</code><br>SP 800-53: SC-7, SC-7(12)</td><td><span class="k">Justification · owner</span>No deviation.<br><i>Endpoint Engineering</i> · test T-NET-01</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-105 · Disable SSH (Remote Login) — Modified</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Disable the SSH server unless documented as an operational requirement.</td><td><span class="k">Our decision: Modified</span>Off on all endpoints except 14 build hosts, where only the admin group may connect.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-000100 (CAT II)<br>mSCP <code>system_settings_ssh_disable</code><br>SP 800-53: CM-7, AC-17</td><td><span class="k">Justification · owner</span>The iOS build farm needs SSH for CI agents. Limited to a named Smart Group, keys only, FIPS ciphers (BW-106) and logged to the SIEM.<br><i>Platform Engineering</i> · test T-NET-04</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-106 · Use FIPS-validated SSH ciphers and MACs — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Limit sshd to FIPS 140-validated ciphers, MACs and key exchange.</td><td><span class="k">Our decision: Apply</span>As recommended on the 14 hosts where SSH is enabled.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-000110 (CAT I)<br>mSCP <code>os_sshd_fips_compliant</code><br>SP 800-53: AC-17(2), IA-7, SC-13</td><td><span class="k">Justification · owner</span>Tested only because BW-105 leaves SSH on for build hosts.<br><i>Platform Engineering</i> · test T-NET-03</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-107 · Configure audit flags and retention — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Audit logon/logoff, admin and authorisation events; retain locally per policy.</td><td><span class="k">Our decision: Apply</span>As recommended; 60-day local retention, forwarded to the SIEM.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-001010 (CAT II)<br>mSCP <code>audit_flags_lo_configure</code><br>SP 800-53: AU-2, AU-12, AU-11</td><td><span class="k">Justification · owner</span>No deviation.<br><i>Security Operations</i> · test T-LOG-01</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-108 · Enforce software update installation — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Download and install security updates automatically.</td><td><span class="k">Our decision: Apply</span>Declarative device management enforces minor updates within 7 days.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-002050 (CAT II)<br>mSCP <code>system_settings_software_update_download_enforce</code><br>SP 800-53: SI-2, SI-2(2)</td><td><span class="k">Justification · owner</span>No deviation.<br><i>Endpoint Engineering</i> · test T-UPD-01</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-109 · Lock the screen after 15 minutes of inactivity — Apply</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Start the screen saver after at most 15 minutes and require a password immediately.</td><td><span class="k">Our decision: Apply</span>As recommended (900 seconds, password on wake).</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-000070 (CAT II)<br>mSCP <code>system_settings_screensaver_timeout_enforce</code><br>SP 800-53: AC-11, AC-11(1)</td><td><span class="k">Justification · owner</span>No deviation.<br><i>Endpoint Engineering</i> · test T-AUTH-05</td></tr></tbody></table><table class="card"><tbody><tr class="hdr"><td colspan="2">BW-110 · Disable Bluetooth — Not applying</td></tr>
+<tr><td class="l"><span class="k">Publisher recommendation</span>Turn off Bluetooth unless an approved peripheral requires it.</td><td><span class="k">Our decision: Not applying</span>Bluetooth on; sharing and discoverability off.</td></tr>
+<tr><td><span class="k">References</span>STIG APPL-26-002080 (CAT II)<br>mSCP <code>system_settings_bluetooth_disable</code><br>SP 800-53: AC-18, AC-18(3)</td><td><span class="k">Justification · owner</span>Keyboards, headsets and Continuity are business-essential. Bluetooth Sharing stays disabled (applied control). Risk accepted as EXC-2026-008.<br><i>Endpoint Engineering</i></td></tr></tbody></table><div class="rf"><span>BW-MACOS26-2026-10 · v1.3</span><span>Page 4</span></div></section>
+
+<section class="pg"><div class="rh"><span>Example Agency</span><span>macOS 26 Security Baseline and Test Report</span></div><h1>3 Test plan and results</h1><p>Steps are derived only from applied and modified rules.</p>
+<h2>3.1 Authentication and SSO</h2><p class="foot">Platform SSO (Intune and Jamf Pro), Jamf Connect, Kerberos SSO extension, login window, smart card.</p>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-AUTH-01</td><td>Platform SSO registered with Entra ID (Intune fleet)<br><code>app-sso platform -s</code></td><td>Extension com.microsoft.CompanyPortalMac.ssoextension; registrationCompleted : true; loginType : Secure Enclave key</td><td class="pass">Pass</td><td>EV-011 (output, 3 hosts)</td><td>JR</td></tr><tr><td>T-AUTH-02</td><td>Platform SSO payload delivered by Jamf Pro<br><code>/usr/bin/profiles show -type configuration | grep -A4 com.apple.extensiblesso</code></td><td>Payload present from Jamf Pro; AuthenticationMethod = UserSecureEnclaveKey</td><td class="pass">Pass</td><td>EV-012</td><td>SP</td></tr><tr><td>T-AUTH-03</td><td>Jamf Connect login window uses Entra ID (legacy Jamf fleet)<br><code>defaults read /Library/Managed\ Preferences/com.jamf.connect.login OIDCProvider</code></td><td>EntraID; local account password synced after sign-in</td><td class="pass">Pass</td><td>EV-013 (screen recording)</td><td>SP</td></tr><tr><td>T-AUTH-04</td><td>Kerberos SSO extension obtains a TGT on the corporate network<br><code>app-sso -i CORP.EXAMPLE.COM &amp;&amp; klist</code></td><td>Realm CORP.EXAMPLE.COM; valid krbtgt ticket listed</td><td class="pass">Pass</td><td>EV-014</td><td>JR</td></tr><tr><td>T-AUTH-05</td><td>Login window: name and password, banner, 15-minute screen lock<br><code>/usr/bin/profiles show -type configuration | grep -E 'SHOWFULLNAME|idleTime|askForPasswordDelay'</code></td><td>SHOWFULLNAME = 1; idleTime = 900; askForPasswordDelay = 0; PolicyBanner present</td><td class="pass">Pass</td><td>EV-015</td><td>JR</td></tr><tr><td>T-AUTH-06</td><td>Account locks after 5 failed attempts (modified, BW-101)<br><code>/usr/bin/pwpolicy -getaccountpolicies | grep -A1 policyAttributeMaximumFailedAuthentications</code></td><td>&lt;integer&gt;5&lt;/integer&gt;</td><td class="fail">Fail</td><td>EV-016: 10 on 3 Jamf hosts</td><td>SP</td></tr><tr><td>T-AUTH-07</td><td>Smart card pairing and enforcement<br><code>sc_auth identities</code></td><td>Not tested: control not applied (BW-102, EXC-2026-007)</td><td class="">N/A</td><td>—</td><td>JR</td></tr>
+</tbody></table></div><h2>3.2 Disk encryption</h2><p class="foot">FileVault and recovery key escrow.</p>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-DISK-01</td><td>FileVault is on<br><code>fdesetup status</code></td><td>FileVault is On.</td><td class="pass">Pass</td><td>EV-021 (MDM report, 340/340)</td><td>JR</td></tr><tr><td>T-DISK-02</td><td>Recovery key escrowed to the MDM<br><code>/usr/bin/profiles show -type configuration | grep -i FDERecoveryKeyEscrow</code></td><td>Escrow payload present; key visible in Intune or Jamf Pro inventory</td><td class="pass">Pass</td><td>EV-022</td><td>SP</td></tr><tr><td>T-DISK-03</td><td>Recovery key rotates after use<br><code>sudo fdesetup changerecovery -personal (then check MDM)</code></td><td>New key escrowed within one check-in; old key invalid</td><td class="">Not tested</td><td>Scheduled 22 Oct</td><td>SP</td></tr>
+</tbody></table></div><h2>3.3 Network</h2><p class="foot">SSH is tested only because BW-105/BW-106 leave it on for build hosts.</p>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-NET-01</td><td>Application firewall enabled with stealth mode<br><code>/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate --getstealthmode</code></td><td>Firewall is enabled. (State = 1); Firewall stealth mode is on</td><td class="pass">Pass</td><td>EV-031</td><td>JR</td></tr><tr><td>T-NET-02</td><td>Sharing services off (screen, file, internet, Bluetooth sharing)<br><code>launchctl print-disabled system | grep -E 'screensharing|smbd|InternetSharing'</code></td><td>each service =&gt; disabled</td><td class="pass">Pass</td><td>EV-032</td><td>JR</td></tr><tr><td>T-NET-03</td><td>SSH uses FIPS ciphers, MACs and KEX (build hosts only)<br><code>/usr/sbin/sshd -G | grep -E '^(ciphers|macs|kexalgorithms)'</code></td><td>ciphers aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes256-ctr</td><td class="pass">Pass</td><td>EV-033 (14/14 hosts)</td><td>SP</td></tr><tr><td>T-NET-04</td><td>Remote Login off on standard endpoints<br><code>sudo /usr/sbin/systemsetup -getremotelogin</code></td><td>Remote Login: Off</td><td class="pass">Pass</td><td>EV-034</td><td>JR</td></tr>
+</tbody></table></div><h2>3.4 Logging and audit</h2>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-LOG-01</td><td>Audit flags and retention configured<br><code>grep -E '^(flags|expire-after)' /etc/security/audit_control</code></td><td>flags:lo,aa,ad,fd,fm,-all  expire-after:60d</td><td class="pass">Pass</td><td>EV-041</td><td>JR</td></tr><tr><td>T-LOG-02</td><td>Audit records reach the SIEM<br><code>Search SIEM for host events in the last 24 h</code></td><td>Events from every in-scope host</td><td class="fail">Fail</td><td>EV-042: 12 hosts silent</td><td>SP</td></tr>
+</tbody></table></div><h2>3.5 Updates</h2>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-UPD-01</td><td>Software update enforced by declaration<br><code>sw_vers -productVersion; softwareupdate --list</code></td><td>26.0.1 or later; No new software available</td><td class="pass">Pass</td><td>EV-051</td><td>JR</td></tr><tr><td>T-UPD-02</td><td>Background security responses install automatically<br><code>defaults read /Library/Managed\ Preferences/com.apple.SoftwareUpdate CriticalUpdateInstall</code></td><td>1</td><td class="pass">Pass</td><td>EV-052</td><td>JR</td></tr>
+</tbody></table></div><h2>3.6 MDM enrolment</h2>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-MDM-01</td><td>Enrolled through Automated Device Enrolment, user approved<br><code>/usr/bin/profiles status -type enrollment</code></td><td>Enrolled via DEP: Yes; MDM enrollment: Yes (User Approved)</td><td class="pass">Pass</td><td>EV-061</td><td>SP</td></tr><tr><td>T-MDM-02</td><td>MDM profile cannot be removed by the user<br><code>/usr/bin/profiles show -type enrollment</code></td><td>IsSupervised = 1; profile marked non-removable</td><td class="pass">Pass</td><td>EV-062</td><td>SP</td></tr>
+</tbody></table></div><h2>3.7 Browsers</h2><p class="foot">Safari, Chrome, Edge and Firefox each signing in with Entra ID.</p>
+<div class="tw"><table><thead><tr><th style="width:12%">ID</th><th style="width:34%">Step and procedure</th><th>Expected result</th><th style="width:10%">Result</th><th style="width:15%">Evidence</th><th style="width:9%">Tester</th></tr></thead><tbody>
+<tr><td>T-BRW-01</td><td>Safari: fraudulent website warning and Entra SSO<br><code>defaults read /Library/Managed\ Preferences/com.apple.Safari WarnAboutFraudulentWebsites</code></td><td>1; myapps.microsoft.com signs in without a prompt</td><td class="pass">Pass</td><td>EV-071</td><td>JR</td></tr><tr><td>T-BRW-02</td><td>Chrome: Microsoft Single Sign On extension forced<br><code>Open chrome://policy and check ExtensionInstallForcelist</code></td><td>Extension ppnbnpeolgkicgegkbkbjmhlideopiji installed; SSO succeeds</td><td class="pass">Pass</td><td>EV-072</td><td>JR</td></tr><tr><td>T-BRW-03</td><td>Edge: work profile signed in automatically<br><code>defaults read /Library/Managed\ Preferences/com.microsoft.Edge</code></td><td>BrowserSignin = 2; profile signed in on first launch</td><td class="pass">Pass</td><td>EV-073</td><td>SP</td></tr><tr><td>T-BRW-04</td><td>Firefox: Entra SSO through enterprise policy<br><code>cat /Applications/Firefox.app/Contents/Resources/distribution/policies.json</code></td><td>&quot;MicrosoftEntraSSO&quot;: true</td><td class="fail">Fail</td><td>EV-074: policy missing</td><td>SP</td></tr>
+</tbody></table></div><div class="rf"><span>BW-MACOS26-2026-10 · v1.3</span><span>Page 5</span></div></section>
+
+<section class="pg"><div class="rh"><span>Example Agency</span><span>macOS 26 Security Baseline and Test Report</span></div><h1>4 Findings and exceptions (POA&amp;M)</h1>
+<div class="tw"><table><thead><tr><th>ID</th><th>Weakness or exception</th><th>Controls</th><th>Risk</th><th>Owner</th><th>Milestone</th><th>Due</th><th>Status</th></tr></thead><tbody>
+<tr><td>POAM-2026-031</td><td>Lockout threshold is 10, not 5, on 3 Jamf hosts<br><span class="foot">from T-AUTH-06</span></td><td>AC-7</td><td>Moderate</td><td>S. Patel</td><td>Rescope the Jamf password-policy profile</td><td>31 Oct 2026</td><td>Open</td></tr><tr><td>POAM-2026-032</td><td>12 hosts not forwarding audit records to the SIEM<br><span class="foot">from T-LOG-02</span></td><td>AU-6, AU-4(1)</td><td>Moderate</td><td>Security Operations</td><td>Redeploy forwarder; alert on silent hosts</td><td>15 Nov 2026</td><td>Open</td></tr><tr><td>POAM-2026-033</td><td>Firefox Entra SSO policy not deployed<br><span class="foot">from T-BRW-04</span></td><td>IA-2</td><td>Low</td><td>J. Rivera</td><td>Ship policies.json through both MDMs</td><td>30 Nov 2026</td><td>Open</td></tr><tr><td>EXC-2026-007</td><td>Smart card enforcement not applied<br><span class="foot">from BW-102</span></td><td>IA-2(12)</td><td>Low</td><td>Identity and Access</td><td>Compensating: Platform SSO Secure Enclave key</td><td>Review 17 Apr 2027</td><td>Risk accepted</td></tr><tr><td>EXC-2026-008</td><td>Bluetooth remains enabled<br><span class="foot">from BW-110</span></td><td>AC-18(3)</td><td>Low</td><td>Endpoint Engineering</td><td>Compensating: sharing and discoverability off</td><td>Review 17 Apr 2027</td><td>Risk accepted</td></tr>
+</tbody></table></div>
+<p class="cap">Table 3. Plan of action and milestones</p>
+<h1>5 Attribution</h1>
+<p>DISA Security Technical Implementation Guides are U.S. Government works in the public domain; STIG IDs and severities are DISA’s.</p><p>NIST SP 800-53 Rev. 5 and the macOS Security Compliance Project (mSCP) are NIST publications, not subject to copyright in the United States; rule IDs are mSCP’s.</p><p>Recommendation text is paraphrased from the publishers. No CIS Benchmark text is included.</p>
+<p class="foot">Mockup with sample data. Names, counts and evidence references are invented. Generated by BaselineWatch 0.24.0 on 17 October 2026.</p><div class="rf"><span>BW-MACOS26-2026-10 · v1.3</span><span>Page 6</span></div></section>
+</body>
+</html>
