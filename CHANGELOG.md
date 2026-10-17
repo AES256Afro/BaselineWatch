@@ -2,6 +2,23 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.22.0 — 2026-10-17
+
+- **Platform watch entries** (M9.5): a watchlist entry of kind Platform names windows, apple,
+  linux, android, chrome, firefox, edge or network, and every CVE on that platform is your
+  stack: marked on the Vulnerabilities page, on the Wire however small its score, in the alerts
+  ("New Apple CVE: CVE-…") and in the digest. A CVE's platform is read from its CPE criteria,
+  then NVD's vendor and product, then the way its description names the platform when NVD has
+  not analysed it yet, so a new macOS CVE arrives the hour it is published.
+- A **Fix** panel on every CVE page, and a fix line on the Wire's CVE and KEV items: the
+  remediation already published, quoted and linked. NVD's references tagged Patch, Vendor
+  Advisory or Mitigation; the vendor advisories the Wire holds for the CVE; CISA KEV's required
+  action and due date; the package advisories' fixed versions; and the STIG rules that mitigate
+  the class of flaw, from the owner's `data/mitigations.yaml` (SMBv1, LLMNR, WDigest, NTLMv1,
+  AutoPlay, PowerShell 2.0, Office macros, Gatekeeper, System Integrity Protection, Credential
+  Guard, Network Level Authentication), each entry citing the publisher's statement. When
+  nothing is published the panel says so. The JSON API's CVE record carries the same facts.
+
 ## 0.21.0 — 2026-10-17
 
 - **Test plans** (`/baselines/<platform>/tests`, M9.4): what to test when a new OS release lands
