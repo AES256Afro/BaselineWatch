@@ -2,6 +2,18 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.24.0 — 2026-10-17
+
+- **The test plan draws one area at a time**, so a phone can use it the way 0.23.0 made the
+  builder usable: authentication and SSO, browsers, disk encryption, logging and audit,
+  network, updates, MDM enrolment and everything else, each behind a button. A RHEL 9 plan was
+  413 KB and 439 checkboxes on one page; its largest area is now about 150 KB, and Windows 11's
+  about 110 KB. The form still carries the state and nothing is stored: a hidden field names
+  the area on the page and the other areas' dropped ids ride along as hidden fields, so untick
+  in one area, open another, rebuild or export, and the whole plan is covered. Each procedure
+  stays folded into its row. `?section=<area>` opens an area directly; "Owner's templates" and
+  the GET export API (`/baselines/<platform>/tests/export?format=md&drop=...`) are unchanged.
+
 ## 0.23.0 — 2026-10-17
 
 - **The baseline builder draws one section at a time**, so a phone can use it: the STIG's rules
