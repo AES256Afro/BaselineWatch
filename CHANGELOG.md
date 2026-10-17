@@ -2,6 +2,29 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.19.0 — 2026-10-17
+
+- **STIGs**, a new area (`/stigs`, M9.2): the STIGs the Register follows by platform (Windows,
+  Linux, macOS, mobile, browsers, network devices, virtualisation, applications), and one page
+  per platform showing a STIG's rules grouped CAT I, II, III with the check and fix text folded
+  away, the NIST SP 800-53 controls each rule maps to, what changed in the latest release with
+  DISA's notes, and CISA's advice for the platform: the KEV entries whose vendor and product
+  belong to it and the directives whose titles name it.
+- DISA's **Control Correlation Identifier list** as a source: each CCI's definition and its
+  index into SP 800-53 Revision 5 (or 4). It is the join between STIG rules and controls, in both
+  directions: a rule's page in the Register names the controls it implements, and a control's
+  page lists the followed rules that implement it. Found through the STIG library listing, so an
+  unchanged list costs one small request a week.
+- **CISA directives** as a source: Binding Operational and Emergency Directives read from
+  CISA's listing (it has no feed), on the Wire under News, tagged with the platforms they name,
+  with an alert when a new one appears.
+- The DISA source's default followed set grows to Windows 11, Windows Server 2025 and 2022, Red
+  Hat Enterprise Linux 9 and 10, Ubuntu 24.04 and 22.04, Apple macOS 26 and 15, Microsoft Edge,
+  Google Chrome, Mozilla Firefox, Cisco IOS XE Router and Application Security and Development.
+  Watchlist entries of kind Baseline still replace the defaults.
+- `docs/PLAN.md` gains M9, Baselines, and `docs/COMPETITION.md` surveys what comparable tools do
+  and what BaselineWatch borrows or leaves alone.
+
 ## 0.17.0 — 2026-10-15
 
 - A second look, **Console**: the dense dashboard of a security console, with panels, uppercase

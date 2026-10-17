@@ -32,7 +32,22 @@ export const listingRequest = JSON.stringify({
 });
 
 /** STIGs followed when the watchlist names none. */
-export const defaultStigs = ["Microsoft Windows Server 2025", "Microsoft Windows 11", "Red Hat Enterprise Linux 9", "Canonical Ubuntu 24.04", "Cisco IOS XE Router", "Application Security and Development"];
+export const defaultStigs = [
+  "Microsoft Windows 11",
+  "Microsoft Windows Server 2025",
+  "Microsoft Windows Server 2022",
+  "Red Hat Enterprise Linux 9",
+  "Red Hat Enterprise Linux 10",
+  "Canonical Ubuntu 24.04",
+  "Canonical Ubuntu 22.04",
+  "Apple macOS 26",
+  "Apple macOS 15",
+  "Microsoft Edge",
+  "Google Chrome",
+  "Mozilla Firefox",
+  "Cisco IOS XE Router",
+  "Application Security and Development",
+];
 
 const excludedTypes = /Sunset|SCAP|Supplemental Automation|Compilation|Tools/i;
 

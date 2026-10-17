@@ -9,7 +9,7 @@ import { httpGet, type HttpGet } from "./http.ts";
  * Email goes through one of these (ntfy and Apprise both forward to mail) rather than SMTP here.
  */
 export interface Notification {
-  kind: "kev" | "release" | "watch" | "digest" | "test";
+  kind: "kev" | "release" | "watch" | "directive" | "digest" | "test";
   title: string;
   body: string;
   url?: string | null;
@@ -51,11 +51,11 @@ export async function send(transport: Transport | null, n: Notification, http: H
   if (!transport) return { status: "unconfigured", error: null };
   try {
     if (transport.scheme === "ntfy") {
-      const headers: Record<string, string> = { title: n.title, tags: n.kind === "kev" ? "rotating_light" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
+      const headers: Record<string, string> = { title: n.title, tags: n.kind === "kev" ? "rotating_light" : n.kind === "directive" ? "warning" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
       if (n.url) headers.click = n.url;
       await http(transport.endpoint, { method: "POST", body: n.body, headers, timeoutMs: 20_000 });
     } else if (transport.scheme === "gotify") {
-      const body = JSON.stringify({ title: n.title, message: n.url ? `${n.body}\n${n.url}` : n.body, priority: n.kind === "kev" ? 7 : 4 });
+      const body = JSON.stringify({ title: n.title, message: n.url ? `${n.body}\n${n.url}` : n.body, priority: n.kind === "kev" || n.kind === "directive" ? 7 : 4 });
       await http(transport.endpoint, { method: "POST", body, headers: { "content-type": "application/json", "x-gotify-key": transport.token ?? "" }, timeoutMs: 20_000 });
     } else {
       await http(transport.endpoint, { method: "POST", body: JSON.stringify({ kind: n.kind, title: n.title, body: n.body, url: n.url ?? null }), headers: { "content-type": "application/json" }, timeoutMs: 20_000 });

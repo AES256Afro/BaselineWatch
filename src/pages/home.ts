@@ -35,6 +35,7 @@ const formatLabel: Record<string, string> = {
   "oscal-json": "OSCAL JSON",
   "cprt-json": "CPRT JSON",
   "xccdf-zip": "XCCDF in zips",
+  "xml-zip": "XML in a zip",
   "sct-zip": "GPO backups and Excel",
   "pdf-upload": "PDF you upload",
   git: "git history",

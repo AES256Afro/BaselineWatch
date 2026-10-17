@@ -369,7 +369,13 @@ kind `baseline` still replace the defaults.
 
 #### M9.1: Plan and survey — this document and COMPETITION.md
 
-#### M9.2: STIG pages (`/stigs`) — 0.19.0
+#### M9.2: STIG pages (`/stigs`) — shipped 2026-10-17 as 0.19.0
+
+What landed: the CCI list and CISA's directive listing as sources (fixture tests replay the real
+zip and pages), the STIGs area with its index and platform pages, the join in both directions on
+the Register's control pages, the wider default set of followed STIGs, and CISA's KEV entries
+matched to platforms by vendor and product. Checked against the real Windows 11 (257 rules), macOS
+26 (160 rules) and CCI (5,150 items) files; the fixtures are excerpts of them.
 
 - `/stigs`: the operating systems the Register follows (Windows, Linux, macOS; then network
   devices, browsers, applications and anything else DISA publishes that is followed), each with

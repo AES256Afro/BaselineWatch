@@ -81,10 +81,27 @@ already fetched the current release) is repaired by `npm run relink -- <source>`
 - For each package on the watchlist, a query to OSV.dev naming that package and its ecosystem
   (`POST https://api.osv.dev/v1/query`), once a day. Nothing else from the watchlist leaves.
 - The standards' files from `raw.githubusercontent.com` (NIST's OSCAL, FedRAMP's rules) and the
-  publishers' own sites, as the Sources page lists them.
+  publishers' own sites, as the Sources page lists them. DISA's listing call is made once for the
+  STIGs and once for the CCI list; a zip is downloaded only when the listing's date has moved.
+- CISA's directive listing (`cisa.gov/news-events/directives/all`, three pages), once a day.
 
 Nothing is sent anywhere else. CIS and Microsoft content stays in the data directory under the
 owner's own licence; the pages quote it and the API never serves it whole.
+
+## The STIG pages
+
+`/stigs` lists the STIGs the Register follows by platform (Windows, Linux, macOS, mobile,
+browsers, network devices, virtualisation, applications; the platform is read from the product
+name). `/stigs/<platform>` shows one STIG at a time: its rules grouped CAT I, II, III, each with
+the check and fix text folded away, and the NIST SP 800-53 controls it maps to. That mapping is
+DISA's own: each rule cites CCIs, and DISA's CCI list indexes each CCI to a control (Revision 5
+when DISA gives one, else Revision 4). Until the CCI list has been fetched the pages show the
+CCIs alone and say so. The control pages in the Register show the reverse: the followed rules
+whose CCIs index that control. The aside shows what changed in the STIG's latest release, with
+DISA's Revision History notes, and "CISA on this platform": KEV entries whose vendor and product
+belong to the platform (CISA's words, matched by vendor and product name) and the directives
+whose titles name it. Nothing on these pages is generated; a rule without a CCI, or a CCI
+without an index, is shown as such.
 
 ## Looks
 

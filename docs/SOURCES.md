@@ -81,9 +81,13 @@ new downloads).
   `DownloadLink` (zips on `dl.dod.cyber.mil/wp-content/uploads/stigs/zip/`), `UploadDate` and
   `RawDownloadType` (STIGs; Sunset; SCAP 1.3; Supplemental Automation Content; STIG
   Compilations). Each manual STIG zip holds one XCCDF 1.1.4 file plus Overview and Revision
-  History PDFs. The adapter follows the STIGs named on the watchlist (kind `baseline`) or a small
-  default set, since the whole library is hundreds of zips. The class id in the request is the
-  one thing likely to move when DISA redeploys the site; the fixture test will say so.
+  History PDFs. The adapter follows the STIGs named on the watchlist (kind `baseline`) or the
+  default set (since 2026-10-17: Windows 11, Windows Server 2025 and 2022, Red Hat Enterprise
+  Linux 9 and 10, Ubuntu 24.04 and 22.04, Apple macOS 26 and 15, Microsoft Edge, Google Chrome,
+  Mozilla Firefox, Cisco IOS XE Router, Application Security and Development), since the whole
+  library is hundreds of zips. The class id in the request is the one thing likely to move when
+  DISA redeploys the site; the fixture test will say so. The same listing names the CCI list,
+  the Intune policy package and the GPO package (below and in M9.3).
 - **Cadence**: DISA releases quarterly (late Jan / Apr / Jul / Oct) plus out-of-band fixes;
   poll the listing daily.
 - **Shape**: `requirement-set`. Benchmark id and release, rule id (SV-xxxxxrxxx), STIG id
@@ -92,6 +96,22 @@ new downloads).
   "Revision History" PDF inside the zip lists each changed rule and a one-line reason.
 - **Licence**: US Government work, public domain.
 - **Diffability**: good once unzipped; rule ids are stable, text diffs are meaningful.
+
+### DISA Control Correlation Identifiers (CCI) (added 2026-10-17)
+- **Fetch**: `https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/CCI_List.zip`, named in the
+  STIG library listing as "CCI List" with an upload date (2026-07-15 when added), so a check is
+  the listing call and nothing more until the date moves. The zip holds `CCI_List.xml` (5,150
+  items in the 2026-07-14 list), an HTML rendering and a stylesheet.
+- **Cadence**: DISA republishes a few times a year; checked weekly.
+- **Shape**: `requirement-set`, one document key `cci`. Each item is a requirement: the CCI as
+  ref and label, its definition as the text, its type (policy or technical) as the family, and
+  the NIST SP 800-53 controls it indexes as related refs: the Revision 5 index when DISA gives
+  one (3,849 items do), else the Revision 4 index, with the raw indexes ("IA-5 (2) (a) (1)")
+  kept in the extras. "AC-1 a 1 (a)" indexes AC-1; "IA-5 (2) (a) (1)" indexes IA-5(2).
+- **Why it is here**: every STIG rule cites CCIs and nothing else; this list is the only join
+  from a rule to a control page, in both directions (the STIG pages and the control pages).
+- **Licence**: US Government work, public domain.
+- **Diffability**: good; ids are stable and definitions change rarely.
 
 ### Microsoft Security Baselines (Security Compliance Toolkit, Intune)
 - **Fetch**: toolkit download page `https://www.microsoft.com/en-us/download/details.aspx?id=55319`
@@ -245,6 +265,7 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 | /r/cybersecurity, /r/blueteamsec | same pattern | |
 | Hacker News | Algolia `https://hn.algolia.com/api/v1/search_by_date?tags=story&query=<terms>` | Terms list in config (CVE, vulnerability, breach, ransomware, zero-day). |
 | Georgetown CSET (if that is what "CSET" meant) | `https://cset.georgetown.edu/publications/` (*verify* RSS). | Policy research, not advisories. |
+| CISA directives (added 2026-10-17) | `https://www.cisa.gov/news-events/directives/all`, an HTML listing, ten a page (27 entries over three pages when added); `?page=N` for the rest. CISA publishes no feed for directives (`directives.xml` and `all.xml` under that path answer 404). | Binding Operational Directives and Emergency Directives with their dates, read from the teaser markup (`c-view__row`, `c-teaser__date`, `c-teaser__meta`, `c-teaser__title`). Each becomes a Wire item tagged with the platforms its title names (Cisco and F5 are network, Exchange is Windows, "security updates" or "cloud services" are every platform), so the STIG pages can show the directives that touch a platform. Every page's bytes are kept as a snapshot. A new directive alerts; the first fetch does not. Checked daily. |
 
 Reddit's API terms allow personal, low-volume, identified use. Do not store comment bodies;
 store the link post and link to the thread.

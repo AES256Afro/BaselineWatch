@@ -16,6 +16,8 @@ import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
 import { renderBrowse, renderControl, renderRelease, renderStandard } from "./pages/register.ts";
 import { renderSources } from "./pages/sources.ts";
+import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
+import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
 import { renderToday } from "./pages/today.ts";
@@ -320,6 +322,17 @@ export function createApp(ctx: AppContext): Express {
     const html = renderControl({ db, sourceId: String(req.params.source), documentId, ref: String(req.params.ref).toLowerCase(), ...who(req, res), now: now() });
     if (!html) return next();
     res.type("html").send(html);
+  });
+
+  app.get("/stigs", (req, res) => {
+    res.type("html").send(renderStigsIndex({ db, ...who(req, res), now: now() }));
+  });
+  app.get("/stigs/:platform", (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isPlatformId(platform)) return next();
+    const catParam = str(req.query.cat, 3);
+    const cat: Cat | undefined = catParam === "1" ? "CAT I" : catParam === "2" ? "CAT II" : catParam === "3" ? "CAT III" : undefined;
+    res.type("html").send(renderStigPlatform({ db, platform, stigKey: str(req.query.stig, 120), cat, ...who(req, res), now: now() }));
   });
 
   app.get("/vulnerabilities", (req, res) => {
