@@ -565,6 +565,56 @@ function compareMscp(db: DatabaseSync, current: DocChoice, next: DocChoice): Nex
   return { component: "mscp", current, next, added, removed, changed };
 }
 
+/**
+ * The builder draws one section of the profile at a time, so a phone loads a few hundred
+ * kilobytes rather than the whole megabyte: the STIG's rules by CAT, then what Microsoft's
+ * baseline or mSCP adds, then the SP 800-53 High controls. The form carries the other sections'
+ * dropped ids as hidden fields, so a redraw or an export from any section covers the profile.
+ */
+export type SectionId = "cat1" | "cat2" | "cat3" | "sct" | "mscp" | "controls";
+
+export interface ProfileSection {
+  id: SectionId;
+  /** "STIG rules: CAT I", "Microsoft's baseline adds". */
+  label: string;
+  items: ProfileItem[];
+  kept: number;
+}
+
+const sectionOrder: SectionId[] = ["cat1", "cat2", "cat3", "sct", "mscp", "controls"];
+const sectionLabels: Record<SectionId, string> = {
+  cat1: "STIG rules: CAT I",
+  cat2: "STIG rules: CAT II",
+  cat3: "STIG rules: CAT III",
+  sct: "Microsoft's baseline adds",
+  mscp: "mSCP adds",
+  controls: "SP 800-53 High baseline controls",
+};
+
+export function isSectionId(value: unknown): value is SectionId {
+  return typeof value === "string" && (sectionOrder as string[]).includes(value);
+}
+
+/** The section an item is drawn in. */
+export function sectionOf(item: Pick<ProfileItem, "kind" | "severity">): SectionId {
+  if (item.kind === "stig") return item.severity === "CAT I" ? "cat1" : item.severity === "CAT III" ? "cat3" : "cat2";
+  if (item.kind === "sct") return "sct";
+  if (item.kind === "mscp") return "mscp";
+  return "controls";
+}
+
+/** The sections the profile has items for, in page order, each with its kept count. */
+export function profileSections(profile: Profile): ProfileSection[] {
+  const by = new Map<SectionId, ProfileItem[]>();
+  for (const item of profile.items) {
+    const id = sectionOf(item);
+    const list = by.get(id);
+    if (list) list.push(item);
+    else by.set(id, [item]);
+  }
+  return sectionOrder.filter((id) => by.has(id)).map((id) => ({ id, label: sectionLabels[id], items: by.get(id)!, kept: by.get(id)!.filter((i) => i.included).length }));
+}
+
 /** The STIGs a platform's builder can start from, for the index page. */
 export function builderSummary(db: DatabaseSync, platform: BuilderPlatform): { stigs: StigSummary[]; scts: number; mscps: number; high: boolean } {
   return {
