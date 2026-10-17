@@ -131,6 +131,20 @@ Exports carry the publishers' attributions and never include CIS text or anythin
 Microsoft's values appear as the page quotes them. The printable HTML links to this instance's
 stylesheet and reads fine without it.
 
+## Test plans
+
+`/baselines/<platform>/tests` is what to test when a new OS release lands so the baseline still
+holds: every check procedure of the strict profile's STIG and mSCP rules, filed by area
+(authentication and SSO, browsers, disk encryption, logging and audit, network, updates, MDM
+enrolment, everything else) by the words in its title and then its procedure, plus the owner's
+templates from `data/test-plans/*.yaml` (SSO through Intune and Jamf with each browser, FileVault,
+BitLocker and LUKS key escrow, conditional access, enrolment), each step citing the publisher's
+document it follows. The templates are labelled as the owner's on the page and in every export;
+`data/test-plans/README.md` gives the file shape, and the folder is read on every request, so a
+new file shows at once. The same form as the builder: untick, Rebuild, export as a checklist
+(printable HTML with checkboxes, Markdown task list, CSV with a `done` column, JSON) from
+`/baselines/<platform>/tests/export`; `templates=0` leaves the owner's steps out.
+
 ## Looks
 
 Pages come in two looks, each in light and dark: **console**, the dense dashboard with panels,

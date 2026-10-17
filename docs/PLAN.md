@@ -433,7 +433,13 @@ has none (account lockout and password policies are not in its Windows 11 policy
   lists the payload keys for FileVault enforcement; a CSV opens in a spreadsheet with one row
   per item.
 
-#### M9.4: Test plans (`/baselines/<platform>/tests`) — 0.21.0
+#### M9.4: Test plans (`/baselines/<platform>/tests`) — shipped 2026-10-17 as 0.21.0
+
+What landed: the area filing (by the words in a check's title, then its procedure), the derived
+checks from the strict profile's STIG and mSCP rules, seven templates under `data/test-plans`
+(SSO through Intune and through Jamf with each browser, FileVault, BitLocker and LUKS key
+escrow, conditional access, enrolment) read on every request so the owner extends them by adding
+a file, and the checklist exports. The data folder ships in the image.
 
 - What to test when a new OS release lands so the baseline still holds, derived from the STIG
   and mSCP check procedures and grouped by area: authentication and SSO, browsers, disk

@@ -550,3 +550,5 @@ details.pgroup summary .count { margin-left: 6px; }
 .export dl dd { margin: 0; }
 .export pre { white-space: pre-wrap; font: 12.5px/1.5 var(--mono); }
 @media print { .mast, .foot, .builder fieldset, .pitem-head input { display: none; } .pitem details { display: block; } }
+.checklist { list-style: none; padding: 0; }
+.checklist li label { cursor: pointer; }

@@ -43,7 +43,7 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
         </section>
         <section class="box">
           <h2>Test plans</h2>
-          <p class="small">Arrive in the next release: what to test on a new OS release so the baseline still holds, grouped by area, from the STIG and mSCP checks.</p>
+          <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>.</p>
         </section>
       </aside>
     </div>`;
@@ -173,7 +173,7 @@ export function renderBuilder(options: BuilderOptions): string {
     <section class="box">
       <h2>Whose words</h2>
       <p class="small">STIG rules: DISA (public domain). Controls: NIST SP 800-53 Rev 5 (public domain), mapped through DISA's CCIs. ${p === "macos" ? "macOS rules and payload keys: NIST's macOS Security Compliance Project. " : ""}${p === "windows" ? "Microsoft's values: your own copy of the Security Compliance Toolkit, never redistributed. Intune definitions and checklist verdicts: DISA's own packages. " : ""}No CIS text, nothing from a model.</p>
-      <p class="small"><a href="/stigs/${p === "macos" ? "macos" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
+      <p class="small"><a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "macos" ? "macos" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
     </section>`;
 
   const content = html`
