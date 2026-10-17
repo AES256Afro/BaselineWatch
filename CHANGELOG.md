@@ -2,6 +2,26 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.20.0 — 2026-10-17
+
+- **Baselines**, a new area (`/baselines`, M9.3): per platform, the strictest published profile
+  as one form. Windows: a STIG's CAT I and CAT II rules (CAT III on request), Microsoft's
+  Security Compliance Toolkit settings for the same product joined by registry path, DISA's own
+  Intune settings-catalog definitions and checklist verdicts for each rule, and the NIST SP
+  800-53 High baseline controls with the rules that implement them. macOS: the STIG joined to
+  NIST's macOS Security Compliance Project rules with their configuration-profile payload keys.
+  Linux: the STIG with its fix procedures. Untick what you cannot do, rebuild, and export the rest
+  as printable HTML, Markdown, CSV or JSON in a plain, Jamf, Intune or Linux flavour; a GET with
+  the same fields is an API. "Current versus next" says what the strict set gains and loses in
+  the next loaded version of the STIG, the Microsoft baseline or the macOS branch.
+- Three sources: NIST's **macOS Security Compliance Project** (one branch per macOS release,
+  fetched at its exact commit, every rule with check, fix, payloads, severity and its 800-53,
+  800-171, CCI, STIG and CIS references, plus which baselines list it); DISA's **Intune policy
+  package** (the settings-catalog policies DISA ships for its STIGs, one row per setting); and
+  the **checklists in DISA's GPO package** (DISA's verdict, rule by rule, on what its GPO and
+  Intune policies set).
+- The `yaml` package moves from a development dependency to a runtime one for the mSCP rules.
+
 ## 0.19.0 — 2026-10-17
 
 - **STIGs**, a new area (`/stigs`, M9.2): the STIGs the Register follows by platform (Windows,
