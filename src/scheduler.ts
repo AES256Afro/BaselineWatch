@@ -63,6 +63,10 @@ export function groupByHost(sources: SourceRow[]): SourceRow[][] {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Hosts that want a longer pause than the default between requests in one sweep. Reddit's
+ * unauthenticated limit is tight, and six subreddits plus article-image fetches share it. */
+const hostDelayOverrides: Record<string, number> = { "www.reddit.com": 12_000 };
+
 export interface Scheduler {
   /** Fetches every due source now; resolves when all have finished. A run already in progress is joined, not duplicated. */
   runOnce(): Promise<IngestResult[]>;
@@ -110,8 +114,9 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
         ...(options.transport !== undefined ? { transport: options.transport } : {}),
         ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
       };
-      const hostDelayMs = options.hostDelayMs ?? 3000;
       const perHost = groupByHost(due).map((group) => async () => {
+        // An explicit hostDelayMs (tests) wins; otherwise a host override, then the default.
+        const hostDelayMs = options.hostDelayMs ?? hostDelayOverrides[hostOf(group[0]!.url)] ?? 3000;
         const results: IngestResult[] = [];
         for (const [index, source] of group.entries()) {
           if (index > 0) await sleep(hostDelayMs);

@@ -2,6 +2,15 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.27.0 — 2026-10-19
+
+- **The three new subreddits work.** 0.19's seeds copied the JSON listing form that Reddit
+  refuses to non-browser clients (403, immediately and always); they now point at the Atom feed
+  the way the older three have since 0004, a migration clears their error state, and a test holds
+  every subreddit to the Atom form. The scheduler also gives reddit.com a 12-second pause between
+  requests in a sweep — six subreddits and article-image fetches share one tight
+  unauthenticated limit.
+
 ## 0.26.0 — 2026-10-19
 
 - **Thirteen more news sources**: The Register (security), Cisco Talos, Unit 42, Securelist,
