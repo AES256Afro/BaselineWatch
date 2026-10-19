@@ -55,6 +55,22 @@ describe("pages", () => {
     expect(wire).toContain("Nothing here yet.");
   });
 
+  it("serves the guide and links it from the masthead and the footer", async () => {
+    const response = await fetch(`${app.base}/guide`);
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain("How to read this site");
+    expect(text).toContain("Known Exploited Vulnerabilities");
+    expect(text).toContain("Exploit Prediction Scoring System");
+    expect(text).toContain('href="/vulnerabilities?kev=1"');
+    expect(text).toContain('href="/vulnerabilities?min_epss=0.5"');
+    expect(text).toContain('href="/vulnerabilities?min_cvss=9"');
+    expect(text).toContain('href="/stigs"');
+    const home = await (await fetch(`${app.base}/`)).text();
+    expect(home).toContain('<a class="cap" href="/guide">');
+    expect(home).toContain('<a href="/guide">how to read this site</a>');
+  });
+
   it("sends strict security headers and no inline script", async () => {
     const response = await fetch(`${app.base}/`);
     expect(response.headers.get("content-security-policy")).toContain("script-src 'none'");
