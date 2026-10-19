@@ -2,6 +2,21 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **Scan: the browser check** (M12.1). A new **Scan** area at `/scan` runs three checks in the
+  tab and sees that browser only: ad hiding (twenty bait elements named like ad slots beside two
+  neutral controls, read back after two frames), ad requests (test images on paths EasyList's
+  request rules match, each between control images with identical bytes, from this instance and
+  from a second origin when `BW_PROBE_ORIGIN` names one; anonymous, no referrer, never shown; a
+  timeout is unknown, a policy failure is named, a failed image is tried once more), and filtering
+  DNS (AdGuard's and NextDNS's own self-checks). Two more rows say what no page can test. Results
+  are drawn into the page by one self-hosted script, `/assets/scan.js`, and never uploaded; the
+  script runs only when the Run button is pressed. `/scan/why` explains each check with its primary
+  sources. `/scan` is the one page served with `script-src 'self'` (plus the probe origin in
+  `img-src` and the two self-check hosts in `connect-src`); every other page keeps `script-src
+  'none'`, and nothing is ever inline.
+
 ## 0.32.0 — 2026-10-19
 
 - **iOS, iPadOS and Android join the baseline builder** (M11.2). DISA's Apple iOS/iPadOS 27 and

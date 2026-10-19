@@ -14,4 +14,9 @@ export default tseslint.config(
       "no-console": "off",
     },
   },
+  {
+    // The one script served to browsers (public/scan.js): a plain ES module with the browser's globals and none of Node's.
+    files: ["public/**/*.js"],
+    languageOptions: { globals: { ...globals.browser }, sourceType: "module" },
+  },
 );

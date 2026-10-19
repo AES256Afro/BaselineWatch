@@ -96,6 +96,7 @@ source immediately from that page.
 | `BW_SCHEME` | `system` | `light`, `dark`, or `system` for whatever the device says. Each browser can pick its own from the masthead. |
 | `BW_LLM_URL` | unset | Ollama address. When set, each release with changes also gets a short summary badged as generated, beside the publisher's own words. |
 | `BW_LLM_MODEL` | `llama3.2:3b` | The Ollama model for those summaries. |
+| `BW_PROBE_ORIGIN` | unset | A second origin serving the Scan page's probe images (another BaselineWatch instance, or this one on another hostname), so the ad-request check covers a cross-site load as well as a same-site one. An origin only: `https://probe.example.net`. |
 | `TZ` | `Etc/UTC` | Time zone for digests. |
 
 ## API

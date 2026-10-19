@@ -4,7 +4,7 @@ import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "today" | "register" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide";
+export type Area = "today" | "register" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide" | "scan";
 
 /**
  * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
@@ -20,6 +20,7 @@ const areas: Record<Area, { label: string; path: string }> = {
   platforms: { label: "Platforms", path: "/platforms" },
   atlas: { label: "Atlas", path: "/atlas" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities" },
+  scan: { label: "Scan", path: "/scan" },
   triage: { label: "Triage", path: "/triage" },
   watchlist: { label: "Watchlist", path: "/watchlist" },
   digest: { label: "Digest", path: "/digest" },
@@ -46,6 +47,11 @@ export interface PageOptions {
   strip?: Html;
   /** The look and scheme this browser chose, and where its switch leads back to. */
   look: LookState;
+  /**
+   * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
+   * page passes one, under its own policy; every other page is served with script-src 'none'.
+   */
+  script?: string | undefined;
 }
 
 /** The Register's newest changes, for the ribbon under the masthead and anywhere else that glances at it. */
@@ -74,7 +80,7 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   return html`<div class="strip"><div class="strip-inner"><a class="lab" href="/register">Register</a> ${entries}</div></div>`;
 }
 
-export function page({ title, active, content, meta, owner, open, strip, look }: PageOptions): string {
+export function page({ title, active, content, meta, owner, open, strip, look, script }: PageOptions): string {
   const link = (area: Area, cls?: string): Html => {
     const item = areas[area];
     return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
@@ -96,6 +102,7 @@ export function page({ title, active, content, meta, owner, open, strip, look }:
 <title>${title === productName ? title : `${title} · ${productName}`}</title>
 <link rel="stylesheet" href="/assets/app.css?v=${productVersion}">
 <meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
+${script ? html`<script type="module" src="${script}?v=${productVersion}"></script>` : ""}
 </head>
 <body>
 <header class="mast">
@@ -108,7 +115,7 @@ export function page({ title, active, content, meta, owner, open, strip, look }:
           <a class="cap" href="/guide">The standards change register — how to read it</a>
           ${standardsGroup.map((a) => link(a))}
         </div>
-      </details>${link("vulnerabilities")}
+      </details>${link("vulnerabilities")}${link("scan")}
     </nav>
     <div class="meta">${meta ?? ""}</div>
     <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
