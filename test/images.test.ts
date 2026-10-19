@@ -142,6 +142,10 @@ describe("image backfill for existing articles", () => {
     ]);
     // The vendor advisory was never asked for its page.
     expect(http.calls.some((c) => c.url.startsWith("https://vendor.test/"))).toBe(false);
+
+    // The page without an og:image is remembered and never asked again.
+    const third = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0 });
+    expect(third).toEqual({ examined: 0, stored: 0 });
   });
 });
 

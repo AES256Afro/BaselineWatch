@@ -67,7 +67,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const starred = db
     .prepare("SELECT title, url FROM items WHERE starred = 1 AND fetched_at > ? AND fetched_at <= ? ORDER BY published_at DESC LIMIT 10")
     .all(from, to) as { title: string; url: string | null }[];
-  lines.push(`Wire: ${news} new stories, ${notable} notable CVEs${starred.length ? `, ${starred.length} starred` : ""}`);
+  lines.push(`News: ${news} new stories, ${notable} notable CVEs${starred.length ? `, ${starred.length} starred` : ""}`);
   for (const s of starred) lines.push(`- ${s.title}${s.url ? ` ${s.url}` : ""}`);
   lines.push("");
 
@@ -77,6 +77,12 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   lines.push(`Triage: ${open}${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`);
   const failing = db.prepare("SELECT name FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { name: string }[];
   if (failing.length) lines.push(`Sources failing: ${failing.map((f) => f.name).join(", ")} ${baseUrl}/sources`);
+  // The lesson of the three-day NVD stall: staleness is a headline, not something to go look for.
+  const newestVuln = (db.prepare("SELECT MAX(last_modified_at) AS m FROM vulns").get() as { m: string | null }).m;
+  if (newestVuln) {
+    const ageDays = (Date.parse(to) - Date.parse(newestVuln)) / 86_400_000;
+    if (ageDays >= 1.5) lines.push(`Pipeline: the newest CVE change is ${Math.floor(ageDays)} day(s) old — the CVE pull may be stuck ${baseUrl}/sources`);
+  }
   return lines.join("\n").trim();
 }
 

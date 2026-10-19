@@ -2,6 +2,17 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.29.0 — 2026-10-19
+
+- **M10 begins: the pipeline tells on itself.** The digest adds a staleness line when the newest
+  CVE change is over a day and a half old — the three-day NVD stall would have been a morning
+  headline, not an investigation. The digest's "Wire:" line becomes "News:".
+- **`npm run check:feeds`** probes every feed-style source's URL (network, so separate from
+  `npm run check`) and fails on any that no longer answers with its format, so dead URLs and
+  bot-blocked forms are caught before a release ships them.
+- **Image attempts are remembered** (`image_checked_at`): a page that yields no og:image is never
+  asked again, by ingest or by the backfill; a network failure stays unmarked for the next run.
+
 ## 0.28.0 — 2026-10-19
 
 - **`images` backfill command.** Images arrive with new items by design, which left everything

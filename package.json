@@ -1,6 +1,6 @@
 {
   "name": "baselinewatch",
-  "version": "0.28.0",
+  "version": "0.29.0",
   "private": true,
   "description": "Security news, CVEs and advisories in one timeline, plus a change register for the standards themselves.",
   "type": "module",
@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test scripts",
     "check:manifest": "node scripts/validate-manifest.mjs",
+    "check:feeds": "node --disable-warning=ExperimentalWarning scripts/probe-feeds.mjs",
     "check": "npm run typecheck && npm run test && npm run lint && npm run check:manifest"
   },
   "dependencies": {
