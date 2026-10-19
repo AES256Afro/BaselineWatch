@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 07 · do it by hand</title>
+<style>
+/* Mockups for the Scan area: the Register look's tokens from public/app.css, nothing new.
+   Sample data throughout; the real pages render through src/html.ts and this stylesheet
+   is only for these mockups. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+.dark, [data-scheme="dark"] {
+  --paper: #15181a; --card: #1d2124; --ink: #e7eae6; --mute: #9aa6a3; --rule: #333a3d; --rule-2: #46504f;
+  --acc: #4cc9a6; --acc-ink: #0e1512; --warn: #e2b55a; --del: #ff8a80; --ins: #7fd99a; --gen: #c2a6f0; --panel-2: #22272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+h3 { font: 600 14px var(--sans); margin: 14px 0 6px; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .d { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.check .ev { margin-top: 8px; font-size: 13px; }
+.check .ev li { margin: 2px 0; }
+.check .why { margin-top: 8px; font-size: 13px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+.check .why b { font-weight: 600; }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.na { background: var(--panel-2); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); margin-left: 4px; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); border-top: 0; }
+.table-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; margin-bottom: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 30px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.sources { font-size: 12.5px; }
+.sources li { margin: 3px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; }
+.ok-t { color: var(--ins); } .warn-t { color: var(--warn); } .bad-t { color: var(--del); }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--acc); }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+/* The Console look (mockup 09): dense panels, uppercase mono titles. */
+.console { font-family: var(--sans); }
+.console .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+.console .panel h2 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.console .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.console .big { font: 300 34px/1 var(--sans); }
+.spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.spark i { display: block; width: 6px; background: var(--acc); border-radius: 1px; }
+.spark i.bad { background: var(--del); }
+.phone { width: 390px; max-width: 100%; border: 10px solid #222; border-radius: 28px; background: var(--paper); padding: 10px; margin: 0 auto; }
+.phone .check { grid-template-columns: 1fr auto; }
+.phone .check .n { display: none; }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">guide · Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 07 of 10, sample data.</b> The manual guide: everything the scans do, done by hand, one platform at a time, with the command that proves it. Breadcrumbs name the platform; every step links to the vendor's page it follows. The wording is this product's; the facts are the vendors'.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="01-scan-home.html">Scan</a><span>›</span><a href="#">Do it by hand</a><span>›</span><b>macOS</b></p>
+  <h1>Do it by hand <span class="arrow">macOS</span></h1>
+  <p class="lede">Pick a platform: <a href="#">Windows 11</a> · <b>macOS</b> · <a href="#">iPhone and iPad</a> · <a href="#">Android</a> · <a href="#">Linux</a> · <a href="#router">Router</a> · <a href="#">Pi-hole and AdGuard Home</a>. Each section is one thing the scan checks, how to do it yourself, how to prove it, and why.</p>
+
+  <div class="cols">
+    <section>
+      <h2 id="dns">1. Filter DNS for every app on this Mac</h2>
+      <ol class="steps">
+        <li><b>Decide which resolver.</b> AdGuard DNS, NextDNS and Mullvad each publish a filtering resolver; a Pi-hole or AdGuard Home on your network is the same thing for every device. If you use a VPN or iCloud Private Relay, it brings its own DNS and wins; set the filter there instead.<div class="small">Why: a browser blocker protects one browser; the system resolver covers every app that uses it, which is most of them. Apps with their own resolver still bypass it.</div></li>
+        <li><b>Install the resolver's profile.</b> Open the resolver's setup page, choose the filtering server, download the configuration profile, then System Settings, General, Device Management: review the provider and the DNS servers it names, then install. <a href="#">AdGuard's instructions</a> · <a href="#">NextDNS's</a>. Stop if the profile's details do not match the provider's page.</li>
+        <li><b>Prove it.</b> In Terminal: <code>scutil --dns | head -20</code> shows the resolver in use; <code>dig +short ad.doubleclick.net</code> returns <code>0.0.0.0</code> or nothing when the filter answers. Then run the browser check here: the resolver row names the provider.</li>
+        <li><b>Check it stays.</b> A VPN or a profile change can replace it. The Mac's device script reports the resolver every time it runs.</li>
+      </ol>
+
+      <h2 id="blocker">2. A content blocker in the browser</h2>
+      <ol class="steps">
+        <li><b>Install uBlock Origin</b> in Firefox, or a content blocker in Safari (Safari extensions use the content-blocker API; uBlock Origin Lite is the Chrome build since Chrome's extension change). <a href="#">uBlock Origin</a></li>
+        <li><b>Prove it.</b> Run the browser check: ad hiding should show baits hidden and ad requests a load difference. A blocker that hides nothing here may still block requests; look at its request log.</li>
+      </ol>
+
+      <h2 id="firewall">3. The Mac's own firewall</h2>
+      <ol class="steps">
+        <li><b>Turn it on.</b> System Settings, Network, Firewall: on, with stealth mode on and incoming connections blocked for the apps you do not expect to listen. <a href="#">Apple, "Block connections to your Mac with a firewall"</a></li>
+        <li><b>Prove it.</b> <code>/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate --getstealthmode</code> prints both as enabled. For the packet filter underneath: <code>sudo pfctl -s info</code>.<div class="small">Why: the application firewall stops a program that was not expected to listen from accepting connections from the LAN, which is where a compromised device next door would come from.</div></li>
+      </ol>
+
+      <h2 id="lockdown">4. Lockdown Mode, if you are a likely target</h2>
+      <ol class="steps">
+        <li>System Settings, Privacy &amp; Security, Lockdown Mode. It limits what an attack can do if one gets through: message attachments, web technologies, wired accessories, configuration profiles. It is for people who may be targeted by mercenary spyware, and it cannot be managed by MDM. <a href="#">Apple, "About Lockdown Mode"</a></li>
+      </ol>
+
+      <h2 id="adid">5. Take away the advertising identifier</h2>
+      <ol class="steps">
+        <li>System Settings, Privacy &amp; Security, Apple Advertising: turn off Personalized Ads. On iPhone also Tracking: Allow Apps to Request to Track, off.<div class="small">Why: targeted ads are how a target is picked; without the identifier the ad network has less to aim with. It does not remove ads.</div></li>
+      </ol>
+
+      <h2 id="past">6. If you need to know about the past</h2>
+      <ol class="steps">
+        <li>Run the Mac device script for the browser traces; for a phone, Amnesty's Mobile Verification Toolkit reads a backup against its indicators. <a href="#">MVT documentation</a>. A clean result is not a clean bill of health; a concrete reason to think you were targeted is a reason to call a helpline, not to run a tool.</li>
+      </ol>
+
+      <h2 id="router">Router, any platform</h2>
+      <ol class="steps">
+        <li><b>Open the admin page</b> (the gateway address the router check names, usually 192.168.1.1 or 192.168.0.1) and change the password printed on the device if it is still in use.</li>
+        <li><b>DNS.</b> Set the DHCP DNS to your filtering resolver so every device gets it; leave the router's own resolver out.</li>
+        <li><b>UPnP off</b>, unless something you run needs it; then read the mappings table once a month.</li>
+        <li><b>Remote management off</b> on the WAN side; admin over HTTPS only.</li>
+        <li><b>Firmware.</b> Note the version; the router check compares it with the CVE database and alerts on a KEV entry.</li>
+        <li><b>Prove it.</b> The router check reads the DHCP DNS, the mappings and the WAN exposure from here; the firewall check reads what the internet sees.</li>
+      </ol>
+    </section>
+    <aside>
+      <div class="box">
+        <h2>On this page</h2>
+        <ul class="small">
+          <li><a href="#dns">Filter DNS for every app</a></li>
+          <li><a href="#blocker">A content blocker in the browser</a></li>
+          <li><a href="#firewall">The Mac's own firewall</a></li>
+          <li><a href="#lockdown">Lockdown Mode</a></li>
+          <li><a href="#adid">The advertising identifier</a></li>
+          <li><a href="#past">The past</a></li>
+          <li><a href="#router">Router</a></li>
+        </ul>
+      </div>
+      <div class="box">
+        <h2>Other platforms</h2>
+        <dl class="kv">
+          <dt>Windows 11</dt><dd>Settings, Network, adapter, DNS server assignment: the filtering addresses with DNS over HTTPS on; prove with <code>Get-DnsClientServerAddress</code> and <code>Get-NetFirewallProfile</code>.</dd>
+          <dt>iPhone</dt><dd>The resolver's profile under Settings, General, VPN &amp; Device Management; or Settings, Wi-Fi, ⓘ, Configure DNS.</dd>
+          <dt>Android 9+</dt><dd>Settings, Network &amp; internet, Private DNS, the provider hostname (Samsung: Settings, Connections, More connection settings, Private DNS).</dd>
+          <dt>Linux</dt><dd><code>resolvectl dns</code> and <code>resolvectl status</code>; <code>nft list ruleset</code> or <code>ufw status</code>.</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h2>Limits</h2>
+        <p class="small">DNS filtering cannot remove ads from Instagram, Facebook, TikTok or YouTube: those come from the same servers as the content. A browser test sees one browser. None of this says whether anything already happened.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · Scan mockups · Apple's, AdGuard's, NextDNS's and Amnesty's pages are theirs; the steps paraphrase them and link to them</footer>
+</body>
+</html>

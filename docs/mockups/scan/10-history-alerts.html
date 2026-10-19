@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 10 · history and alerts</title>
+<style>
+/* Mockups for the Scan area: the Register look's tokens from public/app.css, nothing new.
+   Sample data throughout; the real pages render through src/html.ts and this stylesheet
+   is only for these mockups. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+.dark, [data-scheme="dark"] {
+  --paper: #15181a; --card: #1d2124; --ink: #e7eae6; --mute: #9aa6a3; --rule: #333a3d; --rule-2: #46504f;
+  --acc: #4cc9a6; --acc-ink: #0e1512; --warn: #e2b55a; --del: #ff8a80; --ins: #7fd99a; --gen: #c2a6f0; --panel-2: #22272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+h3 { font: 600 14px var(--sans); margin: 14px 0 6px; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .d { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.check .ev { margin-top: 8px; font-size: 13px; }
+.check .ev li { margin: 2px 0; }
+.check .why { margin-top: 8px; font-size: 13px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+.check .why b { font-weight: 600; }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.na { background: var(--panel-2); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); margin-left: 4px; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); border-top: 0; }
+.table-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; margin-bottom: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 30px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.sources { font-size: 12.5px; }
+.sources li { margin: 3px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; }
+.ok-t { color: var(--ins); } .warn-t { color: var(--warn); } .bad-t { color: var(--del); }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--acc); }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+/* The Console look (mockup 09): dense panels, uppercase mono titles. */
+.console { font-family: var(--sans); }
+.console .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+.console .panel h2 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.console .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.console .big { font: 300 34px/1 var(--sans); }
+.spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.spark i { display: block; width: 6px; background: var(--acc); border-radius: 1px; }
+.spark i.bad { background: var(--del); }
+.phone { width: 390px; max-width: 100%; border: 10px solid #222; border-radius: 28px; background: var(--paper); padding: 10px; margin: 0 auto; }
+.phone .check { grid-template-columns: 1fr auto; }
+.phone .check .n { display: none; }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">61 runs · Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 10 of 10, sample data.</b> A scan that runs daily is only useful if a change is news. Every run is kept; a canary that starts resolving, a mapping that appears, a firmware that gains a KEV entry, a device script that stops reporting: each is an alert through the channel KEV additions already use, and a line in the digest. The phone frame on the right is the landing page at phone width.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="01-scan-home.html">Scan</a><span>›</span><b>History and alerts</b></p>
+  <h1>History and alerts <span class="arrow">what changed, when</span></h1>
+
+  <div class="cols">
+    <section>
+      <div class="table-wrap"><table>
+        <thead><tr><th>When</th><th>Change</th><th>Group</th><th>Alerted</th></tr></thead>
+        <tbody>
+          <tr><td>19 Oct 06:00</td><td class="warn-t">bigbox's script reports ufw inactive (was active on 12 Oct)</td><td>Devices</td><td>ntfy, digest</td></tr>
+          <tr><td>18 Oct 06:00</td><td class="bad-t">New UPnP mapping: TCP 3389 → 192.168.8.44</td><td>Router</td><td>ntfy, digest</td></tr>
+          <tr><td>12 Oct 06:00</td><td class="ok-t">Malware canaries sinkholed: 6 → 9 (Hagezi list added to the Pi-hole)</td><td>Network</td><td>digest</td></tr>
+          <tr><td>3 Oct 06:00</td><td class="warn-t">adfection list v0.1.5 → v0.1.6: 14 domains added, 2 removed; 5 of the new ones resolve here</td><td>Lists, Network</td><td>ntfy, digest</td></tr>
+          <tr><td>30 Sep 14:10</td><td class="bad-t">Router firmware 1.0.11.116 gained a KEV entry: CVE-2026-20142</td><td>Router</td><td>ntfy</td></tr>
+          <tr><td>22 Sep 06:00</td><td class="ok-t">Exposure: InternetDB record cleared (port 8443 no longer listed)</td><td>Firewall</td><td>digest</td></tr>
+          <tr><td>20 Aug 06:00</td><td class="ok-t">First run</td><td>All</td><td>—</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2>Alerts</h2>
+      <div class="box">
+        <dl class="kv">
+          <dt>Channel</dt><dd>the notifier already set for KEV additions (ntfy)</dd>
+          <dt>Right away</dt><dd>router firmware on the KEV list · a new UPnP mapping · a canary category that stops being sinkholed · remote management appears on the WAN side</dd>
+          <dt>In the digest</dt><dd>everything else: list changes, script reports, exposure record changes</dd>
+          <dt>Never</dt><dd>a first run; an unchanged result</dd>
+        </dl>
+      </div>
+
+      <h2>Runs</h2>
+      <p class="small">Daily at 06:00 (the owner's setting), each group separately; the browser check runs only when someone opens the page. A run is stored as the facts it observed, so two runs can be diffed the way two versions of a standard are.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Day</th><th>Network</th><th>Router</th><th>Exposure</th><th>Devices</th></tr></thead>
+        <tbody>
+          <tr><td>19 Oct</td><td>40 / 48</td><td>2 findings</td><td>clean</td><td>3 of 4</td></tr>
+          <tr><td>18 Oct</td><td>40 / 48</td><td>2 findings</td><td>clean</td><td>3 of 4</td></tr>
+          <tr><td>17 Oct</td><td>40 / 48</td><td>1 finding</td><td>clean</td><td>3 of 4</td></tr>
+          <tr><td>…</td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <aside>
+      <div class="phone">
+        <p class="crumbs"><a href="#">Home</a><span>›</span><b>Scan</b></p>
+        <h1 style="font-size:24px">Scan</h1>
+        <p class="small">Four checks, four eyes. Results stay here.</p>
+        <div class="check"><div><div class="t">This browser</div><div class="d">Runs in this tab.</div></div><span class="state ok">Protected</span></div>
+        <div class="check"><div><div class="t">This network</div><div class="d">40 of 48 canaries sinkholed.</div></div><span class="state warn">Partly</span></div>
+        <div class="check"><div><div class="t">Router</div><div class="d">KEV firmware; UPnP mapping.</div></div><span class="state bad">2</span></div>
+        <div class="check"><div><div class="t">Firewall</div><div class="d">Nothing listed; DoH bypass open.</div></div><span class="state ok">Clean</span></div>
+        <div class="row"><button style="width:100%">Run the browser check</button></div>
+        <p class="small" style="margin-top:8px">In-app browser? Open this page in Safari or Chrome first.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · Scan mockups · history and alerts</footer>
+</body>
+</html>

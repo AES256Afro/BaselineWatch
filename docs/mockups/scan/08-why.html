@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 08 · why</title>
+<style>
+/* Mockups for the Scan area: the Register look's tokens from public/app.css, nothing new.
+   Sample data throughout; the real pages render through src/html.ts and this stylesheet
+   is only for these mockups. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+.dark, [data-scheme="dark"] {
+  --paper: #15181a; --card: #1d2124; --ink: #e7eae6; --mute: #9aa6a3; --rule: #333a3d; --rule-2: #46504f;
+  --acc: #4cc9a6; --acc-ink: #0e1512; --warn: #e2b55a; --del: #ff8a80; --ins: #7fd99a; --gen: #c2a6f0; --panel-2: #22272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+h3 { font: 600 14px var(--sans); margin: 14px 0 6px; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .d { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.check .ev { margin-top: 8px; font-size: 13px; }
+.check .ev li { margin: 2px 0; }
+.check .why { margin-top: 8px; font-size: 13px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+.check .why b { font-weight: 600; }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.na { background: var(--panel-2); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); margin-left: 4px; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); border-top: 0; }
+.table-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; margin-bottom: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 30px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.sources { font-size: 12.5px; }
+.sources li { margin: 3px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; }
+.ok-t { color: var(--ins); } .warn-t { color: var(--warn); } .bad-t { color: var(--del); }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--acc); }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+/* The Console look (mockup 09): dense panels, uppercase mono titles. */
+.console { font-family: var(--sans); }
+.console .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+.console .panel h2 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.console .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.console .big { font: 300 34px/1 var(--sans); }
+.spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.spark i { display: block; width: 6px; background: var(--acc); border-radius: 1px; }
+.spark i.bad { background: var(--del); }
+.phone { width: 390px; max-width: 100%; border: 10px solid #222; border-radius: 28px; background: var(--paper); padding: 10px; margin: 0 auto; }
+.phone .check { grid-template-columns: 1fr auto; }
+.phone .check .n { display: none; }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 08 of 10.</b> The explanatory page every "Why it matters" link lands on: one section per check, each saying why the thing is worth finding and removing, what the check can and cannot prove, and the primary document it rests on. This is where the other page's useful prose goes, rewritten in this product's voice and tied to its sources, with none of that site's framing.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="01-scan-home.html">Scan</a><span>›</span><b>Why these checks</b></p>
+  <h1>Why these checks <span class="arrow">and what each can prove</span></h1>
+  <p class="lede">Ads are a delivery path. The same auction that places a shoe advertisement can place code, and it has: Citizen Lab documented an advertising-technology pipeline that delivered Candiru's spyware through targeted ads. Filtering ad delivery closes that road; it is one road, and the checks here say which roads are closed on this browser, this network and this router, nothing more.</p>
+
+  <div class="cols">
+    <section>
+      <div class="box" id="ads">
+        <h2>Ads as a delivery path</h2>
+        <p>An ad is content fetched from a third party at the moment the page loads, chosen for you by an auction that knows your identifier, your location and your device. That is also a description of a targeted exploit delivery system, and the research below shows it being used as one. Blocking the request means the code never arrives; hiding the slot means it arrived and was not shown. Ads served from the same domain as the content (Instagram, YouTube, TikTok) are not blocked by any of this, because the content and the ad are the same server.</p>
+        <ul class="sources"><li><a href="https://citizenlab.ca/research/how-discover-tech-turned-targeted-ads-into-a-pipeline-for-spyware/">Citizen Lab, "How Discover-Tech turned targeted ads into a pipeline for spyware"</a></li><li><a href="https://citizenlab.ca/">Citizen Lab research index</a></li></ul>
+      </div>
+
+      <div class="box" id="hiding">
+        <h2>Ad hiding</h2>
+        <p>Content blockers carry generic cosmetic rules that hide any element named like an ad slot. The check plants twenty such names and two neutral ones and reads back which were hidden. It proves a blocker with cosmetic rules is active in this browser. It does not prove requests were stopped (that is the next check), and a blocker that hides nothing here may still block everything, so a zero is "not observed", never "unprotected".</p>
+        <ul class="sources"><li><a href="https://ublockorigin.com/">uBlock Origin</a>, the blocker whose generic rules these names come from</li><li><a href="https://easylist.to/">EasyList</a>, the filter list most blockers carry</li></ul>
+      </div>
+
+      <div class="box" id="requests">
+        <h2>Ad requests</h2>
+        <p>Request filtering is the control that matters, because the request is what carries a payload. The check loads images whose paths match the common request rules, between control images with identical bytes, on this server and on one cross-site host. A load difference is evidence of request filtering; a timeout is unknown; a page-policy failure is reported as such. No advertising domain is contacted, so the test leaks nothing to an ad network.</p>
+      </div>
+
+      <div class="box" id="dns">
+        <h2>Filtering DNS</h2>
+        <p>A browser blocker protects one browser. A filtering resolver answers "no such name" for ad, tracker and malware domains for every app that uses the system DNS, which is most apps on a phone and most on a computer. The browser check can confirm two resolvers by their own self-check endpoints; the network check confirms any resolver by resolving canaries through it from this server. A VPN, iCloud Private Relay or a browser's own DNS-over-HTTPS replaces the system resolver and must be checked where it is set.</p>
+        <ul class="sources"><li><a href="https://adguard-dns.io/en/public-dns.html">AdGuard DNS public servers</a></li><li><a href="https://test.nextdns.io">NextDNS self-check</a></li><li><a href="https://docs.pi-hole.net/">Pi-hole documentation</a></li></ul>
+      </div>
+
+      <div class="box" id="adfection">
+        <h2>Ad-delivered spyware domains</h2>
+        <p>The research names the domains the delivery pipeline used; the Zero Breach project compiled them, with the indicators from the earlier Candiru reports, into one reviewed list of 291 domains and 111 addresses, exported as DNS and ad blocklists. Adding that list to a filtering resolver blocks the documented infrastructure for every device on the network. The list changes as research is published; this product tracks it as a Register source so a change is a diff with a date, not a surprise.</p>
+        <ul class="sources"><li><a href="https://github.com/interplains/zero-breach">Zero Breach repository</a> (indicator list, blocklist exports, the offline scanner)</li><li><a href="https://citizenlab.ca/research/how-discover-tech-turned-targeted-ads-into-a-pipeline-for-spyware/">Citizen Lab, the 2026 report</a></li></ul>
+      </div>
+
+      <div class="box" id="router">
+        <h2>The router</h2>
+        <p>Every device on the network trusts the router for its address, its DNS and its path out. A router with a known exploited vulnerability on its LAN-side admin page is reachable by any device that joins the network, including a guest's phone; one with remote management open on the WAN side is reachable by everyone. The router check reads the model and firmware the gateway announces and matches them against the CVE database and CISA's KEV, which this product already keeps current by the hour.</p>
+        <ul class="sources"><li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA, Known Exploited Vulnerabilities catalog</a></li></ul>
+      </div>
+
+      <div class="box" id="upnp">
+        <h2>UPnP port mappings</h2>
+        <p>Universal Plug and Play lets any program on the LAN ask the router to open a port from the internet to that program, without a password. Games use it; so does anything that wants to be reachable. A mapping to a remote-desktop or file-sharing port is a hole in the firewall that nobody approved. Turning UPnP off removes the mechanism; reading the table once a month catches what it opened.</p>
+      </div>
+
+      <div class="box" id="exposure">
+        <h2>What the internet sees</h2>
+        <p>Public indexes crawl every address and record what answered. That record is what an attacker reads before touching anything, so the first question about your address is what the index says. The firewall check asks Shodan's free lookup rather than scanning from here, which keeps this product from being the thing that scans you.</p>
+        <ul class="sources"><li><a href="https://internetdb.shodan.io/">Shodan InternetDB</a></li></ul>
+      </div>
+
+      <div class="box" id="bypass">
+        <h2>DNS bypass and interception</h2>
+        <p>Network-wide filtering only covers devices that use the network's resolver. A device with a hard-coded resolver, or a browser using DNS-over-HTTPS, walks past it unless the router redirects port 53 and blocks the known DoH endpoints. The opposite failure also exists: an ISP or a router that silently redirects every DNS query to itself. The check sends a resolver-identity query straight to a public resolver and reads who actually answered.</p>
+        <ul class="sources"><li><a href="https://docs.pi-hole.net/">Pi-hole, forcing all DNS through the resolver</a></li></ul>
+      </div>
+
+      <div class="box" id="device">
+        <h2>Reading the device itself</h2>
+        <p>Where an ad leaves a trace, history alone misses it: cookies, cache and local storage keep the hosts an ad frame touched. Windows does not record DNS lookups unless its DNS-Client log is turned on, so the past is usually unrecorded; turning it on is the one setting the scripts recommend. A clean result means no known indicator was found where it could be looked for; spyware of this grade is built to defeat exactly this kind of check, so a concrete reason to think you were targeted is a reason to use a helpline.</p>
+        <ul class="sources"><li><a href="https://docs.mvt.re/en/latest/">Amnesty International, Mobile Verification Toolkit</a></li><li><a href="https://www.accessnow.org/help/">Access Now Digital Security Helpline</a></li><li><a href="https://securitylab.amnesty.org/">Amnesty International Security Lab</a></li></ul>
+      </div>
+
+      <div class="box" id="harden">
+        <h2>Hardening, in order</h2>
+        <ol class="steps">
+          <li><b>Filter DNS</b> for every app on the device and, at the router, for every device. Reduces requests to known ad and tracking domains.</li>
+          <li><b>Lockdown Mode</b> on iPhone, iPad and Mac for anyone likely to be targeted: limits what an attack can do if one gets through. <a href="https://support.apple.com/en-us/105120">Apple, About Lockdown Mode</a></li>
+          <li><b>Take away the advertising identifier</b>: changes how a target is picked in the first place.</li>
+          <li><b>Look at the past</b> with the device scripts or the Mobile Verification Toolkit; none of the first three says whether anything already happened.</li>
+        </ol>
+      </div>
+    </section>
+    <aside>
+      <div class="box">
+        <h2>On this page</h2>
+        <ul class="small">
+          <li><a href="#ads">Ads as a delivery path</a></li><li><a href="#hiding">Ad hiding</a></li><li><a href="#requests">Ad requests</a></li><li><a href="#dns">Filtering DNS</a></li><li><a href="#adfection">Ad-delivered spyware domains</a></li><li><a href="#router">The router</a></li><li><a href="#upnp">UPnP</a></li><li><a href="#exposure">What the internet sees</a></li><li><a href="#bypass">DNS bypass and interception</a></li><li><a href="#device">Reading the device</a></li><li><a href="#harden">Hardening, in order</a></li>
+        </ul>
+      </div>
+      <div class="box">
+        <h2>How this page is written</h2>
+        <p class="small">Each section rests on a primary document and links to it. Where a sentence is this product's reading rather than the source's words, it says "the check" or "this product". Nothing here is generated by a model; the sources carry the attribution.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · Scan mockups · sources belong to their publishers</footer>
+</body>
+</html>
