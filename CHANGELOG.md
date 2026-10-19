@@ -2,6 +2,21 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **NIST's PIV, digital identity and platform security publications join the Register.** Two
+  sources read the publications that exist only as PDFs through their CSRC pages: `nist-piv`
+  (FIPS 201-3, SP 800-73-5 Parts 1 to 3, 76-2, 78-5, 79-2, 85A-4, 87r2, 96, 116r1, 156, the 157r1
+  and 217 drafts, IR 7863, and SP 800-63-4 with 63A, 63B and 63C) and `nist-platform` (FIPS
+  140-3, SP 800-147 and 147B, 800-193, 800-124r2, 800-219r1, 800-57 Part 1, IR 8320 A, B and D).
+  Each publication is one document whose numbered sections are the requirements, so a revision is
+  diffed section by section with the PDF's own change log as the publisher's reason (else the
+  page's Planning Note). The page is checked daily and the PDF fetched only when its file or date
+  moves; the first load also fetches the revision each one superseded, so the Register opens on the
+  real FIPS 201-2 → 201-3 and SP 800-63-3 → 63-4 diffs. Searching the Register for PIV or Secure
+  Enclave now finds something.
+- A document's own change log is preferred over the listing's note as the release rationale.
+
 ## 0.30.0 — 2026-10-19
 
 - **The CVE backbone no longer leans on NVD alone.** The cvelist-v5 adapter pulls the CVE

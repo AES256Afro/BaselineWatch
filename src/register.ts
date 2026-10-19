@@ -196,7 +196,8 @@ export function storeDocument(
     }
     const summary = summarizeChanges(changes);
 
-    const rationale = target.rationale ?? parsed.rationale ?? null;
+    // The document's own change log knows more than the listing that pointed at it.
+    const rationale = parsed.rationale ?? target.rationale ?? null;
     if (rationale) {
       db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'publisher', ?, ?, ?)").run(
         documentId,

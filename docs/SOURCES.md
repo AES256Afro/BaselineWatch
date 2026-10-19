@@ -62,6 +62,45 @@ new downloads).
 - **Rationale**: CSRC publication page, FAQ, change analysis spreadsheet.
 - **Diffability**: excellent.
 
+### NIST PIV, digital identity and platform security publications (added 2026-10-19)
+- **Sources**: `nist-piv` and `nist-platform`, both read by the `csrc-pubs` adapter. Each
+  source is a list of publications (`src/adapters/csrc-pubs.ts`) keyed by the part of the number
+  that stays across revisions: `fips-201` covers FIPS 201-2 and 201-3, `sp-800-73-pt1` every
+  revision of SP 800-73 Part 1.
+- **PIV and identity**: FIPS 201-3; SP 800-73-5 Parts 1, 2 and 3; SP 800-76-2; SP 800-78-5;
+  SP 800-79-2; SP 800-85A-4; SP 800-87 Rev. 2; SP 800-96; SP 800-116 Rev. 1; SP 800-156; SP 800-157
+  Rev. 1 and SP 800-217 (both final public drafts of November 2024, followed to their finals when
+  CSRC publishes them); IR 7863; and the Digital Identity Guidelines SP 800-63-4, 63A-4, 63B-4 and
+  63C-4 (July 2025).
+- **Platform security** (roots of trust, firmware, secure enclaves): FIPS 140-3; SP 800-147 and
+  147B; SP 800-193; SP 800-124 Rev. 2; SP 800-219 Rev. 1 (the macOS Security Compliance Project
+  guidance); SP 800-57 Part 1 Rev. 5; IR 8320, 8320A, 8320B and 8320D (hardware-enabled security
+  and confidential computing; D is a draft). SP 800-155 and SP 800-164 are withdrawn drafts and are
+  not followed.
+- **Fetch**: each publication's CSRC page (`https://csrc.nist.gov/pubs/<series>/<number>/<status>`)
+  carries the PDF link (`pub-local-download-link`), the citation date, the revision it supersedes
+  (`pub-supersedes-N`), its successor once replaced (`pub-superseded-by-N`), the Document History
+  (`pub-history-link-N`) and the Planning Note. The adapter reads the page daily, follows a
+  successor or a draft's newer history entry (at most three hops), and downloads the PDF only when
+  the file URL or date moved; a publication's first load also fetches the revision it superseded,
+  so the first diff is real (FIPS 201-2 → 201-3, SP 800-63-3 → 63-4).
+- **Shape**: `requirement-set`. The PDF's numbered sections, read from its text: ref `2.7.1`,
+  label `2.7.1` or `Appendix E`, family the top-level section ("2 Common Identification,
+  Security, and Privacy Requirements"), statement the section's text. Headings are taken only where
+  they continue the outline (1, 1.1, 1.2, 2 … Appendix A, A.1), so numbered list items, the
+  preamble's numbered paragraphs and cross-references stay out; a table of contents without dot
+  leaders starts an outline of its own and loses to the body. Running headers, footers and page
+  numbers are stripped first. A renumbered section shows as removed plus added, as with CIS.
+- **Rationale**: the PDF's own Revision History or Change Log appendix (FIPS 201-3 Appendix E,
+  SP 800-78-5 Appendix B, SP 800-63B-4 Appendix E), newest part kept when it is long; else the
+  page's Planning Note.
+- **Licence**: US Government work, public domain.
+- **Diffability**: good for publications in NIST's current templates; fair across template
+  generations (FIPS 201-2 of 2013 against 201-3 of 2022 reflows every paragraph, and the diff says
+  so). Checked 2026-10-19 against the real FIPS 201-3, 201-2, SP 800-78-5, 800-193, 800-63B-4,
+  800-96 (2006) and 800-147 (2011) PDFs; the fixtures are the 201-3 and 201-2 pages and the
+  extracted text of 800-78-5.
+
 ### Other NIST CSRC publications (CSF 2.0, 800-61r3, 800-63-4, 800-207, drafts)
 - **Fetch**: drafts open for comment feed
   `https://csrc.nist.gov/CSRC/media/feeds/pubs/drafts-open-for-comment.xml` (JSON twin at
