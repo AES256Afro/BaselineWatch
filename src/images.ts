@@ -58,8 +58,11 @@ export interface ImageDeps {
 
 const maxImageBytes = 8 * 1024 * 1024;
 const maxPageBytes = 3 * 1024 * 1024;
-/** Fetches per source per run, so one busy feed cannot turn a fetch into a crawl. */
-const maxFetchesPerRun = 20;
+/** og:image page fetches per source per run, so one busy feed cannot turn a fetch into a crawl.
+ * Feed-supplied media is exempt: each is exactly one image GET the publisher offered. */
+const maxOgFetchesPerRun = 20;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function cacheImage(db: DatabaseSync, dataDir: string, deps: ImageDeps, itemId: number, url: string, origin: ImageOrigin): Promise<boolean> {
   const response = await deps.http(url, { timeoutMs: 20_000, maxBytes: maxImageBytes, headers: { accept: "image/*" } });
@@ -79,18 +82,16 @@ async function cacheImage(db: DatabaseSync, dataDir: string, deps: ImageDeps, it
 export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, source: SourceRow, fresh: ParsedItem[], deps: ImageDeps): Promise<number> {
   const log = deps.log ?? (() => {});
   let stored = 0;
-  let fetches = 0;
+  let ogFetches = 0;
   for (const item of fresh) {
     if (item.kind !== "article") continue;
-    if (fetches >= maxFetchesPerRun) break;
     const row = db.prepare("SELECT id, image_blob FROM items WHERE source_id = ? AND external_id = ?").get(source.id, item.externalId) as { id: number; image_blob: string | null } | undefined;
     if (!row || row.image_blob) continue;
     try {
       if (item.imageUrl) {
-        fetches += 1;
         if (await cacheImage(db, dataDir, deps, row.id, item.imageUrl, item.imageOrigin ?? "enclosure")) stored += 1;
-      } else if (item.url) {
-        fetches += 1;
+      } else if (item.url && ogFetches < maxOgFetchesPerRun) {
+        ogFetches += 1;
         const page = await deps.http(item.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
         const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
         if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
@@ -100,6 +101,44 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
     }
   }
   return stored;
+}
+
+/**
+ * The one deliberate exception to "images arrive with the news or not at all": a manual pass
+ * over existing news articles that have none, for the backlog from before the pipeline and the
+ * tail the per-run cap left behind. One og:image page fetch per item, newest first, politely
+ * paced; items that still yield nothing are simply examined again the next time the owner runs
+ * it, which is rare enough not to matter.
+ */
+export async function backfillImages(
+  db: DatabaseSync,
+  dataDir: string,
+  deps: ImageDeps,
+  options: { limit?: number; delayMs?: number } = {},
+): Promise<{ examined: number; stored: number }> {
+  const log = deps.log ?? (() => {});
+  const limit = Math.min(Math.max(options.limit ?? 200, 1), 10_000);
+  const delayMs = options.delayMs ?? 500;
+  const rows = db
+    .prepare(
+      `SELECT i.id, i.url FROM items i JOIN sources s ON s.id = i.source_id
+       WHERE s.group_name = 'news' AND i.kind = 'article' AND i.image_blob IS NULL
+         AND i.url IS NOT NULL AND i.url LIKE 'http%'
+       ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC LIMIT ?`,
+    )
+    .all(limit) as { id: number; url: string }[];
+  let stored = 0;
+  for (const [index, row] of rows.entries()) {
+    if (index > 0 && delayMs > 0) await sleep(delayMs);
+    try {
+      const page = await deps.http(row.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
+      const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
+      if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
+    } catch (error) {
+      log(`image backfill for item ${row.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return { examined: rows.length, stored };
 }
 
 /** The bytes behind /img/<hash>: served only when some item claims the hash, so snapshots stay private. */

@@ -70,6 +70,13 @@ re-diffed against it. A chain linked before 0.10.2 (a backfill run after the sch
 already fetched the current release) is repaired by `npm run relink -- <source>` or
 `npm run relink -- all`, which re-diffs only what was linked wrong and is safe to run again.
 
+Article images arrive with new items (the feed's own media, else the article's og:image, cached
+and served from `/img/<hash>`; `BW_NEWS_IMAGES=0` turns this off). Articles from before 0.25.0
+have none; `node src/cli.ts images <count|all>` fetches og:image once for existing imageless news
+articles, newest first, politely paced — on BigBox:
+`docker exec bp-baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts images all`.
+It is safe to run again; items that yield nothing are just examined again.
+
 ## What leaves the box
 
 - Requests to the sources on the Sources page, with the User-Agent
