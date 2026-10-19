@@ -485,6 +485,50 @@ the two files (the watchlist and the Fix panel import `platformsOf`, `isPlatform
 per-host state, generating remediation scripts beyond quoting the publisher's, and any model in
 the loop. Multi-user profiles and saved named baselines are M10 candidates.
 
+### M10: A platform that runs itself (planned 2026-10-19)
+
+M7 put the app on BigBox; the week after taught the real lessons: NVD stalled for three days on
+an invalid key and nothing said so until a person went looking; a BoxPilot settings change
+snapped the app back two versions because hand-pinned images never reached BoxPilot's records;
+the release chain is five hops with two human clicks; and two seeded sources (`cvelist-v5`,
+`nvd-cve-history`) still have no adapter, so the CVE pipeline leans entirely on one API that is
+free but fragile. M10 makes the platform resilient and self-reporting, so the owner reads the
+digest instead of debugging the pipeline.
+
+- **CVE aggregation that survives an NVD outage.** The `cvelist-v5` adapter: pull the CVE
+  Program's hourly delta releases from GitHub (free, keyless, bulk) as the backbone record, with
+  NVD enrichment (CVSS, CPE) layered on when it arrives, and the `nvd-cve-history` adapter for
+  per-CVE change events. Done when a three-day NVD outage costs enrichment lag, not coverage.
+- **The pipeline reports its own health.** Today (`/today`) and the digest carry a "pipeline"
+  line: sources failing with their hint (the Sources page's failure translations, surfaced
+  instead of buried), days since the newest CVE, the image-cache rate, and the running version
+  against the latest tag. An alert when a source has failed for more than a day, through the
+  existing notifier. Done when the next invalid key is a morning digest line, not an
+  investigation.
+- **Releases with one click or none.** BoxPilot's daily catalog-updates workflow opens the bump
+  PR; CI merges it when BaselineWatch's tag run is green; a post-deploy check hits `/health` and
+  compares versions. The only human step left is BoxPilot's own System-page update, and the app's
+  card never disagrees with what runs (no more hand-pinned images — the lesson of 0.25.0's
+  snap-back). Done when a tagged release reaches cybercard.net with at most one click and the
+  card always tells the truth.
+- **Sources that need bespoke adapters, by worth.** SANS NewsBites (email/web only — a small
+  HTML adapter over its newsletter pages, since SANS publishes no feed beyond ISC's), CISA's
+  alerts pages where feeds lag, and a probe step in `npm run check` that validates every seeded
+  feed URL still answers XML, so dead URLs (Ars, Sophos) and bot-blocked forms (Reddit's JSON)
+  are caught before a release ships them.
+- **Image pipeline follow-through.** Attempt tracking so the backfill and ingest never re-fetch
+  a permanent miss; Cloudflare cache rules for `/img/<hash>` and `/assets/`; a weekly orphan
+  sweep for blobs no item references.
+- **The teaching site earns the name.** A short "how to read this" page for cybercard.net's
+  audience (what KEV, EPSS, CAT I mean, linked from the masthead's Standards caption), the FTS5
+  search promoted into the masthead (the NVD lesson of M6.5's mockups), and an accessibility
+  pass over the new News front page (featured cards, strip, menus) with keyboard and
+  screen-reader checks.
+- **Out of scope**, still: scanning hosts, per-host state, multi-user accounts, any model in the
+  ingest path. Saved named baselines move to M11 candidates.
+- **Done when**: a month passes in which every incident the platform has is one the owner first
+  learned about from the platform itself.
+
 ---
 
 ## 6. Three ways to build it
