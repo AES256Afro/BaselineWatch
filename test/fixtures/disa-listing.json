@@ -347,6 +347,18 @@
    "RawDownloadType": "Operating Systems;STIGs;UNIX/Linux",
    "Topic": "Security Technical Implementation Guides (STIG)",
    "UploadDate": "2026-10-05"
+  },
+  {
+   "Classification": "Unclassified",
+   "DocumentLibrary": "STIGs",
+   "DownloadLink": "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_Apple_iOS_iPadOS_26_V1R2_STIG.zip",
+   "DownloadType": "Mobility, STIGs, Apple OS",
+   "FileName": "Apple iOS/iPadOS 26 STIG - Ver 1, Rel 2",
+   "Name": "File-1931",
+   "RawDocumentLibrary": "STIGs",
+   "RawDownloadType": "Mobility;STIGs;Apple OS",
+   "Topic": "Security Technical Implementation Guides (STIG)",
+   "UploadDate": "2026-04-07"
   }
  ]
 }

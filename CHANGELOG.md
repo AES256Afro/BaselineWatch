@@ -2,6 +2,19 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **iOS, iPadOS and Android join the baseline builder** (M11.2). DISA's Apple iOS/iPadOS 27 and
+  26, Google Android 17 and 16, and Samsung Android 17 and 16 with Knox STIGs are on the default
+  followed list; NIST mSCP's `ios_26` branch is followed beside tahoe and sequoia, its rules
+  labelled iOS/iPadOS and its `ios_stig` baseline treated as the strict set. The three platforms
+  get the builder, the Jamf flavour (Apple) and derived checks in their test plans; Collaboration
+  stays templates-only.
+- **A test plan starts from its release.** When the chosen release names Register documents in
+  `data/platforms.yaml`, the plan's STIG, mSCP branch and Microsoft baseline default to them
+  (macOS 26 opens on the Tahoe STIG and `mscp:tahoe`, Windows 25H2 on the v25H2 baseline); the
+  selects still let a person choose another.
+
 ## 0.31.0 — 2026-10-19
 
 - **NIST's PIV, digital identity and platform security publications join the Register.** Two

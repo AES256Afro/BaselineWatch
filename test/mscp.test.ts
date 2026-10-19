@@ -78,7 +78,7 @@ describe("mSCP adapter end to end", () => {
 
   it("follows the branches through the commits API, loads the exact commit's zip, and skips an unchanged branch", async () => {
     const source = getSource(db, "nist-mscp")!;
-    expect(followedBranches({ db })).toEqual(["tahoe", "sequoia"]);
+    expect(followedBranches({ db })).toEqual(["tahoe", "sequoia", "ios_26"]);
     db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('baseline', 'mscp: tahoe', NULL, ?)").run(new Date().toISOString());
     expect(followedBranches({ db })).toEqual(["tahoe"]);
     const sha = "cf656e844a4091868b2eeb8e6405f8f83952d08f";

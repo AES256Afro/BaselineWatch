@@ -121,8 +121,8 @@ new downloads).
   `RawDownloadType` (STIGs; Sunset; SCAP 1.3; Supplemental Automation Content; STIG
   Compilations). Each manual STIG zip holds one XCCDF 1.1.4 file plus Overview and Revision
   History PDFs. The adapter follows the STIGs named on the watchlist (kind `baseline`) or the
-  default set (since 2026-10-17: Windows 11, Windows Server 2025 and 2022, Red Hat Enterprise
-  Linux 9 and 10, Ubuntu 24.04 and 22.04, Apple macOS 26 and 15, Microsoft Edge, Google Chrome,
+  default set (since 2026-10-19: Windows 11, Windows Server 2025 and 2022, Red Hat Enterprise
+  Linux 9 and 10, Ubuntu 24.04 and 22.04, Apple macOS 26 and 15, Apple iOS/iPadOS 27 and 26, Google Android 17 and 16, Samsung Android 17 and 16 with Knox, Microsoft Edge, Google Chrome,
   Mozilla Firefox, Cisco IOS XE Router, Application Security and Development), since the whole
   library is hundreds of zips. The class id in the request is the one thing likely to move when
   DISA redeploys the site; the fixture test will say so. The same listing names the CCI list,

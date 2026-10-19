@@ -15,8 +15,8 @@ import { mscpZip } from "./mscp.test.ts";
 const text = (name: string) => new TextDecoder().decode(fixture(name));
 
 /**
- * Loads everything the baseline builder reads, from the fixtures: three STIGs (Windows 11, macOS 26
- * and the Server 2025 fixture retitled as RHEL 9), the CCI list, DISA's Intune package and
+ * Loads everything the baseline builder reads, from the fixtures: four STIGs (Windows 11, macOS 26,
+ * iOS/iPadOS 26 and the Server 2025 fixture retitled as RHEL 9), the CCI list, DISA's Intune package and
  * checklist, mSCP tahoe, the SCT baselines, the SP 800-53 catalog and (standing in for High) the
  * moderate profile.
  */
@@ -29,6 +29,7 @@ export async function loadBaselineFixtures(app: TestApp, at: Date): Promise<{ wi
     [disa.url]: { bytes: fixture("disa-listing.json") },
     [linkFor(/Microsoft Windows 11 STIG - Ver/)]: { bytes: new Uint8Array(zipSync({ "U_MS_Windows_11_V2R11_Manual_STIG/U_MS_Windows_11_STIG_V2R11_Manual-xccdf.xml": fixture("stig-win11.xccdf.xml") })) },
     [linkFor(/Apple macOS 26 \(Tahoe\) STIG - Ver/)]: { bytes: new Uint8Array(zipSync({ "U_Apple_macOS_26_V1R4_Manual_STIG/U_Apple_macOS_26_V1R4_STIG_Manual-xccdf.xml": fixture("stig-macos.xccdf.xml") })) },
+    [linkFor(/Apple iOS\/iPadOS 26 STIG - Ver/)]: { bytes: new Uint8Array(zipSync({ "U_Apple_iOS_iPadOS_26_V1R2_Manual_STIG/U_Apple_iOS_iPadOS_26_STIG_V1R2_Manual-xccdf.xml": fixture("stig-ios.xccdf.xml") })) },
     // The Server 2025 fixture, retitled, stands in for a Linux STIG.
     [linkFor(/Red Hat Enterprise Linux 9 STIG - Ver/)]: { bytes: new Uint8Array(zipSync({ "U_RHEL_9_V2R10_Manual_STIG/U_RHEL_9_STIG_V2R10_Manual-xccdf.xml": new TextEncoder().encode(text("stig.xccdf.xml").replace("Microsoft Windows Server 2025 Security Technical Implementation Guide", "Red Hat Enterprise Linux 9 Security Technical Implementation Guide")) })) },
     [cciListUrl]: { bytes: new Uint8Array(zipSync({ "CCI_List.xml": fixture("cci/CCI_List.xml") })) },
@@ -42,7 +43,7 @@ export async function loadBaselineFixtures(app: TestApp, at: Date): Promise<{ wi
     routes[file.url] = { bytes: new Uint8Array(zipSync({ "Windows 11 v25H2 Security Baseline/Documentation/MSFT-Win11-v25H2.PolicyRules": fixture("sct.PolicyRules") })) };
   }
   const http = fakeHttp(routes);
-  for (const name of ["Microsoft Windows 11", "Apple macOS 26", "Red Hat Enterprise Linux 9", "mscp: tahoe"]) {
+  for (const name of ["Microsoft Windows 11", "Apple macOS 26", "Apple iOS/iPadOS 26", "Red Hat Enterprise Linux 9", "mscp: tahoe"]) {
     app.db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('baseline', ?, NULL, ?)").run(name, at.toISOString());
   }
   for (const id of ["disa-stigs", "disa-cci", "disa-intune", "disa-gpo", "nist-mscp", "microsoft-sct"]) {
