@@ -1,0 +1,36 @@
+id: entra-join-hello-windows
+title: Entra join, Windows Hello for Business and single sign-on on a Windows PC
+platforms: [windows]
+area: sso
+notes: The identity half of the Windows root of trust. Test as the end user on a PC that went through Autopilot or the fleet's enrolment, with a test account under the fleet's Conditional Access policies.
+steps:
+  - do: Sign in as the test user and run dsregcmd /status.
+    expect: AzureAdJoined YES (and DomainJoined YES on a hybrid-joined PC), DeviceAuthStatus SUCCESS, and under Device Details a TpmProtected YES key provider.
+    fail: "\"DeviceAuthStatus FAILED. Device is either disabled or deleted\" means the device object is gone or disabled in Entra: re-join. A key that is not TPM-protected means the join happened without a working TPM; fix the TPM (hardware plan) and re-join."
+    source:
+      title: Microsoft Learn, "Troubleshoot devices by using the dsregcmd command"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-device-dsregcmd
+  - do: In the same output read the SSO State and the NGC prerequisite sections.
+    expect: AzureAdPrt YES with a recent AzureAdPrtUpdateTime, WamDefaultSet YES, NgcSet YES, KeySignTest PASSED, AadRecoveryEnabled NO; the NGC prerequisites IsDeviceJoined, IsUserAzureAD, PolicyEnabled, PostLogonEnabled, DeviceEligible and SessionIsNotRemote YES with PreReqResult WillProvision (or already provisioned).
+    fail: "AzureAdPrt NO with an AADSTS code in AcquirePrtDiagnostics is a sign-in or network problem, not a device one: fix that first. KeySignTest FAILED marks the device for recovery and it re-registers at the next sign-in. A prerequisite NO names the exact policy or state that is missing."
+    source:
+      title: Microsoft Learn, "Troubleshoot devices by using the dsregcmd command"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-device-dsregcmd
+  - do: Set up Windows Hello for Business (PIN and, where the hardware has it, biometrics), sign out and in with it, then open a browser and a Microsoft 365 app.
+    expect: The Hello credential is TPM-backed (Microsoft Platform Crypto Provider), sign-in completes without a password, and the browser and app sign in without a prompt through the Primary Refresh Token.
+    fail: A password prompt in the browser with AzureAdPrt YES means the browser is not using the PRT (Edge profile not signed in, or a third-party browser without the Windows Accounts extension); a Hello setup that never appears means the policy did not reach the device (PolicyEnabled NO above).
+    source:
+      title: Microsoft Learn, "Windows Hello for Business"
+      url: https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/
+  - do: Sign in to a Conditional Access-protected app from the PC and from a browser on an unmanaged device.
+    expect: The managed PC signs in without MFA where the policy trusts the compliant device; the unmanaged device is challenged or blocked as the policy says.
+    fail: The managed PC being challenged means the device is not compliant or the policy's device filter does not match; check the device's compliance state in Intune and the sign-in log's Conditional Access tab for the policy that fired.
+    source:
+      title: Microsoft Learn, "Windows compliance settings in Microsoft Intune"
+      url: https://learn.microsoft.com/intune/device-security/compliance/ref-windows-settings
+  - do: Where Windows LAPS manages the local administrator, run Get-LapsDiagnostics and read the Microsoft-Windows-LAPS/Operational log; retrieve the current password with Get-LapsAADPassword for the device.
+    expect: Event 10029 (backup to Entra succeeded) or 10018 (backup to Active Directory succeeded) within the rotation period; the retrieved password works once and rotates after use where post-authentication actions are set.
+    fail: Event 10005 means the policy cycle failed; the diagnostics zip under %TEMP%\LapsDiagnostics names the cause. A password that does not rotate after use means post-authentication actions are not set in the policy.
+    source:
+      title: Microsoft Learn, "Windows LAPS event log"
+      url: https://learn.microsoft.com/windows-server/identity/laps/laps-management-event-log

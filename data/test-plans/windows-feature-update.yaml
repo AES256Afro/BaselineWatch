@@ -1,0 +1,65 @@
+id: windows-feature-update
+title: What a Windows 11 feature update changes that the baseline relies on
+platforms: [windows]
+area: updates
+notes: Each step applies from the version that introduced the behaviour; the version you chose rules the others out. Run after the feature update is installed and the baseline for that version is applied.
+steps:
+  - do: Run winver and Get-ComputerInfo | Select-Object OsName, OsVersion, OsBuildNumber; compare with the fleet's target build.
+    expect: The device is on the version and build the fleet standardises on, and the edition's servicing has not ended (Home and Pro for 24H2 ended 2026-10-13; Enterprise and Education for 23H2 end 2026-11-10).
+    fail: "A device past its edition's end of servicing gets no security updates: move it to 25H2 or 26H2 before testing anything else. A 26H1 device (new hardware only) moves to 26H2."
+    source:
+      title: Microsoft, "Windows 11 release information"
+      url: https://learn.microsoft.com/windows/release-health/windows11-release-information
+  - do: Run Get-SmbClientConfiguration | Format-List RequireSecuritySignature and Get-SmbServerConfiguration | Format-List RequireSecuritySignature.
+    expect: Both True on Pro, Enterprise and Education (24H2 made signing required by default); connections to a server that cannot sign fail rather than fall back.
+    fail: "False means a policy or script turned the default off: set it back with Set-SmbClientConfiguration -RequireSecuritySignature $true (and the server-side twin) or the \"Digitally sign communications (always)\" policies, then find the share that needed it off."
+    applies:
+      versions:
+        windows: [">=24H2"]
+    source:
+      title: Microsoft Learn, "Control SMB signing behavior"
+      url: https://learn.microsoft.com/windows-server/storage/file-server/smb-signing
+  - do: Run sudo config in an elevated PowerShell, and check the "Enable sudo" policy.
+    expect: Sudo for Windows is disabled unless the fleet's baseline allows it, and then only in the mode the baseline names (inline is the least safe).
+    fail: Sudo enabled in a mode the baseline does not allow is a finding; set the policy Computer Configuration, Administrative Templates, System, "Configure the behavior of the sudo command" to Disabled or the allowed mode.
+    applies:
+      versions:
+        windows: [">=24H2"]
+    source:
+      title: Microsoft Learn, "Sudo for Windows"
+      url: https://learn.microsoft.com/windows/sudo/
+  - do: Check that Local Security Authority protection runs. Read HKLM\SYSTEM\CurrentControlSet\Control\Lsa, RunAsPPL, and the System log for the WinInit events on LSA protection.
+    expect: RunAsPPL is 1 or 2 (on, with or without the UEFI lock) and the log shows LSA started as a protected process; 24H2 turns it on after the upgrade's incompatibility audit passes.
+    fail: An audit event naming a plug-in or driver that blocks protection names what to remove or update; until it is gone, LSA runs unprotected on that device.
+    applies:
+      versions:
+        windows: [">=24H2"]
+    source:
+      title: Microsoft Learn, "Configure added LSA protection"
+      url: https://learn.microsoft.com/windows-server/security/credentials-protection-and-management/configuring-additional-lsa-protection
+  - do: Run powershell.exe -Version 2 and wmic os get caption.
+    expect: "Both fail: PowerShell 2.0 is removed and WMIC is uninstalled by the 25H2 feature update."
+    fail: Either working means the device did not take the 25H2 enablement package, or WMIC was re-added as a feature on demand; remove it (Remove-WindowsCapability for WMIC) and find the script that still needs it.
+    applies:
+      versions:
+        windows: [">=25H2"]
+    source:
+      title: Microsoft Learn, "What's new in Windows 11, version 25H2"
+      url: https://learn.microsoft.com/windows/whats-new/whats-new-windows-11-version-25h2
+  - do: "Open Local Security Policy, Security Options, \"User Account Control: Configure type of Admin Approval Mode\"; then, as an administrator, open an elevated prompt."
+    expect: The value is "Admin Approval Mode with Administrator protection" where the baseline turns it on (the October 2026 security update enables it for baseline users); elevation asks for Windows Hello and the Microsoft-Windows-LUA provider logs event 15031 for the approved elevation.
+    fail: Admin Approval Mode set to the legacy value on a device that has KB5120998 or later means the baseline's setting did not apply; do not enable it on LAPS-managed devices, Hyper-V hosts or Cloud PCs, which Microsoft excludes.
+    applies:
+      versions:
+        windows: [">=24H2"]
+    source:
+      title: Microsoft Learn, "Administrator protection"
+      url: https://learn.microsoft.com/windows/security/application-security/application-control/administrator-protection/
+  - do: On a Copilot+ PC, open Settings, Privacy & security, Recall & snapshots.
+    expect: Saving snapshots is off and greyed out where the policy "Turn off saving snapshots for Windows" is set; the Windows Security app shows no Recall data stored.
+    fail: Snapshots on means the policy is missing for this device group; set it through Intune (Privacy, DisableAIDataAnalysis) and confirm the setting is greyed out after a sync.
+    applies:
+      hardware: [copilot-plus]
+    source:
+      title: Microsoft Learn, "Manage Recall"
+      url: https://learn.microsoft.com/windows/client-management/manage-recall

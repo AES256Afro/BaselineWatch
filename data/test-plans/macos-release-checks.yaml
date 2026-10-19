@@ -1,0 +1,45 @@
+id: macos-release-checks
+title: What a macOS release changes that the baseline relies on
+platforms: [macos]
+area: updates
+notes: Each step applies from the release that introduced the behaviour, and the Intel steps only to Intel Macs; the version and hardware you chose rule the others out.
+steps:
+  - do: Run sw_vers and compare with the fleet's target release; open the MDM's OS-version report for the fleet.
+    expect: Apple silicon Macs run macOS 27 (Golden Gate) or the fleet's chosen supported release; Intel Macs run 26 Tahoe (the four models Apple lists) or 15 Sequoia, and the MDM report names each Intel Mac.
+    fail: A Mac on 14 Sonoma or earlier gets no security updates (14 ended 2026-09-14); upgrade it, or replace it if it cannot run 15.
+    source:
+      title: Apple security releases
+      url: https://support.apple.com/en-us/100100
+  - do: On an Intel Mac, confirm it is held at macOS 26 Tahoe by the MDM's software-update deferral, and that the deferral is not blocking Tahoe's own security updates.
+    expect: Software Update offers Tahoe point releases and background security improvements, and does not offer 27 (it cannot run it); the Mac is on the fleet's Intel replacement list with a date.
+    fail: An Intel Mac behind on Tahoe point releases has the same exposure as any unpatched Mac; a deferral set for the whole fleet to hold 27 must not hold 26.x on Intel.
+    applies:
+      hardware: [intel-t2, intel]
+    source:
+      title: Apple, "macOS Tahoe is compatible with these computers"
+      url: https://support.apple.com/en-us/122867
+  - do: On macOS 27, run arch -x86_64 /usr/bin/true (or open an Intel-only app) and list the fleet's Intel-only apps.
+    expect: Rosetta 2 still runs them; the inventory of Intel-only apps has an owner and a replacement date, since Apple says 27 is the last release with Rosetta 2 as a general-purpose translation layer.
+    fail: An Intel-only app with no replacement plan stops working at the next major release; raise it now rather than in September.
+    applies:
+      versions:
+        macos: [">=27"]
+      hardware: [apple-silicon]
+    source:
+      title: Apple, "macOS 27 is compatible with these computers"
+      url: https://support.apple.com/en-us/127255
+  - do: On macOS 26.1 or later, open System Settings, Privacy & Security, Background Security Improvements.
+    expect: Automatically Install is on and the latest improvement Apple lists is installed.
+    fail: Off means the Mac waits for the next point release for fixes Apple ships in between; turn it on, or enforce it through the MDM where the key is supported.
+    applies:
+      versions:
+        macos: [">=26"]
+    source:
+      title: Apple, "About Background Security Improvements"
+      url: https://support.apple.com/en-us/102657
+  - do: "Build the mSCP baseline for the release and run its compliance script: with mSCP 2.0, ./mscp.py baseline -k stig --os_name macos --os_version 27, then ./mscp.py guidance ... -s, then sudo zsh ./build/<baseline>/<baseline>_compliance.sh --check (with the stig baseline on an older per-release branch, scripts/generate_baseline.py -k stig and scripts/generate_guidance.py -s)."
+    expect: Every rule the baseline applies reports no finding in /Library/Preferences/org.<baseline>.audit.plist; exempt rules carry the reason.
+    fail: A finding names the rule id; its fix is in the rule's YAML and in the Register's mSCP page. Run --cfc (check, fix, check) only on a test Mac first.
+    source:
+      title: NIST macOS Security Compliance Project, "How to generate compliance scripts"
+      url: https://pages.nist.gov/macos_security/compliance-scripts/how-to-generate-compliance-scripts/

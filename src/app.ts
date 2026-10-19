@@ -19,7 +19,8 @@ import { renderSources } from "./pages/sources.ts";
 import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
 import { renderBaselinesIndex, renderBuilder } from "./pages/baselines.ts";
 import { renderTestPlan } from "./pages/testplans.ts";
-import { buildTestPlan, exportPlan, isArea, isPlanFormat } from "./testplans.ts";
+import { renderPlatforms } from "./pages/platforms.ts";
+import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, type PlanOptions } from "./testplans.ts";
 import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "./baselines.ts";
 import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./exports.ts";
 import { isPlatformId, type Cat } from "./stigs.ts";
@@ -415,12 +416,15 @@ export function createApp(ctx: AppContext): Express {
   // Test plans: the same form shape over the derived checks and the owner's templates, drawn one
   // area at a time the way the builder draws one section: `shown` names the area whose checkboxes
   // are in the form, hidden `drop` fields carry the other areas' drops, `section` picks the next.
-  const planOptions = (platform: ProfileOptions["platform"], fields: Record<string, unknown>) => {
+  const planOptions = (platform: PlanOptions["platform"], fields: Record<string, unknown>): PlanOptions => {
     const applied = str(fields.applied) === "1";
     const keep = applied ? new Set(list(fields.keep).slice(0, 5000)) : null;
     const drop = list(fields.drop).slice(0, 5000);
     const shown = str(fields.shown, 20);
-    const base = { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1", templates: applied ? str(fields.templates) === "1" : str(fields.templates) !== "0" };
+    // The areas to test ride along as checkboxes once the form has been applied; a first GET tests every area.
+    // The hidden `areas` marker says the area checkboxes were drawn, so an empty list means none; an older form or a script without it tests every area.
+    const chosen = str(fields.areas) === "1" || fields.area !== undefined ? list(fields.area).filter(isArea) : undefined;
+    const base: PlanOptions = { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1", templates: applied ? str(fields.templates) === "1" : str(fields.templates) !== "0", version: str(fields.version, 40), hardware: str(fields.hardware, 60), areas: chosen };
     if (keep) {
       const all = buildTestPlan(db, base).items;
       if (isArea(shown)) {
@@ -434,19 +438,22 @@ export function createApp(ctx: AppContext): Express {
   };
   const drawPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
-    if (!isBuilderPlatform(platform)) return next();
+    if (!isPlanPlatform(platform)) return next();
     const area = str(fields.section, 20) ?? str(fields.shown, 20);
     res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), area: isArea(area) ? area : undefined, ...who(req, res) }));
   };
+  app.get("/platforms", (req, res) => {
+    res.type("html").send(renderPlatforms({ db, ...who(req, res) }));
+  });
   app.get("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, (req.body ?? {}) as Record<string, unknown>));
   const sendPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
-    if (!isBuilderPlatform(platform)) return next();
+    if (!isPlanPlatform(platform)) return next();
     const out = exportPlan(buildTestPlan(db, planOptions(platform, fields)), isPlanFormat(fields.format) ? fields.format : "json", { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
     res.setHeader("Content-Disposition", `attachment; filename="${out.filename}"`);
     res.setHeader("Cache-Control", "no-store");
-    res.type(out.contentType).send(out.body);
+    res.type(out.contentType).send(typeof out.body === "string" ? out.body : Buffer.from(out.body));
   };
   app.get("/baselines/:platform/tests/export", (req, res, next) => sendPlan(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform/tests/export", (req, res, next) => sendPlan(req, res, next, (req.body ?? {}) as Record<string, unknown>));

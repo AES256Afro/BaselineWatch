@@ -62,6 +62,9 @@ src/db.ts            open, migrate, counts
 src/blobs.ts         content-addressed snapshot store
 src/html.ts          html`` template with escaping
 src/pages/           server-rendered pages (layout, home, sources, not-found)
+src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
+src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
+src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1

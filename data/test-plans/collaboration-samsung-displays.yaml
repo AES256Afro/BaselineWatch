@@ -1,0 +1,48 @@
+id: collaboration-samsung-displays
+title: Samsung meeting-room displays and signage
+platforms: [collaboration]
+area: collaboration
+applies:
+  hardware: [samsung-interactive, samsung-signage]
+notes: The team's meeting rooms run Samsung displays. The interactive WAD and WAF series are Android devices (Google EDLA-certified, Knox Manage licence included), so Android Enterprise and Knox controls apply to them; the smart signage line runs Tizen and is managed through MagicINFO Server. Samsung publishes display advisories as SVP-<month>-<year> on its TV and display security page and has no feed; a monthly read is a step here.
+steps:
+  - do: Read the display's firmware version from its settings (Support, Software Update on Tizen; Settings, About device on Android) and compare with the latest Samsung publishes for the model.
+    expect: The display runs the latest firmware; automatic update is on or the update is scheduled through MagicINFO or Knox Manage.
+    fail: An old firmware on a model Samsung still updates is a finding; one on a model past its update window (five years, or seven for models launched from 2023) leaves the room estate.
+    source:
+      title: Samsung Security for Smart TV, Audio and Displays
+      url: https://security.samsungtv.com/securityUpdates
+  - do: On a Tizen display, open the settings with the admin PIN.
+    expect: The PIN is not the factory default and is held by the team; settings cannot be opened from the room without it.
+    fail: A factory PIN (a four- or six-digit default) means anyone in the room can change the display's network and update settings; change it on every unit and record it with the room inventory.
+    applies:
+      hardware: [samsung-signage]
+    source:
+      title: Samsung Security for Smart TV, Audio and Displays
+      url: https://security.samsungtv.com/securityUpdates
+  - do: On an interactive display, open the device's record in Knox Manage (or the MDM the fleet uses for Android).
+    expect: "The display is enrolled as a company-owned Android Enterprise device in kiosk or dedicated mode, with the same policies the Android fleet tests: developer options off, unknown sources off, an app allowlist, screen lock, and the security patch level within two months."
+    fail: An unenrolled interactive display is an unmanaged Android tablet on the meeting-room network; enrol it or isolate it.
+    applies:
+      hardware: [samsung-interactive]
+    source:
+      title: Samsung Knox documentation
+      url: https://docs.samsungknox.com/
+  - do: In MagicINFO Server, read the server version and the TLS setting, and in the display's network settings read the protocols that are on.
+    expect: MagicINFO Server is at or above the version that closed the 2025 and 2026 advisories (file write, path traversal, hard-coded credentials, unauthenticated upload); management traffic is TLS only; screen mirroring, Bluetooth and USB are off where the room does not need them, and Wi-Fi uses certificate-based 802.1X.
+    fail: A MagicINFO Server below the fixed version is reachable by anyone on its network and is the first thing to patch; a display with open mirroring lets any guest put content on the room screen.
+    source:
+      title: Samsung Security for Smart TV, Audio and Displays
+      url: https://security.samsungtv.com/securityUpdates
+  - do: From a laptop on the guest network, try to reach the display's management port and its mirroring service.
+    expect: Neither answers; the displays sit on a room-systems network segment that the guest and user networks cannot reach.
+    fail: A display reachable from the guest network needs the segment fixed before any other finding matters.
+    source:
+      title: Microsoft Teams Rooms security (network segmentation for room systems)
+      url: https://learn.microsoft.com/microsoftteams/rooms/security
+  - do: Once a month, read Samsung's display security page and the News page's Samsung items, and check whether an advisory names a model in the rooms.
+    expect: The read is logged with the date; any advisory naming a room model has a firmware task.
+    fail: No log entry for the month means the step was skipped; Samsung has no feed, so the read is the control.
+    source:
+      title: Samsung Security for Smart TV, Audio and Displays
+      url: https://security.samsungtv.com/securityUpdates

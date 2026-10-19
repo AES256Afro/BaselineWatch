@@ -1,0 +1,47 @@
+id: platform-sso-entra-macos
+title: Platform SSO with Microsoft Entra ID on a Mac
+platforms: [macos]
+area: sso
+applies:
+  versions:
+    macos: [">=14"]
+notes: Microsoft supports macOS 13 and strongly recommends 14 or later; Company Portal must be 5.2404.0 or later before the profile is targeted. Test with a wiped Mac enrolled through Automated Device Enrollment and a test account under a Conditional Access policy that requires a compliant device. The authentication method the profile sets decides the steps; the Secure Enclave method needs a Secure Enclave, so the hardware you chose rules a step in or out.
+steps:
+  - do: Before enrolment, confirm the prerequisites in the tenant and the MDM. In Entra, Device settings, "Users may join devices to Microsoft Entra" includes the test user; Conditional Access, not per-user MFA, enforces MFA; the MDM passcode policy is no stricter than the Entra password policy; Company Portal 5.2404.0 or later is deployed with the Extensible Single Sign-on payload that carries the Platform SSO settings.
+    expect: Every prerequisite holds; the payload names the extension com.microsoft.CompanyPortalMac.ssoextension with team identifier UBF8T346G9.
+    fail: A user not allowed to join devices gets no error at all, only a registration that never completes; per-user MFA breaks password sync; an older Company Portal never shows the registration prompt. Fix the tenant or the app version before testing further.
+    source:
+      title: Microsoft Learn, "macOS Platform Single Sign-on (PSSO) overview"
+      url: https://learn.microsoft.com/entra/identity/devices/macos-psso
+  - do: Enrol the Mac, sign in, and wait for the "Registration Required" notification; complete it. Then run app-sso platform -s in Terminal.
+    expect: The command reports the device registered with the tenant and the user registered, with SSO tokens present and the authentication method the profile set (Secure Enclave key, smart card or password). System Settings, Users & Groups, Network Account Server shows the registration.
+    fail: No prompt within ten minutes means the profile or Company Portal has not arrived; on macOS 14 a failed registration re-prompts after about ten minutes. If the user dismissed the prompt, sign out and back in. A registration loop on macOS 15.0 to 15.2 ("Error deserializing device config") is fixed in 15.3; update.
+    source:
+      title: Microsoft Learn, "Troubleshoot macOS Platform SSO"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-macos-platform-single-sign-on-extension
+  - do: With the Secure Enclave method, lock the Mac and unlock it with Touch ID, then open Safari and sign in to a Microsoft 365 app protected by Conditional Access.
+    expect: The unlock uses the hardware-bound Platform Credential (a passkey with AAGUID 7FD635B3-2EF9-4542-8D9D-164F2C771EFC in the Entra sign-in logs); the web sign-in completes without a password or MFA prompt and the sign-in log shows the device as compliant and the authentication as phishing-resistant.
+    fail: A password prompt in the browser means the SSO extension is not serving tokens; check that TLS inspection exempts app-site-association.cdn-apple.com, app-site-association.networking.apple, login.microsoftonline.com, login.microsoft.com and sts.windows.net, then run sudo killall swcd && sudo swcutil reset and sign in again.
+    applies:
+      hardware: [apple-silicon, intel-t2]
+    source:
+      title: Microsoft Learn, "macOS Platform Single Sign-on (PSSO) overview"
+      url: https://learn.microsoft.com/entra/identity/devices/macos-psso
+  - do: With the password method, change the test account's password in Entra, then lock and unlock the Mac, and restart to unlock FileVault at the pre-boot screen.
+    expect: The Mac prompts once for the new password and the local password follows it; the old password no longer unlocks; FileVault accepts the new one.
+    fail: A password that does not sync usually means the MDM passcode policy is stricter than Entra's or per-user MFA is on; a FileVault or MDM password reset wipes the Secure Enclave keys, after which the user must re-register.
+    source:
+      title: Microsoft Learn, "Troubleshoot macOS Platform SSO"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-macos-platform-single-sign-on-extension
+  - do: Open the device's record in the Intune admin centre and in Entra.
+    expect: One Entra-joined device object, compliant, with the registration date of the test; the old Workplace Join key is gone from the keychain.
+    fail: "Two device objects mean a re-registration; delete the stale one and confirm the Mac still signs in. A device shown as not compliant blocks every Conditional Access-protected app: check the compliance policy's evaluation on the device page before touching the Mac."
+    source:
+      title: Microsoft Learn, "Configure Platform SSO for macOS devices in Microsoft Intune"
+      url: https://learn.microsoft.com/mem/intune/configuration/platform-sso-macos
+  - do: When a step fails and the cause is not obvious, capture the logs before changing anything. Run sudo log config --mode "level:debug,persist:debug" --subsystem "com.apple.AppSSO", reproduce, run sudo sysdiagnose, then sudo log config --reset --subsystem "com.apple.AppSSO"; in Company Portal choose Help, Send diagnostic report.
+    expect: A sysdiagnose archive and a Company Portal incident number to attach to the ticket.
+    fail: If sysdiagnose cannot be collected, tail the extension log at ~/Library/Containers/com.microsoft.CompanyPortalMac.ssoextension/Data/Library/Caches/Logs/Microsoft/SSOExtension and run sudo swcutil watch --verbose while reproducing.
+    source:
+      title: Microsoft Learn, "Troubleshoot the Microsoft Enterprise SSO Extension plug-in on Apple devices"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-mac-sso-extension-plugin

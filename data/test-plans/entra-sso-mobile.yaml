@@ -1,0 +1,50 @@
+id: entra-sso-mobile
+title: Entra ID single sign-on on iPhone, iPad and Android through the Microsoft brokers
+platforms: [ios, ipados, android]
+area: sso
+notes: On Apple devices the Microsoft Enterprise SSO plug-in rides Microsoft Authenticator (extension com.microsoft.azureauthenticator.ssoextension) and is turned on by an Extensible Single Sign-on payload of type Redirect; on Android the broker is Authenticator or Company Portal. Test with a test account under the fleet's Conditional Access policies, on a device enrolled the way the fleet is enrolled.
+steps:
+  - do: "On the Apple device, confirm the SSO payload is installed: type Redirect, extension identifier com.microsoft.azureauthenticator.ssoextension, URLs https://login.microsoftonline.com, https://login.microsoft.com and https://sts.windows.net, and the device_registration key set to {{DEVICEREGISTRATION}} where just-in-time registration is wanted."
+    expect: The payload shows in Settings, General, VPN & Device Management under the MDM profile; since August 2025 the device keys default to the Secure Enclave.
+    fail: No payload means the MDM did not target the device; a payload with the wrong URLs leaves some apps prompting for passwords. Fix the profile, not the app.
+    applies:
+      versions:
+        ios: [">=18"]
+        ipados: [">=18"]
+    source:
+      title: Microsoft Learn, "Microsoft Enterprise SSO plug-in for Apple devices"
+      url: https://learn.microsoft.com/entra/identity-platform/apple-sso-plugin
+  - do: Sign in to Authenticator once, then open Outlook, Teams and Safari (Microsoft 365 web) in turn.
+    expect: Each opens signed in with no password or MFA prompt; the Entra sign-in log shows the device as registered and compliant.
+    fail: "A prompt in Safari with the apps working points at browser SSO being turned off (browser_sso_interaction_enabled); a prompt in every app means the extension is not loaded, usually a blocked URL (errors 1012 or 1000 in the Authenticator logs, sent from Help, Send logs). Error 530003 \"Device is required to be managed\" means the app cannot read the Secure Enclave registration: update the app."
+    applies:
+      versions:
+        ios: [">=18"]
+        ipados: [">=18"]
+    source:
+      title: Microsoft Learn, "Troubleshoot the Microsoft Enterprise SSO Extension plug-in on Apple devices"
+      url: https://learn.microsoft.com/entra/identity/devices/troubleshoot-mac-sso-extension-plugin
+  - do: On Android, open Authenticator (or Company Portal) and complete device registration; then open Outlook and Teams.
+    expect: Both open signed in through the broker without a second prompt; Intune shows the device as Entra registered and compliant.
+    fail: "A second sign-in prompt means the app is not using the broker: the work profile or fully managed setup must install Authenticator or Company Portal before the apps, and the apps must be the managed (Play) builds."
+    applies:
+      versions:
+        android: [">=14"]
+    source:
+      title: Microsoft Learn, "Brokered authentication in Android"
+      url: https://learn.microsoft.com/entra/msal/android/brokered-auth
+  - do: On a shared Android device (a meeting-room tablet or a front-desk device), sign in as one user, open Teams, sign out from Authenticator, and sign in as a second user.
+    expect: Shared device mode is on (Authenticator shows the shared-mode banner and Intune pushed the shared-mode managed configuration); the global sign-out clears the first user from every supported app and the second user sees nothing of the first.
+    fail: Any trace of the first user after sign-out means an app on the device does not support shared device mode; remove it or move the device out of the shared pool.
+    applies:
+      versions:
+        android: [">=14"]
+    source:
+      title: Microsoft Learn, "Shared device mode for Android devices"
+      url: https://learn.microsoft.com/entra/msal/android/shared-devices
+  - do: From an unmanaged device, sign in to the same app with the test account.
+    expect: Conditional Access blocks the sign-in or requires MFA and app protection, as the policy says; the sign-in log names the policy that fired.
+    fail: An unmanaged device getting in without a challenge means the policy excludes the test account or the app; fix the policy before anything else, because every managed-device test above is only meaningful if unmanaged devices are kept out.
+    source:
+      title: Microsoft Learn, "Microsoft Enterprise SSO plug-in for Apple devices"
+      url: https://learn.microsoft.com/entra/identity-platform/apple-sso-plugin

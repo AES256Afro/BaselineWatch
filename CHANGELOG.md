@@ -16,6 +16,22 @@ Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`
   real FIPS 201-2 → 201-3 and SP 800-63-3 → 63-4 diffs. Searching the Register for PIV or Secure
   Enclave now finds something.
 - A document's own change log is preferred over the listing's note as the release rationale.
+- **Platform engineering begins (M11).** A fleet file, `data/platforms.yaml`, names each operating
+  system's releases with the vendor's dates and status, the hardware each runs on and the models
+  in the vendor's words, seeded with this autumn's releases (macOS 27 Golden Gate on Apple silicon
+  only, Windows 11 26H2 and 26H1, iOS and iPadOS 27, Android 17, RHEL 10, Ubuntu 26.04) and the
+  earlier ones still in service. A **Platforms** page in the Standards menu lists it all with what
+  the Register holds per release and leads to each release's test plan.
+- **Test plans know the release and the hardware.** The plan page gains a version and a hardware
+  select (hardware a release cannot run is greyed), templates and their steps carry `applies`
+  rules, and what does not apply is left out with the reason, on the page and in every export.
+  Each step now says what success looks like and what to do when it does not (`expect` and
+  `fail`). Three new areas: the hardware root of trust and secure enclave, Platform SSO and
+  identity, collaboration and meeting rooms; a checkbox per area chooses what to test this time.
+  iOS, iPadOS, Android and Collaboration have template-only plans. Twelve templates join the
+  seven of M9, from Apple's, Microsoft's, Google's, Samsung's, Red Hat's and Canonical's documents.
+- **LaTeX, Word and PDF exports** of a test plan, beside the checklist, Markdown, CSV and JSON,
+  each with the release facts, the branches, the not-tested list, a findings table and a sign-off.
 
 ## 0.30.0 — 2026-10-19
 

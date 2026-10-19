@@ -1,0 +1,44 @@
+id: collaboration-teams-rooms
+title: Microsoft Teams Rooms systems behind the room displays
+platforms: [collaboration]
+area: collaboration
+applies:
+  hardware: [teams-rooms-windows, teams-rooms-android]
+notes: The console and compute behind a Samsung display. A Teams Rooms on Windows system is a Windows 11 IoT Enterprise PC and takes the Windows hardware plan too; a Teams Rooms on Android device is managed through the Teams admin center and Intune's AOSP management.
+steps:
+  - do: In the Teams admin center (or the Teams Rooms Pro management portal) open the room's device page.
+    expect: Health is Healthy, the app is on the current or previous release, and on Windows the OS is 25H2 (supported and recommended) or 24H2; 23H2 and earlier are not supported for Teams Rooms.
+    fail: Offline means the admin agent stopped reporting (Critical); an unsupported OS or an app more than one release behind is a finding against the room's update schedule (updates run nightly between 2 and 3 am by default).
+    source:
+      title: Microsoft Learn, "Microsoft Teams Rooms lifecycle and support"
+      url: https://learn.microsoft.com/microsoftteams/rooms/rooms-lifecycle-support
+  - do: "On a Windows system, switch to the Admin account and run the Windows hardware checks: Get-Tpm, Confirm-SecureBootUEFI, the Win32_DeviceGuard query and msinfo32's Kernel DMA Protection line."
+    expect: TPM 2.0 ready, Secure Boot on, memory integrity and Credential Guard running, Kernel DMA Protection on, Defender on.
+    fail: Any of them off is the same finding as on a workstation; Microsoft's Teams Rooms security guidance lists them as the expected state.
+    applies:
+      hardware: [teams-rooms-windows]
+    source:
+      title: Microsoft Learn, "Microsoft Teams Rooms security"
+      url: https://learn.microsoft.com/microsoftteams/rooms/security
+  - do: On a Windows system, check the local Admin account's password and BitLocker.
+    expect: The default Admin password is changed or the account is managed by Windows LAPS; BitLocker is on without a pre-boot PIN (a PIN would stop the room from booting unattended); the resource account is cloud-only with no interactive MFA.
+    fail: A factory Admin password is an open door in every room; set LAPS. A pre-boot PIN means the room is down after every restart until someone types it.
+    applies:
+      hardware: [teams-rooms-windows]
+    source:
+      title: Microsoft Learn, "Windows LAPS for Microsoft Teams Rooms"
+      url: https://learn.microsoft.com/microsoftteams/rooms/laps-authentication
+  - do: On an Android system, open the device in Intune (AOSP management) and the Teams admin center configuration profile.
+    expect: Enrolled through AOSP device management (Device Administrator is deprecated), compliance rules for rooted devices, minimum OS, minimum security patch level and encryption applied, ADB disabled, the local admin password set through the configuration profile, and the Android version within Microsoft's support window for Teams devices.
+    fail: A device on an Android version past its Teams support end date (Android 10 and 11 ended 2027-09-03 support) must be replaced; one not enrolled in Intune cannot be held to a compliance policy at all.
+    applies:
+      hardware: [teams-rooms-android]
+    source:
+      title: Microsoft Learn, "Enroll Teams Android devices with AOSP device management"
+      url: https://learn.microsoft.com/microsoftteams/devices/teams-aosp-enrollment
+  - do: Join a test meeting from the room, then from a laptop on the guest network try to reach the room system's management interfaces.
+    expect: The meeting joins with the resource account only; nothing on the room system answers from the guest network.
+    fail: A room system reachable from the guest network needs the room-systems segment fixed first.
+    source:
+      title: Microsoft Learn, "Microsoft Teams Rooms security"
+      url: https://learn.microsoft.com/microsoftteams/rooms/security
