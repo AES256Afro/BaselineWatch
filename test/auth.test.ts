@@ -87,7 +87,7 @@ describe("owner session over HTTP", () => {
     expect(read.headers.get("location")).toBe("/wire?kind=kev");
     expect((app.db.prepare("SELECT read FROM items WHERE id = ?").get(id) as { read: number }).read).toBe(1);
     const evilBack = await formPost(app.base, `/items/${id}/star`, { back: "//evil.example/x" }, cookie);
-    expect(evilBack.headers.get("location")).toBe("/wire");
+    expect(evilBack.headers.get("location")).toBe("/");
 
     const readAll = await formPost(app.base, "/wire/read-all", { kind: "kev", back: "/wire" }, cookie);
     expect(readAll.status).toBe(303);
@@ -110,7 +110,7 @@ describe("owner session over HTTP", () => {
 
   it("is single-user when no password is set: writes open, no sign-in drawn", async () => {
     app = await startTestApp();
-    const home = await (await fetch(`${app.base}/`)).text();
+    const home = await (await fetch(`${app.base}/register`)).text();
     expect(home).not.toContain("Owner sign-in");
     expect(home).toContain("open (no owner password set)");
     const login = await (await fetch(`${app.base}/login`)).text();

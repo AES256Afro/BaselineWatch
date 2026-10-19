@@ -249,7 +249,7 @@ describe("Register pages", () => {
     await loadNist(app.db, app.dataDir);
     const latest = latestDocument(app.db, "nist-sp-800-53", "catalog")!;
 
-    const home = await (await fetch(`${app.base}/`)).text();
+    const home = await (await fetch(`${app.base}/register`)).text();
     expect(home).toContain('href="/standards/nist-sp-800-53"');
     expect(home).toContain("5.2.0");
 

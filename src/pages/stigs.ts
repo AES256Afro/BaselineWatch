@@ -233,7 +233,7 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
             const href = known ? `/vulnerabilities/${k.cve}` : (k.url ?? `https://nvd.nist.gov/vuln/detail/${k.cve}`);
             return html`<li><a href="${href}" ${newTabIf(href)}>${k.title}</a><span class="when">${k.cve} · added ${k.publishedAt ? k.publishedAt.slice(0, 10) : "?"}${k.dueDate ? html` · due ${k.dueDate}` : ""}${k.ransomware ? html` · <span class="chip kev">ransomware</span>` : ""}</span></li>`;
           })}</ul>
-          <p class="small"><a href="/wire?kind=kev">All KEV additions on the Wire</a></p>`
+          <p class="small"><a href="/?kind=kev">All KEV additions on the Wire</a></p>`
         : html`<p class="small">No KEV entry names ${label === "every platform" ? "it" : label}${kev.total === 0 && (db.prepare("SELECT COUNT(*) AS n FROM items WHERE kind = 'kev'").get() as { n: number }).n === 0 ? "; the catalog has not been fetched yet" : ""}.</p>`}
       <h3 class="small">Directives <span class="count">${directives.length}</span></h3>
       ${directives.length

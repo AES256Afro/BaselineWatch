@@ -274,7 +274,7 @@ describe("triage and digest pages", () => {
     expect(digestAfter).toContain("Daily digest");
     expect(digestAfter).toContain("Known exploited (CISA KEV): 3 added");
     expect(digestAfter).toContain("digest · unconfigured");
-    const home = await (await fetch(`${app.base}/`)).text();
+    const home = await (await fetch(`${app.base}/register`)).text();
     expect(home).toContain("Needs you");
     expect(home).toContain("not yet placed");
   });

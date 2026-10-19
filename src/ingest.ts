@@ -3,6 +3,7 @@ import { adapterFor, fetchable } from "./adapters/index.ts";
 import type { Adapter, AlertDraft, DocumentTarget, ParsedDocument, PullSettings, SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
 import { httpGet, type HttpGet } from "./http.ts";
+import { fetchNewItemImages } from "./images.ts";
 import { upsertItems } from "./items.ts";
 import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
@@ -197,7 +198,7 @@ async function sendAlerts(db: DatabaseSync, deps: IngestDeps, drafts: AlertDraft
     await notify(
       db,
       transport,
-      { kind: rest[0]!.kind, title: `${rest.length} more ${rest[0]!.kind === "kev" ? "KEV additions" : rest[0]!.kind === "watch" ? "watched CVEs" : rest[0]!.kind === "directive" ? "CISA directives" : "releases"}`, body: rest.map((r) => r.title).join("\n").slice(0, 3000), url: absolute(rest[0]!.kind === "release" ? "/" : "/wire") },
+      { kind: rest[0]!.kind, title: `${rest.length} more ${rest[0]!.kind === "kev" ? "KEV additions" : rest[0]!.kind === "watch" ? "watched CVEs" : rest[0]!.kind === "directive" ? "CISA directives" : "releases"}`, body: rest.map((r) => r.title).join("\n").slice(0, 3000), url: absolute(rest[0]!.kind === "release" ? "/" : "/") },
       http,
       now,
     );
@@ -317,6 +318,10 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     const before = status === "unchanged" ? new Set<string>() : new Set((db.prepare("SELECT external_id FROM items WHERE source_id = ?").all(source.id) as { external_id: string }[]).map((r) => r.external_id));
     const counts = status === "unchanged" ? { inserted: 0, updated: 0 } : upsertItems(db, source.id, parsed.items, fetchedAt);
     if (status !== "unchanged") adapter.after?.(db, parsed.items, now());
+    // New news articles bring their lead image along: the feed's own media, or og:image once.
+    if (status === "ok" && counts.inserted > 0 && source.group_name === "news" && deps.settings?.newsImages === true) {
+      await fetchNewItemImages(db, dataDir, source, parsed.items.filter((i) => !before.has(i.externalId)), { http, log });
+    }
     const result = done({ status, items: parsed.items.length, snapshotId, ...counts });
     recordOutcome(db, source, { status, etag: response.etag, lastModified: response.lastModified, fetchedAt, durationMs: result.durationMs });
     // New KEV entries are news, except on a source's very first fetch, which loads the whole catalog.

@@ -8,7 +8,6 @@ import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
-import { productName } from "../version.ts";
 
 interface StandardRow {
   id: string;
@@ -114,7 +113,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
     } catch {
       due = "";
     }
-    return html`<li><a href="${k.url ?? "/wire?kind=kev"}" ${newTabIf(k.url ?? "/wire?kind=kev")}>${k.title}</a><span class="when">${relativeTime(k.published_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
+    return html`<li><a href="${k.url ?? "/?kind=kev"}" ${newTabIf(k.url ?? "/?kind=kev")}>${k.title}</a><span class="when">${relativeTime(k.published_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
   });
 
   const content = html`
@@ -153,7 +152,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
         </section>
         <section class="box">
           <h2>Known exploited, newest${kevVersion ? html` <span class="count">catalog ${kevVersion}</span>` : ""}</h2>
-          ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/wire?kind=kev">All KEV additions on the Wire</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}
+          ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/?kind=kev">All KEV additions on the Wire</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}
         </section>
         <section class="box">
           <h2>This instance</h2>
@@ -183,7 +182,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
     </div>`;
 
   return page({
-    title: productName,
+    title: "Register",
     active: "register",
     content,
     meta: html`Tracking ${stats.standards} standards · ${stats.snapshots} snapshots`,

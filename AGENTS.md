@@ -9,10 +9,14 @@ and a **change register for the standards themselves** (NIST SP 800-53, DISA STI
 baselines, CIS by upload): each control or setting before and after, what changed, and the
 publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`.
 
-Decisions so far (2026-10-14): the Register is the home page; build follows the "middle path"
-in the plan (Register done properly, Wire and Vulnerabilities thin, server-rendered HTML first);
-public home is https://cybercard.net as a read-only information and teaching site, with writes
-behind the owner's sign-in (M7); installable from the BoxPilot catalog on BigBox.
+Decisions so far (2026-10-19): News is the home page at `/` (the Wire renamed; the Register at
+`/register`, `/wire` a 301), with the top grouped as News · Today · Standards ▾ · Vulnerabilities
+plus the owner's Desk ▾ on the right; build follows the "middle path" in the plan (Register done
+properly, Wire and Vulnerabilities thin, server-rendered HTML first); public home is
+https://cybercard.net as a read-only information and teaching site, with writes behind the
+owner's sign-in (M7); installable from the BoxPilot catalog on BigBox. Article images arrive
+passively at ingest (feed media, else og:image once per new item), live in the blob store and
+are served from `/img/<hash>`; nothing is ever hot-linked.
 
 ## Conventions
 

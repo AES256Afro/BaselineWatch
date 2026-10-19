@@ -36,6 +36,10 @@ export interface ParsedItem {
   summary: string | null;
   /** ISO 8601, or null when the source gives no date. */
   publishedAt: string | null;
+  /** The article's lead image as the feed itself delivered it; the ingester caches the bytes. */
+  imageUrl?: string | null;
+  /** Where the feed carried it: a media element or an <img> in the body. */
+  imageOrigin?: "enclosure" | "body";
   signals?: Record<string, unknown>;
 }
 
@@ -51,6 +55,8 @@ export interface ParseResult {
 export interface PullSettings {
   nvdApiKey: string | null;
   nvdBackfillDays: number;
+  /** When false the ingester skips caching article images. */
+  newsImages?: boolean;
   /** An Ollama address; when set, releases get a generated summary beside the publisher's words. */
   llmUrl?: string | null;
   llmModel?: string;

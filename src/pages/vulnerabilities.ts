@@ -139,7 +139,7 @@ export function fixPanel(fix: Fix): Html {
       : ""}
     ${fix.advisories.length
       ? html`<h3 class="small">Vendor advisories on the Wire <span class="count">${fix.advisories.length}</span></h3>
-          <ul class="refs">${fix.advisories.map((a) => html`<li><a href="${a.url ?? "/wire"}" ${newTabIf(a.url)}>${a.title}</a> <span class="small">${a.source}${a.publishedAt ? html` · ${a.publishedAt.slice(0, 10)}` : ""}</span></li>`)}</ul>`
+          <ul class="refs">${fix.advisories.map((a) => html`<li><a href="${a.url ?? "/"}" ${newTabIf(a.url)}>${a.title}</a> <span class="small">${a.source}${a.publishedAt ? html` · ${a.publishedAt.slice(0, 10)}` : ""}</span></li>`)}</ul>`
       : ""}
     ${fix.packages.length
       ? html`<h3 class="small">Fixed package versions</h3>
