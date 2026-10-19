@@ -1,0 +1,60 @@
+id: hardware-root-ios
+title: Supervision, attestation, passcode and Lockdown Mode on an iPhone or iPad
+platforms: [ios, ipados]
+area: hardware
+notes: Every supported iPhone and iPad has a Secure Enclave; what varies is whether the organisation owns the chain above it. Test on a device enrolled through Automated Device Enrollment with the fleet's profiles applied.
+steps:
+  - do: Open Settings on the device and read the line above the Apple Account; open the device's record in the MDM.
+    expect: Settings says the device is supervised and managed by the organisation; the MDM shows Automated Device Enrollment with supervision on.
+    fail: An unsupervised device cannot be locked by the organisation, cannot have profiles made non-removable, and fails the STIG's supervision rule; re-enrol it through Apple Business Manager (a wipe) rather than a manual profile.
+    source:
+      title: Apple Platform Deployment, "About device supervision"
+      url: https://support.apple.com/guide/deployment/about-device-supervision-dep1d89f0bff/web
+  - do: Trigger a fresh Managed Device Attestation from the MDM (a DeviceInformation query with a nonce, or the MDM's attestation action) and read the result.
+    expect: A valid attestation chained to Apple's private PKI, with the serial number, UDID and managed state matching the record, dated within the last seven days.
+    fail: A missing or failed attestation on an A11-or-later device means the device may not be what the record says; quarantine it from Conditional Access until a fresh attestation passes. Attestation needs iOS 16 or later.
+    applies:
+      versions:
+        ios: [">=18"]
+        ipados: [">=18"]
+    source:
+      title: Apple Platform Deployment, "Managed Device Attestation for Apple devices"
+      url: https://support.apple.com/guide/deployment/managed-device-attestation-dep28afbde6a/web
+  - do: "Check the passcode profile against the STIG's values: minimum six characters, no more than four repeating or sequential characters, auto-lock within 15 minutes, ten failed attempts before wipe, a password required before data decrypts."
+    expect: Settings, Face ID & Passcode (or Touch ID & Passcode) cannot be set weaker than the profile, and the device wipes after the tenth failed attempt in a test on a spare device.
+    fail: A passcode weaker than the profile allows means the profile is not installed or is not the most restrictive; the MDM's profile list on the device shows which one won.
+    source:
+      title: DISA, Apple iOS/iPadOS 26 STIG (passcode rules AIOS-26-006500 to 006950, 010400)
+      url: https://stigaview.com/products/ios26/latest/
+  - do: Open Settings, Privacy & Security, Lockdown Mode and read its state; check the MDM's enrolment behaviour with it on.
+    expect: Lockdown Mode is off on managed devices (Apple does not expose it to MDM, and a device with it on cannot enrol); where a high-risk user turns it on by policy, the device is documented as outside the managed fleet.
+    fail: A managed device found with Lockdown Mode on cannot be re-enrolled while it stays on; decide with the user whether the device is managed or locked down, not both.
+    applies:
+      versions:
+        ios: [">=18"]
+        ipados: [">=18"]
+    source:
+      title: Apple, "About Lockdown Mode"
+      url: https://support.apple.com/en-us/105120
+  - do: On iOS 26.1 or later, open Settings, Privacy & Security, Background Security Improvements.
+    expect: Automatically Install is on, and the device shows the latest improvement installed (Apple lists them on its security releases page with the base version they apply to).
+    fail: Off means the device waits for the next full update for fixes Apple ships in between; turn it on, or set the MDM restriction that forces it where the MDM supports one.
+    applies:
+      versions:
+        ios: [">=26"]
+        ipados: [">=26"]
+    source:
+      title: Apple, "About Background Security Improvements"
+      url: https://support.apple.com/en-us/102657
+  - do: Read the Activation Lock state in the MDM's device record.
+    expect: Activation Lock is organisation-linked and the bypass code is held by the MDM; on a supervised device the user-linked lock is disallowed by default.
+    fail: A user-linked lock without a bypass code means the device cannot be reassigned if the user leaves; retrieve the bypass code (possible for 15 days after supervision) or plan to clear the lock through Apple Business Manager.
+    source:
+      title: Apple Platform Deployment, "Activation Lock on Apple devices"
+      url: https://support.apple.com/guide/deployment/activation-lock-depf4ab94ef1/web
+  - do: Run the device through the MDM's OS-version compliance rule and compare with Apple's security releases page.
+    expect: The device runs the current release (iOS 27, iPadOS 27) or the previous one still receiving fixes; an iPhone XS or XR stays on iOS 18 and is flagged as such.
+    fail: A device behind the current release by more than the fleet's grace period is non-compliant; the STIG requires the latest OS.
+    source:
+      title: Apple security releases
+      url: https://support.apple.com/en-us/100100

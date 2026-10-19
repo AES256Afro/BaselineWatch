@@ -1,0 +1,42 @@
+id: hardware-root-linux
+title: Secure Boot, TPM, disk encryption and FIPS mode on a Linux host
+platforms: [linux]
+area: hardware
+notes: Red Hat Enterprise Linux 9 and 10 and Ubuntu 22.04 and 24.04 LTS. Run as root on a host built from the fleet's image after the STIG profile is applied.
+steps:
+  - do: Run mokutil --sb-state.
+    expect: SecureBoot enabled.
+    fail: Disabled means firmware lets unsigned kernels boot; enable Secure Boot in firmware and confirm the distribution's shim is enrolled (a host with third-party kernel modules needs its MOK key enrolled first).
+    source:
+      title: Ubuntu, "UEFI Secure Boot"
+      url: https://wiki.ubuntu.com/UEFI/SecureBoot
+  - do: Run ls /sys/class/tpm and tpm2_getcap properties-fixed.
+    expect: tpm0 exists and the family indicator is 2.0; the manufacturer and firmware version go into the inventory.
+    fail: No tpm0 means the TPM is off in firmware or the host is a VM without a vTPM; LUKS keys and measured boot then have nothing to bind to, so record the exception against the STIG.
+    source:
+      title: Red Hat, "Encrypting block devices using LUKS" (Security hardening, RHEL 9)
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/encrypting-block-devices-using-luks_security-hardening
+  - do: Run lsblk and cryptsetup status on each mapped volume, then cryptsetup luksDump on the device.
+    expect: Every local data partition is TYPE crypt; the header is LUKS2 with aes-xts-plain64 and a 512-bit key.
+    fail: An unencrypted local partition fails RHEL-09-231190; it cannot be encrypted in place, so rebuild from the fleet's image with encryption at install.
+    source:
+      title: Red Hat, "Encrypting block devices using LUKS" (Security hardening, RHEL 9)
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/encrypting-block-devices-using-luks_security-hardening
+  - do: On RHEL, run fips-mode-setup --check; on Ubuntu Pro, run pro status and cat /proc/sys/crypto/fips_enabled.
+    expect: RHEL reports FIPS mode is enabled; Ubuntu reports fips-updates (or fips) enabled and the kernel flag reads 1.
+    fail: FIPS mode cannot be turned on cleanly after installation on RHEL (install with fips=1 and rebuild) and is irreversible on Ubuntu; a FIPS host on RHEL 10 has no active certificate yet (the modules are under test), so a certificate-backed requirement stays on RHEL 9.
+    source:
+      title: Red Hat, "Switching RHEL to FIPS mode" (Security hardening, RHEL 9)
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/switching-rhel-to-fips-mode_security-hardening
+  - do: Run the STIG profile scan with OpenSCAP, oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results results.xml --report report.html /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml (the matching data stream on RHEL 10 or Ubuntu's usg), and open the report.
+    expect: Every rule the baseline applies is pass; notchecked rules are the manual ones this plan covers; notapplicable rules match the host's role.
+    fail: A fail names the rule and the STIG id; fix with the STIG's own procedure (or oscap xccdf generate fix for a script to review first), then re-scan. Never run --remediate on a host in service without a rollback.
+    source:
+      title: Red Hat, "Scanning the system for configuration compliance and vulnerabilities" (Security hardening, RHEL 9)
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/security_hardening/scanning-the-system-for-configuration-compliance-and-vulnerabilities_security-hardening
+  - do: Where the host signs users in with Entra ID (Ubuntu's authd with the Microsoft Entra ID broker, or RHEL's SSSD generic identity provider), run getent passwd <user>@<tenant domain> and ssh -l <user>@<tenant domain> localhost.
+    expect: The user resolves and signs in through the device-code or browser flow with MFA; a disabled Entra user is refused within the cache lifetime.
+    fail: A user who still signs in after being disabled in Entra is a cached credential; shorten the offline cache or make the host online-only. RHEL's provider is a Technology Preview; a production host uses Entra Domain Services with the AD backend instead.
+    source:
+      title: Red Hat, "Configuring SSSD to use a generic identity provider" (RHEL 10)
+      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/configuring_authentication_and_authorization_in_rhel/configuring-sssd-to-use-a-generic-identity-provider

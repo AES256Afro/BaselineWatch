@@ -1,0 +1,591 @@
+# The fleet: each operating system a team runs, its releases, and the hardware each release runs
+# on. Read on every request by src/fleet.ts; the test plan's version and hardware selects, its
+# applicability rules and the Platforms page all draw from it. Dates are the vendors', with the
+# page each came from; "verify" marks a date inferred from the vendor's practice rather than
+# published. Newest release first within a platform: that order is how a template's version rule
+# (">=26") is judged. Checked 2026-10-19.
+
+hardware:
+  - id: apple-silicon
+    label: Apple silicon Mac (M1 and later)
+    platforms: [macos]
+    secure_element: true
+    note: Secure Enclave, sealed system volume, and a boot security policy set in recoveryOS and read with bputil.
+  - id: intel-t2
+    label: Intel Mac with the Apple T2 Security Chip (2018 to 2020)
+    platforms: [macos]
+    secure_element: true
+    note: iMac Pro 2017; MacBook Air and MacBook Pro 2018 to 2020 (not the M1 models); Mac mini 2018; iMac 27-inch 2020; Mac Pro 2019. System Information shows "Apple T2 chip" under Controller or iBridge. Secure boot is set in Startup Security Utility. macOS 26 Tahoe is the last release, and only for the four models it names.
+  - id: intel
+    label: Intel Mac without a T2 chip (2017 and earlier)
+    platforms: [macos]
+    secure_element: false
+    note: No Secure Enclave and no secure boot; FileVault and System Integrity Protection still apply. macOS 15 Sequoia at most.
+  - id: tpm-2
+    label: PC with TPM 2.0 (discrete or firmware)
+    platforms: [windows, linux]
+    secure_element: true
+    note: Every Windows 11 PC. Windows Hello for Business, BitLocker and device health attestation key on it.
+  - id: pluton
+    label: PC with Microsoft Pluton
+    platforms: [windows]
+    secure_element: true
+    note: Pluton serves as the TPM 2.0 and is updated through Windows Update.
+  - id: copilot-plus
+    label: Copilot+ PC (40+ TOPS NPU, Pluton)
+    platforms: [windows]
+    secure_element: true
+    note: Recall and the other on-device AI features exist only here and are policy-controlled.
+  - id: iphone-a13
+    label: iPhone 11 and later (A13 and later), iPhone SE 2nd generation and later
+    platforms: [ios]
+    secure_element: true
+    note: Runs iOS 26 and iOS 27.
+  - id: iphone-a12
+    label: iPhone XS, XS Max and XR (A12)
+    platforms: [ios]
+    secure_element: true
+    note: iOS 18 is the last release; security updates only.
+  - id: ipad
+    label: iPad supported by the current iPadOS
+    platforms: [ipados]
+    secure_element: true
+    note: iPad Pro 11-inch 1st generation and 12.9-inch 3rd generation and later, iPad Air 3rd generation and later, iPad 8th generation and later, iPad mini 5th generation and later (verify against Apple's list for the release).
+  - id: pixel
+    label: Google Pixel (Titan M2)
+    platforms: [android]
+    secure_element: true
+    note: Seven years of OS and security updates from the Pixel 8.
+  - id: samsung-knox
+    label: Samsung Galaxy with Knox (Knox Vault)
+    platforms: [android]
+    secure_element: true
+    note: Seven years of OS and security updates from the Galaxy S24 series; Knox Platform for Enterprise and Knox attestation.
+  - id: android-other
+    label: Other Android Enterprise devices
+    platforms: [android]
+    secure_element: false
+    note: A hardware-backed keystore is required of every device; StrongBox or a Knox-class vault is not.
+  - id: samsung-interactive
+    label: Samsung interactive display (WAD and WAF series, Android)
+    platforms: [collaboration]
+    secure_element: false
+    note: Google EDLA-certified Android (WAD on Android 13, WAF on Android 14) with a Knox Manage licence bundled, so Android Enterprise and Knox controls apply.
+  - id: samsung-signage
+    label: Samsung smart signage (Tizen)
+    platforms: [collaboration]
+    secure_element: false
+    note: QM, QB, QH and the large-format QHFX on Tizen 8; managed through MagicINFO Server or signageOS. Knox Configure does not manage Tizen signage.
+  - id: teams-rooms-windows
+    label: Microsoft Teams Rooms on Windows
+    platforms: [collaboration]
+    secure_element: true
+    note: A Windows 11 IoT Enterprise PC with TPM 2.0 running the Teams Rooms app, enrolled in Intune.
+  - id: teams-rooms-android
+    label: Microsoft Teams Rooms on Android
+    platforms: [collaboration]
+    secure_element: false
+    note: Certified Android devices managed through the Teams admin center and Intune (AOSP device management).
+  - id: zoom-rooms
+    label: Zoom Rooms appliance or controller
+    platforms: [collaboration]
+    secure_element: false
+  - id: webex-device
+    label: Cisco Webex room device (RoomOS)
+    platforms: [collaboration]
+    secure_element: true
+
+platforms:
+  windows:
+    releases:
+      - id: 26H2
+        label: Windows 11, version 26H2
+        status: current
+        released: "2026-09-29"
+        support_ends: "Home and Pro 2028-10-10; Enterprise, Education and IoT Enterprise 2029-10-09 (Microsoft's lifecycle pages, in Pacific time, show the day before)"
+        hardware: [tpm-2, pluton, copilot-plus]
+        baselines:
+          - DISA Microsoft Windows 11 STIG (one STIG covers every Windows 11 version)
+          - Microsoft Security Baseline for Windows 11, version 26H2 (Security Compliance Toolkit, 2026-10-08)
+          - CIS Microsoft Windows 11 Enterprise Benchmark
+        documents: { stig: "stig:microsoft-windows-11" }
+        notes:
+          - The 2026 feature update; no 26H2 LTSC release. The toolkit's "Windows 11 v26H2 Security Baseline" shipped 2026-10-08.
+          - Administrator protection becomes on by default with the October 2026 security update where the security baseline is applied.
+        sources:
+          - { title: "Microsoft, Windows 11 release information", url: "https://learn.microsoft.com/windows/release-health/windows11-release-information" }
+          - { title: "Microsoft Security Baselines blog, Windows 11 version 26H2 security baseline", url: "https://techcommunity.microsoft.com/blog/microsoft-security-baselines/windows-11-version-26h2-security-baseline/4560382" }
+      - id: 26H1
+        label: Windows 11, version 26H1 (new devices only)
+        status: supported
+        released: "2026-02-10"
+        support_ends: "Home and Pro 2028-03-14; Enterprise and Education 2029-03-13"
+        hardware: [tpm-2, pluton, copilot-plus]
+        baselines:
+          - DISA Microsoft Windows 11 STIG
+          - Microsoft Security Baseline for Windows 11, version 26H2 (the toolkit publishes none for 26H1; verify with the blog)
+        documents: { stig: "stig:microsoft-windows-11" }
+        notes:
+          - Ships only on new devices and is not offered as an in-place update; a 26H1 device moves to 26H2.
+        sources:
+          - { title: "Microsoft, Windows 11 release information", url: "https://learn.microsoft.com/windows/release-health/windows11-release-information" }
+          - { title: "Microsoft Lifecycle, Windows 11 Enterprise and Education", url: "https://learn.microsoft.com/lifecycle/products/windows-11-enterprise-and-education" }
+      - id: 25H2
+        label: Windows 11, version 25H2
+        status: supported
+        released: "2025-09-30"
+        support_ends: "Home and Pro 2027-10-12; Enterprise and Education 2028-10-10"
+        hardware: [tpm-2, pluton, copilot-plus]
+        baselines:
+          - DISA Microsoft Windows 11 STIG
+          - Microsoft Security Baseline for Windows 11, version 25H2 (Security Compliance Toolkit)
+          - CIS Microsoft Windows 11 Enterprise Benchmark
+        documents: { stig: "stig:microsoft-windows-11", sct: "baseline:windows-11-v25h2" }
+        notes:
+          - An enablement package on the 24H2 servicing branch; the same monthly update serves both.
+          - Removes Windows PowerShell 2.0 and the WMIC tool; adds a policy to remove preinstalled Microsoft Store apps on Enterprise and Education.
+          - Administrator protection (just-in-time elevation with a Windows Hello prompt) arrived for 24H2 and 25H2 with the August 2026 update (KB5120998), off by default; the October 2026 security update turns it on where the baseline is applied.
+        sources:
+          - { title: "Microsoft, What's new in Windows 11, version 25H2", url: "https://learn.microsoft.com/windows/whats-new/whats-new-windows-11-version-25h2" }
+          - { title: "Microsoft Lifecycle, Windows 11 Home and Pro", url: "https://learn.microsoft.com/lifecycle/products/windows-11-home-and-pro" }
+      - id: 24H2
+        label: Windows 11, version 24H2
+        status: supported
+        released: "2024-10-01"
+        support_ends: "Home and Pro ended 2026-10-13; Enterprise and Education 2027-10-12"
+        hardware: [tpm-2, pluton, copilot-plus]
+        baselines:
+          - DISA Microsoft Windows 11 STIG
+          - Microsoft Security Baseline for Windows 11, version 24H2 (Security Compliance Toolkit)
+          - CIS Microsoft Windows 11 Enterprise Benchmark
+        documents: { stig: "stig:microsoft-windows-11", sct: "baseline:windows-11-v24h2" }
+        notes:
+          - SMB signing is required by default for outbound and inbound connections.
+          - Sudo for Windows, Personal Data Encryption for folders, Windows Protected Print mode, App Control for Business, SMB client encryption and NTLM blocking, a restrictive File and Printer Sharing firewall group, Rust in the kernel (win32kbase_rs.sys), and Local Security Authority protection turned on after an upgrade audit all arrive here. NTLMv1 is removed.
+          - Config Refresh is older than 24H2 (22H2 and 21H2 with their 2024 updates); hotpatching is licensed separately.
+          - Device encryption (BitLocker) turns on by default on clean installs that meet the requirements.
+        sources:
+          - { title: "Microsoft, What's new in Windows 11, version 24H2", url: "https://learn.microsoft.com/windows/whats-new/whats-new-windows-11-version-24h2" }
+      - id: 23H2
+        label: Windows 11, version 23H2
+        status: supported
+        released: "2023-10-31"
+        support_ends: "Home and Pro ended 2025-11-11; Enterprise and Education 2026-11-10"
+        hardware: [tpm-2, pluton]
+        baselines:
+          - DISA Microsoft Windows 11 STIG
+          - Microsoft Security Baseline for Windows 11, version 23H2 (Security Compliance Toolkit)
+          - CIS Microsoft Windows 11 Enterprise Benchmark
+        documents: { stig: "stig:microsoft-windows-11", sct: "baseline:windows-11-v23h2" }
+        notes:
+          - Enterprise and Education have weeks left; plan the move to 25H2 or 26H2.
+        sources:
+          - { title: "Microsoft Lifecycle, Windows 11 Enterprise and Education", url: "https://learn.microsoft.com/lifecycle/products/windows-11-enterprise-and-education" }
+      - id: 22H2
+        label: Windows 11, version 22H2
+        status: ended
+        released: "2022-09-20"
+        support_ends: "Home and Pro ended 2024-10-08; Enterprise and Education ended 2025-10-14"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Microsoft Windows 11 STIG
+          - Microsoft Security Baseline for Windows 11, version 22H2 (Security Compliance Toolkit)
+        documents: { stig: "stig:microsoft-windows-11", sct: "baseline:windows-11-v22h2" }
+        notes:
+          - Out of servicing on every edition; a device still here is a finding, not a test subject.
+        sources:
+          - { title: "Microsoft Lifecycle, Windows 11 Enterprise and Education", url: "https://learn.microsoft.com/lifecycle/products/windows-11-enterprise-and-education" }
+      - id: 10-22H2
+        label: Windows 10, version 22H2
+        status: ended
+        released: "2022-10-18"
+        support_ends: "Ended 2025-10-14; Extended Security Updates for organisations run up to three years from November 2025 (price doubling each year); the consumer programme ends 2027-10-12"
+        hardware: []
+        baselines:
+          - DISA Microsoft Windows 10 STIG
+          - Microsoft Security Baseline for Windows 10, version 22H2 (Security Compliance Toolkit)
+        documents: { stig: "stig:microsoft-windows-10" }
+        notes:
+          - Only with Extended Security Updates; test that the ESU licence is active and updates still arrive.
+        sources:
+          - { title: "Microsoft, Windows 10 Extended Security Updates", url: "https://learn.microsoft.com/windows/whats-new/extended-security-updates" }
+
+  macos:
+    releases:
+      - id: "27"
+        label: macOS 27 Golden Gate
+        status: current
+        released: "2026-09-14"
+        support_ends: "Apple publishes no end date; its practice is security updates for the current release and the two before it (about September 2029, verify)"
+        hardware: [apple-silicon]
+        models: "Every Apple silicon Mac: MacBook Air and MacBook Pro from 2020 (M1) on, iMac from 2021, Mac mini from 2020, Mac Studio from 2022, Mac Pro 2023, and the 2026 MacBook Neo. No Intel Mac."
+        baselines:
+          - NIST macOS Security Compliance Project, the macOS 27 branch (verify the branch name once NIST publishes it)
+          - DISA Apple macOS 27 STIG (when published)
+          - CIS Apple macOS 27 Benchmark (when published)
+        documents: {}
+        notes:
+          - Apple silicon only; Intel Macs stay on macOS 26 Tahoe.
+          - Apple says this is the last macOS with Rosetta 2 as a general-purpose translation layer; inventory Intel-only apps now.
+        sources:
+          - { title: "Apple, macOS 27 is compatible with these computers", url: "https://support.apple.com/en-us/127255" }
+          - { title: "Apple, WWDC25 Platforms State of the Union (Tahoe is the last release for Intel Macs)", url: "https://developer.apple.com/videos/play/wwdc2025/102/" }
+      - id: "26"
+        label: macOS 26 Tahoe
+        status: supported
+        released: "2025-09-15"
+        support_ends: "Security updates until about September 2028 by Apple's practice (verify)"
+        hardware: [apple-silicon, intel-t2]
+        models: "Every Apple silicon Mac, and four Intel Macs: MacBook Pro 16-inch 2019, MacBook Pro 13-inch 2020 with four Thunderbolt 3 ports, iMac 27-inch 2020, Mac Pro 2019."
+        baselines:
+          - NIST macOS Security Compliance Project, tahoe branch (SP 800-53 High, 800-171, DISA STIG, CIS Level 1 and 2 baselines)
+          - DISA Apple macOS 26 (Tahoe) STIG
+          - CIS Apple macOS 26 Benchmark
+        documents: { stig: "stig:apple-macos-26-tahoe", mscp: "mscp:tahoe" }
+        notes:
+          - The last macOS for Intel Macs (Apple, WWDC 2025). DISA's macOS 26 STIG applies only to Apple silicon systems.
+        sources:
+          - { title: "Apple, macOS Tahoe is compatible with these computers", url: "https://support.apple.com/en-us/122867" }
+      - id: "15"
+        label: macOS 15 Sequoia
+        status: supported
+        released: "2024-09-16"
+        support_ends: "Security updates until about September 2027 by Apple's practice (verify)"
+        hardware: [apple-silicon, intel-t2, intel]
+        models: "MacBook Air 2020 and later, MacBook Pro 2018 and later, iMac 2019 and later, iMac Pro 2017, Mac mini 2018 and later, Mac Studio, Mac Pro 2019 and later."
+        baselines:
+          - NIST macOS Security Compliance Project, sequoia branch
+          - DISA Apple macOS 15 (Sequoia) STIG
+          - CIS Apple macOS 15 Benchmark
+        documents: { stig: "stig:apple-macos-15-sequoia", mscp: "mscp:sequoia" }
+        notes: []
+        sources:
+          - { title: "Apple, macOS Sequoia is compatible with these computers", url: "https://support.apple.com/en-us/120282" }
+      - id: "14"
+        label: macOS 14 Sonoma
+        status: ended
+        released: "2023-09-26"
+        support_ends: "Security updates ended 2026-09-14 with 14.8.9, when macOS 27 shipped"
+        hardware: [apple-silicon, intel-t2, intel]
+        models: "MacBook Air 2018 and later, MacBook Pro 2018 and later, iMac 2019 and later, iMac Pro 2017, Mac mini 2018 and later, Mac Studio, Mac Pro 2019 and later."
+        baselines:
+          - NIST macOS Security Compliance Project, sonoma branch
+          - DISA Apple macOS 14 (Sonoma) STIG
+        documents: { stig: "stig:apple-macos-14-sonoma", mscp: "mscp:sonoma" }
+        notes:
+          - A Mac still here that can run 15 or 26 is a finding.
+        sources:
+          - { title: "Apple, macOS Sonoma is compatible with these computers", url: "https://support.apple.com/en-us/105113" }
+      - id: "13"
+        label: macOS 13 Ventura
+        status: ended
+        released: "2022-10-24"
+        support_ends: "Security updates ended 2025-09-15 with 13.7.8"
+        hardware: [apple-silicon, intel-t2, intel]
+        baselines:
+          - NIST macOS Security Compliance Project, ventura branch
+          - DISA Apple macOS 13 (Ventura) STIG
+        documents: { stig: "stig:apple-macos-13-ventura", mscp: "mscp:ventura" }
+        notes: []
+        sources:
+          - { title: "Apple, macOS Ventura is compatible with these computers", url: "https://support.apple.com/en-us/102861" }
+
+  ios:
+    releases:
+      - id: "27"
+        label: iOS 27
+        status: current
+        released: "2026-09-14"
+        support_ends: "Apple publishes no end date; the current release receives every security fix"
+        hardware: [iphone-a13]
+        models: "The same iPhones as iOS 26: iPhone 11 and later and iPhone SE 2nd generation and later, through the iPhone 18 Pro, 18 Pro Max and iPhone Duo."
+        baselines:
+          - DISA Apple iOS/iPadOS 27 STIG (verify it has been published)
+          - NIST macOS Security Compliance Project, ios_27 branch (verify)
+          - CIS Apple iOS 27 Benchmark (when published)
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Apple, iPhone models compatible with iOS 27", url: "https://support.apple.com/guide/iphone/iphone-models-compatible-with-ios-27-iphe3fa5df43/ios" }
+      - id: "26"
+        label: iOS 26
+        status: supported
+        released: "2025-09-15"
+        support_ends: "Security updates while Apple ships them for the previous release (verify)"
+        hardware: [iphone-a13]
+        models: "iPhone 11 and later, iPhone SE 2nd generation and later; the iPhone XS and XR stay on iOS 18."
+        baselines:
+          - DISA Apple iOS/iPadOS 26 STIG (V1R2, 2026-04-07; COPE and COBO)
+          - NIST macOS Security Compliance Project, iOS/iPadOS 26 guidance (Rev 3.0)
+          - CIS Apple iOS 26 Benchmark v1.0.0 and the Intune-tailored iOS 26 and iPadOS 26 benchmark
+        documents: { stig: "stig:apple-ios-ipados-26", mscp: "mscp:ios_26" }
+        notes:
+          - Background Security Improvements replace Rapid Security Responses; check they are allowed by MDM.
+        sources:
+          - { title: "Apple security releases", url: "https://support.apple.com/en-us/100100" }
+      - id: "18"
+        label: iOS 18
+        status: supported
+        released: "2024-09-16"
+        support_ends: "Security updates for the iPhone XS and XR, which cannot run 26, while Apple ships them (verify)"
+        hardware: [iphone-a13, iphone-a12]
+        models: "iPhone XS, XS Max, XR and later; iPhone SE 2nd generation and later."
+        baselines:
+          - DISA Apple iOS/iPadOS 18 STIG (V2R4, 2026-10-05)
+          - NIST macOS Security Compliance Project, ios_18 branch
+        documents: { stig: "stig:apple-ios-ipados-18", mscp: "mscp:ios_18" }
+        notes: []
+        sources:
+          - { title: "Apple security releases", url: "https://support.apple.com/en-us/100100" }
+      - id: "17"
+        label: iOS 17
+        status: ended
+        released: "2023-09-18"
+        support_ends: "Security support ended 2025-05-13; every iOS 17 device runs 18"
+        hardware: [iphone-a13, iphone-a12]
+        baselines:
+          - DISA Apple iOS/iPadOS 17 STIG
+        documents: { stig: "stig:apple-ios-ipados-17" }
+        notes: []
+        sources:
+          - { title: "Apple security releases", url: "https://support.apple.com/en-us/100100" }
+
+  ipados:
+    releases:
+      - id: "27"
+        label: iPadOS 27
+        status: current
+        released: "2026-09-14"
+        support_ends: "Apple publishes no end date; the current release receives every security fix"
+        hardware: [ipad]
+        models: "The same iPads as iPadOS 26 (verify against Apple's list for 27)."
+        baselines:
+          - DISA Apple iOS/iPadOS 27 STIG (verify it has been published)
+          - NIST macOS Security Compliance Project, ios_27 branch (verify)
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Apple Platform Deployment", url: "https://support.apple.com/guide/deployment/welcome/web" }
+      - id: "26"
+        label: iPadOS 26
+        status: supported
+        released: "2025-09-15"
+        support_ends: "Security updates while Apple ships them for the previous release (verify)"
+        hardware: [ipad]
+        models: "iPad Pro 11-inch 1st generation and 12.9-inch 3rd generation and later, iPad Air 3rd generation and later, iPad 8th generation and later, iPad mini 5th generation and later."
+        baselines:
+          - DISA Apple iOS/iPadOS 26 STIG
+          - NIST macOS Security Compliance Project, ios_26 branch
+        documents: { stig: "stig:apple-ios-ipados-26", mscp: "mscp:ios_26" }
+        notes: []
+        sources:
+          - { title: "Apple security releases", url: "https://support.apple.com/en-us/100100" }
+      - id: "18"
+        label: iPadOS 18
+        status: supported
+        released: "2024-09-16"
+        support_ends: "Security updates for iPads that cannot run 26 while Apple ships them (verify)"
+        hardware: [ipad]
+        baselines:
+          - DISA Apple iOS/iPadOS 18 STIG
+        documents: { stig: "stig:apple-ios-ipados-18" }
+        notes: []
+        sources:
+          - { title: "Apple security releases", url: "https://support.apple.com/en-us/100100" }
+
+  android:
+    releases:
+      - id: "17"
+        label: Android 17
+        status: current
+        released: "2026-06-16"
+        support_ends: "Google's monthly bulletins cover it; Pixel 8 and later seven years from launch; Galaxy S24 and later seven years from launch"
+        hardware: [pixel, samsung-knox, android-other]
+        models: "Pixel from 2026-06-16; Samsung One UI 9 on the Galaxy Z Fold8 and Z Flip8 from 2026-07-22 and the Galaxy S26 from 2026-09-16, other Galaxy models following."
+        baselines:
+          - DISA Google Android 17 STIG (verify it has been published)
+          - DISA Samsung Android 17 with Knox STIG (verify)
+          - CIS Google Android Benchmark
+        documents: {}
+        notes:
+          - A Galaxy still waiting for One UI 9 is on Android 16 with the current security patch level; test the patch level, not the major version. Knox 3.14 on Samsung devices.
+        sources:
+          - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
+          - { title: "Samsung Mobile Security, scope of security updates", url: "https://security.samsungmobile.com/workScope.smsb" }
+      - id: "16"
+        label: Android 16
+        status: supported
+        released: "2025-06-10"
+        support_ends: "Google's monthly bulletins cover it; device makers' commitments apply"
+        hardware: [pixel, samsung-knox, android-other]
+        baselines:
+          - DISA Google Android 16 STIG (COBO V1R3 of 2026-05-13, COPE V1R2 of 2026-04-01)
+          - DISA Samsung Android 16 with Knox 3.x STIG (COPE V1R2 of 2026-04-01)
+          - CIS Google Android Benchmark v1.6.0 (one benchmark for every version)
+        documents: { stig: "stig:google-android-16" }
+        notes:
+          - Knox 3.12 and 3.13 on Samsung devices.
+        sources:
+          - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
+      - id: "15"
+        label: Android 15
+        status: supported
+        released: "2024-09-03"
+        support_ends: "Google's monthly bulletins cover it; device makers' commitments apply"
+        hardware: [pixel, samsung-knox, android-other]
+        baselines:
+          - DISA Google Android 15 STIG
+          - DISA Samsung Android 15 with Knox 3.x STIG (COPE, COBO and a BYOAD variant)
+        documents: { stig: "stig:google-android-15" }
+        notes:
+          - AOSP 2024-09-03, Pixel 2024-10-15. Knox 3.11 on Samsung devices.
+        sources:
+          - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
+      - id: "14"
+        label: Android 14
+        status: supported
+        released: "2023-10-04"
+        support_ends: "Still in Google's bulletins for devices held on it; a device that can take 15 or later should"
+        hardware: [pixel, samsung-knox, android-other]
+        baselines:
+          - DISA Google Android 14 STIG
+          - DISA Samsung Android 14 with Knox STIG
+        documents: { stig: "stig:google-android-14" }
+        notes: []
+        sources:
+          - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
+
+  linux:
+    releases:
+      - id: rhel-10
+        label: Red Hat Enterprise Linux 10
+        status: current
+        released: "2025-05-20"
+        support_ends: "Full support to 2030-05-31; maintenance support to 2035-05-31"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Red Hat Enterprise Linux 10 STIG (V1R3, 2026-10-05)
+          - CIS Red Hat Enterprise Linux 10 Benchmark v1.0.1
+          - ComplianceAsCode (SCAP Security Guide) rhel10 profiles
+        documents: { stig: "stig:red-hat-enterprise-linux-10" }
+        notes:
+          - No active FIPS 140-3 certificate for the RHEL 10 modules yet (kernel, GnuTLS and NSS under test; OpenSSL pending); a FIPS requirement keeps the host on RHEL 9 for now.
+        sources:
+          - { title: "Red Hat Enterprise Linux Life Cycle", url: "https://access.redhat.com/support/policy/updates/errata" }
+      - id: rhel-9
+        label: Red Hat Enterprise Linux 9
+        status: supported
+        released: "2022-05-17"
+        support_ends: "Full support to 2027-05-31; maintenance support to 2032-05-31"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Red Hat Enterprise Linux 9 STIG (V2R10, 2026-10-05)
+          - CIS Red Hat Enterprise Linux 9 Benchmark v3.0.0 and the CIS RHEL 9 STIG Benchmark v1.0.0
+          - ComplianceAsCode (SCAP Security Guide) rhel9 profiles
+        documents: { stig: "stig:red-hat-enterprise-linux-9" }
+        notes:
+          - FIPS 140-3: Kernel Crypto API certificates for 9.2 and 9.4 are active, OpenSSL across 9.0 to 9.8; 9.6 revalidations pending.
+        sources:
+          - { title: "Red Hat Enterprise Linux Life Cycle", url: "https://access.redhat.com/support/policy/updates/errata" }
+      - id: ubuntu-26.04
+        label: Ubuntu 26.04 LTS
+        status: current
+        released: "2026-04-23"
+        support_ends: "Standard support to April 2031; Ubuntu Pro expanded security maintenance to April 2036"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Canonical Ubuntu 26.04 LTS STIG (verify it has been published)
+          - CIS Ubuntu Linux 26.04 LTS Benchmark (when published)
+          - Ubuntu Security Guide (usg) profiles
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Ubuntu release cycle", url: "https://ubuntu.com/about/release-cycle" }
+      - id: ubuntu-24.04
+        label: Ubuntu 24.04 LTS
+        status: supported
+        released: "2024-04-25"
+        support_ends: "Standard support to 2029-04-25; Ubuntu Pro expanded security maintenance to April 2034"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Canonical Ubuntu 24.04 LTS STIG (V1R6 on NIST's checklist repository)
+          - CIS Ubuntu Linux 24.04 LTS Benchmark v2.0.0 and the CIS STIG Benchmark v1.0.0
+          - Ubuntu Security Guide (usg) profiles
+        documents: { stig: "stig:canonical-ubuntu-24-04-lts" }
+        notes:
+          - FIPS 140-3 certificates active for the 24.04 kernel (5215), OpenSSL (5115) and GnuTLS (5163).
+        sources:
+          - { title: "Ubuntu release cycle", url: "https://ubuntu.com/about/release-cycle" }
+      - id: ubuntu-22.04
+        label: Ubuntu 22.04 LTS
+        status: supported
+        released: "2022-04-21"
+        support_ends: "Standard support to 2027-04-01; Ubuntu Pro expanded security maintenance to April 2032"
+        hardware: [tpm-2]
+        baselines:
+          - DISA Canonical Ubuntu 22.04 LTS STIG (V2R10, 2026-10-05)
+          - CIS Ubuntu Linux 22.04 LTS Benchmark v3.0.0 and the CIS STIG Benchmark v1.0.0
+        documents: { stig: "stig:canonical-ubuntu-22-04-lts" }
+        notes: []
+        sources:
+          - { title: "Ubuntu release cycle", url: "https://ubuntu.com/about/release-cycle" }
+
+  collaboration:
+    releases:
+      - id: samsung-display-2026
+        label: Samsung interactive displays and signage (Tizen), 2025 and 2026 models
+        status: current
+        released: null
+        support_ends: "Firmware and security fixes per model; Samsung publishes display advisories on its product security pages (verify the page for your models)"
+        hardware: [samsung-interactive, samsung-signage]
+        baselines:
+          - Samsung Knox Manage and Android Enterprise policies on the interactive displays (DISA's Samsung Android with Knox STIG is the nearest published baseline)
+          - MagicINFO Server hardening and Samsung's display security advisories (SVP-<month>-<year>) for the signage
+        documents: {}
+        notes:
+          - Meeting-room displays are the team's only collaboration hardware; every room test starts here.
+          - Samsung's display security page lists MagicINFO 9 Server fixes through 2025 and 2026 (file write, path traversal, hard-coded credentials, unauthenticated upload); the server's version is a test of its own.
+          - Samsung appears on neither Microsoft's Teams Rooms certified list nor Zoom's appliance list; the displays are the screen behind a Teams Rooms or Zoom Rooms system.
+        sources:
+          - { title: "Samsung Security for Smart TV, Audio and Displays", url: "https://security.samsungtv.com/securityUpdates" }
+          - { title: "Samsung Knox documentation", url: "https://docs.samsungknox.com/" }
+      - id: teams-rooms-2026
+        label: Microsoft Teams Rooms, 2026 releases (Windows and Android)
+        status: current
+        released: null
+        support_ends: "Microsoft supports the current Teams Rooms app release and the one before it; on Windows, 25H2 is supported and recommended (app 5.6.210.0 or later), 24H2 supported, 23H2 and earlier not; on Android, each OS version has its own certification and support end dates"
+        hardware: [teams-rooms-windows, teams-rooms-android]
+        baselines:
+          - Microsoft Teams Rooms security guidance and the Teams Rooms Pro management baseline
+          - DISA Microsoft Windows 11 STIG for the Windows console PC (IoT Enterprise)
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Microsoft Teams Rooms security", url: "https://learn.microsoft.com/microsoftteams/rooms/security" }
+          - { title: "Microsoft Teams Rooms release notes", url: "https://learn.microsoft.com/microsoftteams/rooms/rooms-release-note" }
+          - { title: "Microsoft Teams Rooms lifecycle and support", url: "https://learn.microsoft.com/microsoftteams/rooms/rooms-lifecycle-support" }
+          - { title: "Microsoft Teams devices, Android version support", url: "https://learn.microsoft.com/microsoftteams/devices/android-version-support" }
+      - id: zoom-rooms-2026
+        label: Zoom Rooms, current appliances and controllers
+        status: current
+        released: null
+        support_ends: "Zoom's security bulletins and the Zoom Rooms minimum-version policy"
+        hardware: [zoom-rooms]
+        baselines:
+          - Zoom Rooms security settings and the Zoom security bulletins
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Zoom security bulletins", url: "https://www.zoom.com/en/trust/security-bulletin/" }
+      - id: webex-roomos-11
+        label: Cisco Webex devices, RoomOS 11
+        status: current
+        released: null
+        support_ends: "Cisco PSIRT advisories and RoomOS release notes"
+        hardware: [webex-device]
+        baselines:
+          - Cisco RoomOS security hardening and Cisco PSIRT advisories (already on the News page)
+        documents: {}
+        notes: []
+        sources:
+          - { title: "Cisco RoomOS", url: "https://roomos.cisco.com/" }

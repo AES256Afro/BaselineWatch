@@ -624,3 +624,22 @@ details.pgroup summary .count { margin-left: 6px; }
 .guide { display: grid; gap: 14px; max-width: 72ch; margin-bottom: 40px; }
 .guide .box p { margin: 0; line-height: 1.55; }
 .mast .menu a.cap { white-space: normal; } /* the caption links to /guide and may wrap on narrow screens */
+
+/* Platform engineering (M11): the test plan's release and hardware selects, inapplicable checks, and the Platforms page. */
+.pitem.na { opacity: 0.6; }
+.pitem.na .pitem-head { cursor: default; }
+.chip.na { background: var(--panel-2); color: var(--mute); border: 1px solid var(--rule-2); }
+.chip.ok { background: var(--ins); color: #fff; }
+.areas-pick label { white-space: nowrap; }
+.areas-pick .count { font: 500 11px var(--mono); color: var(--mute); margin-left: 2px; }
+.ptabs button.untested { opacity: 0.6; text-decoration: line-through; }
+.ptabs button.untested.on { text-decoration: none; }
+.builder fieldset select option:disabled { color: var(--mute); }
+.platform .std-meta a { margin-right: 10px; }
+table.fleet td { vertical-align: top; }
+table.fleet tr.ended td { color: var(--mute); }
+table.fleet ul.note, .platform ul.note { margin: 4px 0 0; padding-left: 16px; }
+table.fleet details summary { cursor: pointer; }
+.hw { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.hw li { border-top: 1px solid var(--rule); padding-top: 6px; }
+.hw .chip { font-size: 10.5px; }

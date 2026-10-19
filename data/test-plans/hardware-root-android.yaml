@@ -1,0 +1,44 @@
+id: hardware-root-android
+title: Verified boot, locked bootloader, hardware keystore and attestation on Android
+platforms: [android]
+area: hardware
+notes: The chain from the bootloader up. Run with USB debugging turned on only for the test and off again after; the STIG forbids it in service. Google's verdicts come through Play Integrity (any device) and Samsung's through Knox attestation (Galaxy only); the hardware you chose rules the Samsung steps in or out.
+steps:
+  - do: Run adb shell getprop ro.boot.verifiedbootstate and adb shell getprop ro.boot.flash.locked.
+    expect: "green and 1: the bootloader is locked and the device booted an unmodified, vendor-signed image."
+    fail: yellow means a user-set root of trust, orange an unlocked bootloader, and a red screen at boot a corrupted partition; any of them is a device outside the managed fleet until it is reflashed and locked.
+    source:
+      title: Android Open Source Project, "Boot flow" (Verified Boot)
+      url: https://source.android.com/docs/security/features/verifiedboot/boot-flow
+  - do: On a Samsung Galaxy, check the Knox warranty bit (Download mode shows KNOX WARRANTY VOID, and Knox attestation reports warrantyFuseState).
+    expect: The fuse is 0 (never tripped); Knox attestation's verdict is Yes with warrantyFuseState 0 and trustBootState 0.
+    fail: "A tripped warranty bit is permanent: the device can never run the Knox workspace again and leaves the fleet."
+    applies:
+      hardware: [samsung-knox]
+    source:
+      title: Samsung Knox, "Knox Attestation v3 tutorial"
+      url: https://docs.samsungknox.com/dev/knox-attestation/tutorial/tutorial-knox-attestation-v3/
+  - do: Run adb shell pm has-feature android.hardware.strongbox_keystore.
+    expect: true on Pixel and Galaxy devices (a separate secure processor with its own storage and random number generator holds the keys); false on devices with only a TEE-backed keystore, which is the floor Android requires.
+    fail: A device without StrongBox still has a hardware-backed keystore; record it, and keep high-value keys (certificate-based Wi-Fi, derived credentials) on StrongBox devices only.
+    source:
+      title: Android Developers, "Android Keystore system"
+      url: https://developer.android.com/privacy-and-security/keystore
+  - do: Read the Play Integrity verdict the MDM collected for the device (Intune's compliance policy with "Check strong integrity using hardware-backed security features").
+    expect: "MEETS_DEVICE_INTEGRITY and MEETS_STRONG_INTEGRITY: a certified device with a locked bootloader whose OS and vendor partitions have security updates from the last year."
+    fail: "Device integrity without strong integrity means the device is genuine but its patches are older than a year; patch it or retire it. Basic integrity only, or none, means an uncertified or modified device: block it."
+    source:
+      title: Android Developers, "Play Integrity verdicts"
+      url: https://developer.android.com/google/play/integrity/verdicts
+  - do: Run adb shell getprop ro.build.version.security_patch and compare with the current Android Security Bulletin (and, on a Galaxy, Samsung's monthly SMR).
+    expect: The patch level is the current month's or the previous month's; a Galaxy on the previous Android version with the current patch level passes.
+    fail: A patch level older than two months on a device the vendor still supports is a finding against the fleet's update policy; a device the vendor no longer updates leaves the fleet.
+    source:
+      title: Android Open Source Project, "Android Security Bulletins"
+      url: https://source.android.com/docs/security/bulletin
+  - do: "In the MDM, confirm the device's enrolment mode and the STIG's device-level settings: fully managed or work profile on company-owned, developer options and USB debugging off, USB mass storage off, removable media encrypted or disabled, no unknown sources, and an app allowlist."
+    expect: Every setting reads as the STIG requires; a Galaxy also shows Common Criteria mode on and the work-profile audit log collecting.
+    fail: A setting the device reports differently from the policy means the policy did not apply (sync and re-check) or the device is in a mode the policy does not reach (a personal work profile where the STIG expects company-owned).
+    source:
+      title: DISA, Samsung Android 16 with Knox 3.x STIG (COPE)
+      url: https://cyber.trackr.live/stig/Samsung_Android_16_COPE/1/2

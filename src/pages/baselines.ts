@@ -43,7 +43,7 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
         </section>
         <section class="box">
           <h2>Test plans</h2>
-          <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>.</p>
+          <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>; from the templates alone: <a href="/baselines/ios/tests">iOS</a>, <a href="/baselines/ipados/tests">iPadOS</a>, <a href="/baselines/android/tests">Android</a>, <a href="/baselines/collaboration/tests">Collaboration</a>. Each release and the hardware it runs on are on the <a href="/platforms">Platforms</a> page.</p>
         </section>
       </aside>
     </div>`;

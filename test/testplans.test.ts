@@ -24,7 +24,27 @@ describe("areas", () => {
   it("reads the repository's templates and reports a broken one without failing", () => {
     const { templates, errors } = loadTemplates(templatesDir);
     expect(errors).toEqual([]);
-    expect(templates.map((t) => t.id)).toEqual(["bitlocker-escrow", "conditional-access", "filevault-escrow", "luks-escrow", "mdm-enrolment", "sso-intune-browsers", "sso-jamf-browsers"]);
+    expect(templates.map((t) => t.id)).toEqual([
+      "bitlocker-escrow",
+      "collaboration-samsung-displays",
+      "collaboration-teams-rooms",
+      "conditional-access",
+      "entra-join-hello-windows",
+      "entra-sso-mobile",
+      "filevault-escrow",
+      "hardware-root-android",
+      "hardware-root-ios",
+      "hardware-root-linux",
+      "hardware-root-macos",
+      "hardware-root-windows",
+      "luks-escrow",
+      "macos-release-checks",
+      "mdm-enrolment",
+      "platform-sso-entra-macos",
+      "sso-intune-browsers",
+      "sso-jamf-browsers",
+      "windows-feature-update",
+    ]);
     const jamf = templates.find((t) => t.id === "sso-jamf-browsers")!;
     expect(jamf.platforms).toEqual(["macos"]);
     expect(jamf.area).toBe("authentication");
@@ -60,7 +80,7 @@ describe("test plans", () => {
 
   it("derives checks from the strict profile and files them with the templates by area", () => {
     const plan = buildTestPlan(app.db, { platform: "windows" });
-    expect(plan.profile.components.stig?.documentId).toBe(win11Doc);
+    expect(plan.profile!.components.stig?.documentId).toBe(win11Doc);
     const derived = plan.items.filter((i) => i.source === "stig");
     expect(derived.map((i) => i.label).sort()).toEqual(["WN11-00-000030", "WN11-00-000031", "WN11-00-000150", "WN11-00-000165", "WN11-CC-000190", "WN11-SO-000070"]);
     expect(derived.find((i) => i.label === "WN11-00-000031")?.area).toBe("encryption");
@@ -69,7 +89,7 @@ describe("test plans", () => {
     expect(derived.find((i) => i.label === "WN11-00-000150")?.area).toBe("other");
     expect(derived.every((i) => i.procedure && i.url?.startsWith("/standards/disa-stigs/"))).toBe(true);
     const templates = plan.items.filter((i) => i.source === "template");
-    expect(plan.templates.map((t) => t.id)).toEqual(["bitlocker-escrow", "conditional-access", "mdm-enrolment", "sso-intune-browsers"]);
+    expect(plan.templates.map((t) => t.id)).toEqual(["bitlocker-escrow", "conditional-access", "entra-join-hello-windows", "hardware-root-windows", "mdm-enrolment", "sso-intune-browsers", "windows-feature-update"]);
     expect(templates.find((i) => i.id === "template:bitlocker-escrow:1")).toMatchObject({ area: "encryption", url: "https://learn.microsoft.com/windows/client-management/mdm/bitlocker-csp" });
     expect(templates.find((i) => i.id === "template:sso-intune-browsers:3")?.title).toMatch(/Google Chrome/);
     // Derived checks come before template steps within an area; areas keep their order.
@@ -82,7 +102,7 @@ describe("test plans", () => {
     expect(without.items.every((i) => i.source !== "template")).toBe(true);
     const mac = buildTestPlan(app.db, { platform: "macos" });
     expect(mac.items.filter((i) => i.source === "mscp").map((i) => i.label).sort()).toEqual(["os_sip_enable", "pwpolicy_minimum_length_enforce"]);
-    expect(mac.templates.map((t) => t.id)).toEqual(["conditional-access", "filevault-escrow", "mdm-enrolment", "sso-jamf-browsers"]);
+    expect(mac.templates.map((t) => t.id)).toEqual(["conditional-access", "filevault-escrow", "hardware-root-macos", "macos-release-checks", "mdm-enrolment", "platform-sso-entra-macos", "sso-jamf-browsers"]);
     expect(mac.items.find((i) => i.label === "APPL-26-005020")?.area).toBe("encryption");
   });
 
@@ -115,14 +135,14 @@ describe("test plans", () => {
     expect(md).toContain("- [ ] **sso-intune-browsers 3**");
     expect(md).toContain("## Attribution");
     const csv = await (await fetch(`${base}/baselines/macos/tests/export?format=csv&drop=template:conditional-access:1`)).text();
-    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,reference");
+    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,reference");
     expect(csv).toContain("APPL-26-005020");
     expect(csv).not.toContain("conditional-access 1,");
     expect(csv).toContain("conditional-access 2,");
     const json = await (await fetch(`${base}/baselines/linux/tests/export?format=json`)).json() as { title: string; items: { area: string; label: string }[]; counts: { template: number } };
     expect(json.title).toBe("Linux test plan: Red Hat Enterprise Linux 9 V2R10");
     expect(json.items.some((i) => i.label === "luks-escrow 1" && i.area === "Disk encryption")).toBe(true);
-    expect(json.counts.template).toBe(9); // luks 3 + conditional access 3 + enrolment 3
+    expect(json.counts.template).toBe(15); // luks 3 + conditional access 3 + enrolment 3 + hardware root 6
     const printable = await fetch(`${base}/baselines/windows/tests/export?format=html&templates=0`);
     expect(printable.headers.get("content-disposition")).toMatch(/baselinewatch-windows-tests-microsoft-windows-11\.html/);
     const text = await printable.text();
@@ -130,7 +150,7 @@ describe("test plans", () => {
     expect(text).not.toContain("sso-intune-browsers");
     expect(text).not.toMatch(/<script/i);
     const direct = exportPlan(buildTestPlan(app.db, { platform: "linux", templates: false }), "csv", { baseUrl: "https://example.test", generatedAt: at.toISOString(), version: "0.21.0" });
-    expect(direct.body.split("\r\n").length).toBe(3 + 2); // header, three rules, trailing newline
+    expect(String(direct.body).split("\r\n").length).toBe(3 + 2); // header, three rules, trailing newline
     expect((await fetch(`${base}/baselines/amiga/tests`)).status).toBe(404);
   });
 
@@ -195,13 +215,13 @@ describe("test plans", () => {
     expect(stale).not.toContain("v-999999");
     expect(stale).toContain("; 1 dropped");
 
-    // ?section= opens an area directly; one the plan has no checks in falls back to the first.
+    // ?section= opens an area directly; one the plan has no checks in falls back to the first (the hardware root of trust leads now).
     const direct = await (await fetch(`${base}/baselines/windows/tests?section=network`)).text();
     expect(direct).toContain('name="shown" value="network"');
     expect(direct).toContain('<h2>Network <span class="count">');
     expect(direct).not.toContain('name="drop"');
     const fallback = await (await fetch(`${base}/baselines/windows/tests?section=nowhere`)).text();
-    expect(fallback).toContain('name="shown" value="authentication"');
+    expect(fallback).toContain('name="shown" value="hardware"');
 
     // The GET export API is unchanged.
     const api = (await (await fetch(`${base}/baselines/windows/tests/export?format=json&drop=${pin}&drop=${smb}`)).json()) as { counts: { dropped: number } };

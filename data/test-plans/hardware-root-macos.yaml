@@ -1,0 +1,54 @@
+id: hardware-root-macos
+title: Secure Enclave, secure boot and the signed system on a Mac
+platforms: [macos]
+area: hardware
+applies:
+  hardware: [apple-silicon, intel-t2]
+notes: The chain from the Secure Enclave up. Run on a Mac enrolled the way the fleet is enrolled, after the baseline is applied. An Intel Mac without a T2 chip has no Secure Enclave and no secure boot; for it only the SIP, FileVault and Gatekeeper steps apply (the step applicability says so).
+steps:
+  - do: Identify the chip. Run system_profiler SPHardwareDataType and, on an Intel Mac, system_profiler SPiBridgeDataType.
+    expect: An Apple silicon Mac reports a Chip line (Apple M-series); an Intel Mac with a T2 reports the Apple T2 Security Chip in the iBridge pane. Record which, because the boot checks below differ.
+    fail: An Intel Mac with no T2 line has no Secure Enclave; skip the boot-policy and Activation Lock steps, record the model, and plan its replacement (macOS 15 Sequoia is its last release).
+    source:
+      title: Apple, "Mac models with the Apple T2 Security Chip"
+      url: https://support.apple.com/en-us/103265
+  - do: On an Apple silicon Mac, read the boot security policy with sudo bputil -d.
+    expect: The policy for the startup volume is Full Security.
+    fail: Reduced or Permissive Security means a person or a kext lowered it; restart into recoveryOS, open Startup Security Utility and set Full Security, then find why it was lowered. Never change the policy with bputil itself.
+    applies:
+      hardware: [apple-silicon]
+    source:
+      title: Apple Platform Security, "Startup Disk security policy control for a Mac with Apple silicon"
+      url: https://support.apple.com/guide/security/startup-disk-security-policy-control-sec7d92dc49f/web
+  - do: On an Intel Mac with a T2 chip, restart into recoveryOS and open Startup Security Utility.
+    expect: Secure Boot is Full Security, booting from external or removable media is disallowed, and a firmware password is set.
+    fail: Set Full Security and disallow external boot; set the firmware password from the same utility and escrow it.
+    applies:
+      hardware: [intel-t2]
+    source:
+      title: Apple, "About Startup Security Utility on a Mac with an Apple T2 Security Chip"
+      url: https://support.apple.com/en-us/102522
+  - do: Run csrutil status and csrutil authenticated-root status.
+    expect: System Integrity Protection is enabled and Authenticated Root is enabled (the signed system volume is sealed).
+    fail: Either disabled is a finding; re-enable from recoveryOS (csrutil enable, csrutil authenticated-root enable). On Apple silicon, SIP can only be disabled under a Permissive policy, so a disabled SIP means the boot policy drifted too.
+    source:
+      title: Apple Platform Security, "Signed system volume security"
+      url: https://support.apple.com/guide/security/signed-system-volume-security-secd698747c9/web
+  - do: Run fdesetup status, then sysadminctl -secureTokenStatus <admin user> and sudo profiles status -type bootstraptoken.
+    expect: FileVault is On; the admin account has a secure token; the bootstrap token is escrowed with the MDM.
+    fail: FileVault off means the MDM FileVault payload did not apply (deferred enablement waits for the next sign-in); a missing bootstrap token means the Mac was not enrolled through Automated Device Enrollment or the token was never escrowed, so grant it through the MDM before any further account work.
+    source:
+      title: Apple Platform Deployment, "Use secure token, bootstrap token and volume ownership in deployments"
+      url: https://support.apple.com/guide/deployment/use-secure-and-bootstrap-tokens-dep24dbdcf9e/web
+  - do: Run spctl --status.
+    expect: Gatekeeper assessments are enabled.
+    fail: Run sudo spctl --master-enable and make the MDM enforce Gatekeeper so it cannot be turned off again.
+    source:
+      title: Apple Platform Security, "Gatekeeper and runtime protection in macOS"
+      url: https://support.apple.com/guide/security/gatekeeper-and-runtime-protection-sec5599b66df/web
+  - do: Open System Information, Hardware, and read Activation Lock Status; cross-check the MDM's device record.
+    expect: Activation Lock is enabled and organisation-linked through the MDM.
+    fail: Activation Lock needs Full Security (Apple silicon) or Secure Boot (T2), Find My on, and two-factor on the Apple Account; a supervised Mac is locked by the MDM, so check the MDM's Activation Lock setting first.
+    source:
+      title: Apple Platform Deployment, "Activation Lock on Apple devices"
+      url: https://support.apple.com/guide/deployment/activation-lock-depf4ab94ef1/web

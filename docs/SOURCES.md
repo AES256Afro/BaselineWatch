@@ -357,6 +357,20 @@ store the link post and link to the thread.
 
 ---
 
+## C2. Platform vendors' security pages (no feeds; checked 2026-10-19)
+
+Read by hand today and by small HTML adapters in M11.5. Each publishes on a page only:
+
+| Vendor | Page | Notes |
+| --- | --- | --- |
+| Apple security releases | `https://support.apple.com/en-us/100100` | Every OS and app security release with its CVEs; Apple's only RSS is the developer releases feed, which is not security-specific. |
+| Android Security Bulletins | `https://source.android.com/docs/security/bulletin` | Monthly; the patch levels (`2026-10-01`, `2026-10-05`) a device reports in `ro.build.version.security_patch`. |
+| Samsung Mobile Security | `https://security.samsungmobile.com/securityUpdate.smsb` | Monthly SMR with Google's CVEs and Samsung's SVE items; per-model update scope at `workScope.smsb`. |
+| Samsung TV, audio and displays | `https://security.samsungtv.com/securityUpdates` | SVP-<month>-<year> advisories, including the MagicINFO 9 Server fixes of 2025 and 2026; displays launched from 2023 get seven years of updates. |
+| Microsoft Teams Rooms | `https://learn.microsoft.com/microsoftteams/rooms/rooms-release-note` | Release notes; lifecycle at `rooms-lifecycle-support`; Android device support dates at `devices/android-version-support`. |
+| Zoom security bulletins | `https://www.zoom.com/en/trust/security-bulletin/` | Email subscription only. |
+| Crestron, Logitech, Poly (HP) | vendor pages | No feeds found; Cisco Webex devices are covered by the Cisco PSIRT feed already on News. |
+
 ## D. Attribution text to show in the UI
 
 - "This product uses the NVD API but is not endorsed or certified by the NVD."

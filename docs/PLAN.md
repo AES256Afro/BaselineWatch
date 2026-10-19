@@ -24,6 +24,7 @@ to be installed from the BoxPilot catalog on BigBox.
 | 2026-10-14 | Build follows **Path C**, the recommended middle: Register built properly, Wire and Vulnerabilities thin, server-rendered HTML first, React only if the UI outgrows it. |
 | 2026-10-14 | Public home is **https://cybercard.net**, replacing the FinancialAuthority demo there. It is a read-only information, learning and teaching site: no private data, anyone may read, writes need the owner's sign-in (M7). Hosted on BigBox, published through Cloudflare. |
 | 2026-10-14 | Stack: Node 24 running TypeScript directly (no build step), Express 5, `node:sqlite`, one stylesheet, strict CSP with no inline script. |
+| 2026-10-19 | **M11 Platform engineering**: the fleet (each OS release, its support dates and the hardware it runs on) drives the test plans; templates carry success and failure branches and apply by release and hardware; areas are chosen per run; exports add LaTeX, Word and PDF; iOS, iPadOS, Android and the Samsung meeting rooms get template plans. NIST's PIV and platform-security publications join the Register. |
 | 2026-10-17 | **M9 Baselines** turns the tracked standards into guidance: STIG pages per operating system, a baseline builder per platform with exports for Jamf, Intune and Linux, test plans for a new OS release, platform alerts and a Fix panel. No generative AI in that path: every line derives from DISA, NIST, Microsoft and CISA text and refreshes with the sources. CIS stays upload-only. Survey of comparable tools in [COMPETITION.md](COMPETITION.md). |
 
 ---
@@ -528,6 +529,111 @@ digest instead of debugging the pipeline.
   ingest path. Saved named baselines move to M11 candidates.
 - **Done when**: a month passes in which every incident the platform has is one the owner first
   learned about from the platform itself.
+
+---
+
+### M11: Platform engineering (started 2026-10-19)
+
+The place a platform engineer goes first. The team runs Windows, macOS, Linux, iOS, iPadOS and
+Android, and Samsung displays in every meeting room; each has releases, each release runs on
+some hardware and not other, and each has baselines published for it and a way it is tested.
+M9 built the baseline and the test plan per platform; M11 adds the two axes a real fleet has,
+**release** and **hardware**, makes the plan say what success looks like and what to do when a
+step fails, lets the tester choose the categories to test, and exports the result in every
+form a review wants. The same rules apply as M9: no model in the path, every fact carries its
+vendor source, CIS stays upload-only.
+
+**Shipped 2026-10-19 (unreleased, on main after 0.30.0):**
+
+- **The fleet** (`data/platforms.yaml`, read by `src/fleet.ts`): each platform's releases with
+  the vendor's release and support dates, status, the hardware families each runs on, the models
+  in the vendor's words, the baselines published for it, the Register documents it maps to, and
+  what changed in it that a plan should know. Hardware families carry whether they hold a secure
+  element. Seeded with what shipped this autumn (macOS 27 Golden Gate on Apple silicon only;
+  Windows 11 26H2 and the new-devices-only 26H1; iOS and iPadOS 27 on the iOS 26 device list;
+  Android 17 with Samsung's One UI 9 rollout; RHEL 10 and Ubuntu 26.04) and with the earlier
+  releases still in service or just out of it. Every date has the vendor page it came from;
+  "verify" marks the few inferred from the vendor's practice.
+- **The Platforms page** (`/platforms`, in the Standards menu): every platform, release and
+  hardware family, with what the Register already holds for each release (the STIG, the mSCP
+  branch, the Microsoft baseline), leading to the release's test plan and the platform's builder.
+- **Applicability.** A template, or one step of it, says which releases and hardware it is for
+  (`applies: { versions: { macos: [">=14"] }, hardware: [apple-silicon, intel-t2] }`). The plan's
+  version and hardware selects (hardware a release cannot run is greyed: no Intel Mac on
+  Golden Gate) rule steps in or out, and every export lists what was left out and why.
+- **Success and failure branches.** Each template step carries `expect` (what success looks
+  like) and `fail` (what to do when it does not), drawn on the page and in every export.
+- **Areas to test.** Three new areas (hardware root of trust and secure enclave; Platform SSO and
+  identity; collaboration and meeting rooms) beside the eight of M9, and checkboxes to test only
+  some this time; the rest stay on the page marked not tested and out of the exports.
+- **Templates-only platforms.** iOS, iPadOS, Android and Collaboration have test plans from the
+  owner's templates alone, until their STIGs join the builder (M11.2).
+- **Twelve templates** from the vendors' documents: the hardware root of trust on each platform
+  (Secure Enclave and boot policy, TPM and VBS, verified boot and Knox, Secure Boot and LUKS and
+  FIPS, supervision and attestation), Platform SSO with Entra ID on macOS and the brokers on
+  mobile, Entra join and Windows Hello, what a Windows feature update or a macOS release changes,
+  and the meeting rooms: Samsung displays first (the interactive WAD and WAF series run Android
+  and take Knox Manage; the Tizen signage takes MagicINFO, whose 2025 and 2026 server advisories
+  are a test of their own), then Teams Rooms.
+- **Exports.** LaTeX, Word and PDF join the printable checklist, Markdown, CSV and JSON
+  (`src/report.ts`: one block model, three renderers, no library beyond the zip a .docx is).
+  Every export carries the release facts, the branches, the not-tested list, a findings table
+  and a sign-off.
+- In the Register: NIST's PIV and digital identity publications and its platform-security set
+  (FIPS 140-3, SP 800-147, 800-193, 800-124, 800-219, IR 8320) as section-by-section documents.
+
+**Next, in order:**
+
+#### M11.2: Mobile and collaboration in the builder
+DISA's Apple iOS/iPadOS, Google Android and Samsung Android with Knox STIGs on the default
+followed list and mSCP's iOS guidance in the Register, so iOS, iPadOS and Android get derived
+checks beside the templates; the builder platform list grows to six. Collaboration stays
+templates-only: no publisher writes a STIG for a Samsung display, and the Teams Rooms Windows
+console takes the Windows 11 STIG.
+
+#### M11.3: Decisions, and plans that test only what is applied
+The owner's decision per baseline item (apply as published, apply with the organisation's own
+value, do not apply) with the reason and an owner, stored, shown on a board per platform and in
+every export; the test plan tests only what is applied, a template may `require` a rule, and a
+modified rule is tested for the organisation's value. An earlier branch built this on 0.24.0;
+it is rebuilt on main.
+
+#### M11.4: Mine: tracking without a sign-in
+A visitor picks the platforms, releases and hardware they run and the areas they test; the
+choice lives in a signed cookie (no account, no row, gone when the browser's cookies are) and
+filters News, Vulnerabilities, Today and the plan pages to "my stack". "Make this a link" puts
+the profile in a URL to bookmark or share; a per-profile feed URL (Atom, and an ntfy-shaped
+JSON) lets a reader or a phone take the alerts. The owner's sign-in and the later multi-user
+work (M8) reuse the same profile shape, so sign-up is an upgrade, not a different thing.
+
+#### M11.5: CVEs by release
+`src/platforms.ts` already names a CVE's platform; the fleet adds the release. Join NVD's CPE
+version ranges to the fleet's release ids so a CVE page says "affects Windows 11 24H2 and
+25H2" or "iOS 26 only", the Platforms page shows the open CVEs per release, and a Mine profile
+alerts on its releases. Apple's security releases page, the Android Security Bulletins, Samsung's
+monthly SMR and its display advisories have no feeds: small HTML adapters, like the SANS one,
+so each becomes a News item tagged with its platform and release.
+
+#### M11.6: Keeping the fleet file honest
+The endoflife.date API as a source for support dates, diffed into the Register like any
+standard, with `data/platforms.yaml` as the curated layer over it; a `check:templates` probe
+(network, beside `check:feeds`) that every template source URL still answers; and a quarterly
+review line in the digest naming templates whose cited page changed.
+
+#### M11.7: Results and history
+A run of a plan captured as data (pass, fail, not applicable, evidence, tester, date per step)
+rather than a printed sign-off; runs compared across releases ("what broke moving to 26H2");
+saved named plans for the owner; results in the JSON API and the MCP server so an agent can
+answer "did we test Platform SSO on Golden Gate yet".
+
+**Quality of life, as they fit:** a Today tile for releases ending support within ninety days;
+per-platform sections in the digest; a print stylesheet for the plan page; "what changed in this
+template since you last exported it"; Zoom Rooms and Webex templates beside Teams Rooms.
+
+**Done when**: a teammate opens Platforms, picks macOS 27 on Apple silicon, keeps only the
+secure-enclave area, exports a Word plan, and every step in it cites Apple or Microsoft, says
+what success looks like and what to do when it fails, and the Intel steps are listed as left out
+with the reason.
 
 ---
 

@@ -1,0 +1,50 @@
+id: hardware-root-windows
+title: TPM, Secure Boot, virtualization-based security and BitLocker on a Windows PC
+platforms: [windows]
+area: hardware
+notes: The hardware root of trust every Windows 11 control leans on. Run as an administrator on a PC built the way the fleet is built, after the baseline is applied and after a restart (health attestation measures at boot).
+steps:
+  - do: Run Get-Tpm in an elevated PowerShell.
+    expect: TpmPresent, TpmReady, TpmEnabled and TpmActivated are True and LockedOut is False; note ManufacturerIdTxt and ManufacturerVersion for the firmware inventory.
+    fail: TpmPresent False on a Windows 11 PC means the TPM is disabled in firmware; enable it and clear it only if the device is not yet in use. LockedOut True means repeated bad authorisations; wait out the lockout or reset it from firmware, then find the cause.
+    source:
+      title: Microsoft Learn, "Get-Tpm"
+      url: https://learn.microsoft.com/powershell/module/trustedplatformmodule/get-tpm
+  - do: Run Confirm-SecureBootUEFI.
+    expect: True.
+    fail: False means Secure Boot is turned off in firmware; "Cmdlet not supported on this platform" means the PC booted in legacy BIOS mode and needs a UEFI reinstall before anything else in this plan is worth testing.
+    source:
+      title: Microsoft Learn, "Confirm-SecureBootUEFI"
+      url: https://learn.microsoft.com/powershell/module/secureboot/confirm-securebootuefi
+  - do: Run Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard.
+    expect: VirtualizationBasedSecurityStatus is 2 (running); SecurityServicesRunning contains 1 (Credential Guard) and 2 (memory integrity, HVCI), and 3 (System Guard Secure Launch) where the hardware supports it; AvailableSecurityProperties lists 2 (Secure Boot) and 3 (DMA protection).
+    fail: "Status 1 means configured but not running: a restart or a firmware setting (virtualisation, IOMMU) is missing. A missing 1 on an Enterprise or Education device means Credential Guard was turned off or the device lacks the prerequisites; the System log, source WinInit, event 13 confirms it started and 15 to 17 say why it did not."
+    source:
+      title: Microsoft Learn, "Enable virtualization-based protection of code integrity"
+      url: https://learn.microsoft.com/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity
+  - do: Open msinfo32 and read Kernel DMA Protection, Secure Boot State and the Virtualization-based security lines.
+    expect: Kernel DMA Protection On, Secure Boot State On, and the running services match the previous step.
+    fail: Kernel DMA Protection Off on hardware that supports it is a firmware setting; on hardware that does not, record the exception and rely on the BitLocker pre-boot PIN.
+    source:
+      title: Microsoft Learn, "System Guard Secure Launch and SMM protection"
+      url: https://learn.microsoft.com/windows/security/hardware-security/system-guard-secure-launch-and-smm-protection
+  - do: "On a Pluton-equipped PC, confirm Pluton is serving as the TPM: Get-Tpm reports Microsoft as the manufacturer and Windows Update delivers its firmware."
+    expect: The TPM manufacturer is Microsoft (Pluton) and the firmware version matches the latest Windows Update.
+    fail: A discrete or firmware TPM from another vendor means Pluton is present but not in use, which is how 2026 and later AMD and Qualcomm designs ship; test that TPM's firmware against the vendor's advisories instead.
+    applies:
+      hardware: [pluton, copilot-plus]
+    source:
+      title: Microsoft Learn, "Microsoft Pluton as a trusted platform module"
+      url: https://learn.microsoft.com/windows/security/hardware-security/pluton/pluton-as-tpm
+  - do: "Run Get-BitLockerVolume C: | Format-List and manage-bde -status."
+    expect: VolumeStatus FullyEncrypted, ProtectionStatus On, EncryptionMethod XtsAes256, key protectors TPM (or TPM and PIN where the baseline requires it) and RecoveryPassword, with the recovery password escrowed to Entra ID or Active Directory.
+    fail: "\"Waiting for Activation\" means only the clear protector exists: add the TPM and recovery-password protectors and back the password up with BackupToAAD-BitLockerKeyProtector. ProtectionStatus Off means protection was suspended: Resume-BitLocker, then find who suspended it."
+    source:
+      title: Microsoft Learn, "BitLocker operations guide"
+      url: https://learn.microsoft.com/windows/security/operating-system-security/data-protection/bitlocker/operations-guide
+  - do: In the Intune admin centre open the device's compliance details after the restart.
+    expect: The device-health rules (BitLocker, Secure Boot, code integrity) and the system-security rules (TPM, encryption, firewall, antivirus) all read compliant; the minimum OS version rule matches the build the fleet runs.
+    fail: A device-health rule still failing after BitLocker was turned on needs a restart before attestation re-measures; a TPM rule failing with Get-Tpm healthy points at a stale compliance evaluation, so sync the device and wait for the next report.
+    source:
+      title: Microsoft Learn, "Windows compliance settings in Microsoft Intune"
+      url: https://learn.microsoft.com/intune/device-security/compliance/ref-windows-settings

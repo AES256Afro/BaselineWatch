@@ -4,7 +4,7 @@ import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "today" | "register" | "stigs" | "baselines" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide";
+export type Area = "today" | "register" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide";
 
 /**
  * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
@@ -17,6 +17,7 @@ const areas: Record<Area, { label: string; path: string }> = {
   register: { label: "Register", path: "/register" },
   stigs: { label: "STIGs", path: "/stigs" },
   baselines: { label: "Baselines", path: "/baselines" },
+  platforms: { label: "Platforms", path: "/platforms" },
   atlas: { label: "Atlas", path: "/atlas" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities" },
   triage: { label: "Triage", path: "/triage" },
@@ -30,7 +31,7 @@ export function areaPath(area: Area): string {
   return areas[area].path;
 }
 
-const standardsGroup: Area[] = ["register", "stigs", "baselines", "atlas"];
+const standardsGroup: Area[] = ["register", "stigs", "baselines", "platforms", "atlas"];
 const deskGroup: Area[] = ["triage", "watchlist", "digest", "sources"];
 
 export interface PageOptions {
