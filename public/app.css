@@ -619,3 +619,8 @@ details.pgroup summary .count { margin-left: 6px; }
 .box.empty-fix { border-style: dashed; }
 .wi-fix { margin: 6px 0 0; font-size: 12.5px; color: var(--mute); }
 .wi-fix b { color: var(--ink); }
+
+/* The guide (M10): a single readable column of boxes */
+.guide { display: grid; gap: 14px; max-width: 72ch; margin-bottom: 40px; }
+.guide .box p { margin: 0; line-height: 1.55; }
+.mast .menu a.cap { white-space: normal; } /* the caption links to /guide and may wrap on narrow screens */

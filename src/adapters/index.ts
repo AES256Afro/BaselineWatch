@@ -1,6 +1,7 @@
 import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
 import { cisaDirectivesAdapter } from "./cisa-directives.ts";
+import { cvelistAdapter } from "./cvelist.ts";
 import { disaAdapter } from "./disa.ts";
 import { disaGpoAdapter } from "./disa-gpo.ts";
 import { disaIntuneAdapter } from "./disa-intune.ts";
@@ -14,6 +15,7 @@ import { nvdAdapter } from "./nvd.ts";
 import { nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { osvAdapter } from "./osv.ts";
 import { redditAdapter } from "./reddit.ts";
+import { sansNewsbitesAdapter } from "./sans-newsbites.ts";
 import { sctAdapter } from "./sct.ts";
 import type { Adapter, SourceRow } from "./types.ts";
 
@@ -21,6 +23,7 @@ const byId: Record<string, Adapter> = {
   "cisa-kev": kevAdapter,
   "hn-algolia": hnAdapter,
   "nvd-cves": nvdAdapter,
+  "cvelist-v5": cvelistAdapter,
   "first-epss": epssAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
@@ -34,6 +37,7 @@ const byId: Record<string, Adapter> = {
   "disa-gpo": disaGpoAdapter,
   "nist-mscp": mscpAdapter,
   "cisa-directives": cisaDirectivesAdapter,
+  "sans-newsbites": sansNewsbitesAdapter,
   "cis-benchmarks": cisAdapter,
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
@@ -58,4 +62,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cciAdapter, cisAdapter, cisaDirectivesAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sctAdapter };
+export { cciAdapter, cisAdapter, cisaDirectivesAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };

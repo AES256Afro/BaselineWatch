@@ -4,7 +4,7 @@ import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "today" | "register" | "stigs" | "baselines" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources";
+export type Area = "today" | "register" | "stigs" | "baselines" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide";
 
 /**
  * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
@@ -23,6 +23,7 @@ const areas: Record<Area, { label: string; path: string }> = {
   watchlist: { label: "Watchlist", path: "/watchlist" },
   digest: { label: "Digest", path: "/digest" },
   sources: { label: "Sources", path: "/sources" },
+  guide: { label: "Guide", path: "/guide" },
 };
 
 export function areaPath(area: Area): string {
@@ -103,7 +104,7 @@ export function page({ title, active, content, meta, owner, open, strip, look }:
       ${link("wire")}${link("today")}<details class="group${standardsGroup.includes(active) ? " on" : ""}">
         <summary>Standards</summary>
         <div class="menu">
-          <span class="cap">The standards change register</span>
+          <a class="cap" href="/guide">The standards change register — how to read it</a>
           ${standardsGroup.map((a) => link(a))}
         </div>
       </details>${link("vulnerabilities")}
@@ -124,7 +125,7 @@ ${strip ?? ""}
 <main class="wrap">${content}</main>
 <footer class="foot">
   <div class="wrap">
-    <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
+    <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="/guide">how to read this site</a> · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
     <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed. Article images belong to their publishers and link to the original story.</p>
   </div>
 </footer>

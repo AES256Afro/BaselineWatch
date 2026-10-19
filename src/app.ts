@@ -25,6 +25,7 @@ import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./export
 import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
+import { renderGuide } from "./pages/guide.ts";
 import { renderToday } from "./pages/today.ts";
 import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
@@ -300,6 +301,9 @@ export function createApp(ctx: AppContext): Express {
   });
   app.get("/atlas", (req, res) => {
     res.type("html").send(renderAtlas({ db, ...who(req, res), now: now() }));
+  });
+  app.get("/guide", (req, res) => {
+    res.type("html").send(renderGuide(who(req, res)));
   });
 
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {

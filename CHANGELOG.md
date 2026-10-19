@@ -2,6 +2,21 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.30.0 — 2026-10-19
+
+- **The CVE backbone no longer leans on NVD alone.** The cvelist-v5 adapter pulls the CVE
+  Program's hourly delta releases from GitHub — keyless, rate-limit aware, cursor in
+  app_settings, first pull starting at the newest delta and never loading the historic baseline.
+  New CVEs are inserted as they are published; rows NVD has enriched are never overwritten, and
+  no Wire items are created (notability stays with the NVD path). A three-day NVD outage now
+  costs enrichment lag, not coverage.
+- **SANS NewsBites is a source.** SANS publishes no feed for it, so the adapter parses the
+  newsletter web pages themselves: the index for new issues, each issue page fetched once, one
+  item per story with its outbound link.
+- **A guide for the reading public.** /guide explains the Register, KEV, EPSS, CVSS and the CAT
+  severities in plain words, each term linking to the page that shows it — linked from the
+  Standards menu caption and the footer.
+
 ## 0.29.0 — 2026-10-19
 
 - **M10 begins: the pipeline tells on itself.** The digest adds a staleness line when the newest
