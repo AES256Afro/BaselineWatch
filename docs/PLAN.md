@@ -24,6 +24,7 @@ to be installed from the BoxPilot catalog on BigBox.
 | 2026-10-14 | Build follows **Path C**, the recommended middle: Register built properly, Wire and Vulnerabilities thin, server-rendered HTML first, React only if the UI outgrows it. |
 | 2026-10-14 | Public home is **https://cybercard.net**, replacing the FinancialAuthority demo there. It is a read-only information, learning and teaching site: no private data, anyone may read, writes need the owner's sign-in (M7). Hosted on BigBox, published through Cloudflare. |
 | 2026-10-14 | Stack: Node 24 running TypeScript directly (no build step), Express 5, `node:sqlite`, one stylesheet, strict CSP with no inline script. |
+| 2026-10-19 | **M12 Scan** (planned): the ad, DNS, router and firewall checks, keeping a public scan page's browser technique and adding what a LAN-resident server can see; one page with a self-hosted script under its own CSP; nothing fetched from ad or malware domains; ten mockups in `docs/mockups/scan/`. |
 | 2026-10-19 | **M11 Platform engineering**: the fleet (each OS release, its support dates and the hardware it runs on) drives the test plans; templates carry success and failure branches and apply by release and hardware; areas are chosen per run; exports add LaTeX, Word and PDF; iOS, iPadOS, Android and the Samsung meeting rooms get template plans. NIST's PIV and platform-security publications join the Register. |
 | 2026-10-17 | **M9 Baselines** turns the tracked standards into guidance: STIG pages per operating system, a baseline builder per platform with exports for Jamf, Intune and Linux, test plans for a new OS release, platform alerts and a Fix panel. No generative AI in that path: every line derives from DISA, NIST, Microsoft and CISA text and refreshes with the sources. CIS stays upload-only. Survey of comparable tools in [COMPETITION.md](COMPETITION.md). |
 
@@ -634,6 +635,128 @@ template since you last exported it"; Zoom Rooms and Webex templates beside Team
 secure-enclave area, exports a Word plan, and every step in it cites Apple or Microsoft, says
 what success looks like and what to do when it fails, and the Intel steps are listed as left out
 with the reason.
+
+---
+
+### M12: Scan: ads, DNS, router, firewall (planned 2026-10-19)
+
+A public scan page (archivegenocide.com/scan) runs three browser-side checks for ad filtering and
+is honest that a web page can see one browser and nothing else. The technique is worth having;
+the rest of that site is not ours to carry. BaselineWatch keeps the technique and adds the three
+eyes a page cannot have, because this server sits on the LAN: the network's resolver, the router,
+and the firewall from both sides. Ten mockups in `docs/mockups/scan/` (sample data, the app's
+own look). Chris's goal in one line: find ads and firewall problems, and know why each matters.
+
+**What the page does, in its own script** (read 2026-10-19, `scan.js?v=22`):
+
+- *Ad hiding*: twenty invisible elements named the way ad slots are named (`adsbox`,
+  `ad-banner`, `adsbygoogle`, `#ad`, …) and two neutral controls; after two frames it reads
+  which were hidden by a blocker's generic cosmetic rules. A zero is "not observed", not
+  "unprotected": some blockers hide nothing and block everything.
+- *Ad requests*: images on paths that match EasyList's request rules (`/ad_images/`,
+  `/adsbanner-`, `/ad_skyscraper.gif`) on its own origin and on one cross-site host, each
+  between control images with identical bytes; no cookies, no referrer, never displayed; a
+  timeout is unknown, a CSP failure is reported as such, one retry. A load difference is the
+  signal. No advertising domain is contacted.
+- *Filtering DNS*: a fresh random name under `-dnscheck.adguard-dns.com` resolves only through
+  AdGuard's resolvers and the JSON names the server group (regular, family, unfiltered); only
+  AdGuard is tested. A DNS-layer canary (a blocklisted hostname loaded as an image) is written
+  but switched off, because the name is not yet on the public lists and the site's own CSP would
+  block it.
+- Rows it cannot test: other apps on the device, every device on the network. It says so and
+  points at the router's DNS setting and a Pi-hole or AdGuard Home dashboard.
+- Platform and in-app-browser detection (Instagram and Facebook views have no blockers and
+  cannot install a profile), a Brave hint, a VPN question, per-platform DNS setup guides
+  (AdGuard profile, Android Private DNS, Windows adapter DNS), Lockdown Mode, the advertising
+  identifier, and a link to Zero Breach: an offline Python scanner that reads browser history,
+  cookies, cache and storage, file hashes, Windows per-user COM persistence, the DNS cache and
+  the hosts file against 405 indicators (292 domains, 111 addresses) from the Citizen Lab,
+  Confiant, Recorded Future, Microsoft, ESET, Avast, Google TAG and Amnesty reports on
+  Candiru and ad-delivered spyware, exported as blocklists.
+
+**What is worth keeping**: the three signals exactly as designed (bait elements, controlled
+test images, resolver self-checks, with NextDNS's `test.nextdns.io` added beside AdGuard's);
+the honesty about limits; the indicator and blocklist exports as a tracked source; the guides'
+substance, rewritten in this product's voice and tied to their primary documents.
+
+**What this product adds**: network-wide canaries resolved by the server through the LAN
+resolver (the row the page says no page can test); the router's firmware against the CVE
+database and KEV this product already keeps current, its UPnP mappings and exposure; the
+firewall from the internet side (Shodan's InternetDB, a lookup, never a scan from here) and
+the LAN side (DNS interception, DNS bypass, SMB out, IPv6); device scripts that read what a
+browser cannot; history, alerts and a digest line, because a daily scan is only useful when a
+change is news; and a "why" page per check with breadcrumbs and direct links to the sources.
+
+**Decisions:**
+
+- *The one page with a script.* Every page runs with `script-src 'none'`. The browser check
+  cannot exist without a script in the tab, so `/scan` alone carries its own policy:
+  `script-src 'self'` for one self-hosted file, `img-src` adding the probe origin,
+  `connect-src` adding the two self-check hosts. No inline script anywhere, ever.
+- *Nothing fetched from an ad or malware domain, by anyone.* Canaries are resolved (DNS only)
+  by the server, never fetched, and never by a visitor's browser.
+- *The server's LAN checks are opt-in* (a setting), because they send packets on the owner's
+  network; they run daily once on.
+- *The router is never signed in to and never changed.* Default credentials are a manual step
+  in the guide.
+- *Exposure is read from a public index*, not scanned from here.
+- *Lists are Register sources*: the adfection list and the canary sets, so a change is a diff
+  with a date; the scripts are rebuilt from them and their checksums change with them.
+- *Every "why" rests on a primary document and links to it*; nothing is generated by a model.
+
+#### M12.1: The browser check (`/scan`)
+The page, the one self-hosted script, the per-route CSP, the probe images served from this
+instance (same-site) and from a second origin when `BW_PROBE_ORIGIN` names one (cross-site),
+the AdGuard and NextDNS self-checks, in-app-browser and platform detection, the limits box.
+Results are drawn by the script into the page and never uploaded. Done when the three rows
+match the public page's on the same browser, with the same blocker on and off.
+
+#### M12.2: Why, guide, lists
+`/scan/why` (mockup 08) and `/scan/guide/<platform>` (mockup 07) with breadcrumbs and sources;
+the adfection list and the canary sets as Register sources (`src/adapters/blocklists.ts`,
+diffed line by line like any standard; the Zero Breach `dist/` exports and the EasyList,
+EasyPrivacy, URLhaus and OpenPhish-derived canary sets). Done when the list's next release
+shows as a diff and every guide step links to the vendor page it follows.
+
+#### M12.3: This network
+Resolver discovery from the server's own lease and `resolv.conf`; forty-eight canaries in four
+categories resolved through it (and the upstream named by a resolver-identity query); Pi-hole
+and AdGuard Home client counts through their APIs when the owner gives a token; the DoH-from-LAN
+test. Done when adding the adfection list to the Pi-hole flips the category from resolved to
+sinkholed on the next run.
+
+#### M12.4: Router
+Gateway from the lease; UPnP device description for model and firmware; SSDP and the IGD
+`GetGenericPortMappingEntry` walk for mappings; TLS and redirect of the admin page; DNS handed
+out by DHCP; firmware matched to the CVE database and KEV by vendor and product (`platforms.ts`
+gains the network vendors' CPE names). Done when a router on the KEV list is a finding the
+hour CISA adds it, with the vendor advisory from the CVE's Fix panel.
+
+#### M12.5: Firewall and exposure
+InternetDB for the public address (ports, hostnames, CVEs, cached, once a day); DNS interception
+by resolver identity against 8.8.8.8 and 1.1.1.1; DNS bypass (plain 53 and DoH from the LAN);
+SMB and NetBIOS egress against a probe; IPv6 reachability through a small endpoint this
+product's public instance runs (or omitted when none is configured); the hosts table from the
+device scripts. Done when turning UPnP off and adding the Pi-hole redirect rule turn two
+findings green on the next run.
+
+#### M12.6: Device scripts
+`bw-scan.ps1`, `bw-scan.sh` (zsh) and `bw-scan.sh` (bash) generated from the lists at fetch
+time, served with SHA-256 and a signature, source viewable; each reads resolver, hosts file,
+firewall state, DNS cache and browser traces against the list, Windows persistence paths, the
+advertising identifier, and prints a report; `/scan/devices` takes the report back by paste or
+upload. MVT pointers for phones. Done when a report pasted back fills the hosts table and the
+scripts' checksums change with the list.
+
+#### M12.7: History, alerts, Today
+Every run stored as the facts observed and diffed against the last; alerts through the notifier
+(right away: KEV firmware, a new mapping, a category that stops being sinkholed, WAN remote
+management; in the digest: the rest); a Today tile; the Console look (mockup 09); the phone
+layout. Done when a canary that starts resolving is a notification within the day and nothing
+alerts on an unchanged run.
+
+**Out of scope**: scanning hosts or your public address from this product; signing in to the
+router; contacting any advertising or malware domain; any model in the path.
 
 ---
 

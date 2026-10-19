@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" data-scheme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 09 · the Console look</title>
+<style>
+/* Mockups for the Scan area: the Register look's tokens from public/app.css, nothing new.
+   Sample data throughout; the real pages render through src/html.ts and this stylesheet
+   is only for these mockups. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+.dark, [data-scheme="dark"] {
+  --paper: #15181a; --card: #1d2124; --ink: #e7eae6; --mute: #9aa6a3; --rule: #333a3d; --rule-2: #46504f;
+  --acc: #4cc9a6; --acc-ink: #0e1512; --warn: #e2b55a; --del: #ff8a80; --ins: #7fd99a; --gen: #c2a6f0; --panel-2: #22272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+h3 { font: 600 14px var(--sans); margin: 14px 0 6px; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .d { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.check .ev { margin-top: 8px; font-size: 13px; }
+.check .ev li { margin: 2px 0; }
+.check .why { margin-top: 8px; font-size: 13px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+.check .why b { font-weight: 600; }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.na { background: var(--panel-2); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); margin-left: 4px; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); border-top: 0; }
+.table-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; margin-bottom: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 30px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.sources { font-size: 12.5px; }
+.sources li { margin: 3px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; }
+.ok-t { color: var(--ins); } .warn-t { color: var(--warn); } .bad-t { color: var(--del); }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--acc); }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+/* The Console look (mockup 09): dense panels, uppercase mono titles. */
+.console { font-family: var(--sans); }
+.console .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+.console .panel h2 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.console .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.console .big { font: 300 34px/1 var(--sans); }
+.spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.spark i { display: block; width: 6px; background: var(--acc); border-radius: 1px; }
+.spark i.bad { background: var(--del); }
+.phone { width: 390px; max-width: 100%; border: 10px solid #222; border-radius: 28px; background: var(--paper); padding: 10px; margin: 0 auto; }
+.phone .check { grid-template-columns: 1fr auto; }
+.phone .check .n { display: none; }
+</style>
+</head>
+<body class="console">
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">CONSOLE · DARK · last run 06:00 · Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 09 of 10, sample data.</b> The same Scan in the Console look the app already has: dense panels, uppercase mono titles, large thin figures, every figure also in words. One screen for the owner who glances once a morning.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><b>Scan</b></p>
+  <h1>Scan <span class="arrow">this morning</span></h1>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Browser · last tab checked</h2>
+      <div class="big ok-t">3 / 3</div>
+      <div class="small">ad hiding 14 of 20 · requests 5 of 5 blocked · NextDNS confirmed · Chrome 141, 08:12</div>
+    </div>
+    <div class="panel">
+      <h2>Network · canaries sinkholed</h2>
+      <div class="big warn-t">40 / 48</div>
+      <div class="small">ads 12 · trackers 12 · malware 9 · ad-delivered spyware 7 · resolver 192.168.8.10</div>
+      <div class="spark" aria-hidden="true"><i style="height:60%"></i><i style="height:60%"></i><i style="height:70%"></i><i style="height:70%"></i><i style="height:70%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i><i style="height:83%"></i></div>
+      <div class="small">fourteen days: 29, 29, 34, 34, 34, 40, 40 …</div>
+    </div>
+    <div class="panel">
+      <h2>Router · EX7000 1.0.11.116</h2>
+      <div class="big bad-t">2</div>
+      <div class="small">findings: KEV CVE-2026-20142 due 21 Oct · UPnP mapping TCP 3389 → .44 · admin HTTPS LAN-only · DNS handed out 192.168.8.10</div>
+    </div>
+    <div class="panel">
+      <h2>Exposure · 203.0.113.58</h2>
+      <div class="big ok-t">0</div>
+      <div class="small">ports listed by InternetDB: none · IPv6 not reachable · DNS not intercepted · SMB out blocked · DoH bypass open</div>
+    </div>
+    <div class="panel">
+      <h2>Devices · scripts reported</h2>
+      <div class="big">3 / 4</div>
+      <div class="small">WORK-LAPTOP today · chris-mbp today · bigbox 06:00 · Galaxy-Flip never (no script for phones)</div>
+    </div>
+    <div class="panel">
+      <h2>Lists · tracked in the Register</h2>
+      <div class="big">4</div>
+      <div class="small">adfection v0.1.6 (291 domains, changed 3 Oct) · EasyList canaries · EasyPrivacy canaries · URLhaus and OpenPhish canaries</div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:10px">
+    <div class="panel" style="grid-column: 1 / -1">
+      <h2>Needs you</h2>
+      <table>
+        <thead><tr><th>Since</th><th>What</th><th>Where</th><th>Do</th></tr></thead>
+        <tbody>
+          <tr><td>30 Sep</td><td class="bad-t">Router firmware on the KEV list (CVE-2026-20142), due 21 Oct</td><td>Router</td><td>Update to 1.0.11.130 or later; vendor advisory on the CVE's Fix panel</td></tr>
+          <tr><td>18 Oct</td><td class="bad-t">UPnP mapping TCP 3389 → 192.168.8.44 appeared</td><td>Router</td><td>Find what asked for it; turn UPnP off</td></tr>
+          <tr><td>3 Oct</td><td class="warn-t">5 ad-delivered-spyware canaries resolve: the Pi-hole lacks the adfection list</td><td>Network</td><td>Add the list as an adlist; run again</td></tr>
+          <tr><td>always</td><td class="warn-t">DNS-over-HTTPS and plain 53 leave the LAN</td><td>Firewall</td><td>Router rule: redirect 53 to the Pi-hole, block known DoH endpoints</td></tr>
+          <tr><td>19 Oct</td><td class="warn-t">bigbox: nftables rules present, ufw inactive, input default accept</td><td>Devices</td><td>Decide the host policy; the Linux hardware plan has the step</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · Scan mockups · Console look</footer>
+</body>
+</html>

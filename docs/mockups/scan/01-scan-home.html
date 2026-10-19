@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 01 · the landing</title>
+<style>
+/* Mockups for the Scan area: the Register look's tokens from public/app.css, nothing new.
+   Sample data throughout; the real pages render through src/html.ts and this stylesheet
+   is only for these mockups. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+.dark, [data-scheme="dark"] {
+  --paper: #15181a; --card: #1d2124; --ink: #e7eae6; --mute: #9aa6a3; --rule: #333a3d; --rule-2: #46504f;
+  --acc: #4cc9a6; --acc-ink: #0e1512; --warn: #e2b55a; --del: #ff8a80; --ins: #7fd99a; --gen: #c2a6f0; --panel-2: #22272a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+h3 { font: 600 14px var(--sans); margin: 14px 0 6px; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .d { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.check .ev { margin-top: 8px; font-size: 13px; }
+.check .ev li { margin: 2px 0; }
+.check .why { margin-top: 8px; font-size: 13px; border-top: 1px dashed var(--rule); padding-top: 8px; }
+.check .why b { font-weight: 600; }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.na { background: var(--panel-2); }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); margin-left: 4px; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); border-top: 0; }
+.table-wrap { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; overflow-x: auto; margin-bottom: 14px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 30px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.sources { font-size: 12.5px; }
+.sources li { margin: 3px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; }
+.ok-t { color: var(--ins); } .warn-t { color: var(--warn); } .bad-t { color: var(--del); }
+.bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--acc); }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+/* The Console look (mockup 09): dense panels, uppercase mono titles. */
+.console { font-family: var(--sans); }
+.console .panel { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; }
+.console .panel h2 { font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.console .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.console .big { font: 300 34px/1 var(--sans); }
+.spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 22px; }
+.spark i { display: block; width: 6px; background: var(--acc); border-radius: 1px; }
+.spark i.bad { background: var(--del); }
+.phone { width: 390px; max-width: 100%; border: 10px solid #222; border-radius: 28px; background: var(--paper); padding: 10px; margin: 0 auto; }
+.phone .check { grid-template-columns: 1fr auto; }
+.phone .check .n { display: none; }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">last scan 14 min ago · Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 01 of 10, sample data.</b> The Scan landing: four groups, each with its own vantage. What a browser can see, what this server can see of the network, what it can see of the router, and what the internet sees of you. The look is the Register's; nothing here is the other site's interface.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><b>Scan</b></p>
+  <h1>Scan <span class="arrow">ads, DNS, router, firewall</span></h1>
+  <p class="lede">Four short checks with four different eyes. The browser check runs in this tab and sees this browser only. The network, router and firewall checks run from this server, which sits on your LAN, so they see what a web page never can: every device behind the router. Results stay on this instance; nothing is uploaded.</p>
+
+  <div class="cols">
+    <section>
+      <div class="check">
+        <span class="n">01</span>
+        <div>
+          <div class="t">This browser <span class="chip">runs in this tab</span></div>
+          <div class="d">Ad hiding (filter-list element hiding), ad requests (test images against controls), filtering DNS for this browser (AdGuard and NextDNS self-checks). Four seconds.</div>
+        </div>
+        <div class="row"><span class="state ok">Protected</span> <a class="btn ghost" href="02-browser-signals.html">Results</a></div>
+      </div>
+      <div class="check">
+        <span class="n">02</span>
+        <div>
+          <div class="t">This network <span class="chip">from this server</span></div>
+          <div class="d">Canary names from the ad, tracker, malware and ad-delivered-spyware lists resolved through the resolver the LAN hands out. A sinkholed answer means every device that uses that resolver is covered.</div>
+        </div>
+        <div class="row"><span class="state warn">Partly</span> <a class="btn ghost" href="03-network-canaries.html">Results</a></div>
+      </div>
+      <div class="check">
+        <span class="n">03</span>
+        <div>
+          <div class="t">Router <span class="chip">from this server</span></div>
+          <div class="d">The gateway's model and firmware against the CVE database and CISA's KEV, its admin interface, the DNS it hands out, UPnP port mappings, remote management.</div>
+        </div>
+        <div class="row"><span class="state bad">2 findings</span> <a class="btn ghost" href="04-router.html">Results</a></div>
+      </div>
+      <div class="check">
+        <span class="n">04</span>
+        <div>
+          <div class="t">Firewall and exposure <span class="chip">from this server and the internet</span></div>
+          <div class="d">What the internet sees of your public address, whether DNS is intercepted on the way out, whether SMB and DNS-over-HTTPS leave the network, IPv6 reachability, and the host firewall state the device scripts report.</div>
+        </div>
+        <div class="row"><span class="state ok">Clean</span> <a class="btn ghost" href="05-firewall.html">Results</a></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button>Run everything</button>
+        <a class="btn ghost" href="06-device-scripts.html">Device scripts</a>
+        <a class="btn ghost" href="07-guide.html">Do it by hand</a>
+        <a class="btn ghost" href="10-history-alerts.html">History</a>
+      </div>
+    </section>
+    <aside>
+      <div class="box">
+        <h2>Why scan for ads at all</h2>
+        <p class="small">Advertising networks deliver code to a device the way any other content arrives, and that path has been used to deliver spyware: Citizen Lab documented an ad-tech pipeline that placed Candiru's spyware through targeted ads. Blocking ad delivery closes one road in; it is not proof of safety, and ads served from the same domain as the content are not blocked by any of this. <a href="08-why.html">The whole argument, with the sources</a>.</p>
+      </div>
+      <div class="box">
+        <h2>What each eye can and cannot see</h2>
+        <dl class="kv">
+          <dt>Browser</dt><dd>This tab only. Not other apps, not other devices.</dd>
+          <dt>Network</dt><dd>Whatever uses the LAN's resolver. A phone on a VPN or a browser on DNS-over-HTTPS bypasses it.</dd>
+          <dt>Router</dt><dd>What the router says about itself and what the LAN side exposes.</dd>
+          <dt>Firewall</dt><dd>The public address from outside, and the paths out from inside.</dd>
+        </dl>
+      </div>
+      <div class="box">
+        <h2>The one page with a script</h2>
+        <p class="small">The browser check needs a few lines of script in this tab. Every other page on this site runs with <code>script-src 'none'</code>; the Scan page alone carries its own policy allowing one self-hosted file and the two self-check hosts. No inline script anywhere.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · Scan mockups · results never leave this instance · the browser self-checks contact AdGuard and NextDNS only</footer>
+</body>
+</html>
