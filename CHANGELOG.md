@@ -2,7 +2,7 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.32.0 — 2026-10-19
 
 - **iOS, iPadOS and Android join the baseline builder** (M11.2). DISA's Apple iOS/iPadOS 27 and
   26, Google Android 17 and 16, and Samsung Android 17 and 16 with Knox STIGs are on the default
