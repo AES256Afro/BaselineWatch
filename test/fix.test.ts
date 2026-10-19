@@ -94,7 +94,7 @@ describe("the Fix panel", () => {
 
   it("gathers every published fix for a CVE and says so when there is none", () => {
     const ctx = fixContext(app.db);
-    expect(ctx.stigs.length).toBe(3);
+    expect(ctx.stigs.length).toBe(4); // Windows 11, macOS 26, iOS/iPadOS 26 and the RHEL 9 stand-in
     const fix = fixesFor(app.db, ctx, getVuln(app.db, "CVE-2017-0144")!);
     expect(fix.empty).toBe(false);
     expect(fix.references.map((r) => r.url)).toEqual(["https://msrc.microsoft.com/update-guide/vulnerability/CVE-2017-0144"]);
