@@ -2,7 +2,7 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.31.0 — 2026-10-19
 
 - **NIST's PIV, digital identity and platform security publications join the Register.** Two
   sources read the publications that exist only as PDFs through their CSRC pages: `nist-piv`
