@@ -2,7 +2,7 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.25.0 — 2026-10-19
 
 - **News is the home page.** The Wire, renamed News, answers at `/`; the Register moved to
   `/register` and `/wire` is a 301, so old links keep working. The masthead is grouped the way
