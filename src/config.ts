@@ -41,6 +41,12 @@ export interface Config {
   look: Look;
   /** Light, dark, or "system" for whatever the device says. A browser may choose its own. */
   scheme: Scheme;
+  /**
+   * A second origin serving the same probe images (another BaselineWatch instance, or this one on
+   * another hostname), so the Scan page can test a cross-site request beside the same-site one.
+   * Unset means the same-site set alone.
+   */
+  probeOrigin: string | null;
 }
 
 function choice<T extends string>(env: Env, key: string, allowed: readonly T[], fallback: T): T {
@@ -76,6 +82,21 @@ function text(env: Env, key: string, fallback: string): string {
 function optional(env: Env, key: string): string | null {
   const value = env[key];
   return value === undefined || value.trim() === "" ? null : value.trim();
+}
+
+/** An http(s) origin and nothing more: scheme, host and port, no path, query or credentials. */
+function origin(env: Env, key: string): string | null {
+  const value = optional(env, key);
+  if (value === null) return null;
+  const problem = new Error(`${key} must be an http(s) origin such as https://probe.example.net, got "${value}"`);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw problem;
+  }
+  if (!/^https?:$/.test(url.protocol) || url.username || url.password || url.origin !== value.replace(/\/+$/, "")) throw problem;
+  return url.origin;
 }
 
 function flag(env: Env, key: string, fallback: boolean): boolean {
@@ -116,5 +137,6 @@ export function loadConfig(env: Env = process.env): Config {
     digestHour: hour(env, "BW_DIGEST_HOUR", 7),
     look: choice(env, "BW_LOOK", looks, "console"),
     scheme: choice(env, "BW_SCHEME", schemes, "system"),
+    probeOrigin: origin(env, "BW_PROBE_ORIGIN"),
   };
 }

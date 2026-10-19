@@ -15,7 +15,7 @@
     "relink": "node --disable-warning=ExperimentalWarning src/cli.ts relink",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src test scripts",
+    "lint": "eslint src test scripts public",
     "check:manifest": "node scripts/validate-manifest.mjs",
     "check:feeds": "node --disable-warning=ExperimentalWarning scripts/probe-feeds.mjs",
     "check": "npm run typecheck && npm run test && npm run lint && npm run check:manifest"

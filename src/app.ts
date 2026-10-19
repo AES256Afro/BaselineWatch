@@ -27,6 +27,8 @@ import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
 import { renderGuide } from "./pages/guide.ts";
+import { renderScan, renderScanWhy } from "./pages/scan.ts";
+import { probeGif, probePaths, resolverCheckSources } from "./scan.ts";
 import { renderToday } from "./pages/today.ts";
 import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
@@ -98,6 +100,17 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction): void
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   next();
+}
+
+/**
+ * The Scan page's own policy, the one exception to script-src 'none': its single self-hosted module
+ * script, the probe images from this origin and from BW_PROBE_ORIGIN when set, and connections to
+ * the two resolvers' self-check hosts. Still no inline script or style anywhere; every other route
+ * keeps the policy above.
+ */
+export function scanPolicy(probeOrigin: string | null): string {
+  const img = probeOrigin ? `'self' data: ${probeOrigin}` : "'self' data:";
+  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src 'self' ${resolverCheckSources.join(" ")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 }
 
 export { safeBack } from "./paths.ts";
@@ -306,6 +319,25 @@ export function createApp(ctx: AppContext): Express {
   app.get("/guide", (req, res) => {
     res.type("html").send(renderGuide(who(req, res)));
   });
+
+  // The Scan area (M12.1): the one page with a script, under its own policy; the why page and the
+  // probe images stay under the strict one. The probes are one GIF at four names, never cached and
+  // readable cross-site, so a second instance named by BW_PROBE_ORIGIN can serve the cross-site set.
+  app.get("/scan", (req, res) => {
+    res.setHeader("Content-Security-Policy", scanPolicy(config.probeOrigin));
+    res.setHeader("Cache-Control", "no-store");
+    res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin }));
+  });
+  app.get("/scan/why", (req, res) => {
+    res.type("html").send(renderScanWhy(who(req, res)));
+  });
+  const probe = (_req: Request, res: Response): void => {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.type("image/gif").send(probeGif);
+  };
+  for (const probePath of probePaths) app.get(probePath, probe);
 
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {
     const id = Number(req.params.id);
