@@ -2,6 +2,15 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.28.0 — 2026-10-19
+
+- **`images` backfill command.** Images arrive with new items by design, which left everything
+  from before 0.25.0 imageless and let the per-fetch cap trim big first loads. `node src/cli.ts
+  images <count|all>` fetches og:image once for existing imageless news articles, newest first,
+  politely paced, safe to re-run; documented in ADMIN.md. Feed-supplied media no longer counts
+  against the per-fetch cap (each is one image GET the publisher offered), so large first loads
+  keep their pictures; the cap still bounds og:image page fetches.
+
 ## 0.27.0 — 2026-10-19
 
 - **The three new subreddits work.** 0.19's seeds copied the JSON listing form that Reddit

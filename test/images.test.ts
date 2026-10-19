@@ -6,7 +6,7 @@ import { feedAdapter } from "../src/adapters/feed.ts";
 import type { SourceRow } from "../src/adapters/types.ts";
 import { blobRelativePath, putBlob } from "../src/blobs.ts";
 import { migrate, openDatabase } from "../src/db.ts";
-import { extractOgImage, imageFor, imageType } from "../src/images.ts";
+import { backfillImages, extractOgImage, imageFor, imageType } from "../src/images.ts";
 import { getSource, ingestSource } from "../src/ingest.ts";
 import { fakeHttp, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -98,6 +98,50 @@ describe("ingest caches article images passively", () => {
     // The same fetch again changes nothing and fetches nothing new.
     const again = await ingestSource(db, dataDir, { ...source, etag: null, last_modified: null }, { http, now, settings: { nvdApiKey: null, nvdBackfillDays: 7, newsImages: true } });
     expect(again.status).toBe("unchanged");
+  });
+});
+
+describe("image backfill for existing articles", () => {
+  let dataDir = "";
+  let db: ReturnType<typeof openDatabase>;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(os.tmpdir(), "bw-imgbf-"));
+    db = openDatabase(":memory:");
+    migrate(db);
+  });
+  afterEach(() => {
+    db.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  it("fills only imageless news articles, newest first, within the limit", async () => {
+    const insert = db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at) VALUES (?, 'article', ?, ?, ?, ?, '2026-10-19T00:00:00Z')");
+    insert.run("bleeping", "a1", "newest", "https://news.test/a1/", "2026-10-19T09:00:00Z");
+    insert.run("bleeping", "a2", "older", "https://news.test/a2/", "2026-10-18T09:00:00Z");
+    insert.run("bleeping", "a3", "no og image", "https://news.test/a3/", "2026-10-17T09:00:00Z");
+    insert.run("gitlab-security", "v1", "vendor advisory, skipped", "https://vendor.test/v1/", "2026-10-19T10:00:00Z");
+    const http = fakeHttp({
+      "https://news.test/a1/": { text: '<html><head><meta property="og:image" content="https://img.test/a1.png"></head></html>', contentType: "text/html" },
+      "https://news.test/a2/": { text: '<html><head><meta property="og:image" content="https://img.test/a2.jpg"></head></html>', contentType: "text/html" },
+      "https://news.test/a3/": { text: "<html><head></head></html>", contentType: "text/html" },
+      "https://img.test/a1.png": { bytes: pngBytes, contentType: "image/png" },
+      "https://img.test/a2.jpg": { bytes: jpegBytes, contentType: "image/jpeg" },
+    });
+
+    const limited = await backfillImages(db, dataDir, { http }, { limit: 1, delayMs: 0 });
+    expect(limited).toEqual({ examined: 1, stored: 1 });
+    expect(http.calls.map((c) => c.url)).toEqual(["https://news.test/a1/", "https://img.test/a1.png"]);
+
+    const rest = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0 });
+    expect(rest).toEqual({ examined: 2, stored: 1 });
+    const rows = db.prepare("SELECT external_id, image_origin FROM items WHERE image_blob IS NOT NULL ORDER BY external_id").all();
+    expect(rows).toEqual([
+      { external_id: "a1", image_origin: "og" },
+      { external_id: "a2", image_origin: "og" },
+    ]);
+    // The vendor advisory was never asked for its page.
+    expect(http.calls.some((c) => c.url.startsWith("https://vendor.test/"))).toBe(false);
   });
 });
 

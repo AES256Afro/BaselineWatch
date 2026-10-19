@@ -2,6 +2,7 @@
 //   node src/cli.ts fetch <source-id|all|due>     the same ingestion the scheduler runs, then exit
 //   node src/cli.ts backfill <source-id>          load a standard's published history, oldest first, then its current documents
 //   node src/cli.ts relink <source-id|all>        put a standard's versions back in publication order and re-diff the ones that were linked wrong
+//   node src/cli.ts images <count|all>            fetch og:image for existing news articles that have none, newest first (new articles get theirs at ingest)
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { adapterFor } from "./adapters/index.ts";
@@ -9,13 +10,14 @@ import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { httpGet } from "./http.ts";
 import { getSource, ingestDocumentTarget, ingestSource, listSources } from "./ingest.ts";
+import { backfillImages } from "./images.ts";
 import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
 
 const [command, target] = process.argv.slice(2);
 
-if ((command !== "fetch" && command !== "backfill" && command !== "relink") || !target) {
-  console.error("usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>");
+if ((command !== "fetch" && command !== "backfill" && command !== "relink" && command !== "images") || !target) {
+  console.error("usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>\n       node src/cli.ts images <count|all>");
   process.exit(2);
 }
 
@@ -40,6 +42,18 @@ if (command === "backfill") {
     console.log(`[backfill] ${source.id} ${t.key.padEnd(18)} ${(outcome.versionLabel ?? "").padEnd(8)} ${outcome.status.padEnd(9)} ${outcome.summary ?? outcome.error ?? ""}`);
     if (outcome.status === "error") failures += 1;
   }
+} else if (command === "images") {
+  if (!config.newsImages) {
+    console.error("article images are off on this instance (BW_NEWS_IMAGES)");
+    process.exit(1);
+  }
+  const limit = target === "all" ? 10_000 : Number(target);
+  if (!Number.isInteger(limit) || limit <= 0) {
+    console.error(`images takes a count or "all", got "${target}"`);
+    process.exit(2);
+  }
+  const out = await backfillImages(db, config.dataDir, { http: httpGet, log: (line: string) => console.log(line) }, { limit });
+  console.log(`[images] examined ${out.examined} article(s) without an image, stored ${out.stored}`);
 } else if (command === "relink") {
   const sources = target === "all" ? listSources(db) : [getSource(db, target)].filter((s) => s !== null);
   if (sources.length === 0) {
