@@ -41,6 +41,14 @@ describe("migrate", () => {
     const kev = db.prepare("SELECT url, schedule FROM sources WHERE id = ?").get("cisa-kev") as { url: string; schedule: string };
     expect(kev.url).toMatch(/known_exploited_vulnerabilities\.json$/);
     expect(kev.schedule).toBe("hourly");
+    // Reddit refuses the JSON listing to non-browser clients (403); every subreddit must point
+    // at the Atom feed, the lesson of migrations 0004 and 0020.
+    const reddits = db.prepare("SELECT id, url, format FROM sources WHERE id LIKE 'reddit-%'").all() as { id: string; url: string; format: string }[];
+    expect(reddits.length).toBeGreaterThanOrEqual(6);
+    for (const r of reddits) {
+      expect(r.url, r.id).toMatch(/\/new\.rss\?limit=\d+$/);
+      expect(r.format, r.id).toBe("atom");
+    }
     db.close();
   });
 
