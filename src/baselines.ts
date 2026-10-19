@@ -13,16 +13,29 @@ import { cciMap, compareControlRefs, controlLabel, controlsFor, followedStigs, t
  * definition DISA uses and DISA's verdict on whether its policies set the rule at all.
  */
 
-export type BuilderPlatform = "windows" | "macos" | "linux";
+export type BuilderPlatform = "windows" | "macos" | "linux" | "ios" | "ipados" | "android";
 
 export const builderPlatforms: { id: BuilderPlatform; label: string; blurb: string }[] = [
   { id: "windows", label: "Windows", blurb: "A Windows STIG, Microsoft's Security Compliance Toolkit baseline for the same product, DISA's Intune policy and checklist, and the SP 800-53 High controls." },
   { id: "macos", label: "macOS", blurb: "A macOS STIG joined to NIST's macOS Security Compliance Project rules (payload keys for Jamf), and the SP 800-53 High controls." },
   { id: "linux", label: "Linux", blurb: "A Linux STIG with its fix procedures, and the SP 800-53 High controls." },
+  { id: "ios", label: "iOS", blurb: "DISA's Apple iOS/iPadOS STIG joined to NIST's mSCP iOS rules (configuration-profile keys for Jamf or Intune), and the SP 800-53 High controls." },
+  { id: "ipados", label: "iPadOS", blurb: "The same Apple iOS/iPadOS STIG and mSCP iOS rules as iOS, built and tested separately for an iPad fleet." },
+  { id: "android", label: "Android", blurb: "DISA's Google Android and Samsung Android with Knox STIGs for company-owned devices, and the SP 800-53 High controls." },
 ];
 
 export function isBuilderPlatform(value: unknown): value is BuilderPlatform {
-  return value === "windows" || value === "macos" || value === "linux";
+  return builderPlatforms.some((b) => b.id === value);
+}
+
+/** The platform's name as the pages write it. */
+export function platformName(p: BuilderPlatform): string {
+  return builderPlatforms.find((b) => b.id === p)?.label ?? p;
+}
+
+/** Platforms whose rules come with NIST's mSCP joined to the STIG: macOS, iOS and iPadOS. */
+export function usesMscp(p: BuilderPlatform): boolean {
+  return p === "macos" || p === "ios" || p === "ipados";
 }
 
 export interface DocChoice {
@@ -119,7 +132,16 @@ export interface Profile {
   counts: { included: number; dropped: number; byKind: Record<ProfileItem["kind"], number> };
 }
 
-const stigPlatform: Record<BuilderPlatform, string> = { windows: "windows", macos: "macos", linux: "linux" };
+const stigPlatform: Record<BuilderPlatform, string> = { windows: "windows", macos: "macos", linux: "linux", ios: "mobile", ipados: "mobile", android: "mobile" };
+
+/** The mobile STIGs share one platform on the STIG pages; the builder tells Apple from Android by product name. */
+const productFilter: Partial<Record<BuilderPlatform, RegExp>> = { ios: /\bios\b|ipados/i, ipados: /\bios\b|ipados/i, android: /android/i };
+
+/** The followed STIGs a builder platform draws from. */
+export function platformStigs(db: DatabaseSync, platform: BuilderPlatform): StigSummary[] {
+  const filter = productFilter[platform];
+  return followedStigs(db).filter((s) => s.platform === stigPlatform[platform] && (!filter || filter.test(s.product)));
+}
 
 function choiceOf(doc: DocumentRow, label: string): DocChoice {
   return { key: doc.document_key, documentId: doc.id, label: `${label} ${doc.version_label ?? ""}`.trim(), version: doc.version_label, publishedAt: doc.published_at, url: doc.source_url, source: doc.source_id };
@@ -132,8 +154,10 @@ function choiceOf(doc: DocumentRow, label: string): DocChoice {
  */
 export function stigChoices(db: DatabaseSync, platform: BuilderPlatform): DocChoice[] {
   const out: DocChoice[] = [];
-  const stigs = followedStigs(db).filter((s) => s.platform === stigPlatform[platform]);
-  stigs.sort((a, b) => (platform === "windows" ? a.product.localeCompare(b.product, "en", { numeric: true }) : b.product.localeCompare(a.product, "en", { numeric: true })));
+  const stigs = platformStigs(db, platform);
+  // On Android, Google's own STIG leads Samsung's Knox variant; within a vendor the newest release first.
+  const vendor = (product: string) => (platform === "android" && !/^google/i.test(product) ? 1 : 0);
+  stigs.sort((a, b) => vendor(a.product) - vendor(b.product) || (platform === "windows" ? a.product.localeCompare(b.product, "en", { numeric: true }) : b.product.localeCompare(a.product, "en", { numeric: true })));
   for (const stig of stigs) {
     for (const doc of listDocuments(db, "disa-stigs").filter((d) => d.document_key === stig.key)) out.push(choiceOf(doc, stig.product));
   }
@@ -153,9 +177,11 @@ export function sctChoices(db: DatabaseSync): DocChoice[] {
   return keys.map((k) => latestDocument(db, "microsoft-sct", k)).filter((d): d is DocumentRow => d !== null).map((d) => choiceOf(d, sctLabel(d.document_key)));
 }
 
-/** The latest version of each mSCP branch. */
-export function mscpChoices(db: DatabaseSync): DocChoice[] {
-  const keys = (db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = 'nist-mscp' ORDER BY document_key").all() as { document_key: string }[]).map((r) => r.document_key);
+/** The latest version of each mSCP branch for the platform: the macOS branches, or the ios_* ones. */
+export function mscpChoices(db: DatabaseSync, platform: BuilderPlatform = "macos"): DocChoice[] {
+  const keys = (db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = 'nist-mscp' ORDER BY document_key").all() as { document_key: string }[])
+    .map((r) => r.document_key)
+    .filter((k) => (platform === "macos" ? !/^mscp:(ios|visionos)_/.test(k) : platform === "ios" || platform === "ipados" ? /^mscp:ios_/.test(k) : false));
   return keys
     .map((k) => latestDocument(db, "nist-mscp", k))
     .filter((d): d is DocumentRow => d !== null)
@@ -178,8 +204,10 @@ function versionToken(key: string): string {
 
 const mscpBranchFor: Record<string, string> = { "26": "tahoe", "15": "sequoia", "14": "sonoma", "13": "ventura" };
 
-/** The mSCP branch for a macOS STIG: macOS 26 is tahoe, macOS 15 is sequoia. */
+/** The mSCP branch for a macOS STIG (macOS 26 is tahoe, macOS 15 is sequoia) or an iOS one (iOS/iPadOS 26 is ios_26). */
 export function defaultMscp(stigKey: string, mscps: DocChoice[]): DocChoice | null {
+  const ios = /ios-ipados-(\d+)/.exec(stigKey)?.[1];
+  if (ios) return mscps.find((m) => m.key === `mscp:ios_${ios}`) ?? null;
   const major = /macos-(\d+)/.exec(stigKey)?.[1];
   const branch = major ? mscpBranchFor[major] : undefined;
   return (branch ? mscps.find((m) => m.key === `mscp:${branch}`) : undefined) ?? null;
@@ -279,7 +307,12 @@ function parseChoice(value: string | undefined, choices: DocChoice[], fallback: 
   return choices.find((c) => c.key === value) ?? fallback;
 }
 
-const mscpSettingSections = new Set(["macOS", "Auditing", "Authentication", "iCloud", "Password policy", "System Settings"]);
+const mscpSettingSections = new Set(["macOS", "iOS/iPadOS", "Auditing", "Authentication", "iCloud", "Password policy", "System Settings"]);
+
+/** Whether an mSCP rule sits in the strict set: the SP 800-53 High baseline or DISA's STIG baseline (DISA-STIG on macOS, ios_stig on iOS). */
+function inStrictMscp(baselines: string[]): boolean {
+  return baselines.includes("800-53r5_high") || baselines.includes("DISA-STIG") || baselines.includes("ios_stig");
+}
 
 function payloadsOf(r: NormalizedRequirement): { domain: string; keys: Record<string, unknown> }[] {
   const info = r.extra.mobileconfigInfo;
@@ -291,10 +324,10 @@ function payloadsOf(r: NormalizedRequirement): { domain: string; keys: Record<st
 export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile {
   const stigs = stigChoices(db, options.platform);
   const scts = options.platform === "windows" ? sctChoices(db) : [];
-  const mscps = options.platform === "macos" ? mscpChoices(db) : [];
+  const mscps = usesMscp(options.platform) ? mscpChoices(db, options.platform) : [];
   const stig = parseChoice(options.stig, stigs, stigs[0] ?? null);
   const sct = options.platform === "windows" ? parseChoice(options.sct, scts, stig ? defaultSct(stig.key, scts) : null) : null;
-  const mscp = options.platform === "macos" ? parseChoice(options.mscp, mscps, stig ? defaultMscp(stig.key, mscps) : null) : null;
+  const mscp = usesMscp(options.platform) ? parseChoice(options.mscp, mscps, stig ? defaultMscp(stig.key, mscps) : null) : null;
   const map = cciMap(db);
   const highDoc = latestDocument(db, "nist-sp-800-53b", "profile:high");
   const catalogDoc = latestDocument(db, "nist-sp-800-53", "catalog");
@@ -386,7 +419,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
     for (const r of loadRequirements(db, mscp.documentId)) {
       if (!mscpSettingSections.has(r.family ?? "")) continue;
       const baselines = Array.isArray(r.extra.baselines) ? (r.extra.baselines as string[]) : [];
-      if (!baselines.includes("800-53r5_high") && !baselines.includes("DISA-STIG")) continue;
+      if (!inStrictMscp(baselines)) continue;
       const stigIds = Array.isArray(r.extra.stig) ? (r.extra.stig as string[]) : [];
       const info = { id: r.label, payloads: payloadsOf(r), ddm: r.extra.ddmInfo ?? null, odv: r.extra.odv ?? null, baselines };
       const joined = stigIds.map((id) => stigItems.get(id)).find((i) => i !== undefined);
@@ -497,7 +530,7 @@ export function compareNext(
     if (next) out.push(compareSettings(db, chosen.sct, next));
   }
   if (chosen.mscp) {
-    const order = ["ventura", "sonoma", "sequoia", "tahoe"];
+    const order = chosen.mscp.key.startsWith("mscp:ios_") ? ["ios_16", "ios_17", "ios_18", "ios_26", "ios_27"] : ["ventura", "sonoma", "sequoia", "tahoe"];
     const at = order.indexOf(chosen.mscp.key.replace("mscp:", ""));
     const next = at >= 0 ? choices.mscps.find((c) => c.key === `mscp:${order[at + 1]}`) : undefined;
     if (next) out.push(compareMscp(db, chosen.mscp, next));
@@ -545,7 +578,7 @@ function compareMscp(db: DatabaseSync, current: DocChoice, next: DocChoice): Nex
   const strict = (id: number) =>
     new Map(
       loadRequirements(db, id)
-        .filter((r) => mscpSettingSections.has(r.family ?? "") && Array.isArray(r.extra.baselines) && ((r.extra.baselines as string[]).includes("800-53r5_high") || (r.extra.baselines as string[]).includes("DISA-STIG")))
+        .filter((r) => mscpSettingSections.has(r.family ?? "") && Array.isArray(r.extra.baselines) && inStrictMscp(r.extra.baselines as string[]))
         .map((r) => [r.ref, r]),
     );
   const a = strict(current.documentId);
@@ -618,9 +651,9 @@ export function profileSections(profile: Profile): ProfileSection[] {
 /** The STIGs a platform's builder can start from, for the index page. */
 export function builderSummary(db: DatabaseSync, platform: BuilderPlatform): { stigs: StigSummary[]; scts: number; mscps: number; high: boolean } {
   return {
-    stigs: followedStigs(db).filter((s) => s.platform === stigPlatform[platform]),
+    stigs: platformStigs(db, platform),
     scts: platform === "windows" ? sctChoices(db).length : 0,
-    mscps: platform === "macos" ? mscpChoices(db).length : 0,
+    mscps: usesMscp(platform) ? mscpChoices(db, platform).length : 0,
     high: latestDocument(db, "nist-sp-800-53b", "profile:high") !== null,
   };
 }

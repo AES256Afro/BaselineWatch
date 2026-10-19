@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { builderPlatforms, builderSummary, profileSections, sectionOf, type BuilderPlatform, type DocChoice, type NextComparison, type Profile, type ProfileItem, type ProfileSection, type SectionId } from "../baselines.ts";
+import { builderPlatforms, builderSummary, profileSections, sectionOf, usesMscp, type BuilderPlatform, type DocChoice, type NextComparison, type Profile, type ProfileItem, type ProfileSection, type SectionId } from "../baselines.ts";
 import { applyLines, flavours, type Flavour } from "../exports.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
@@ -21,7 +21,7 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
     const s = builderSummary(db, p.id);
     return html`<li class="std">
       <div class="std-head"><b><a href="/baselines/${p.id}">${p.label}</a></b>${s.stigs.length ? html`<span class="state ok">${s.stigs.length} STIG${s.stigs.length === 1 ? "" : "s"} loaded</span>` : html`<span class="state wait">No STIG loaded</span>`}</div>
-      <div class="std-meta"><span>${s.stigs.map((st) => st.product).join(", ") || "follow a STIG first"}</span>${p.id === "windows" ? html`<span>${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</span>` : ""}${p.id === "macos" ? html`<span>${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</span>` : ""}<span>${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</span></div>
+      <div class="std-meta"><span>${s.stigs.map((st) => st.product).join(", ") || "follow a STIG first"}</span>${p.id === "windows" ? html`<span>${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</span>` : ""}${usesMscp(p.id) ? html`<span>${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</span>` : ""}<span>${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</span></div>
       <p class="std-note">${p.blurb}</p>
     </li>`;
   });
@@ -128,7 +128,7 @@ function sectionBlurb(section: ProfileSection, profile: Profile): string {
     case "mscp":
       return `Rules in ${c.mscp?.label ?? "mSCP"}'s SP 800-53 High or DISA STIG baseline that join no rule of the chosen STIG.`;
     case "controls":
-      return `Every control in the High baseline, each with the kept rules that implement it through DISA's CCIs${profile.platform === "macos" ? " and mSCP's references" : ""}. A control with none is organisational: policy, process or something no technical rule reaches.`;
+      return `Every control in the High baseline, each with the kept rules that implement it through DISA's CCIs${usesMscp(profile.platform) ? " and mSCP's references" : ""}. A control with none is organisational: policy, process or something no technical rule reaches.`;
   }
 }
 
@@ -153,7 +153,7 @@ export function renderBuilder(options: BuilderOptions): string {
     <summary><b>${g.section}</b> <span class="count">${g.items.filter((i) => i.included).length} of ${g.items.length} kept</span></summary>
     ${list(g.items)}
   </details>`;
-  const platformFlavours = flavours.filter((f) => f.id === "plain" || (p === "macos" && f.id === "jamf") || (p === "windows" && f.id === "intune") || (p === "linux" && f.id === "linux"));
+  const platformFlavours = flavours.filter((f) => f.id === "plain" || (usesMscp(p) && f.id === "jamf") || (p === "windows" && f.id === "intune") || (p === "linux" && f.id === "linux"));
 
   const main = !c.stig
     ? html`<div class="empty"><b>No ${name} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> and fetch the DISA library from <a href="/sources">Sources</a>.` : "The owner can follow one through the watchlist."}</p></div>`
@@ -165,7 +165,7 @@ export function renderBuilder(options: BuilderOptions): string {
           <legend>Build from</legend>
           ${select("stig", "STIG", profile.choices.stigs, c.stig, "No STIG loaded")}
           ${p === "windows" ? select("sct", "Microsoft baseline", profile.choices.scts, c.sct, "No Microsoft baseline loaded (fetch the Security Compliance Toolkit from Sources)") : ""}
-          ${p === "macos" ? select("mscp", "mSCP branch", profile.choices.mscps, c.mscp, "No mSCP branch loaded (fetch the macOS Security Compliance Project from Sources)") : ""}
+          ${usesMscp(p) ? select("mscp", "mSCP branch", profile.choices.mscps, c.mscp, "No mSCP branch loaded (fetch the macOS Security Compliance Project from Sources)") : ""}
           <label class="inline-check"><input type="checkbox" name="cat3" value="1" ${profile.options.cat3 ? "checked" : ""}> Include CAT III</label>
           <label class="inline-check"><input type="checkbox" name="text" value="1" ${text ? "checked" : ""}> Show check and fix text</label>
           <button type="submit" name="action" value="rebuild">Rebuild</button>
@@ -191,18 +191,18 @@ export function renderBuilder(options: BuilderOptions): string {
       <dl class="kv">
         ${c.stig ? html`<dt>STIG</dt><dd><a href="/standards/disa-stigs/${c.stig.documentId}">${c.stig.label}</a>${c.stig.publishedAt ? html` <span class="small">${c.stig.publishedAt.slice(0, 10)}</span>` : ""}</dd>` : ""}
         ${c.sct ? html`<dt>Microsoft baseline</dt><dd><a href="/standards/microsoft-sct/${c.sct.documentId}">${c.sct.label}</a></dd>` : p === "windows" ? html`<dt>Microsoft baseline</dt><dd>not loaded</dd>` : ""}
-        ${c.mscp ? html`<dt>mSCP</dt><dd><a href="/standards/nist-mscp/${c.mscp.documentId}">${c.mscp.label}</a></dd>` : p === "macos" ? html`<dt>mSCP</dt><dd>not loaded</dd>` : ""}
+        ${c.mscp ? html`<dt>mSCP</dt><dd><a href="/standards/nist-mscp/${c.mscp.documentId}">${c.mscp.label}</a></dd>` : usesMscp(p) ? html`<dt>mSCP</dt><dd>not loaded</dd>` : ""}
         <dt>Controls</dt><dd>${c.controls ? html`<a href="/standards/nist-sp-800-53b/${c.controls.documentId}">${c.controls.label}</a>` : "High baseline not loaded"}${c.cciVersion ? html`<br><span class="small">CCI list ${c.cciVersion}</span>` : html`<br><span class="small">CCI list not loaded: no rule-to-control mapping</span>`}</dd>
         ${p === "windows" ? html`<dt>DISA Intune policy</dt><dd>${c.intune ? html`<a href="/standards/disa-intune/${c.intune.documentId}">${c.intune.label}</a> <span class="small">${c.intune.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd><dt>DISA checklist</dt><dd>${c.checklist ? html`<a href="/standards/disa-gpo/${c.checklist.documentId}">${c.checklist.label}</a> <span class="small">${c.checklist.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd>` : ""}
         <dt>Kept</dt><dd>${profile.counts.included} of ${profile.items.length}${profile.counts.dropped ? html` (${profile.counts.dropped} dropped)` : ""}</dd>
       </dl>
     </section>
     ${profile.next.map(nextBox)}
-    ${c.stig && profile.next.length === 0 ? html`<section class="box"><h2>Current versus next</h2><p class="small">No newer version of the STIG${p === "windows" ? ", the Microsoft baseline" : p === "macos" ? " or the next macOS branch" : ""} is loaded; when one arrives this box lists what the strict set gains and loses.</p></section>` : ""}
+    ${c.stig && profile.next.length === 0 ? html`<section class="box"><h2>Current versus next</h2><p class="small">No newer version of the STIG${p === "windows" ? ", the Microsoft baseline" : usesMscp(p) ? " or the next mSCP branch" : ""} is loaded; when one arrives this box lists what the strict set gains and loses.</p></section>` : ""}
     <section class="box">
       <h2>Whose words</h2>
-      <p class="small">STIG rules: DISA (public domain). Controls: NIST SP 800-53 Rev 5 (public domain), mapped through DISA's CCIs. ${p === "macos" ? "macOS rules and payload keys: NIST's macOS Security Compliance Project. " : ""}${p === "windows" ? "Microsoft's values: your own copy of the Security Compliance Toolkit, never redistributed. Intune definitions and checklist verdicts: DISA's own packages. " : ""}No CIS text, nothing from a model.</p>
-      <p class="small"><a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "macos" ? "macos" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
+      <p class="small">STIG rules: DISA (public domain). Controls: NIST SP 800-53 Rev 5 (public domain), mapped through DISA's CCIs. ${usesMscp(p) ? "Apple rules and payload keys: NIST's macOS Security Compliance Project. " : ""}${p === "windows" ? "Microsoft's values: your own copy of the Security Compliance Toolkit, never redistributed. Intune definitions and checklist verdicts: DISA's own packages. " : ""}No CIS text, nothing from a model.</p>
+      <p class="small"><a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "ios" || p === "ipados" || p === "android" ? "mobile" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
     </section>`;
 
   const content = html`

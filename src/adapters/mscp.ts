@@ -14,8 +14,8 @@ import { isoDate, plainText, type Adapter, type DocumentTarget, type ListingCont
  */
 
 export const mscpRepository = "https://github.com/usnistgov/macos_security";
-/** Branches followed: the current macOS and the one before it. */
-export const mscpBranches = ["tahoe", "sequoia"] as const;
+/** Branches followed: the current macOS and the one before it, and the current iOS/iPadOS. */
+export const mscpBranches = ["tahoe", "sequoia", "ios_26"] as const;
 
 export function branchZipUrl(ref: string): string {
   return `https://codeload.github.com/usnistgov/macos_security/zip/${/^[0-9a-f]{40}$/.test(ref) ? ref : `refs/heads/${ref}`}`;
@@ -149,7 +149,10 @@ export function parseMscpZip(entries: ZipEntry[]): ParsedMscp {
   }
   if (requirements.length === 0) throw new Error("mSCP zip holds no rules");
   requirements.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  const os = version.os ? `macOS ${version.os}` : "macOS";
+  // The iOS/iPadOS branches use the same section ids as macOS; the "os" section is the platform's.
+  const platform = version.platform ?? "macOS";
+  if (/ios/i.test(platform)) for (const r of requirements) if (r.family === "macOS") r.family = "iOS/iPadOS";
+  const os = version.os ? `${platform} ${version.os}` : platform;
   return {
     title: `${os}: ${version.version ?? "macOS Security Compliance Project"}`,
     versionLabel: version.version,

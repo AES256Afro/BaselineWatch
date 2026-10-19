@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { DocChoice } from "../baselines.ts";
+import { usesMscp, type DocChoice } from "../baselines.ts";
 import { runsOn } from "../fleet.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
@@ -54,7 +54,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
           ? html`<label for="stig">STIG</label>
             <select id="stig" name="stig">${plan.profile.choices.stigs.map((s) => html`<option value="${choiceValue(s)}" ${c.stig && s.documentId === c.stig.documentId ? "selected" : ""}>${s.label}${s.publishedAt ? ` (${s.publishedAt.slice(0, 10)})` : ""}</option>`)}</select>`
           : html`<span class="small">No ${name} STIG loaded${owner ? html`: follow one through the <a href="/watchlist">watchlist</a> and fetch the DISA library from <a href="/sources">Sources</a>` : ""}; the plan is the owner's templates alone.</span>`}
-        ${p === "macos" && plan.profile.choices.mscps.length ? html`<label for="mscp">mSCP branch</label><select id="mscp" name="mscp">${plan.profile.choices.mscps.map((m) => html`<option value="${choiceValue(m)}" ${c?.mscp && m.documentId === c.mscp.documentId ? "selected" : ""}>${m.label}</option>`)}</select>` : ""}
+        ${usesMscp(plan.profile.platform) && plan.profile.choices.mscps.length ? html`<label for="mscp">mSCP branch</label><select id="mscp" name="mscp">${plan.profile.choices.mscps.map((m) => html`<option value="${choiceValue(m)}" ${c?.mscp && m.documentId === c.mscp.documentId ? "selected" : ""}>${m.label}</option>`)}</select>` : ""}
         <label class="inline-check"><input type="checkbox" name="cat3" value="1" ${plan.options.cat3 ? "checked" : ""}> Include CAT III</label>
         <label class="inline-check"><input type="checkbox" name="templates" value="1" ${plan.options.templates === false ? "" : "checked"}> Owner's templates</label>
       </fieldset>`

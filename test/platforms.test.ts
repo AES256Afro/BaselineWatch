@@ -1,7 +1,7 @@
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pdfText } from "../src/pdf.ts";
-import { buildTestPlan, exportPlan, testedItems } from "../src/testplans.ts";
+import { buildTestPlan, exportPlan, releaseChoices, testedItems } from "../src/testplans.ts";
 import { loadBaselineFixtures } from "./baseline-fixtures.ts";
 import { startTestApp, type TestApp } from "./helpers.ts";
 
@@ -51,6 +51,38 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(any.release).toBeNull();
   });
 
+  it("starts a plan from the Register documents its release names, and still takes a choice", () => {
+    // macOS 26 Tahoe names stig:apple-macos-26-tahoe and mscp:tahoe in data/platforms.yaml; both are loaded.
+    const tahoe = buildTestPlan(app.db, { platform: "macos", version: "26" });
+    expect(tahoe.profile?.components.stig?.key).toBe("stig:apple-macos-26-tahoe");
+    expect(tahoe.profile?.components.mscp?.key).toBe("mscp:tahoe");
+    // macOS 15 names the Sequoia STIG, which is not loaded: the first choice stands in, as before.
+    const sequoia = buildTestPlan(app.db, { platform: "macos", version: "15" });
+    expect(sequoia.profile?.components.stig?.key).toBe("stig:apple-macos-26-tahoe");
+    // Windows 25H2 names the v25H2 Microsoft baseline.
+    const w25 = buildTestPlan(app.db, { platform: "windows", version: "25H2" });
+    expect(w25.profile?.components.sct?.key).toBe("baseline:windows-11-v25h2");
+    // An explicit choice wins over the release's.
+    const choice = tahoe.profile!.choices.stigs[0]!;
+    const picked = buildTestPlan(app.db, { platform: "macos", version: "26", stig: `${choice.key}@${choice.documentId}` });
+    expect(picked.profile?.components.stig?.documentId).toBe(choice.documentId);
+    expect(releaseChoices(app.db, null)).toEqual({});
+  });
+
+  it("builds the iOS baseline and lists six platforms", async () => {
+    const index = await (await fetch(`${app.base}/baselines`)).text();
+    expect(index).toContain("6 platforms");
+    expect(index).toContain('<a href="/baselines/ios">iOS</a>');
+    expect(index).toContain('<a href="/baselines/android">Android</a>');
+    const builder = await (await fetch(`${app.base}/baselines/ios`)).text();
+    expect(builder).toContain("Apple iOS/iPadOS 26 V1R2");
+    expect(builder).toContain("AIOS-26-006500");
+    expect(builder).toContain('<a href="/stigs/mobile">');
+    expect(builder).toContain("mSCP branch");
+    const android = await (await fetch(`${app.base}/baselines/android`)).text();
+    expect(android).toContain("No Android STIG loaded");
+  });
+
   it("tests only the areas chosen and lists the rest as not tested", () => {
     const plan = buildTestPlan(app.db, { platform: "macos", version: "27", hardware: "apple-silicon", areas: ["hardware"] });
     expect(plan.areasChosen).toEqual(["hardware"]);
@@ -76,12 +108,21 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,reference");
   });
 
-  it("builds a templates-only plan for iOS, Android and the meeting rooms", () => {
+  it("builds the iOS plan from its STIG and the templates, and templates-only plans for Android and the meeting rooms", () => {
     const ios = buildTestPlan(app.db, { platform: "ios", version: "26", hardware: "iphone-a13" });
-    expect(ios.profile).toBeNull();
+    // The iOS/iPadOS 26 STIG is loaded: its CAT I and II rules are derived checks beside the templates.
+    expect(ios.profile?.components.stig?.key).toBe("stig:apple-ios-ipados-26");
+    expect(ios.items.filter((i) => i.source === "stig").map((i) => i.label).sort()).toEqual(["AIOS-26-006500", "AIOS-26-006800", "AIOS-26-007500", "AIOS-26-011200", "AIOS-26-012500", "AIOS-26-013200"]);
+    expect(ios.items.find((i) => i.label === "AIOS-26-013200")?.area).toBe("mdm");
+    expect(ios.items.find((i) => i.label === "AIOS-26-006500")?.area).toBe("authentication");
     expect(ios.templates.map((t) => t.id)).toEqual(["conditional-access", "entra-sso-mobile", "hardware-root-ios", "mdm-enrolment"]);
-    expect(ios.items.every((i) => i.source === "template")).toBe(true);
     expect(ios.items.find((i) => i.id === "template:hardware-root-ios:5")!.applicable.ok).toBe(true);
+    const ipad = buildTestPlan(app.db, { platform: "ipados", version: "26" });
+    expect(ipad.profile?.components.stig?.key).toBe("stig:apple-ios-ipados-26");
+    // Android has no STIG loaded in the fixtures: a profile with no STIG, templates only.
+    const droid = buildTestPlan(app.db, { platform: "android", version: "17", hardware: "pixel" });
+    expect(droid.profile?.components.stig).toBeNull();
+    expect(droid.items.every((i) => i.source === "template")).toBe(true);
     const ios18 = buildTestPlan(app.db, { platform: "ios", version: "18" });
     expect(ios18.items.find((i) => i.id === "template:hardware-root-ios:5")!.applicable.reason).toBe("applies to iOS >=26, not iOS 18");
     const rooms = buildTestPlan(app.db, { platform: "collaboration", hardware: "samsung-signage" });
@@ -104,7 +145,7 @@ describe("platform engineering: the release and hardware under test", () => {
     const docx = await fetch(`${base}/baselines/ios/tests/export?format=docx&version=27`);
     expect(docx.headers.get("content-type")).toMatch(/wordprocessingml/);
     const parts = unzipSync(new Uint8Array(await docx.arrayBuffer()));
-    expect(new TextDecoder().decode(parts["word/document.xml"]!)).toContain("iOS test plan (iOS 27)");
+    expect(new TextDecoder().decode(parts["word/document.xml"]!)).toContain("iOS test plan: Apple iOS/iPadOS 26 V1R2 (iOS 27)");
 
     const pdf = await fetch(`${base}/baselines/windows/tests/export?format=pdf&version=26H2&hardware=copilot-plus`);
     expect(pdf.headers.get("content-type")).toMatch(/application\/pdf/);

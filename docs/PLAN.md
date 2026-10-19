@@ -585,12 +585,20 @@ vendor source, CIS stays upload-only.
 
 **Next, in order:**
 
-#### M11.2: Mobile and collaboration in the builder
-DISA's Apple iOS/iPadOS, Google Android and Samsung Android with Knox STIGs on the default
-followed list and mSCP's iOS guidance in the Register, so iOS, iPadOS and Android get derived
-checks beside the templates; the builder platform list grows to six. Collaboration stays
-templates-only: no publisher writes a STIG for a Samsung display, and the Teams Rooms Windows
-console takes the Windows 11 STIG.
+#### M11.2: Mobile in the builder, plan defaults from the release — shipped 2026-10-19
+
+What landed: iOS, iPadOS and Android are builder platforms. DISA's Apple iOS/iPadOS 27 and 26,
+Google Android 17 and 16, and Samsung Android 17 and 16 with Knox STIGs join the default
+followed list (the "mobile" STIG platform, told apart by product name), and NIST mSCP's
+`ios_26` branch joins the followed branches, its "os" section labelled iOS/iPadOS and its
+`ios_stig` baseline counted as the strict set beside `800-53r5_high`. The builder page, the
+Baselines index and the test plans draw the three like the others (Jamf flavour for Apple, the
+mSCP select for iOS and iPadOS). A test plan whose release names Register documents in
+`data/platforms.yaml` (`documents: { stig, mscp, sct }`) starts from them, so the macOS 26 plan
+opens on the Tahoe STIG and `mscp:tahoe` and the Windows 25H2 plan on the v25H2 baseline; a
+person can still pick another. Collaboration stays templates-only: no publisher writes a STIG
+for a Samsung display, and a Teams Rooms Windows console takes the Windows 11 STIG. The fixture
+test adds an Apple iOS/iPadOS 26 STIG derived from the Windows one.
 
 #### M11.3: Decisions, and plans that test only what is applied
 The owner's decision per baseline item (apply as published, apply with the organisation's own

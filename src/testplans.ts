@@ -3,6 +3,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { parse as parseYaml } from "yaml";
 import { buildProfile, isBuilderPlatform, type Profile, type ProfileItem, type ProfileOptions } from "./baselines.ts";
+import { latestDocument } from "./register.ts";
 import { applicability, appliesToAll, findHardware, findRelease, fleetPlatformName, hardwareOf, isFleetPlatform, loadFleet, parseApplies, releasesOf, type Applicability, type Applies, type Fleet, type FleetPlatform, type Hardware, type Release } from "./fleet.ts";
 import { escapeHtml } from "./html.ts";
 import { renderDocx, renderLatex, renderPdf, type Block, type Inline } from "./report.ts";
@@ -221,12 +222,33 @@ function derived(item: ProfileItem, dropped: Set<string>): PlanItem | null {
   };
 }
 
+/** The builder choices a release's fleet entry names ("key@documentId" for the latest loaded version of each), or nothing where the Register has none. */
+export function releaseChoices(db: DatabaseSync, release: Release | null): { stig?: string; mscp?: string; sct?: string } {
+  const out: { stig?: string; mscp?: string; sct?: string } = {};
+  if (!release) return out;
+  const latest = (source: string, key: string | undefined): string | undefined => {
+    const doc = key ? latestDocument(db, source, key) : null;
+    return doc ? `${key}@${doc.id}` : undefined;
+  };
+  const stig = latest("disa-stigs", release.documents.stig);
+  const mscp = latest("nist-mscp", release.documents.mscp);
+  const sct = latest("microsoft-sct", release.documents.sct);
+  if (stig) out.stig = stig;
+  if (mscp) out.mscp = mscp;
+  if (sct) out.sct = sct;
+  return out;
+}
+
 /** The plan: derived checks from the strict profile's STIG and mSCP items, then the owner's templates that apply, grouped by area. */
 export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDir: string = templatesDir, fleet: Fleet = loadFleet()): TestPlan {
   const { platform } = options;
-  const profile = isBuilderPlatform(platform) ? buildProfile(db, { ...options, platform, drop: [] }) : null;
   const release = findRelease(fleet, platform, options.version);
   const hardware = findHardware(fleet, options.hardware);
+  // The release names the Register documents it is built from; an unset choice starts there, and the person can still override.
+  const fromRelease = releaseChoices(db, release);
+  const profile = isBuilderPlatform(platform)
+    ? buildProfile(db, { ...options, platform, stig: options.stig ?? fromRelease.stig, mscp: options.mscp ?? fromRelease.mscp, sct: options.sct ?? fromRelease.sct, drop: [] })
+    : null;
   const dropped = new Set(options.drop ?? []);
   const items: PlanItem[] = [];
   if (profile) {

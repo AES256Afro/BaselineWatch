@@ -108,7 +108,7 @@ platforms:
           - DISA Microsoft Windows 11 STIG (one STIG covers every Windows 11 version)
           - Microsoft Security Baseline for Windows 11, version 26H2 (Security Compliance Toolkit, 2026-10-08)
           - CIS Microsoft Windows 11 Enterprise Benchmark
-        documents: { stig: "stig:microsoft-windows-11" }
+        documents: { stig: "stig:microsoft-windows-11", sct: "baseline:windows-11-v26h2" }
         notes:
           - The 2026 feature update; no 26H2 LTSC release. The toolkit's "Windows 11 v26H2 Security Baseline" shipped 2026-10-08.
           - Administrator protection becomes on by default with the October 2026 security update where the security baseline is applied.
@@ -220,10 +220,10 @@ platforms:
         hardware: [apple-silicon]
         models: "Every Apple silicon Mac: MacBook Air and MacBook Pro from 2020 (M1) on, iMac from 2021, Mac mini from 2020, Mac Studio from 2022, Mac Pro 2023, and the 2026 MacBook Neo. No Intel Mac."
         baselines:
-          - NIST macOS Security Compliance Project, the macOS 27 branch (verify the branch name once NIST publishes it)
+          - NIST macOS Security Compliance Project, the macOS 27 branch (mSCP 2.0 carries it on main; verify the branch name)
           - DISA Apple macOS 27 STIG (when published)
           - CIS Apple macOS 27 Benchmark (when published)
-        documents: {}
+        documents: { stig: "stig:apple-macos-27-golden-gate" }
         notes:
           - Apple silicon only; Intel Macs stay on macOS 26 Tahoe.
           - Apple says this is the last macOS with Rosetta 2 as a general-purpose translation layer; inventory Intel-only apps now.
@@ -303,7 +303,7 @@ platforms:
           - DISA Apple iOS/iPadOS 27 STIG (verify it has been published)
           - NIST macOS Security Compliance Project, ios_27 branch (verify)
           - CIS Apple iOS 27 Benchmark (when published)
-        documents: {}
+        documents: { stig: "stig:apple-ios-ipados-27", mscp: "mscp:ios_27" }
         notes: []
         sources:
           - { title: "Apple, iPhone models compatible with iOS 27", url: "https://support.apple.com/guide/iphone/iphone-models-compatible-with-ios-27-iphe3fa5df43/ios" }
@@ -362,7 +362,7 @@ platforms:
         baselines:
           - DISA Apple iOS/iPadOS 27 STIG (verify it has been published)
           - NIST macOS Security Compliance Project, ios_27 branch (verify)
-        documents: {}
+        documents: { stig: "stig:apple-ios-ipados-27", mscp: "mscp:ios_27" }
         notes: []
         sources:
           - { title: "Apple Platform Deployment", url: "https://support.apple.com/guide/deployment/welcome/web" }
@@ -406,7 +406,7 @@ platforms:
           - DISA Google Android 17 STIG (verify it has been published)
           - DISA Samsung Android 17 with Knox STIG (verify)
           - CIS Google Android Benchmark
-        documents: {}
+        documents: { stig: "stig:google-android-17-cobo" }
         notes:
           - A Galaxy still waiting for One UI 9 is on Android 16 with the current security patch level; test the patch level, not the major version. Knox 3.14 on Samsung devices.
         sources:
@@ -422,7 +422,7 @@ platforms:
           - DISA Google Android 16 STIG (COBO V1R3 of 2026-05-13, COPE V1R2 of 2026-04-01)
           - DISA Samsung Android 16 with Knox 3.x STIG (COPE V1R2 of 2026-04-01)
           - CIS Google Android Benchmark v1.6.0 (one benchmark for every version)
-        documents: { stig: "stig:google-android-16" }
+        documents: { stig: "stig:google-android-16-cobo" }
         notes:
           - Knox 3.12 and 3.13 on Samsung devices.
         sources:
@@ -436,7 +436,7 @@ platforms:
         baselines:
           - DISA Google Android 15 STIG
           - DISA Samsung Android 15 with Knox 3.x STIG (COPE, COBO and a BYOAD variant)
-        documents: { stig: "stig:google-android-15" }
+        documents: { stig: "stig:google-android-15-cobo" }
         notes:
           - AOSP 2024-09-03, Pixel 2024-10-15. Knox 3.11 on Samsung devices.
         sources:
@@ -450,7 +450,7 @@ platforms:
         baselines:
           - DISA Google Android 14 STIG
           - DISA Samsung Android 14 with Knox STIG
-        documents: { stig: "stig:google-android-14" }
+        documents: { stig: "stig:google-android-14-cobo" }
         notes: []
         sources:
           - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
