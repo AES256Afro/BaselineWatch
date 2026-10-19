@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { SourceRow } from "../adapters/types.ts";
 import { summarizeChanges, type RequirementChange } from "../differ.ts";
-import { html, newTabIf, type Html } from "../html.ts";
+import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { getSource } from "../ingest.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
@@ -25,13 +25,17 @@ const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.s
 export function renderStandard(options: { db: DatabaseSync; sourceId: string; now: Date; notice?: string | undefined } & Who): string | null {
   const { db, sourceId, now, owner, open, notice, look } = options;
   const source = getSource(db, sourceId);
-  if (!source || source.group_name !== "standards") return null;
+  if (!source) return null;
+  // Non-standard sources (KEV, advisories) also keep versioned documents; their release pages
+  // link back here, so the page answers for any source that has at least one version.
+  if (source.group_name !== "standards" && listDocuments(db, sourceId).length === 0) return null;
   const upload =
     source.format === "pdf-upload"
       ? owner
         ? html`<section class="box upload">
             <h2>Upload a benchmark PDF</h2>
             <p class="small">The PDF stays in this instance's data directory under your own CIS licence. Upload the same benchmark again when CIS publishes a new version and the Register shows what changed, recommendation by recommendation.</p>
+            <p class="small">Where to get one: sign in to <a href="https://workbench.cisecurity.org/" ${newTab}>CIS WorkBench</a> (free registration) → Benchmarks → your platform → Download PDF; or use your organisation's SecureSuite copy.</p>
             <form method="post" action="/uploads/cis" enctype="multipart/form-data" class="stack">
               <label for="cis-pdf">Benchmark PDF</label>
               <input type="file" id="cis-pdf" name="pdf" accept="application/pdf,.pdf" required>

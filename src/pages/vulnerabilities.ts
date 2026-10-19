@@ -118,7 +118,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
           <tbody>${tableRows}</tbody>
         </table></div>
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
-    <p class="small">NVD cursor: ${cursor ? shortStamp(cursor) : "no pull yet"}. The Wire shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
+    <p class="small">NVD cursor: ${cursor ? shortStamp(cursor) : html`no pull yet — <a href="/sources">Sources</a> shows each feed's state and what to do when one fails`}. The News page shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
   return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look });
 }
@@ -126,7 +126,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
 export function fixPanel(fix: Fix): Html {
   if (fix.empty) {
-    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory on the Wire for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
+    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
   }
   return html`<section class="box fix">
     <h2>Fix</h2>
@@ -138,7 +138,7 @@ export function fixPanel(fix: Fix): Html {
           <ul class="refs">${fix.references.slice(0, 20).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a> <span class="small">${r.tags.join(", ")}</span></li>`)}</ul>`
       : ""}
     ${fix.advisories.length
-      ? html`<h3 class="small">Vendor advisories on the Wire <span class="count">${fix.advisories.length}</span></h3>
+      ? html`<h3 class="small">Vendor advisories in the News <span class="count">${fix.advisories.length}</span></h3>
           <ul class="refs">${fix.advisories.map((a) => html`<li><a href="${a.url ?? "/"}" ${newTabIf(a.url)}>${a.title}</a> <span class="small">${a.source}${a.publishedAt ? html` · ${a.publishedAt.slice(0, 10)}` : ""}</span></li>`)}</ul>`
       : ""}
     ${fix.packages.length

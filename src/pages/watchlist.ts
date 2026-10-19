@@ -18,7 +18,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
 
   const content = html`
     <h1>Watchlist</h1>
-    <p class="lede">What you own. A CVE that touches a product here is marked as your stack, goes on the Wire however small its score, and can be filtered to on the Vulnerabilities page. Baselines and control families are used by the Register from M3.</p>
+    <p class="lede">What you own. A CVE that touches a product here is marked as your stack, goes in the News however small its score, and can be filtered to on the Vulnerabilities page. Baselines and control families are used by the Register from M3.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="cols">
       <section class="main">
@@ -61,7 +61,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
           : html`<section class="box"><h2>Owner only</h2><p class="small">Sign in to change the watchlist.</p></section>`}
         <section class="box">
           <h2>How matching works</h2>
-          <p class="small">Product entries match the CPE criteria NVD attaches to a CVE: a bare name matches the vendor or the product field, <code>vendor:product</code> matches both, and a <code>cpe:2.3:</code> prefix matches literally. A platform entry matches by the CPE's operating system or browser, then NVD's vendor and product, then the way the description names the platform for a CVE NVD has not analysed yet, so a new macOS CVE reaches the Wire, the alerts ("New Apple CVE") and the digest at once. CVEs that have no CPE yet otherwise match only by keyword. Every CVE is re-checked when the list changes.</p>
+          <p class="small">Product entries match the CPE criteria NVD attaches to a CVE: a bare name matches the vendor or the product field, <code>vendor:product</code> matches both, and a <code>cpe:2.3:</code> prefix matches literally. A platform entry matches by the CPE's operating system or browser, then NVD's vendor and product, then the way the description names the platform for a CVE NVD has not analysed yet, so a new macOS CVE reaches the News, the alerts ("New Apple CVE") and the digest at once. CVEs that have no CPE yet otherwise match only by keyword. Every CVE is re-checked when the list changes.</p>
         </section>
       </aside>
     </div>`;

@@ -54,6 +54,7 @@ export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId
               COALESCE(d.published_at, d.parsed_at) AS at,
               (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
        FROM documents d JOIN sources s ON s.id = d.source_id
+       WHERE s.group_name = 'standards'
        ORDER BY at DESC, d.id DESC LIMIT ?`,
     )
     .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[];

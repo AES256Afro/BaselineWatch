@@ -2,6 +2,25 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.26.0 — 2026-10-19
+
+- **Thirteen more news sources**: The Register (security), Cisco Talos, Unit 42, Securelist,
+  WeLiveSecurity, Troy Hunt, Graham Cluley, watchTowr Labs, Security Affairs, The Citizen Lab,
+  and the r/AskNetsec, r/Malware and r/ReverseEngineering subreddits — every feed verified
+  answering before seeding (Ars Technica's and Sophos's feed URLs answer 404 and stayed out).
+- **The Sources page now says what to do when a feed fails.** A known failure draws a hint under
+  the raw error: NVD answering 404 means the API key is invalid or expired (with the link to
+  request a free one, and the note that the cursor backfills the gap by itself); 403/429 means
+  the publisher is rate-limiting and the scheduler retries on its own; a source with no adapter
+  says it is planned, not broken. The CIS row and the upload page both point at CIS WorkBench as
+  the place to get benchmark PDFs.
+- **A readability sweep after the News rename**: user-facing "Wire" wording became "News"
+  everywhere, and the Vulnerabilities footer links to Sources when no NVD pull has run.
+- **One broken link fixed, none left**: the Register ribbon listed KEV catalog versions whose
+  standard page answered 404; the ribbon now carries standards releases only, and
+  `/standards/<id>` answers for any source that keeps versions. A crawl of 5,873 internal URLs
+  finds no broken links.
+
 ## 0.25.0 — 2026-10-19
 
 - **News is the home page.** The Wire, renamed News, answers at `/`; the Register moved to
