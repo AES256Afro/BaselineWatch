@@ -45,6 +45,39 @@ function rssLink(value: unknown): string | null {
   return text(value);
 }
 
+const httpUrl = (value: unknown): string | null => (typeof value === "string" && /^https?:\/\//i.test(value) ? value : null);
+
+/** The first <img src> in an HTML fragment, the way feeds embed a lead image in content:encoded. */
+export function imageInHtml(fragment: string | null): string | null {
+  if (!fragment) return null;
+  const match = /<img\b[^>]*?\bsrc\s*=\s*("([^"]+)"|'([^']+)')/i.exec(fragment);
+  return httpUrl(match?.[2] ?? match?.[3] ?? null);
+}
+
+/** Feed-supplied media, in order of intent: enclosure, media:content, media:thumbnail. */
+function feedImage(item: Node): string | null {
+  const nodes = (value: unknown): Node[] => (Array.isArray(value) ? (value as Node[]) : value && typeof value === "object" ? [value as Node] : []);
+  for (const enclosure of nodes(item.enclosure)) {
+    const type = enclosure["@_type"];
+    if (typeof type === "string" && !type.startsWith("image/")) continue;
+    const url = httpUrl(enclosure["@_url"]);
+    if (url) return url;
+  }
+  for (const media of nodes(item["media:content"])) {
+    const type = media["@_type"];
+    const medium = media["@_medium"];
+    if (typeof type === "string" && !type.startsWith("image/")) continue;
+    if (typeof medium === "string" && medium !== "image") continue;
+    const url = httpUrl(media["@_url"]);
+    if (url) return url;
+  }
+  for (const thumb of nodes(item["media:thumbnail"])) {
+    const url = httpUrl(thumb["@_url"]);
+    if (url) return url;
+  }
+  return null;
+}
+
 function rssItems(channel: Node): ParsedItem[] {
   const items = (channel.item as Node[] | undefined) ?? [];
   return items.flatMap((item) => {
@@ -56,6 +89,8 @@ function rssItems(channel: Node): ParsedItem[] {
     const summary = plainText(body);
     const haystack = `${title} ${summary ?? ""}`;
     const cves = cveIdsIn(haystack);
+    const media = feedImage(item);
+    const image = media ?? imageInHtml(body);
     return [
       {
         kind: "article",
@@ -64,6 +99,7 @@ function rssItems(channel: Node): ParsedItem[] {
         url: link,
         summary,
         publishedAt: isoDate(text(item.pubDate) ?? text(item["dc:date"]) ?? text(item.date)),
+        ...(image ? { imageUrl: image, imageOrigin: media ? ("enclosure" as const) : ("body" as const) } : {}),
         ...(cves.length ? { signals: { cves } } : {}),
       } satisfies ParsedItem,
     ];
@@ -77,8 +113,11 @@ function atomEntries(feed: Node): ParsedItem[] {
     const link = atomLink(entry.link);
     const id = text(entry.id) ?? link ?? title;
     if (!title || !id) return [];
+    const body = text(entry.content) ?? text(entry.summary);
     const summary = plainText(text(entry.summary) ?? text(entry.content));
     const cves = cveIdsIn(`${title} ${summary ?? ""}`);
+    const media = feedImage(entry);
+    const image = media ?? imageInHtml(body);
     return [
       {
         kind: "article",
@@ -87,6 +126,7 @@ function atomEntries(feed: Node): ParsedItem[] {
         url: link,
         summary,
         publishedAt: isoDate(text(entry.published) ?? text(entry.updated)),
+        ...(image ? { imageUrl: image, imageOrigin: media ? ("enclosure" as const) : ("body" as const) } : {}),
         ...(cves.length ? { signals: { cves } } : {}),
       } satisfies ParsedItem,
     ];

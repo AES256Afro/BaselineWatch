@@ -25,7 +25,7 @@ const db = openDatabase(path.join(config.dataDir, "baselinewatch.db"));
 migrate(db);
 
 let failures = 0;
-const deps = { settings: { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays }, log: (line: string) => console.log(line) };
+const deps = { settings: { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages }, log: (line: string) => console.log(line) };
 
 if (command === "backfill") {
   const source = getSource(db, target);

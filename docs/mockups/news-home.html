@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>News Home Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* The chosen hybrid: top bar for the areas, sidebar for the desk — BleepingComputer's shape on
+   BaselineWatch's tokens. News is home at /. Article images are pulled passively at ingest
+   (feed enclosure → content:encoded <img> → og:image), cached in the blob store and served
+   from /img/<hash>, because the app's own CSP (img-src 'self') forbids hot-linking. */
+:root{
+  --paper:#f3f4f1; --card:#ffffff; --panel-2:#f7f8f6; --ink:#1b1f23; --mute:#5f6b70; --rule:#cfd5d2; --rule-2:#b9c1bd;
+  --acc:#0f6e56; --acc-ink:#ffffff; --warn:#8a5a00; --del:#b3261e; --hl:#fff3cd; --cyan:#0b6f8f; --purple:#7a4fb3;
+  --serif:"Newsreader","Source Serif 4",Georgia,serif;
+  --sans:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --del:#ff8a80; --hl:#3a3420; --cyan:#5fd0f3; --purple:#c2a6f0; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --del:#ff8a80; --hl:#3a3420; --cyan:#5fd0f3; --purple:#c2a6f0; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding-bottom:64px}
+.note-wrap{max-width:1100px;margin:0 auto;padding-inline:16px}
+h1{font:500 30px/1.15 var(--serif);margin:36px 0 0}
+.lede{color:var(--mute);max-width:76ch;margin:10px 0 0}
+.kicker{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:28px 0 6px}
+mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 3px}
+.frame{margin-top:14px;border:1px solid var(--rule);border-radius:10px;overflow-x:auto;background:var(--card)}
+.chrome{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--rule);background:var(--panel-2);color:var(--mute);font:12px var(--mono);min-width:1020px}
+.chrome i{width:9px;height:9px;border-radius:50%;background:var(--rule-2);font-style:normal}
+.screen{min-width:1020px}
+
+/* masthead */
+.mast{background:var(--card);border-bottom:1px solid var(--rule)}
+.mast-inner{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:10px 24px}
+.name{font:500 17px var(--serif);color:var(--ink);text-decoration:none;white-space:nowrap}
+.mast nav{display:flex;gap:4px 18px;font-size:13.5px;align-items:center;flex-wrap:nowrap}
+.mast nav a{color:var(--mute);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.mast nav a.on{color:var(--ink);border-bottom-color:var(--acc)}
+.meta{margin-left:auto;color:var(--mute);font-size:12.5px;white-space:nowrap}
+.deskbtn{color:var(--mute);border:1px solid var(--rule);border-radius:7px;padding:4px 10px;font-size:13px;white-space:nowrap}
+.strip{display:flex;gap:14px;align-items:center;padding:7px 20px;border-bottom:1px solid var(--rule);background:var(--panel-2);font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden}
+.strip .lab{font:600 10.5px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--warn);flex:none}
+.strip a{color:var(--ink);text-decoration:none}
+.strip .dot{color:var(--rule-2)}
+
+/* featured image cards */
+.feat{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1180px;margin:18px auto 0;padding:0 20px}
+.fcard{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--rule);aspect-ratio:4/4.6;display:flex;flex-direction:column;justify-content:flex-end;background:var(--panel-2)}
+.fcard .art{position:absolute;inset:0}
+.fcard .art span{position:absolute;inset:auto 10px 86px auto;font:600 10px var(--mono);letter-spacing:.06em;color:#fff;background:rgba(0,0,0,.45);border-radius:5px;padding:2px 7px}
+.fcard h3{position:relative;margin:0;padding:34px 14px 12px;font:600 15.5px/1.3 var(--sans);color:#fff;background:linear-gradient(transparent,rgba(5,10,12,.88) 55%)}
+.fcard .srcchip{position:absolute;top:10px;left:10px;font:600 10.5px var(--sans);letter-spacing:.05em;color:#fff;background:rgba(5,10,12,.55);border-radius:999px;padding:3px 9px;backdrop-filter:blur(2px)}
+.a1{background:linear-gradient(135deg,#7f1d1d,#1c0a0a 70%)}
+.a2{background:linear-gradient(135deg,#0c4a6e,#082033 70%)}
+.a3{background:linear-gradient(135deg,#4c1d95,#170b2e 70%)}
+.a4{background:repeating-linear-gradient(45deg,var(--panel-2),var(--panel-2) 12px,var(--paper) 12px,var(--paper) 24px)}
+.a4 b{position:absolute;inset:0;display:grid;place-items:center;font:600 44px var(--serif);color:var(--rule-2)}
+.a1::after,.a2::after,.a3::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(90px 90px at 78% 28%,rgba(255,255,255,.22),transparent 70%),
+  radial-gradient(140px 90px at 20% 75%,rgba(255,255,255,.08),transparent 70%)}
+.fcard.plain h3{background:linear-gradient(transparent,rgba(5,10,12,.06) 55%);color:var(--ink)}
+.fcard.plain .srcchip{background:var(--panel-2);color:var(--mute);border:1px solid var(--rule)}
+.fcard.plain .art span{background:var(--panel-2);color:var(--mute);border:1px solid var(--rule)}
+
+/* main grid: list + sidebar */
+.grid{display:grid;grid-template-columns:1fr 320px;gap:26px;max-width:1180px;margin:22px auto 0;padding:0 20px 30px}
+.col h2,.box h2{font:500 13px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--mute);margin:0 0 4px;padding-bottom:6px;border-bottom:2px solid var(--rule)}
+.item{display:grid;grid-template-columns:128px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.thumb{aspect-ratio:16/10;border-radius:8px;border:1px solid var(--rule);position:relative;overflow:hidden}
+.thumb i{position:absolute;inset:auto 6px 6px auto;font:600 9px var(--mono);font-style:normal;color:#fff;background:rgba(0,0,0,.45);border-radius:4px;padding:1px 5px}
+.t1{background:linear-gradient(135deg,#134e4a,#071f1d 70%)}
+.t2{background:linear-gradient(135deg,#7c2d12,#290e05 70%)}
+.t3{background:repeating-linear-gradient(45deg,var(--panel-2),var(--panel-2) 10px,var(--paper) 10px,var(--paper) 20px)}
+.t3 b{position:absolute;inset:0;display:grid;place-items:center;font:600 26px var(--serif);color:var(--rule-2)}
+.item .kick{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin:0}
+.item .kick.kev{color:var(--del)}
+.item .kick.reg{color:var(--warn)}
+.item h3{margin:2px 0 4px;font:500 17px/1.25 var(--serif)}
+.item h3 a{color:var(--ink);text-decoration:none}
+.item p{margin:0;font-size:13.5px;color:var(--mute)}
+.item .m{margin-top:6px;font-size:12px;color:var(--mute)}
+.item .m b{font-weight:600;color:var(--mute)}
+
+/* sidebar */
+.side{display:flex;flex-direction:column;gap:18px}
+.box{border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:13px 15px}
+.box h2{border:0;padding:0;margin:0 0 8px}
+.box ul{list-style:none;margin:0;padding:0;font-size:13.5px}
+.box li{padding:7px 0;border-top:1px solid var(--rule)}
+.box li:first-child{border-top:0}
+.box li a{color:var(--ink);text-decoration:none}
+.box li .w{display:block;font-size:11.5px;color:var(--mute)}
+.box .cve{font:600 12px var(--mono);color:var(--del);margin-right:7px}
+.box .std{font:600 12px var(--mono);color:var(--warn);margin-right:7px}
+.box.desk{background:var(--panel-2)}
+.box .all{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--acc)}
+.sbars{display:flex;gap:3px;align-items:flex-end;height:34px;margin-top:4px}
+.sbars i{flex:1;background:var(--acc);opacity:.75;border-radius:2px 2px 0 0}
+
+/* notes */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
+.notes>div{border-top:2px solid var(--rule);padding-top:8px}
+.notes h3{margin:0 0 3px;font:600 11px var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.notes p{margin:0;font-size:13.5px}
+.notes .plus{border-top-color:var(--acc)}
+.notes .minus{border-top-color:var(--del)}
+.notes .reg{border-top-color:var(--warn)}
+.pipeline{counter-reset:s;margin:14px 0 0;padding:0;list-style:none;max-width:78ch}
+.pipeline li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-top:1px solid var(--rule)}
+.pipeline li:first-child{border-top:0}
+.pipeline li::before{content:counter(s);position:absolute;left:0;top:10px;width:26px;height:26px;border-radius:50%;background:var(--acc);color:var(--acc-ink);font:600 13px var(--sans);display:grid;place-items:center}
+.pipeline b{font-weight:600}
+.pipeline p{margin:2px 0 0;font-size:13.5px;color:var(--mute)}
+code{font:12.5px var(--mono);background:var(--panel-2);border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<div class="note-wrap">
+  <h1>News home: top bar + sidebar, images from the sources</h1>
+  <p class="lede">BleepingComputer's shape on BaselineWatch's tokens: areas across the top, the working sidebar on the right, a featured row of image cards, and the latest list with thumbnails. News is home at <code>/</code>. Every image is pulled <mark>passively at ingest</mark> from data the aggregates already deliver, cached in the content-addressed blob store, and served from <code>/img/&lt;hash&gt;</code> — required anyway, because the app's own CSP says <code>img-src 'self'</code>, which forbids hot-linking.</p>
+</div>
+
+<div class="note-wrap">
+  <p class="kicker">The page</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net — home, signed out</div>
+  <div class="screen">
+    <header class="mast"><div class="mast-inner">
+      <a class="name">BaselineWatch</a>
+      <nav><a class="on">News</a><a>Today</a><a>Standards ▾</a><a>Vulnerabilities</a></nav>
+      <div class="meta">Tracking 12 standards</div>
+      <span class="deskbtn">Owner sign-in</span>
+    </div></header>
+    <div class="strip"><span class="lab">Register</span> <a>SP 800-53 r5.3 draft: 3 new controls</a> <span class="dot">·</span> <a>Win 11 STIG V2R4: 12 rules changed</a> <span class="dot">·</span> <a>Intune baseline 24H2 reissued</a></div>
+
+    <div class="feat">
+      <div class="fcard"><div class="art a1"><span>feed enclosure</span></div><span class="srcchip">BleepingComputer</span><h3>Hackers breach Microsoft 365 tenants via ConnectWise supply-chain attack</h3></div>
+      <div class="fcard"><div class="art a2"><span>content:encoded img</span></div><span class="srcchip">The Record</span><h3>CISA orders agencies to patch Ivanti EPMM within 48 hours</h3></div>
+      <div class="fcard"><div class="art a3"><span>og:image</span></div><span class="srcchip">The Hacker News</span><h3>Targeted ads installed Candiru spyware in zero-click attacks</h3></div>
+      <div class="fcard plain"><div class="art a4"><b>§</b><span>no image → placeholder</span></div><span class="srcchip">NIST</span><h3 style="color:var(--ink)">SP 800-53 release 5.3 draft opens for comment</h3></div>
+    </div>
+
+    <div class="grid">
+      <div class="col">
+        <h2>Latest</h2>
+        <div class="item">
+          <div class="thumb t1"><i>og:image</i></div>
+          <div><p class="kick kev">KEV · Exploited</p>
+            <h3><a>CISA adds CVE-2026-31337 to the Known Exploited Vulnerabilities catalog</a></h3>
+            <p>Ivanti EPMM authentication bypass, exploitation confirmed in the wild. Agencies have until Nov 2. On your stack: MDM.</p>
+            <div class="m"><b>CISA KEV</b> · 2 hours ago · CVE-2026-31337 · EPSS 0.87</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="thumb t2"><i>enclosure</i></div>
+          <div><p class="kick">News</p>
+            <h3><a>Burger King Japan data breach exposes 11 million customer records</a></h3>
+            <p>Misconfigured object storage; records included loyalty-card hashes. No card data, the company says.</p>
+            <div class="m"><b>BleepingComputer</b> · 4 hours ago</div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="thumb t3"><b>§</b></div>
+          <div><p class="kick reg">Register · Release</p>
+            <h3><a>NIST publishes SP 800-53 release 5.3 draft — 3 new controls in SI family</a></h3>
+            <p>SI-27, SI-28, SI-29 cover model supply-chain integrity. 14 controls reworded; the diff is in the Register.</p>
+            <div class="m"><b>NIST CSRC</b> · yesterday · <a style="color:var(--acc)">Diff in Register →</a></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="box"><h2>In the KEV this week</h2>
+          <ul>
+            <li><span class="cve">CVE-2026-31337</span><a>Ivanti EPMM auth bypass</a><span class="w">due Nov 2 · your stack</span></li>
+            <li><span class="cve">CVE-2026-30801</span><a>Chrome V8 type confusion</a><span class="w">due Nov 5</span></li>
+          </ul>
+          <a class="all">All vulnerabilities →</a>
+        </div>
+        <div class="box"><h2>Register · latest changes</h2>
+          <ul>
+            <li><span class="std">800-53</span><a>r5.3 draft: +3 controls, 14 reworded</a><span class="w">NIST · yesterday</span></li>
+            <li><span class="std">STIG</span><a>Win 11 V2R4: 12 rules changed</a><span class="w">DISA · Oct 14</span></li>
+            <li><span class="std">MSFT</span><a>Intune baseline 24H2 reissued</a><span class="w">Microsoft · Oct 9</span></li>
+          </ul>
+          <a class="all">The Register →</a>
+        </div>
+        <div class="box"><h2>Change velocity · 12 mo</h2>
+          <div class="sbars"><i style="height:30%"></i><i style="height:45%"></i><i style="height:25%"></i><i style="height:60%"></i><i style="height:40%"></i><i style="height:85%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:50%"></i><i style="height:90%"></i><i style="height:65%"></i></div>
+          <a class="all">Atlas →</a>
+        </div>
+        <div class="box desk"><h2>Owner's desk</h2>
+          <ul><li>Triage · Watchlist · Digest · Sources<span class="w">Sign in to see your queue here.</span></li></ul>
+        </div>
+      </aside>
+    </div>
+  </div></div>
+
+  <div class="notes">
+    <div class="plus"><h3>Top bar and sidebar</h3><p>Areas across the top (five words, never wraps); the right rail carries the working boxes — KEV, register changes, velocity — and becomes the owner's queue when signed in. Exactly BleepingComputer's division: nav up top, “Popular” rail beside the list.</p></div>
+    <div class="reg"><h3>The register stays present</h3><p>The amber strip, the sidebar box, and REG items inside the feed: the register is woven through the news page rather than being a sibling tab only.</p></div>
+    <div class="plus"><h3>Mobile</h3><p>The rail drops below the list on narrow screens; featured row becomes a swipe strip of two-up cards. Thumbnails hide under 480px, keeping the phone list text-first like today's Wire.</p></div>
+  </div>
+
+  <p class="kicker">Getting the images — passively</p>
+  <ol class="pipeline">
+    <li><b>Feed media, free with the fetch.</b><p>Most aggregated feeds already carry the lead image: RSS <code>&lt;enclosure type="image/…"&gt;</code> or <code>&lt;media:content&gt;</code>/<code>&lt;media:thumbnail&gt;</code> (The Hacker News, The Record), or an <code>&lt;img&gt;</code> inside <code>content:encoded</code>, which <code>feed.ts</code> already reads for summaries. Zero extra requests: parse it out as <code>imageUrl</code> on <code>ParsedItem</code>.</p></li>
+    <li><b>og:image fallback, one small request per new article.</b><p>For feeds with no media (BleepingComputer's own RSS is text-only), fetch the article page once at ingest — same polite HTTP client, rate limits and snapshot discipline as everything else — and read <code>&lt;meta property="og:image"&gt;</code>. One GET per new item, ever; never on page view. A per-source flag turns it off.</p></li>
+    <li><b>Cache into the blob store, serve from self.</b><p>Download the image once, downscale to ~640px WebP, store content-addressed in <code>blobs.ts</code>, keep the hash on the item, serve at <code>/img/&lt;hash&gt;</code>. The CSP stays <code>img-src 'self'</code>, readers' IPs never touch third-party servers, and dead images can't rot the page.</p></li>
+    <li><b>No image → typographic placeholder.</b><p>NVD, CISA directives and standards releases have no art; they get the section-mark placeholder (fourth card above) — a deliberate look, not a broken one.</p></li>
+  </ol>
+  <div class="notes">
+    <div class="reg"><h3>Licensing note</h3><p>Small thumbnails beside headlines that link out is standard aggregator practice, and feed-supplied media is published for exactly this use. Keep them small (≤640px), always linked to the source, with the og:image fetch off by default for any source whose terms object — same spirit as the CIS rule in AGENTS.md.</p></div>
+    <div><h3>Schema</h3><p>One migration: <code>items.image_blob</code> (nullable hash) + <code>image_origin</code> (<code>enclosure</code> · <code>body</code> · <code>og</code>). Adapters stay one module each; the og fetch lives in the ingester, not per-adapter.</p></div>
+    <div class="minus"><h3>What not to do</h3><p>No hot-linking (CSP forbids it, and it leaks reader IPs), no fetching at render time, no re-crawling old items — images are picked up only as new items arrive, which is what “passive” should mean.</p></div>
+  </div>
+</div>
+</body>
+</html>

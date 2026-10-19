@@ -28,6 +28,8 @@ export interface Config {
   /** How many days of NVD modifications the first pull loads. */
   nvdBackfillDays: number;
   notifyUrl: string | null;
+  /** When true (the default) new articles get their lead image cached from the feed or og:image. */
+  newsImages: boolean;
   llmUrl: string | null;
   /** The Ollama model name used for generated summaries. */
   llmModel: string;
@@ -107,6 +109,7 @@ export function loadConfig(env: Env = process.env): Config {
     nvdApiKey: optional(env, "BW_NVD_API_KEY"),
     nvdBackfillDays: days(env, "BW_NVD_BACKFILL_DAYS", 7),
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
+    newsImages: flag(env, "BW_NEWS_IMAGES", true),
     llmUrl: optional(env, "BW_LLM_URL"),
     llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
     digest: choice(env, "BW_DIGEST", ["daily", "weekly", "off"] as const, "daily"),

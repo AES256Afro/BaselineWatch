@@ -108,7 +108,7 @@ export function listTriage(db: DatabaseSync, options: { state?: TriageState | un
   return rows.map((r) => {
     if (r.subject_kind === "item") {
       const signals = parseJson<Record<string, unknown>>(r.item_signals as string | null, {});
-      return { ...r, title: (r.item_title as string) ?? "(item removed)", url: (r.item_url as string) ?? "/wire", detail: (r.item_summary as string | null) ?? null, signals: { ...signals, itemKind: r.item_kind } };
+      return { ...r, title: (r.item_title as string) ?? "(item removed)", url: (r.item_url as string) ?? "/", detail: (r.item_summary as string | null) ?? null, signals: { ...signals, itemKind: r.item_kind } };
     }
     if (r.subject_kind === "vuln") {
       const vendors = parseJson<string[]>(r.vuln_vendors as string | null, []);

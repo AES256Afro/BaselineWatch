@@ -29,7 +29,9 @@ import { renderToday } from "./pages/today.ts";
 import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
-import { renderWire } from "./pages/wire.ts";
+import { renderNews } from "./pages/wire.ts";
+import { getBlob } from "./blobs.ts";
+import { imageFor } from "./images.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
@@ -55,7 +57,7 @@ export interface AppContext {
 export const publicDir = path.join(import.meta.dirname, "..", "public");
 
 export function pullSettings(config: Config): PullSettings {
-  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, llmUrl: config.llmUrl, llmModel: config.llmModel };
+  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages, llmUrl: config.llmUrl, llmModel: config.llmModel };
 }
 
 export interface HealthReport {
@@ -268,9 +270,27 @@ export function createApp(ctx: AppContext): Express {
   };
   const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookState(req, config) });
 
+  // News is home; the Register (the old home) lives at /register; /wire stays good as an alias.
   app.get("/", (req, res) => {
+    res.type("html").send(renderNews({ db, filters: wireFilters(req.query as Record<string, unknown>), ...who(req, res), now: now() }));
+  });
+  app.get("/wire", (req, res) => {
+    const at = req.originalUrl.indexOf("?");
+    res.redirect(301, at === -1 ? "/" : `/${req.originalUrl.slice(at)}`);
+  });
+  app.get("/register", (req, res) => {
     const { owner, look } = who(req, res);
     res.type("html").send(renderHome({ config, db, migrations: ctx.migrations, owner, look, now: now() }));
+  });
+
+  // Cached article images, served only by a hash some item carries, so snapshots stay private.
+  app.get("/img/:hash", (req, res, next) => {
+    const image = imageFor(db, String(req.params.hash));
+    if (!image) return next();
+    const bytes = getBlob(config.dataDir, image.sha256);
+    if (!bytes) return next();
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.type(image.type).send(bytes);
   });
 
   app.get("/today", (req, res) => {
@@ -282,13 +302,9 @@ export function createApp(ctx: AppContext): Express {
     res.type("html").send(renderAtlas({ db, ...who(req, res), now: now() }));
   });
 
-  app.get("/wire", (req, res) => {
-    res.type("html").send(renderWire({ db, filters: wireFilters(req.query as Record<string, unknown>), ...who(req, res), now: now() }));
-  });
-
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const back = safeBack((req.body as Record<string, unknown>).back, "/wire");
+    const back = safeBack((req.body as Record<string, unknown>).back, "/");
     if (!Number.isInteger(id) || id <= 0) return res.status(404).type("text").send("No such item.");
     const ok = action === "read" || action === "unread" ? setRead(db, id, action === "read") : setStarred(db, id, action === "star");
     if (!ok) return res.status(404).type("text").send("No such item.");
@@ -301,10 +317,10 @@ export function createApp(ctx: AppContext): Express {
   app.post("/wire/read-all", requireOwner, (req, res) => {
     const body = req.body as Record<string, unknown>;
     markAllRead(db, wireFilters(body));
-    res.redirect(303, safeBack(body.back, "/wire"));
+    res.redirect(303, safeBack(body.back, "/"));
   });
 
-  app.get("/standards", (_req, res) => res.redirect(302, "/"));
+  app.get("/standards", (_req, res) => res.redirect(302, "/register"));
   app.get("/standards/:source", (req, res, next) => {
     const html = renderStandard({ db, sourceId: String(req.params.source), ...who(req, res), now: now(), notice: str(req.query.notice, 300) });
     if (!html) return next();

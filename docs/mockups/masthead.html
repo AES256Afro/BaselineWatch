@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masthead Mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Masthead reorganisation, round two: news is the default landing everywhere, the top is grouped,
+   and the phrase "Standards change register" leaves the wordmark for a place that earns it.
+   Ten directions, each borrowed from a leading security aggregator, drawn with the app's own
+   tokens (public/app.css). */
+:root{
+  --paper:#f3f4f1; --card:#ffffff; --panel-2:#f7f8f6; --ink:#1b1f23; --mute:#5f6b70; --rule:#cfd5d2; --rule-2:#b9c1bd;
+  --acc:#0f6e56; --acc-ink:#ffffff; --warn:#8a5a00; --del:#b3261e; --hl:#fff3cd;
+  --serif:"Newsreader","Source Serif 4",Georgia,serif;
+  --sans:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --del:#ff8a80; --hl:#3a3420; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --del:#ff8a80; --hl:#3a3420; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding-bottom:64px}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px}
+h1{font:500 30px/1.15 var(--serif);letter-spacing:-.005em;margin:36px 0 0}
+h2{font:500 21px/1.2 var(--serif);margin:0}
+.lede{color:var(--mute);max-width:74ch;margin:10px 0 0}
+.section{margin-top:46px}
+.kicker{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:0 0 6px}
+.kicker .src{color:var(--mute);font-weight:500;letter-spacing:.08em;text-transform:none}
+.frame{margin-top:14px;border:1px solid var(--rule);border-radius:10px;overflow-x:auto;background:var(--card)}
+.frame .mast-inner,.frame .sub-inner,.frame .pagehint,.frame .strip{min-width:960px}
+.frame .mast-inner,.frame .mast nav{flex-wrap:nowrap}
+.frame.tall .pagehint{min-height:260px}
+.frame.taller .pagehint{min-height:360px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:12px}
+.notes>div{border-top:2px solid var(--rule);padding-top:8px}
+.notes h3{margin:0 0 3px;font:600 11px var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+.notes p{margin:0;font-size:13.5px}
+.notes .plus{border-top-color:var(--acc)}
+.notes .minus{border-top-color:var(--del)}
+.notes .reg{border-top-color:var(--warn)}
+.verdict{margin-top:40px;border:1px solid var(--acc);border-radius:10px;background:var(--card);padding:18px 20px}
+.verdict p{margin:8px 0 0;max-width:80ch}
+.aggr{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px}
+.aggr>div{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 16px}
+.aggr h3{margin:0;font-size:14.5px;font-weight:600}
+.aggr p{margin:6px 0 0;font-size:13.5px;color:var(--mute)}
+.aggr b{color:var(--ink);font-weight:600}
+mark{background:var(--hl);color:inherit;border-radius:3px;padding:0 3px}
+
+/* --- shared masthead anatomy, matching .mast in app.css --- */
+.mast{background:var(--card);border-bottom:1px solid var(--rule)}
+.mast-inner{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:10px 24px}
+.name{font:500 17px var(--serif);color:var(--ink);text-decoration:none;white-space:nowrap}
+.name small{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-left:10px}
+.mast nav{display:flex;gap:4px 18px;font-size:13.5px;align-items:center}
+.mast nav a{color:var(--mute);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.mast nav a.on{color:var(--ink);border-bottom-color:var(--acc)}
+.meta{margin-left:auto;color:var(--mute);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.meta a{color:var(--acc)}
+.pagehint{padding:24px 20px 30px;color:var(--mute);font-size:13px;max-width:1180px;margin:0 auto}
+.pagehint b{color:var(--ink);font:500 19px var(--serif);display:block;margin-bottom:4px}
+.b{display:inline-block;min-width:17px;text-align:center;font:600 10.5px var(--mono);background:var(--panel-2);border:1px solid var(--rule);border-radius:999px;padding:1px 5px;color:var(--mute);vertical-align:1px;margin-left:4px}
+.b.hot{color:var(--del);border-color:var(--del)}
+
+/* dropdown menus (details-based, no JS) */
+details{position:relative}
+details summary{list-style:none;cursor:pointer;white-space:nowrap}
+details summary::-webkit-details-marker{display:none}
+.mast nav details summary{color:var(--mute);padding:4px 0;border-bottom:2px solid transparent;font-size:13.5px}
+.mast nav details summary::after{content:" ▾";font-size:10px}
+.mast nav details.on summary{color:var(--ink);border-bottom-color:var(--acc)}
+.menu{position:absolute;left:-10px;top:calc(100% + 8px);min-width:215px;background:var(--card);border:1px solid var(--rule);border-radius:9px;box-shadow:0 10px 26px rgba(0,0,0,.14);padding:6px;z-index:5}
+.menu.right{left:auto;right:0}
+.menu a{display:block;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13.5px;white-space:nowrap}
+.menu a:hover{background:var(--panel-2)}
+.menu small{display:block;color:var(--mute);font-size:11.5px;margin-top:1px;white-space:normal}
+.menu .cap{display:block;padding:7px 10px 2px;font:600 10px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
+.menu hr{border:0;border-top:1px solid var(--rule);margin:5px 4px}
+.deskbtn{color:var(--mute);border:1px solid var(--rule);border-radius:7px;padding:4px 10px;font-size:13px;white-space:nowrap;cursor:pointer}
+
+/* strips below mastheads */
+.strip{display:flex;gap:14px;align-items:center;padding:7px 20px;border-bottom:1px solid var(--rule);background:var(--panel-2);font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden}
+.strip .lab{font:600 10.5px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--warn);flex:none}
+.strip a{color:var(--ink);text-decoration:none}
+.strip .dot{color:var(--rule-2)}
+
+/* D3 terminal */
+.d3 .mast{background:var(--panel-2)}
+.d3 .name{font:600 13px var(--mono);letter-spacing:.14em}
+.d3 nav a{font:500 12.5px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.d3 .meta{font:11.5px var(--mono)}
+
+/* D5 rail */
+.rail-frame{display:grid;grid-template-columns:210px 1fr;min-width:960px}
+.rail{border-right:1px solid var(--rule);background:var(--panel-2);padding:14px 12px;display:flex;flex-direction:column;gap:14px;font-size:13.5px}
+.rail .name{font-size:15px}
+.rail h4{margin:0 0 2px;font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.rail a{display:flex;justify-content:space-between;color:var(--mute);text-decoration:none;padding:4px 8px;border-radius:6px;cursor:pointer}
+.rail a.on{background:var(--card);color:var(--ink);box-shadow:inset 2px 0 0 var(--acc)}
+.rail .foot{margin-top:auto;color:var(--mute);font-size:11px;line-height:1.45}
+.rail-main{padding:18px 22px;color:var(--mute);font-size:13px}
+.rail-main b{color:var(--ink);font:500 19px var(--serif);display:block;margin-bottom:6px}
+.rail-main .item{border-top:1px solid var(--rule);padding:8px 0}
+.rail-main .item:first-of-type{border-top:0}
+.rail-main .item i{font-style:normal;font:600 10px var(--mono);color:var(--del);margin-right:8px}
+.rail-main .item i.std{color:var(--warn)}
+
+/* D6 centered broadsheet */
+.d6 .mast-inner{display:block;text-align:center;padding:18px 20px 0}
+.d6 .name{font-size:26px}
+.d6 .motto{font:italic 400 13.5px var(--serif);color:var(--mute);margin:2px 0 10px}
+.d6 nav{justify-content:center;border-top:1px solid var(--rule);padding:8px 0 0;margin:0 auto;max-width:720px}
+
+/* D7 search */
+.search{flex:1;max-width:330px;display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:8px;padding:5px 10px;color:var(--mute);font-size:13px;background:var(--panel-2);white-space:nowrap}
+.search kbd{font:11px var(--mono);border:1px solid var(--rule);border-radius:4px;padding:0 5px;margin-left:auto}
+
+/* D8 console */
+.d8{--paper:#0d0f12;--card:#17191d;--panel-2:#1e2126;--ink:#e9ecef;--mute:#98a2ad;--rule:#2a2f36;--rule-2:#363c45;--acc:#4cc9a6;--warn:#f2b134;--del:#ef5350;color-scheme:dark}
+.d8 .mast,.d8 .pagehint{background:var(--card);color:var(--mute)}
+.d8 .mast{border-bottom:1px solid var(--rule)}
+.d8 .name,.d8 .pagehint b{color:var(--ink)}
+.d8 .name{font:600 14px var(--mono);letter-spacing:.1em}
+.d8 nav a{font-size:13px}
+.d8 .meta{font:11.5px var(--mono)}
+
+/* D9 two rows */
+.util{display:flex;gap:16px;align-items:center;max-width:1180px;margin:0 auto;padding:7px 20px;font-size:12px;color:var(--mute);border-bottom:1px solid var(--rule);background:var(--panel-2);min-width:960px;white-space:nowrap}
+.util .tag{font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase}
+.util .right{margin-left:auto;display:flex;gap:14px}
+.util a{color:var(--mute);text-decoration:none;cursor:pointer}
+.util a:hover{color:var(--ink)}
+
+/* D10 mega */
+.mega{position:absolute;left:-10px;top:calc(100% + 8px);width:620px;background:var(--card);border:1px solid var(--rule);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.16);padding:14px;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+.mega .cap{grid-column:1/-1;font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);padding:6px 8px 2px;border-top:1px solid var(--rule);margin-top:6px}
+.mega .cap:first-child{border-top:0;margin-top:0}
+.mega a{display:block;padding:6px 8px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:13.5px}
+.mega a:hover{background:var(--panel-2)}
+.mega small{display:block;color:var(--mute);font-size:11.5px}
+
+/* phones */
+.phones{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px}
+.phone{width:300px;border:1px solid var(--rule);border-radius:16px;overflow:hidden;background:var(--card)}
+.phone .cap2{padding:6px 12px;border-bottom:1px solid var(--rule);background:var(--panel-2);color:var(--mute);font:11px var(--mono)}
+.phone .p-mast{padding:10px 14px;border-bottom:1px solid var(--rule)}
+.phone .p-mast .name{font-size:15px}
+.phone .p-row{display:flex;gap:2px 14px;flex-wrap:wrap;font-size:12.5px;margin-top:8px}
+.phone .p-row a{color:var(--mute);text-decoration:none;padding:3px 0;border-bottom:2px solid transparent}
+.phone .p-row a.on{color:var(--ink);border-bottom-color:var(--acc)}
+.phone .p-more{color:var(--mute);border:1px solid var(--rule);border-radius:7px;padding:2px 8px;font-size:11.5px;align-self:center}
+.phone .p-body{padding:14px;color:var(--mute);font-size:12px;min-height:60px}
+.phone .p-body b{color:var(--ink);font:500 15px var(--serif);display:block;margin-bottom:3px}
+.chrome{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--rule);background:var(--panel-2);color:var(--mute);font:12px var(--mono);min-width:960px}
+.chrome i{width:9px;height:9px;border-radius:50%;background:var(--rule-2);font-style:normal}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Reorganising the top — ten directions, news first</h1>
+  <p class="lede">Three decisions run through all ten: <b>News is the default landing</b> (the Wire renamed and served at <code>/</code>, the way every leading aggregator lands you on the feed); the eleven areas collapse into a few top-level groups; and the phrase <mark>Standards change register</mark> leaves the wordmark — today it sits as a shouting-caps appendage on every page — for a place that earns it, different in each direction and flagged in amber below. cybercard.net and the BoxPilot install on BigBox run the same image, so each direction is one <code>layout.ts</code>; the sites differ only by sign-in.</p>
+
+  <div class="section">
+    <p class="kicker">As-is</p>
+    <h2>The current masthead</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — today, signed out</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch <small>Standards change register</small></a>
+        <nav><a>Today</a><a class="on">Register</a><a>STIGs</a><a>Baselines</a><a>Wire</a><a>Vulnerabilities</a><a>Triage</a><a>Atlas</a><a>Watchlist</a><a>Digest</a><a>Sources</a></nav>
+        <div class="meta">Tracking 12 standards · 1076 snapshots · <a>Owner sign-in</a></div>
+      </div></header>
+      <div class="pagehint"><b>Register</b>Eleven peer links, the library as home, the subtitle welded to the wordmark. Reading, reference and the owner's desk are indistinguishable.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="kicker">Precedent</p>
+    <h2>What the leading aggregators agree on</h2>
+    <div class="aggr">
+      <div><h3>News is the front door</h3><p>The Hacker News, BleepingComputer, SANS ISC, DarkReading, SecurityWeek — every one lands on the feed. Dashboards (Feedly TI, Recorded Future) land on today's intelligence. <b>Nobody lands in the reference library.</b></p></div>
+      <div><h3>Five-ish top entries</h3><p>CISA folded hundreds of pages into ~6 headings; THN runs seven short words. <b>Groups, not a tab per corpus.</b></p></div>
+      <div><h3>Reference behind one door</h3><p>NVD is search-first with the tables one level down; ISC keeps “Data” as one entry. The Register/STIGs/Baselines/Atlas quartet is one <b>Standards</b> door.</p></div>
+      <div><h3>The desk is set apart</h3><p>Feedly separates your boards from the feeds; Recorded Future badges your queue. Triage, Watchlist, Digest, Sources read as <b>one owner cluster</b>, absent until signed in.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D1 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 1 · “Front page” <span class="src">— after The Hacker News</span></p>
+    <h2>Flat and short: five words, news first</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — home</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <nav>
+          <a class="on">News</a><a>Today</a><a>Vulnerabilities</a>
+          <details class="on"><summary>Standards</summary></details>
+          <details><summary>Desk</summary></details>
+        </nav>
+        <div class="meta">Tracking 12 standards · <a>Owner sign-in</a></div>
+      </div></header>
+      <div class="pagehint"><b>News</b>The Wire at <code>/</code>. Standards ▾ holds Register · STIGs · Baselines · Atlas; Desk ▾ holds Triage · Watchlist · Digest · Sources. The footer of every page reads <mark>“BaselineWatch — a change register for the security standards themselves.”</mark></div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Shortest possible top</h3><p>Five words never wrap; THN proves flat-and-few scales to millions of readers.</p></div>
+      <div class="reg"><h3>The register's phrase</h3><p>Demoted to the footer tagline — honest, but the product's one differentiator is now below the fold.</p></div>
+      <div class="minus"><h3>Standards feels buried</h3><p>The flagship library is just another dropdown beside Desk.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D2 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 2 · “Headline bar” <span class="src">— after BleepingComputer</span></p>
+    <h2>News home, with the register as a live strip on every page</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — home</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <nav>
+          <a class="on">News</a><a>Today</a>
+          <details><summary>Standards</summary></details>
+          <a>Vulnerabilities</a>
+        </nav>
+        <div class="meta">Tracking 12 standards · <a>Owner sign-in</a></div>
+      </div></header>
+      <div class="strip"><span class="lab">Register</span> <a>SP 800-53 r5.3 draft: 3 new controls</a> <span class="dot">·</span> <a>Win 11 STIG V2R4: 12 rules changed</a> <span class="dot">·</span> <a>Intune baseline 24H2 reissued</a></div>
+      <div class="pagehint"><b>News</b>BleepingComputer pins a red “Latest” bar under its masthead; here the bar belongs to the <mark>Register — the latest standards changes ride every page</mark>, each headline linking into the diff. The phrase becomes a labelled, working surface instead of a subtitle.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>The register is everywhere</h3><p>News may be home, but the register's newest diffs are one glance away on every page — stronger placement than the old subtitle ever was.</p></div>
+      <div class="plus"><h3>Teaches by example</h3><p>A cybercard.net visitor sees concrete “what changed” headlines before learning any vocabulary.</p></div>
+      <div class="minus"><h3>Costs ~30px per page</h3><p>The strip is masthead height again; it should collapse on control and diff pages.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D3 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 3 · “Diary” <span class="src">— after SANS Internet Storm Center</span></p>
+    <h2>Terminal top: wire, data, standards, desk</h2>
+    <div class="frame d3">
+      <div class="chrome"><i></i><i></i><i></i> BigBox — home, Console look</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BASELINE<span style="color:var(--acc)">WATCH</span></a>
+        <nav><a class="on">Wire</a><a>Today</a><a>Data</a><a>Standards</a><a>Desk</a></nav>
+        <div class="meta"><mark>register: 1,076 snapshots · 12 standards</mark> · threat level: <span style="color:var(--acc)">green</span></div>
+      </div></header>
+      <div class="pagehint"><b>Wire</b>ISC's top is six mono words and a status readout. “Data” is the CVE table (NVD-style, everything), “Standards” the library, “Desk” the owner's four. The register lives in the <mark>status readout</mark> — a running count, like ISC's INFOCON.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Native to the Console look</h3><p>The app's second look already wants this density; mono caps and a status line complete it.</p></div>
+      <div class="reg"><h3>The register's phrase</h3><p>Becomes telemetry (“1,076 snapshots”) — great for practitioners, mute for cybercard.net's learners.</p></div>
+      <div class="minus"><h3>“Data” is opaque</h3><p>ISC regulars know the word; a first-time visitor doesn't.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D4 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 4 · “Agency” <span class="src">— after CISA.gov</span></p>
+    <h2>Described dropdowns: the menu is the syllabus</h2>
+    <div class="frame tall">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — Standards group open</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <nav>
+          <a class="on">News</a>
+          <details open><summary>Standards</summary>
+            <div class="menu" style="min-width:290px">
+              <span class="cap"><mark>The standards change register</mark></span>
+              <a>Register <small>every control and setting, before and after, with the publisher's stated reason</small></a>
+              <a>STIGs <small>DISA rules by platform and severity</small></a>
+              <a>Baselines <small>strictest-profile builder for Jamf, Intune, shell</small></a>
+              <a>Atlas <small>release rhythm and change intensity per standard</small></a>
+            </div>
+          </details>
+          <details><summary>Threats</summary></details>
+          <details><summary>Desk</summary></details>
+        </nav>
+        <div class="meta">Tracking 12 standards · <a>Owner sign-in</a></div>
+      </div></header>
+      <div class="pagehint"><b>News</b>CISA's headings each open into described entries. Threats ▾ holds Vulnerabilities · Triage; Desk ▾ holds Today · Watchlist · Digest · Sources. The phrase becomes the <mark>caption of the Standards menu</mark> — read exactly when someone wonders what's inside.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Teaches as it navigates</h3><p>The public site's “what is this?” is answered inside the menu, in the publisher's own vocabulary.</p></div>
+      <div class="plus"><h3>Phrase lands where it's needed</h3><p>“Standards change register” captions the group it describes instead of shouting from the wordmark.</p></div>
+      <div class="minus"><h3>Menus hide the map</h3><p>Nothing is visible until opened; the current-page marker buries one level down.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D5 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 5 · “Workspace” <span class="src">— after Feedly Threat Intelligence</span></p>
+    <h2>Left rail: the masthead becomes a sidebar</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> BigBox — signed in</div>
+      <div class="rail-frame">
+        <div class="rail">
+          <a class="name">BaselineWatch</a>
+          <div><h4>Reading</h4>
+            <a class="on">News <span class="b hot">23</span></a>
+            <a>Today</a>
+            <a>Digest</a>
+          </div>
+          <div><h4><mark>Change register</mark></h4>
+            <a>Register <span class="b">2</span></a>
+            <a>STIGs</a>
+            <a>Baselines</a>
+            <a>Atlas</a>
+          </div>
+          <div><h4>Threats</h4>
+            <a>Vulnerabilities</a>
+            <a>Triage <span class="b hot">4</span></a>
+          </div>
+          <div><h4>Yours</h4>
+            <a>Watchlist</a>
+            <a>Sources</a>
+          </div>
+          <div class="foot">Tracking 12 standards<br>1,076 snapshots</div>
+        </div>
+        <div class="rail-main">
+          <b>News</b>
+          <div class="item"><i>KEV</i>CISA adds CVE-2026-31337 (Ivanti EPMM) to Known Exploited Vulnerabilities</div>
+          <div class="item"><i class="std">REG</i>NIST publishes SP 800-53 r5.3 draft — 3 new controls in SI family</div>
+          <div class="item"><i>CRIT</i>New critical: CVE-2026-30801 scores 9.8, no fix yet</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Groups with badges</h3><p>Feedly's idiom: counts ride the rail, the register group wears its own name as a heading.</p></div>
+      <div class="plus"><h3>Room to grow</h3><p>New areas (M8+) slot into a group without crowding a row.</p></div>
+      <div class="minus"><h3>A different app</h3><p>This abandons the broadsheet masthead both looks are built on — the biggest rework of the ten, and the rail eats ~210px the Register look spends on reading width.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D6 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 6 · “Motto” <span class="src">— after Krebs on Security</span></p>
+    <h2>Centered wordmark, the phrase as a proper newspaper motto</h2>
+    <div class="frame d6">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — home</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <p class="motto"><mark>A change register for the security standards themselves</mark></p>
+        <nav><a class="on">News</a><a>Register</a><a>Vulnerabilities</a><a>Atlas</a><a>Desk ▾</a></nav>
+      </div></header>
+      <div class="pagehint"><b>News</b>Krebs runs a wordmark over “In-depth security news and investigation”. The subtitle stops being a caps-locked label and becomes a sentence with a verb — set once, center page, in the Register look's own serif italics. STIGs and Baselines fold into Register's pill tabs.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>The phrase finally reads</h3><p>As a motto it explains; as a wordmark appendage it decorated. One sentence does the teaching for cybercard.net.</p></div>
+      <div class="plus"><h3>Pure Register look</h3><p>The centered serif masthead is what this look always wanted to be.</p></div>
+      <div class="minus"><h3>Tall</h3><p>~96px of masthead; the Console look would need its own flat variant, forking the layout.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D7 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 7 · “Search-first” <span class="src">— after NVD</span></p>
+    <h2>A search box in the masthead; tables one level down</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> BigBox — home</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <div class="search">🔍 CVE, control, STIG rule, setting… <kbd>/</kbd></div>
+        <nav><a class="on">News</a><a>Standards</a><a>Vulnerabilities</a><a>Desk ▾</a></nav>
+        <div class="meta"><a>Owner sign-in</a></div>
+      </div></header>
+      <div class="pagehint"><b>News</b>NVD's lesson: when the corpus is big, the top answers “find me CVE-2026-…” before any browsing. FTS5 search already exists (M6); this promotes it. The phrase moves to the <mark>home hero above the feed: “News on top. Underneath, a change register for the standards themselves.”</mark></div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Matches real use</h3><p>Practitioners arrive holding an identifier; one keystroke (<code>/</code>) beats any menu.</p></div>
+      <div class="reg"><h3>The register's phrase</h3><p>A hero sentence on home only — strong on arrival, absent while deep in the app.</p></div>
+      <div class="minus"><h3>Search isn't organization</h3><p>The box spends the masthead's middle without resolving where eleven areas live; still needs D1's groups behind it.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D8 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 8 · “Queue counts” <span class="src">— after Recorded Future</span></p>
+    <h2>Badged tabs: the top is a status board</h2>
+    <div class="frame d8">
+      <div class="chrome" style="background:var(--panel-2);border-color:var(--rule);color:var(--mute)"><i style="background:var(--rule-2)"></i><i style="background:var(--rule-2)"></i><i style="background:var(--rule-2)"></i> BigBox — Console look, signed in</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BASELINEWATCH</a>
+        <nav>
+          <a class="on">News <span class="b hot">23</span></a>
+          <a>Vulnerabilities <span class="b hot">2 KEV</span></a>
+          <a>Standards <span class="b">1 release</span></a>
+          <a>Triage <span class="b hot">4</span></a>
+          <a>Desk ▾</a>
+        </nav>
+        <div class="meta">reg 1,076 snap · 12 std</div>
+      </div></header>
+      <div class="pagehint"><b>News</b>Recorded Future's module tiles wear counts; here each tab carries its unread or waiting number, computed server-side (the Wire already counts unread). The register's identity compresses to the <mark>mono status figures at the right</mark>, expanded on hover.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>The morning glance</h3><p>Signed in on BigBox, the top row *is* the briefing: what's unread, what's exploited, what released, what waits.</p></div>
+      <div class="minus"><h3>Numbers need an owner</h3><p>Signed out on cybercard.net the badges are noise or zeros; the public variant has to drop them, so the two sites drift apart visually.</p></div>
+      <div class="reg"><h3>The register's phrase</h3><p>Reduced to telemetry, as in D3 — fine for the owner, silent for learners.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D9 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 9 · “Topic row” <span class="src">— after DarkReading / SecurityWeek</span></p>
+    <h2>Utility strip above, big topic row below — everything stays visible</h2>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i> BigBox — signed in</div>
+      <div class="util"><span class="tag"><mark>Standards change register</mark></span><span>·</span><span>Tracking 12 standards · 1,076 snapshots</span>
+        <span class="right"><a>Triage · 4</a><a>Watchlist</a><a>Digest</a><a>Sources</a><a>Sign out</a></span></div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <nav><a class="on">News</a><a>Today</a><a>Register</a><a>STIGs</a><a>Baselines</a><a>Vulnerabilities</a><a>Atlas</a></nav>
+      </div></header>
+      <div class="pagehint"><b>News</b>The trade-press pattern: housekeeping (identity line, owner tools, session) lives in a slim strip; the second row is pure reading. Signed out, the strip keeps only the identity phrase and “Owner sign-in”. The phrase becomes the <mark>strip's left-hand identity tag</mark> — present everywhere, out of the wordmark's way.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>No dropdowns at all</h3><p>Every reading area keeps a visible word; the desk is visible too, just small. Zero JS, calm CSP.</p></div>
+      <div class="plus"><h3>Both sites, one layout</h3><p>The strip degrades gracefully signed out; the reading row is identical on both.</p></div>
+      <div class="minus"><h3>Seven reading links</h3><p>Still the widest row of the ten — it wraps on a tablet unless STIGs/Baselines fold into Register.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== D10 ====== -->
+  <div class="section">
+    <p class="kicker">Direction 10 · “One menu” <span class="src">— after AttackerKB</span></p>
+    <h2>Two primaries and a mega-menu holding the whole map</h2>
+    <div class="frame taller">
+      <div class="chrome"><i></i><i></i><i></i> cybercard.net — menu open</div>
+      <header class="mast"><div class="mast-inner">
+        <a class="name">BaselineWatch</a>
+        <nav>
+          <a class="on">News</a><a>Register</a>
+          <details open><summary>All areas</summary>
+            <div class="mega">
+              <span class="cap"><mark>The standards change register</mark></span>
+              <a>Register <small>controls before &amp; after</small></a>
+              <a>Atlas <small>release rhythm</small></a>
+              <a>STIGs <small>DISA rules by platform</small></a>
+              <a>Baselines <small>strictest-profile builder</small></a>
+              <span class="cap">Reading</span>
+              <a>Today <small>since you last looked</small></a>
+              <a>Vulnerabilities <small>every CVE, filtered</small></a>
+              <span class="cap">Owner's desk</span>
+              <a>Triage</a><a>Watchlist</a><a>Digest</a><a>Sources</a>
+            </div>
+          </details>
+        </nav>
+        <div class="meta">Tracking 12 standards · <a>Owner sign-in</a></div>
+      </div></header>
+      <div class="pagehint"><b>News</b>Minimal chrome: two primaries carry 90% of visits; the mega-panel is the sitemap, grouped and described, with the register's phrase as its first heading.</div>
+    </div>
+    <div class="notes">
+      <div class="plus"><h3>Calmest masthead</h3><p>Three words of chrome; the panel doubles as the teaching page.</p></div>
+      <div class="minus"><h3>One click tax on everything</h3><p>STIGs, Vulnerabilities, Today — all two gestures away, every time; power users will feel it daily.</p></div>
+      <div class="minus"><h3>Mega-panels on phones</h3><p>A 620px grid must become a full-screen sheet; more CSS than the app has needed so far.</p></div>
+    </div>
+  </div>
+
+  <!-- ====== verdict ====== -->
+  <div class="verdict">
+    <p class="kicker">Recommendation</p>
+    <h2>Direction 2's shape, Direction 6's sentence</h2>
+    <p><b>Top:</b> News (home, at <code>/</code>) · Today · Standards ▾ (Register, STIGs, Baselines, Atlas) · Vulnerabilities, with the owner's Desk (Triage · Watchlist · Digest · Sources, triage count as badge) folded to the right, rendering as “Owner sign-in” on cybercard.net. Five words, one dropdown, one <code>&lt;details&gt;</code> — no script, CSP untouched.</p>
+    <p><b>The register's phrase:</b> take it off the wordmark. On the home page it reads as Direction 6's motto — <i>“A change register for the security standards themselves”</i> — and the Register strip from Direction 2 carries the three latest standards changes under the masthead on News and Today, so the differentiator is shown as working headlines, not asserted as a label. Inside the Standards menu it captions the group (Direction 4).</p>
+    <p><b>Why not the rest:</b> D5 and D8 are the right ideas for a future Console-look refinement (badges, rail) but fork the layout; D10 taxes every visit; D9 is the safest no-dropdown fallback if the <code>&lt;details&gt;</code> menu feels wrong in testing.</p>
+    <p><b>Routes:</b> <code>/</code> → News (Wire renamed), <code>/register</code> → Register, old <code>/wire</code> 301s home. One change in <code>src/pages/layout.ts</code> plus route aliases aligns cybercard.net and BigBox at the next image pull.</p>
+  </div>
+</div>
+</body>
+</html>

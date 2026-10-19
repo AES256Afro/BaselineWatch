@@ -2,6 +2,28 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **News is the home page.** The Wire, renamed News, answers at `/`; the Register moved to
+  `/register` and `/wire` is a 301, so old links keep working. The masthead is grouped the way
+  the leading aggregators group theirs: News · Today · Standards ▾ (Register, STIGs, Baselines,
+  Atlas) · Vulnerabilities, with the owner's Desk ▾ (Triage, Watchlist, Digest, Sources, sign-in)
+  as one cluster on the right — both menus plain `<details>`, no script, the CSP untouched. The
+  wordmark drops its "Standards change register" subtitle; the phrase now reads as the News
+  page's motto, the Standards menu's caption and the footer line, and an amber **Register
+  ribbon** under the masthead on News and Today carries the three latest standards changes into
+  their diffs.
+- **News articles bring their pictures.** The front page leads with four image cards and the
+  list shows thumbnails, BleepingComputer-fashion, with a typographic placeholder where a story
+  brought no art. Images arrive passively at ingest: the feed's own media (enclosure,
+  media:content, an `<img>` in content:encoded), else the article page's og:image fetched once
+  per new item — never on page view, never re-crawled. The bytes are cached in the
+  content-addressed blob store and served from `/img/<hash>` (only hashes an item claims;
+  snapshots stay private), so `img-src 'self'` stands, readers' addresses never touch third-party
+  hosts, and images are small derivatives beside headlines that always link to the source.
+  `BW_NEWS_IMAGES=0` turns the whole thing off. New sidebar: the latest KEV entries and the
+  owner's desk at a glance.
+
 ## 0.24.0 — 2026-10-17
 
 - **The test plan draws one area at a time**, so a phone can use it the way 0.23.0 made the

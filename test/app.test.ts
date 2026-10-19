@@ -35,7 +35,7 @@ describe("health", () => {
 
 describe("pages", () => {
   it("serves the Register home with the standards and the empty state", async () => {
-    const response = await fetch(`${app.base}/`);
+    const response = await fetch(`${app.base}/register`);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toMatch(/text\/html/);
     const text = await response.text();

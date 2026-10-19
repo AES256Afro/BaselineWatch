@@ -27,6 +27,9 @@ export interface WireItem {
   signals_json: string | null;
   read: number;
   starred: number;
+  /** The cached lead image's blob hash and type, when one arrived with the item. */
+  image_blob: string | null;
+  image_type: string | null;
 }
 
 /** Turns free text into an FTS5 query that cannot be mistaken for FTS syntax: every word quoted, all required. */

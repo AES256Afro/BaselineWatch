@@ -6,7 +6,7 @@ import type { LookState } from "../look.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { stateLabel, triageCounts, triageInbox, triageStates, type TriageState } from "../triage.ts";
-import { page } from "./layout.ts";
+import { page, registerStrip } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
 
 function parseJson<T>(text: string | null, fallback: T): T {
@@ -171,7 +171,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
     <div class="stats today">
-      <a class="tile ${kev ? "bad" : ""}" href="/wire?kind=kev"><small>KEV additions</small><b>${kev}</b><span>${kevMine} match your stack</span></a>
+      <a class="tile ${kev ? "bad" : ""}" href="/?kind=kev"><small>KEV additions</small><b>${kev}</b><span>${kevMine} match your stack</span></a>
       <a class="tile" href="/vulnerabilities?watch=1&changed=1"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
@@ -210,7 +210,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
         </section>
         <section class="box">
-          <h2>Wire, latest <span class="count"><a href="/wire">all</a></span></h2>
+          <h2>Wire, latest <span class="count"><a href="/">all</a></span></h2>
           <ul class="latest">${latest.map((a) => html`<li><span class="src">${a.source_name}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
         </section>
       </section>
@@ -227,5 +227,5 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       </aside>
     </div>`;
 
-  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${realReleases.length} releases`, owner, open, look });
+  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${realReleases.length} releases`, owner, open, strip: registerStrip(db, now), look });
 }

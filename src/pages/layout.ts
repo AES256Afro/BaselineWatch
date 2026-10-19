@@ -1,24 +1,36 @@
+import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, type Html } from "../html.ts";
 import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
+import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
 export type Area = "today" | "register" | "stigs" | "baselines" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources";
 
-/** Areas that have a page in this build. The rest are drawn as "soon", so the shape of the app is visible from day one. */
-const built: Record<Area, { label: string; path: string; milestone: string }> = {
-  today: { label: "Today", path: "/today", milestone: "" },
-  register: { label: "Register", path: "/", milestone: "" },
-  stigs: { label: "STIGs", path: "/stigs", milestone: "" },
-  baselines: { label: "Baselines", path: "/baselines", milestone: "" },
-  wire: { label: "Wire", path: "/wire", milestone: "" },
-  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", milestone: "" },
-  triage: { label: "Triage", path: "/triage", milestone: "" },
-  atlas: { label: "Atlas", path: "/atlas", milestone: "" },
-  watchlist: { label: "Watchlist", path: "/watchlist", milestone: "" },
-  digest: { label: "Digest", path: "/digest", milestone: "" },
-  sources: { label: "Sources", path: "/sources", milestone: "" },
+/**
+ * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
+ * home, the reading areas sit flat, the standards library is one labelled group, and the owner's
+ * desk is one cluster on the right. Both groups are plain <details> menus: no script, CSP intact.
+ */
+const areas: Record<Area, { label: string; path: string }> = {
+  wire: { label: "News", path: "/" },
+  today: { label: "Today", path: "/today" },
+  register: { label: "Register", path: "/register" },
+  stigs: { label: "STIGs", path: "/stigs" },
+  baselines: { label: "Baselines", path: "/baselines" },
+  atlas: { label: "Atlas", path: "/atlas" },
+  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities" },
+  triage: { label: "Triage", path: "/triage" },
+  watchlist: { label: "Watchlist", path: "/watchlist" },
+  digest: { label: "Digest", path: "/digest" },
+  sources: { label: "Sources", path: "/sources" },
 };
-const order: Area[] = ["today", "register", "stigs", "baselines", "wire", "vulnerabilities", "triage", "atlas", "watchlist", "digest", "sources"];
+
+export function areaPath(area: Area): string {
+  return areas[area].path;
+}
+
+const standardsGroup: Area[] = ["register", "stigs", "baselines", "atlas"];
+const deskGroup: Area[] = ["triage", "watchlist", "digest", "sources"];
 
 export interface PageOptions {
   title: string;
@@ -28,25 +40,48 @@ export interface PageOptions {
   /** Draws the sign-in or sign-out control. Omit on pages that do not know. */
   owner?: boolean | undefined;
   open?: boolean | undefined;
+  /** A ribbon under the masthead, such as the Register's latest changes on News and Today. */
+  strip?: Html;
   /** The look and scheme this browser chose, and where its switch leads back to. */
   look: LookState;
 }
 
-export function page({ title, active, content, meta, owner, open, look }: PageOptions): string {
-  const nav = order.map((area) => {
-    const item = built[area];
-    const current = area === active;
-    if (item.milestone) {
-      return html`<span class="soon" title="Arrives in ${item.milestone}">${item.label}</span>`;
-    }
-    return html`<a href="${item.path}"${current ? html` aria-current="page"` : ""}>${item.label}</a>`;
-  });
+/** The Register's newest changes, for the ribbon under the masthead and anywhere else that glances at it. */
+export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[] {
+  const rows = db
+    .prepare(
+      `SELECT d.id AS documentId, d.source_id AS sourceId, s.name, d.version_label AS versionLabel,
+              COALESCE(d.published_at, d.parsed_at) AS at,
+              (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
+       FROM documents d JOIN sources s ON s.id = d.source_id
+       ORDER BY at DESC, d.id DESC LIMIT ?`,
+    )
+    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[];
+  return rows;
+}
+
+/** The amber Register ribbon: the latest standards changes ride the page, each linking into its diff. */
+export function registerStrip(db: DatabaseSync, now: Date): Html {
+  const rows = latestRegisterChanges(db, 3);
+  if (rows.length === 0) return html``;
+  const entries = rows.map(
+    (r, i) =>
+      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount === 0 ? "first version" : html`${r.changeCount} changed`}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
+  );
+  return html`<div class="strip"><div class="strip-inner"><a class="lab" href="/register">Register</a> ${entries}</div></div>`;
+}
+
+export function page({ title, active, content, meta, owner, open, strip, look }: PageOptions): string {
+  const link = (area: Area, cls?: string): Html => {
+    const item = areas[area];
+    return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
+  };
   const session =
     owner === undefined || open
       ? ""
       : owner
-        ? html`<form method="post" action="/logout" class="inline"><button type="submit" class="link">Sign out</button></form>`
-        : html`<a href="/login">Owner sign-in</a>`;
+        ? html`<hr><form method="post" action="/logout" class="inline"><button type="submit" class="link">Sign out</button></form>`
+        : html`<hr><a href="/login">Owner sign-in</a>`;
   // The look and the scheme are attributes on the root, read by the stylesheet alone: no script
   // decides anything, and a page arrives drawn right rather than flashing from one look to another.
   return (
@@ -62,17 +97,34 @@ export function page({ title, active, content, meta, owner, open, look }: PageOp
 <body>
 <header class="mast">
   <div class="mast-inner">
-    <a class="name" href="/">${productName} <small>Standards change register</small></a>
-    <nav aria-label="Areas">${nav}</nav>
-    <div class="meta">${meta ?? ""}${session ? html` <span class="sep">·</span> ${session}` : ""}</div>
+    <a class="name" href="/">${productName}</a>
+    <nav aria-label="Areas">
+      ${link("wire")}${link("today")}<details class="group${standardsGroup.includes(active) ? " on" : ""}">
+        <summary>Standards</summary>
+        <div class="menu">
+          <span class="cap">The standards change register</span>
+          ${standardsGroup.map((a) => link(a))}
+        </div>
+      </details>${link("vulnerabilities")}
+    </nav>
+    <div class="meta">${meta ?? ""}</div>
+    <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
+      <summary>Desk</summary>
+      <div class="menu right">
+        <span class="cap">Owner's desk</span>
+        ${deskGroup.map((a) => link(a))}
+        ${session}
+      </div>
+    </details>
     ${lookSwitch(look)}
   </div>
 </header>
+${strip ?? ""}
 <main class="wrap">${content}</main>
 <footer class="foot">
   <div class="wrap">
-    <p>${productName} ${productVersion} · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
-    <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed.</p>
+    <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
+    <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed. Article images belong to their publishers and link to the original story.</p>
   </div>
 </footer>
 </body>

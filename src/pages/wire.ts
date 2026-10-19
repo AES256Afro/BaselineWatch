@@ -3,10 +3,10 @@ import { fixContext, fixesFor, fixSummary, kevFor } from "../fix.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { getVuln } from "../vulns.ts";
 import { relativeTime } from "../time.ts";
-import type { TriageState } from "../triage.ts";
+import { triageCounts, type TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
 import type { LookState } from "../look.ts";
-import { page } from "./layout.ts";
+import { page, registerStrip } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
 
 interface Signals {
@@ -23,7 +23,7 @@ interface Signals {
   watch?: string[];
 }
 
-function signals(item: WireItem): Signals {
+function signals(item: Pick<WireItem, "signals_json">): Signals {
   if (!item.signals_json) return {};
   try {
     return JSON.parse(item.signals_json) as Signals;
@@ -42,7 +42,7 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   if (merged.unread) params.set("unread", "1");
   if (merged.before) params.set("before", String(merged.before));
   const s = params.toString();
-  return s ? `/wire?${s}` : "/wire";
+  return s ? `/?${s}` : "/";
 }
 
 function chips(item: WireItem): Html[] {
@@ -61,7 +61,7 @@ function chips(item: WireItem): Html[] {
   return out;
 }
 
-export interface WirePageOptions {
+export interface NewsPageOptions {
   db: DatabaseSync;
   filters: WireFilters;
   owner: boolean;
@@ -70,7 +70,17 @@ export interface WirePageOptions {
   look: LookState;
 }
 
-export function renderWire({ db, filters, owner, open, now, look }: WirePageOptions): string {
+/** The four newest stories as image cards, BleepingComputer-fashion; a § placeholder when a story brought no image. */
+function featuredCards(items: WireItem[]): Html {
+  const cards = items.map((item) => {
+    const art = item.image_blob ? html`<img src="/img/${item.image_blob}" alt="" loading="lazy">` : html`<span class="ph" aria-hidden="true">§</span>`;
+    const inner = html`${art}<span class="fsrc">${item.source_name}</span><h3><span>${item.title}</span></h3>`;
+    return item.url ? html`<a class="fcard${item.image_blob ? "" : " noimg"}" href="${item.url}" ${newTabIf(item.url)}>${inner}</a>` : html`<div class="fcard${item.image_blob ? "" : " noimg"}">${inner}</div>`;
+  });
+  return html`<div class="feat" aria-label="Latest, featured">${cards}</div>`;
+}
+
+export function renderNews({ db, filters, owner, open, now, look }: NewsPageOptions): string {
   const items = listWire(db, { ...filters, limit: 50 });
   const counts = sourceCounts(db).filter((c) => c.total > 0 || c.source_id === filters.source);
   const triageState = new Map<number, TriageState>();
@@ -82,6 +92,10 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
   const totalUnread = counts.reduce((n, c) => n + (c.unread ?? 0), 0);
   const current = query(filters, {});
   const last = items[items.length - 1];
+  // The front page leads with image cards; a filtered or paged view is the plain list.
+  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before;
+  const featured = plain ? items.slice(0, 4) : [];
+  const listed = plain ? items.slice(featured.length) : items;
   // The fix line on a CVE or KEV item: the same facts as the CVE page's Fix panel, in one sentence.
   const fixes = items.some((i) => i.kind === "vulnerability" || i.kind === "kev") ? fixContext(db) : null;
   const fixLine = (item: WireItem): Html => {
@@ -93,9 +107,11 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
     return kev?.requiredAction ? html`<p class="wi-fix"><b>Fix:</b> CISA: ${kev.requiredAction}${kev.dueDate ? html` (due ${kev.dueDate})` : ""}</p>` : html``;
   };
 
-  const rows = items.map((item) => {
+  const rows = listed.map((item) => {
     const back = html`<input type="hidden" name="back" value="${current}">`;
-    return html`<li class="wi ${item.read ? "read" : "unread"} ${item.kind}">
+    return html`<li class="wi ${item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
+      ${item.image_blob ? html`<a class="wi-img" href="${item.url ?? `/img/${item.image_blob}`}" ${newTabIf(item.url)} tabindex="-1" aria-hidden="true"><img src="/img/${item.image_blob}" alt="" loading="lazy"></a>` : ""}
+      <div class="wi-body">
       <div class="wi-head">
         <span class="wi-src">${item.source_name}</span>
         <time class="wi-time" datetime="${item.published_at ?? item.fetched_at}">${relativeTime(item.published_at ?? item.fetched_at, now)}</time>
@@ -113,6 +129,7 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
             </div>`
           : ""}
       </div>
+      </div>
     </li>`;
   });
 
@@ -120,20 +137,55 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
     (c) => html`<li class="${filters.source === c.source_id ? "on" : ""}"><a href="${query(filters, { source: c.source_id, before: undefined })}">${c.name}</a><b>${c.unread ?? 0}</b></li>`,
   );
 
+  // The desk box: the owner's queue at a glance, or the sign-in prompt on the public site.
+  const tc = owner ? triageCounts(db) : null;
+  const deskBox = owner
+    ? html`<section class="box desk-box">
+        <h2>Owner's desk</h2>
+        <ul class="kev-list">
+          <li><a href="/triage">Triage</a><span class="when">${(tc?.affects ?? 0) + (tc?.reviewing ?? 0)} open</span></li>
+          <li><a href="/watchlist">Watchlist</a></li>
+          <li><a href="/digest">Digest</a></li>
+          <li><a href="/sources">Sources</a></li>
+        </ul>
+      </section>`
+    : open
+      ? ""
+      : html`<section class="box desk-box"><h2>Owner's desk</h2><p class="small">Triage, watchlist, digest and sources live in the Desk menu. <a href="/login">Sign in</a> to see your queue here.</p></section>`;
+
+  // In the KEV lately: the newest catalog entries, each linking to its CVE page when it has one.
+  const kevRows = db
+    .prepare("SELECT title, url, external_id, published_at, fetched_at, signals_json FROM items WHERE kind = 'kev' ORDER BY COALESCE(published_at, fetched_at) DESC, id DESC LIMIT 5")
+    .all() as Pick<WireItem, "title" | "url" | "external_id" | "published_at" | "fetched_at" | "signals_json">[];
+  const kevBox = kevRows.length
+    ? html`<section class="box">
+        <h2>In the KEV lately</h2>
+        <ul class="kev-list">
+          ${kevRows.map((k) => {
+            const due = signals(k).dueDate;
+            const href = /^CVE-\d{4}-\d{4,7}$/.test(k.external_id) ? `/vulnerabilities/${k.external_id}` : (k.url ?? "/vulnerabilities?kev=1");
+            return html`<li><a href="${href}">${k.title}</a><span class="when">${relativeTime(k.published_at ?? k.fetched_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
+          })}
+        </ul>
+        <p class="small"><a href="/vulnerabilities?kev=1">All of them, in the table</a></p>
+      </section>`
+    : "";
+
   const content = html`
+    <div class="wire-top">
+      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : plain ? html` <small class="motto">A change register for the security standards themselves</small>` : ""}</h1>
+      <form method="get" action="/" class="search" role="search">
+        ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
+        ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
+        ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
+        <label class="visually-hidden" for="q">Search the news</label>
+        <input type="search" id="q" name="q" value="${filters.q ?? ""}" placeholder="Search titles and summaries">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+    ${featured.length ? featuredCards(featured) : ""}
     <div class="cols wire">
       <section class="main">
-        <div class="wire-top">
-          <h1>Wire${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : ""}</h1>
-          <form method="get" action="/wire" class="search" role="search">
-            ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
-            ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
-            ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
-            <label class="visually-hidden" for="q">Search the Wire</label>
-            <input type="search" id="q" name="q" value="${filters.q ?? ""}" placeholder="Search titles and summaries">
-            <button type="submit">Search</button>
-          </form>
-        </div>
         <div class="filters">
           <a class="${!filters.kind && !filters.group ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, before: undefined })}">All</a>
           <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, before: undefined })}">News</a>
@@ -158,6 +210,7 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
         ${items.length === 50 && last ? html`<p class="more"><a href="${query(filters, { before: last.id })}">Older</a></p>` : ""}
       </section>
       <aside class="side">
+        ${kevBox}
         <section class="box">
           <h2>Sources <span class="count">${totalUnread} unread</span></h2>
           <ul class="src-list">
@@ -165,8 +218,9 @@ export function renderWire({ db, filters, owner, open, now, look }: WirePageOpti
             ${sourceList}
           </ul>
         </section>
+        ${deskBox}
       </aside>
     </div>`;
 
-  return page({ title: "Wire", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, look });
+  return page({ title: "News", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, strip: registerStrip(db, now), look });
 }
