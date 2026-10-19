@@ -75,7 +75,9 @@ and served from `/img/<hash>`; `BW_NEWS_IMAGES=0` turns this off). Articles from
 have none; `node src/cli.ts images <count|all>` fetches og:image once for existing imageless news
 articles, newest first, politely paced — on BigBox:
 `docker exec bp-baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts images all`.
-It is safe to run again; items that yield nothing are just examined again.
+It is safe to run again; a page that yielded nothing is remembered and skipped, so each run only
+asks pages no run has asked before. `npm run check:feeds` probes every feed URL (network; not
+part of `npm run check`) and fails on any that no longer answers with its format.
 
 ## What leaves the box
 

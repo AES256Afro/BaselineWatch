@@ -81,6 +81,7 @@ async function cacheImage(db: DatabaseSync, dataDir: string, deps: ImageDeps, it
  */
 export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, source: SourceRow, fresh: ParsedItem[], deps: ImageDeps): Promise<number> {
   const log = deps.log ?? (() => {});
+  const miss = db.prepare("UPDATE items SET image_checked_at = ? WHERE id = ? AND image_blob IS NULL");
   let stored = 0;
   let ogFetches = 0;
   for (const item of fresh) {
@@ -90,11 +91,13 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
     try {
       if (item.imageUrl) {
         if (await cacheImage(db, dataDir, deps, row.id, item.imageUrl, item.imageOrigin ?? "enclosure")) stored += 1;
+        else miss.run(new Date().toISOString(), row.id);
       } else if (item.url && ogFetches < maxOgFetchesPerRun) {
         ogFetches += 1;
         const page = await deps.http(item.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
         const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
         if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
+        else miss.run(new Date().toISOString(), row.id);
       }
     } catch (error) {
       log(`image for ${source.id} item ${item.externalId}: ${error instanceof Error ? error.message : String(error)}`);
@@ -107,8 +110,8 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
  * The one deliberate exception to "images arrive with the news or not at all": a manual pass
  * over existing news articles that have none, for the backlog from before the pipeline and the
  * tail the per-run cap left behind. One og:image page fetch per item, newest first, politely
- * paced; items that still yield nothing are simply examined again the next time the owner runs
- * it, which is rare enough not to matter.
+ * paced; an item whose page yields nothing is remembered (image_checked_at) and never asked
+ * again, by this pass or by ingest.
  */
 export async function backfillImages(
   db: DatabaseSync,
@@ -123,10 +126,11 @@ export async function backfillImages(
     .prepare(
       `SELECT i.id, i.url FROM items i JOIN sources s ON s.id = i.source_id
        WHERE s.group_name = 'news' AND i.kind = 'article' AND i.image_blob IS NULL
-         AND i.url IS NOT NULL AND i.url LIKE 'http%'
+         AND i.image_checked_at IS NULL AND i.url IS NOT NULL AND i.url LIKE 'http%'
        ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC LIMIT ?`,
     )
     .all(limit) as { id: number; url: string }[];
+  const miss = db.prepare("UPDATE items SET image_checked_at = ? WHERE id = ? AND image_blob IS NULL");
   let stored = 0;
   for (const [index, row] of rows.entries()) {
     if (index > 0 && delayMs > 0) await sleep(delayMs);
@@ -134,7 +138,9 @@ export async function backfillImages(
       const page = await deps.http(row.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
       const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
       if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
+      else miss.run(new Date().toISOString(), row.id);
     } catch (error) {
+      // A network failure is not a verdict on the page: leave it unmarked for the next run.
       log(`image backfill for item ${row.id}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
