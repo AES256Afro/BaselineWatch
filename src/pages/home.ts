@@ -122,7 +122,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
       <div><small>Sources enabled</small><b>${stats.sources}</b></div>
       <div><small>Snapshots</small><b>${figure(stats.snapshots)}</b></div>
       <div><small>Changes</small><b>${figure(stats.changes)}</b></div>
-      <div><small>Wire, unread</small><b>${figure(stats.unread)}</b></div>
+      <div><small>News, unread</small><b>${figure(stats.unread)}</b></div>
       <div><small>Database</small><b>${formatBytes(stats.bytes)}</b></div>
     </div>
 
@@ -152,7 +152,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
         </section>
         <section class="box">
           <h2>Known exploited, newest${kevVersion ? html` <span class="count">catalog ${kevVersion}</span>` : ""}</h2>
-          ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/?kind=kev">All KEV additions on the Wire</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}
+          ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/?kind=kev">All KEV additions in the News</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}
         </section>
         <section class="box">
           <h2>This instance</h2>

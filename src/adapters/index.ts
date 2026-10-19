@@ -38,6 +38,9 @@ const byId: Record<string, Adapter> = {
   "reddit-netsec": redditAdapter,
   "reddit-cybersecurity": redditAdapter,
   "reddit-blueteamsec": redditAdapter,
+  "reddit-asknetsec": redditAdapter,
+  "reddit-malware": redditAdapter,
+  "reddit-reverseengineering": redditAdapter,
 };
 
 /** Whether the adapter can run on a schedule; a manual-upload adapter cannot. */

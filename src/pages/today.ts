@@ -167,7 +167,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is on the Wire.</small></h1>
+      <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is in the News.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
     <div class="stats today">
@@ -210,7 +210,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
         </section>
         <section class="box">
-          <h2>Wire, latest <span class="count"><a href="/">all</a></span></h2>
+          <h2>News, latest <span class="count"><a href="/">all</a></span></h2>
           <ul class="latest">${latest.map((a) => html`<li><span class="src">${a.source_name}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
         </section>
       </section>
