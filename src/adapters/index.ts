@@ -1,6 +1,7 @@
 import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
 import { cisaDirectivesAdapter } from "./cisa-directives.ts";
+import { csrcPubsAdapter } from "./csrc-pubs.ts";
 import { cvelistAdapter } from "./cvelist.ts";
 import { disaAdapter } from "./disa.ts";
 import { disaGpoAdapter } from "./disa-gpo.ts";
@@ -29,6 +30,8 @@ const byId: Record<string, Adapter> = {
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
   "nist-sp-800-171": nist171Adapter,
+  "nist-piv": csrcPubsAdapter,
+  "nist-platform": csrcPubsAdapter,
   "fedramp-rules": fedrampRulesAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
@@ -62,4 +65,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cciAdapter, cisAdapter, cisaDirectivesAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };
+export { cciAdapter, cisAdapter, cisaDirectivesAdapter, csrcPubsAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };

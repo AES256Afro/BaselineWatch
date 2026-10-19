@@ -100,6 +100,8 @@ export interface DocumentTarget {
   publishedAt?: string | null;
   /** The publisher's own words on why this release exists, when known. */
   rationale?: { text: string; url: string | null } | null;
+  /** The document's title as the listing names it, for documents that do not state their own. */
+  title?: string | null;
 }
 
 /** A publisher's note about one requirement in a release, matched to it by label (STIG id) or ref. */
