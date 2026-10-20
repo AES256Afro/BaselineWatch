@@ -1,0 +1,25 @@
+id: ssh-macos
+title: SSH server hardening on macOS
+platforms: [macos]
+area: network
+requires: [ssh, sshd]
+notes: Joins the plan only when an applied rule names SSH (the mSCP os_sshd_* rules and the STIG rules they join). If the baseline turns Remote Login off, the first step is the test and the rest do not apply.
+steps:
+  - do: Run sudo systemsetup -getremotelogin, and from another host try ssh to the Mac.
+    expect: Remote Login is Off where the baseline disables it, and the connection is refused; otherwise On and reachable only from the allowed networks.
+    fail: Turn Remote Login off through the MDM (or sudo systemsetup -setremotelogin off) and find what turned it on.
+    source:
+      title: macOS Security Compliance Project, os_sshd_fips_compliant
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/os/os_sshd_fips_compliant.yaml
+  - do: Run sudo sshd -T and read ciphers, macs, kexalgorithms, permitrootlogin, passwordauthentication, clientaliveinterval and banner.
+    expect: Only the FIPS-approved algorithms the rule lists; permitrootlogin no; the timeouts and banner the baseline sets (or the organisation's value where a decision modifies it).
+    fail: Look for an /etc/ssh/sshd_config.d file the baseline did not write; a release can reset the main file, so reapply the mSCP fix and record the change.
+    source:
+      title: macOS Security Compliance Project, os_sshd_fips_compliant
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/os/os_sshd_fips_compliant.yaml
+  - do: From another host, try ssh -o Ciphers=aes128-cbc and ssh -o MACs=hmac-md5 to the Mac.
+    expect: Both are refused during key exchange.
+    fail: The cipher or MAC list is wider than the rule; reapply the fix and test again.
+    source:
+      title: macOS Security Compliance Project, os_sshd_fips_compliant
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/os/os_sshd_fips_compliant.yaml

@@ -698,3 +698,125 @@ h1 .arrow { color: var(--mute); font-weight: 400; }
 .scan-guide .check .t a { color: var(--ink); text-decoration: none; }
 .scan-guide .check .t a:hover { text-decoration: underline; }
 [data-look="console"] .steps li::before { border-radius: 4px; }
+
+/* Baseline decisions: the board (three columns of cards) and the decide page (recommendation beside the decision). */
+.dboard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+@media (max-width: 1000px) { .dboard { grid-template-columns: 1fr; } }
+.dcol { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 10px; padding: 12px; min-width: 0; }
+.dcol h2 { font-size: 16px; margin-bottom: 4px; }
+.dcol.apply { border-top: 3px solid var(--ins); }
+.dcol.modify { border-top: 3px solid var(--warn); }
+.dcol.exclude { border-top: 3px solid var(--del); }
+.dcards { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.dcard { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--rule-2); border-radius: 8px; padding: 10px 12px; min-width: 0; overflow-wrap: anywhere; }
+.dcard.apply { border-left-color: var(--ins); }
+.dcard.modify { border-left-color: var(--warn); }
+.dcard.exclude { border-left-color: var(--del); }
+.dcard-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.dcard-title { margin: 4px 0 6px; }
+.dcard .kv { margin: 0 0 6px; }
+.decide-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px; margin-top: 14px; }
+@media (max-width: 860px) { .decide-cols { grid-template-columns: 1fr; } }
+.decide-cols pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; background: var(--panel-2); padding: 8px; border-radius: 6px; }
+form.decide { display: grid; gap: 6px; align-content: start; }
+form.decide fieldset { border: 0; padding: 0; margin: 0 0 6px; }
+form.decide input:not([type="radio"]), form.decide textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 6px 8px; border: 1px solid var(--rule-2); border-radius: 6px; background: var(--card); color: var(--ink); }
+form.decide button { justify-self: start; }
+
+/* Report looks for the printable checklist: the same eleven as the Word, PDF and LaTeX exports (src/report.ts reportStyles). Plain values, so a downloaded checklist keeps its look whatever the app's theme. */
+.export[data-report] { padding: 16px; }
+.export[data-report] h2 { padding-bottom: 4px; }
+.export[data-report] table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.export[data-report] th { text-align: left; }
+.export[data-report] th, .export[data-report] td { padding: 4px 6px; vertical-align: top; }
+.export[data-report] pre { padding: 8px; border-radius: 4px; }
+.export[data-report="plain"] { color: #1a1a1a; background: #fff; }
+.export[data-report="plain"] h1, .export[data-report="plain"] h2 { color: #1a1a1a; }
+.export[data-report="plain"] h2, .export[data-report="plain"] th, .export[data-report="plain"] td, .export[data-report="plain"] .export-item { border-color: #999; }
+.export[data-report="plain"] h2 { border-bottom: 1px solid #999; }
+.export[data-report="plain"] th, .export[data-report="plain"] td { border: 1px solid #999; }
+.export[data-report="plain"] th { background: #e7e6e6; color: #1a1a1a; }
+.export[data-report="plain"] pre { background: #f2f2f2; color: #1a1a1a; }
+.export[data-report="plain"] a { color: #1a1a1a; }
+.export[data-report="formal"] { color: #1a1a1a; background: #fff; font-family: Cambria, Georgia, serif; }
+.export[data-report="formal"] h1, .export[data-report="formal"] h2 { color: #1f3a5f; font-family: Cambria, Georgia, serif; }
+.export[data-report="formal"] h2, .export[data-report="formal"] th, .export[data-report="formal"] td, .export[data-report="formal"] .export-item { border-color: #9a9a9a; }
+.export[data-report="formal"] h2 { border-bottom: 1px solid #9a9a9a; }
+.export[data-report="formal"] th, .export[data-report="formal"] td { border: 1px solid #9a9a9a; }
+.export[data-report="formal"] th { background: #e9e9e4; color: #1a1a1a; }
+.export[data-report="formal"] pre { background: #f4f4f1; color: #1a1a1a; }
+.export[data-report="formal"] a { color: #1f3a5f; }
+.export[data-report="runbook"] { color: #16181d; background: #fff; }
+.export[data-report="runbook"] h1, .export[data-report="runbook"] h2 { color: #2457c5; font-family: var(--mono); }
+.export[data-report="runbook"] h2, .export[data-report="runbook"] th, .export[data-report="runbook"] td, .export[data-report="runbook"] .export-item { border-color: #d8dce3; }
+.export[data-report="runbook"] h2 { border-bottom: 1px solid #d8dce3; }
+.export[data-report="runbook"] th, .export[data-report="runbook"] td { border: 1px solid #d8dce3; }
+.export[data-report="runbook"] th { background: #0f1720; color: #d7e3f4; }
+.export[data-report="runbook"] pre { background: #0f1720; color: #d7e3f4; }
+.export[data-report="runbook"] a { color: #2457c5; }
+.export[data-report="executive"] { color: #111827; background: #fff; }
+.export[data-report="executive"] h1, .export[data-report="executive"] h2 { color: #0b2545; }
+.export[data-report="executive"] h2, .export[data-report="executive"] th, .export[data-report="executive"] td, .export[data-report="executive"] .export-item { border-color: #e5e7eb; }
+.export[data-report="executive"] h2 { border-bottom: 1px solid #e5e7eb; }
+.export[data-report="executive"] th, .export[data-report="executive"] td { border: 1px solid #e5e7eb; }
+.export[data-report="executive"] th { background: #0b2545; color: #fff; }
+.export[data-report="executive"] pre { background: #f3f4f6; color: #111827; }
+.export[data-report="executive"] a { color: #13838f; }
+.export[data-report="checklist"] { color: #000; background: #fff; font-family: Arial, sans-serif; font-size: 12px; }
+.export[data-report="checklist"] h1, .export[data-report="checklist"] h2 { color: #000; font-family: Arial, sans-serif; }
+.export[data-report="checklist"] h2, .export[data-report="checklist"] th, .export[data-report="checklist"] td, .export[data-report="checklist"] .export-item { border-color: #999; }
+.export[data-report="checklist"] h2 { border-bottom: 1px solid #999; }
+.export[data-report="checklist"] th, .export[data-report="checklist"] td { border: 1px solid #999; }
+.export[data-report="checklist"] th { background: #f0f0f0; color: #000; }
+.export[data-report="checklist"] pre { background: #f7f7f7; color: #000; }
+.export[data-report="checklist"] a { color: #000; }
+.export[data-report="modern"] { color: #0f172a; background: #fff; }
+.export[data-report="modern"] h1, .export[data-report="modern"] h2 { color: #5b5bd6; }
+.export[data-report="modern"] h2, .export[data-report="modern"] th, .export[data-report="modern"] td, .export[data-report="modern"] .export-item { border-color: #e8ebf2; }
+.export[data-report="modern"] h2 { border-bottom: 1px solid #e8ebf2; }
+.export[data-report="modern"] th, .export[data-report="modern"] td { border: 1px solid #e8ebf2; }
+.export[data-report="modern"] th { background: #eef0ff; color: #0f172a; }
+.export[data-report="modern"] pre { background: #f6f7fb; color: #0f172a; }
+.export[data-report="modern"] a { color: #5b5bd6; }
+.export[data-report="console"] { color: #c9d4e0; background: #0b0f14; font-family: var(--mono); }
+.export[data-report="console"] h1, .export[data-report="console"] h2 { color: #67e8f9; font-family: var(--mono); }
+.export[data-report="console"] h2, .export[data-report="console"] th, .export[data-report="console"] td, .export[data-report="console"] .export-item { border-color: #1f2a36; }
+.export[data-report="console"] h2 { border-bottom: 1px solid #1f2a36; }
+.export[data-report="console"] th, .export[data-report="console"] td { border: 1px solid #1f2a36; }
+.export[data-report="console"] th { background: #111821; color: #4ade80; }
+.export[data-report="console"] pre { background: #111821; color: #c9d4e0; }
+.export[data-report="console"] a { color: #4ade80; }
+.export[data-report="board"] { color: #172b4d; background: #fff; }
+.export[data-report="board"] h1, .export[data-report="board"] h2 { color: #0c66e4; }
+.export[data-report="board"] h2, .export[data-report="board"] th, .export[data-report="board"] td, .export[data-report="board"] .export-item { border-color: #dfe1e6; }
+.export[data-report="board"] h2 { border-bottom: 1px solid #dfe1e6; }
+.export[data-report="board"] th, .export[data-report="board"] td { border: 1px solid #dfe1e6; }
+.export[data-report="board"] th { background: #ebecf0; color: #172b4d; }
+.export[data-report="board"] pre { background: #f4f5f7; color: #172b4d; }
+.export[data-report="board"] a { color: #0c66e4; }
+.export[data-report="workpaper"] { color: #111; background: #fbfdf8; font-family: Arial, sans-serif; }
+.export[data-report="workpaper"] h1, .export[data-report="workpaper"] h2 { color: #1a3fa0; font-family: Arial, sans-serif; }
+.export[data-report="workpaper"] h2, .export[data-report="workpaper"] th, .export[data-report="workpaper"] td, .export[data-report="workpaper"] .export-item { border-color: #9fb8a8; }
+.export[data-report="workpaper"] h2 { border-bottom: 1px solid #9fb8a8; }
+.export[data-report="workpaper"] th, .export[data-report="workpaper"] td { border: 1px solid #9fb8a8; }
+.export[data-report="workpaper"] th { background: #e3efe6; color: #111; }
+.export[data-report="workpaper"] pre { background: #f3f8f1; color: #111; }
+.export[data-report="workpaper"] a { color: #b00020; }
+.export[data-report="markdown"] { color: #1f2328; background: #fff; font-family: -apple-system, "Segoe UI", sans-serif; }
+.export[data-report="markdown"] h1, .export[data-report="markdown"] h2 { color: #1f2328; font-family: -apple-system, "Segoe UI", sans-serif; }
+.export[data-report="markdown"] h2, .export[data-report="markdown"] th, .export[data-report="markdown"] td, .export[data-report="markdown"] .export-item { border-color: #d1d9e0; }
+.export[data-report="markdown"] h2 { border-bottom: 1px solid #d1d9e0; }
+.export[data-report="markdown"] th, .export[data-report="markdown"] td { border: 1px solid #d1d9e0; }
+.export[data-report="markdown"] th { background: #f6f8fa; color: #1f2328; }
+.export[data-report="markdown"] pre { background: #f6f8fa; color: #1f2328; }
+.export[data-report="markdown"] a { color: #0969da; }
+.export[data-report="word"] { color: #000; background: #fff; font-family: Calibri, Arial, sans-serif; }
+.export[data-report="word"] h1, .export[data-report="word"] h2 { color: #2f5496; font-family: "Calibri Light", Calibri, sans-serif; }
+.export[data-report="word"] h2, .export[data-report="word"] th, .export[data-report="word"] td, .export[data-report="word"] .export-item { border-color: #8eaadb; }
+.export[data-report="word"] h2 { border-bottom: 1px solid #8eaadb; }
+.export[data-report="word"] th, .export[data-report="word"] td { border: 1px solid #8eaadb; }
+.export[data-report="word"] th { background: #d9e2f3; color: #000; }
+.export[data-report="word"] pre { background: #f2f2f2; color: #000; }
+.export[data-report="word"] a { color: #4472c4; }
+@media print { .export[data-report] { padding: 0; } }
+.decide-nav { margin-top: 10px; }

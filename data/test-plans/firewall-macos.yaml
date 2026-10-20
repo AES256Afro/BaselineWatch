@@ -1,0 +1,19 @@
+id: firewall-macos
+title: The application firewall on macOS
+platforms: [macos]
+area: network
+requires: [firewall]
+notes: Joins the plan only when an applied rule names the firewall. System Integrity Protection and Gatekeeper are in the hardware root of trust template.
+steps:
+  - do: Run /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate, --getstealthmode and --getblockall.
+    expect: The firewall is enabled; stealth mode and block-all are on where the baseline requires them.
+    fail: Check the com.apple.security.firewall payload is installed; a local change cannot override a profile, so an Off state means the profile is missing.
+    source:
+      title: macOS Security Compliance Project, os_firewall_default_deny_require
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/os/os_firewall_default_deny_require.yaml
+  - do: From another host on the same network, ping the Mac and probe a closed port (for example nc -vz with the Mac's address and port 22).
+    expect: With stealth mode on, neither gets an answer.
+    fail: Stealth mode is off or a listening service was allowed through; list the allowed apps with socketfilterfw --listapps.
+    source:
+      title: macOS Security Compliance Project, os_firewall_default_deny_require
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/os/os_firewall_default_deny_require.yaml
