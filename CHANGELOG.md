@@ -2,8 +2,16 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.35.0 — 2026-10-20
 
+- **M12.3, the network check.** Once a day, opt-in (`netscan.enabled`; it sends packets on the
+  owner's network, so nothing runs until the owner turns it on), the scan finds the LAN resolver,
+  resolves canary names drawn from the Register's blocklist sources — resolved only, never
+  fetched — asks the resolver to identify its upstream, tests whether DoH answers from the LAN,
+  and reads the client count from a Pi-hole or AdGuard Home when the owner saved a token (kept in
+  app_settings, never rendered; errors keep a status word, never the message). Results land on
+  `/scan/network` and day-over-day movement — a name newly resolving, a resolver change — reaches
+  the digest and the alerts.
 - **Licence-restricted sources: entries for the owner, counts for everyone else.** A source whose
   licence forbids showing its content to third parties can now run on a public instance. A new
   column, `sources.restricted` (migration 0029), marks it; nothing in the code names a source. On
