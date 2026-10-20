@@ -635,9 +635,11 @@ rather than a printed sign-off; runs compared across releases ("what broke movin
 saved named plans for the owner; results in the JSON API and the MCP server so an agent can
 answer "did we test Platform SSO on Golden Gate yet".
 
-**Quality of life, as they fit:** a Today tile for releases ending support within ninety days;
-per-platform sections in the digest; a print stylesheet for the plan page; "what changed in this
-template since you last exported it"; Zoom Rooms and Webex templates beside Teams Rooms.
+**Quality of life, as they fit:** a Today tile for releases ending support within ninety days
+(shipped 2026-10-19 in 0.33.0, with the same list and an "ends in N days" chip on Platforms, and a
+URL for a plan as drawn); per-platform sections in the digest; a print stylesheet for the plan page;
+"what changed in this template since you last exported it"; Zoom Rooms and Webex templates beside
+Teams Rooms.
 
 **Done when**: a teammate opens Platforms, picks macOS 27 on Apple silicon, keeps only the
 secure-enclave area, exports a Word plan, and every step in it cites Apple or Microsoft, says
