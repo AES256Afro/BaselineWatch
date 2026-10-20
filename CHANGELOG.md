@@ -4,6 +4,21 @@ Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`
 
 ## Unreleased
 
+- **Licence-restricted sources: entries for the owner, counts for everyone else.** A source whose
+  licence forbids showing its content to third parties can now run on a public instance. A new
+  column, `sources.restricted` (migration 0028), marks it; nothing in the code names a source. On
+  the Register a visitor sees a restricted source's versions, how many entries each holds and how
+  many came, went or changed, with the names and text withheld and the licence quoted in their
+  place (the entry page draws the same thing for every address, so a URL says nothing about what
+  is on the list); the signed-in owner sees everything as before. The Wire's release item counts
+  the changes and never names them, no generated summary is made of such a release, a triaged
+  entry is named on the board for the owner alone, and the JSON API and the MCP tools return
+  neither names nor text to anyone: `/api/v1/standards` and `list_standards` flag the source
+  `restricted`, `/api/v1/changes` and `standard_changes` leave its changes out, `release` counts
+  them, and `requirement` refuses before looking the ref up. The OpenPhish canary set is the first
+  such source: it still ships off, but the owner can now turn it on. The Sources page gained the
+  switch: Turn on and Turn off beside Fetch now, owner-only, same-origin like every other write,
+  and the scheduler picks the change up on its next pass.
 - **The lists behind the Scan area are Register sources** (M12.2, the lists half). Seven new
   standards sources read by one adapter, `src/adapters/blocklists.ts`, each list a document whose
   entries are its requirements, diffed line by line, so a list's next release shows on `/register`

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { withheldLabel } from "./register.ts";
 
 export type TriageKind = "item" | "vuln" | "control";
 export type TriageState = "new" | "reviewing" | "affects" | "done" | "dismissed";
@@ -67,6 +68,8 @@ export interface TriageCard extends TriageRow {
   url: string;
   detail: string | null;
   signals: Record<string, unknown>;
+  /** A requirement of a licence-restricted source, drawn for someone other than the owner: its key is its name, so the card carries neither. */
+  withheld?: boolean;
 }
 
 function parseJson<T>(text: string | null, fallback: T): T {
@@ -78,8 +81,11 @@ function parseJson<T>(text: string | null, fallback: T): T {
   }
 }
 
-/** Every triaged subject, newest first, joined to its item, CVE or requirement. */
-export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number } = {}): TriageCard[] {
+/**
+ * Every triaged subject, newest first, joined to its item, CVE or requirement. A requirement of a
+ * licence-restricted source is named only when the owner is asking (`owner`); the API never is.
+ */
+export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number; owner?: boolean } = {}): TriageCard[] {
   const params: (string | number)[] = [];
   let where = "";
   if (options.state) {
@@ -91,7 +97,7 @@ export function listTriage(db: DatabaseSync, options: { state?: TriageState | un
       `SELECT t.*,
               i.title AS item_title, i.url AS item_url, i.summary AS item_summary, i.signals_json AS item_signals, i.kind AS item_kind,
               v.cve_id AS vuln_cve, v.description AS vuln_description, v.cvss_score AS vuln_cvss, v.epss AS vuln_epss, v.kev AS vuln_kev, v.vendors_json AS vuln_vendors,
-              d.source_id AS doc_source, d.version_label AS doc_version, s.name AS doc_standard,
+              d.source_id AS doc_source, d.version_label AS doc_version, s.name AS doc_standard, s.restricted AS doc_restricted,
               r.label AS req_label, r.title AS req_title
        FROM triage t
        LEFT JOIN items i ON t.subject_kind = 'item' AND i.id = t.subject_id
@@ -120,12 +126,15 @@ export function listTriage(db: DatabaseSync, options: { state?: TriageState | un
         signals: { cvss: r.vuln_cvss, epss: r.vuln_epss, kev: r.vuln_kev === 1 },
       };
     }
+    const withheld = r.doc_restricted === 1 && !options.owner;
     return {
       ...r,
-      title: `${r.req_label ?? r.subject_key.toUpperCase()} ${r.req_title ?? ""} (${r.doc_standard ?? r.doc_source ?? "standard"} ${r.doc_version ?? ""})`.trim(),
-      url: `/standards/${r.doc_source}/${r.subject_id}/${r.subject_key}`,
+      subject_key: withheld ? "" : r.subject_key,
+      title: `${withheld ? withheldLabel : `${r.req_label ?? r.subject_key.toUpperCase()} ${r.req_title ?? ""}`} (${r.doc_standard ?? r.doc_source ?? "standard"} ${r.doc_version ?? ""})`.trim(),
+      url: withheld ? `/standards/${r.doc_source}/${r.subject_id}` : `/standards/${r.doc_source}/${r.subject_id}/${r.subject_key}`,
       detail: null,
       signals: { release: true },
+      ...(withheld ? { withheld: true } : {}),
     };
   });
 }
@@ -149,8 +158,9 @@ export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: 
     .all(limit) as never;
 }
 
+/** The owner's download, so every card is named. */
 export function triageCsv(db: DatabaseSync): string {
-  const cards = listTriage(db, { limit: 500 });
+  const cards = listTriage(db, { limit: 500, owner: true });
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = ["state,kind,title,url,note,due,updated"];
   for (const c of cards) lines.push([c.state, c.subject_kind, c.title, c.url, c.note ?? "", c.due_at ?? "", c.updated_at].map(esc).join(","));

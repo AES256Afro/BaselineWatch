@@ -284,16 +284,21 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   `# Last updated:`. **Cadence**: daily, because the host file turns over as sites go offline.
   **Licence**: abuse.ch Community data, free under its fair-use terms (`https://urlhaus.abuse.ch/api/`);
   commercial use may need the paid API.
-- **Phishing canaries (OpenPhish)** (`canary-phishing`, registered off).
+- **Phishing canaries (OpenPhish)** (`canary-phishing`, restricted, registered off).
   `https://openphish.com/feed.txt` (15 KB, 300 URLs, refreshed every twelve hours; redirects to the
   `openphish/public_feed` repository). **Derivation**: the URLs' hosts reduced the same way; each
   entry keeps the origin (`https://host/`) and never a path. The feed carries no version, so the
   label is the hash of its bytes and the fetch dates it. **Licence**: the Community Feed terms
   (`https://openphish.com/terms.html`) allow non-commercial use only and forbid redistribution,
-  derivative works and display to any third party. A public instance of this product would display
-  the names on the Register, so the source ships with `enabled = 0` and there is no switch in the
-  app; the owner of a private instance may turn the row on by hand and the adapter is tested
-  against the real feed.
+  derivative works and display to any third party, so the source is marked restricted
+  (`sources.restricted`, migration 0028): the signed-in owner sees the twelve names on the Register
+  as for any list; a visitor sees the versions, how many entries each holds and how many came,
+  went or changed, with the names and text withheld and the licence quoted in their place; the
+  JSON API and the MCP tools return neither names nor text to anyone, and no generated summary is
+  made of a release. The Wire's release item counts the changes and never names them. The source
+  still ships off; the owner turns it on from the Sources page (Turn on), and the adapter is
+  tested against the real feed. Nothing in the code names the source: any source marked
+  restricted is treated the same way.
 
 ---
 

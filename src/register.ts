@@ -50,6 +50,26 @@ function parseJson<T>(text: string | null, fallback: T): T {
   }
 }
 
+/**
+ * A licence-restricted source (`sources.restricted`): its entries are shown to the signed-in
+ * owner only, a visitor sees versions and counts, and the API and MCP tools return neither
+ * names nor text to anyone. These three say so in one voice wherever the rule applies.
+ */
+export const withheldLabel = "withheld (licence)";
+
+/** Whether the entries of a source are kept from whoever is asking. */
+export function withheldFrom(source: Pick<SourceRow, "restricted">, owner: boolean): boolean {
+  return source.restricted === 1 && !owner;
+}
+
+/** The licence as the Sources page states it, for the sentence that says why. */
+export function licenceOf(source: Pick<SourceRow, "licence">): string {
+  return source.licence ?? "the publisher's terms do not allow its entries to be shown to third parties";
+}
+
+/** The Wire summary of a restricted source's release: what moved is counted in the title, never named here. */
+export const withheldReleaseSummary = "Entries withheld under the publisher's licence; the owner sees them on the Register.";
+
 export function getDocument(db: DatabaseSync, id: number): DocumentRow | null {
   return (db.prepare("SELECT * FROM documents WHERE id = ?").get(id) as unknown as DocumentRow | undefined) ?? null;
 }
@@ -341,14 +361,17 @@ function writeReleaseItem(db: DatabaseSync, source: SourceRow, doc: ReleaseDoc, 
   const title = previous
     ? `${source.name} ${label}: ${changeSummaryText(summary)}`
     : `${source.name} ${label}: loaded as the first version (${doc.requirementCount} requirements)`;
+  // A restricted source's entries never reach the Wire, which every visitor reads: the title counts them.
   const text = previous
-    ? [
-        summary.added.length ? `Added: ${summary.added.slice(0, 8).join(", ")}${summary.added.length > 8 ? "…" : ""}` : null,
-        summary.substantive.length ? `Revised: ${summary.substantive.slice(0, 8).join(", ")}${summary.substantive.length > 8 ? "…" : ""}` : null,
-        summary.removed.length ? `Removed: ${summary.removed.slice(0, 8).join(", ")}` : null,
-      ]
-        .filter(Boolean)
-        .join(". ") || "Editorial changes only."
+    ? source.restricted === 1
+      ? withheldReleaseSummary
+      : [
+          summary.added.length ? `Added: ${summary.added.slice(0, 8).join(", ")}${summary.added.length > 8 ? "…" : ""}` : null,
+          summary.substantive.length ? `Revised: ${summary.substantive.slice(0, 8).join(", ")}${summary.substantive.length > 8 ? "…" : ""}` : null,
+          summary.removed.length ? `Removed: ${summary.removed.slice(0, 8).join(", ")}` : null,
+        ]
+          .filter(Boolean)
+          .join(". ") || "Editorial changes only."
     : doc.title;
   db.prepare(
     `INSERT INTO items (source_id, kind, external_id, title, url, canonical_url, summary, published_at, fetched_at, signals_json)

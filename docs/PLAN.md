@@ -757,7 +757,11 @@ lowest under SHA-256, so the pick is deterministic and moves only when the list 
 a name that hashes lower. Each requirement's text is the line as published (OpenPhish keeps the
 origin, never a path), so a changed rule is a revision and a dropped name a removal. OpenPhish's
 Community Feed terms forbid showing any part of the feed to third parties, so that source is
-registered off; a private instance's owner may turn the row on. Fixtures are the real responses
+registered off; a private instance's owner may turn the row on. *Restricted sources* (migration
+0028, `sources.restricted`): the OpenPhish set is marked restricted, so once the owner turns it on
+from the Sources page a visitor sees its versions and counts with the names withheld under the
+quoted licence, the owner sees the names, and the API and MCP tools return neither names nor text
+to anyone, which lets the set run on the public instance. Fixtures are the real responses
 (two Zero Breach commits of 2026-10-18 and the four lists as served on 2026-10-20), replayed in
 `test/blocklists.test.ts`, with a modified EasyList showing a line-level diff. Left for M12.3 and
 M12.6: resolving the canaries and matching the scripts against the lists.

@@ -106,7 +106,8 @@ async function storeParsedDocument(
     )
     .run(source.id, target.key, sha256, blob.bytes, options.contentType, blob.relativePath, options.fetchedAt, options.etag, options.lastModified);
   const stored = storeDocument(db, { source, target, parsed, snapshotId: Number(snapshot.lastInsertRowid), fetchedAt: options.fetchedAt });
-  if (options.settings?.llmUrl && stored.previousId && stored.changes.length > 0) {
+  // A generated summary is shown to everyone on the release page, so a restricted source gets none: it would quote the entries.
+  if (options.settings?.llmUrl && stored.previousId && stored.changes.length > 0 && source.restricted !== 1) {
     await addGeneratedSummary(db, options.http, { url: options.settings.llmUrl, model: options.settings.llmModel ?? "llama3.2:3b" }, source, stored, parsed, options.fetchedAt);
   }
   const versionLabel = target.versionLabel ?? parsed.versionLabel;
@@ -214,6 +215,11 @@ export function getSource(db: DatabaseSync, id: string): SourceRow | null {
 export function listSources(db: DatabaseSync, options: { enabledOnly?: boolean } = {}): SourceRow[] {
   const sql = options.enabledOnly ? "SELECT * FROM sources WHERE enabled = 1 ORDER BY id" : "SELECT * FROM sources ORDER BY id";
   return db.prepare(sql).all() as unknown as SourceRow[];
+}
+
+/** Turns a source on or off; the scheduler reads the flag on its next pass. Returns whether the source exists. */
+export function setSourceEnabled(db: DatabaseSync, id: string, enabled: boolean): boolean {
+  return Number(db.prepare("UPDATE sources SET enabled = ? WHERE id = ?").run(enabled ? 1 : 0, id).changes) > 0;
 }
 
 function recordOutcome(
