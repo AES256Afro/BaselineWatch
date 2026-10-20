@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { bars, donut, lines, stacked, type Series, type Slice, type Tone } from "../charts.ts";
 import { latestDigest } from "../digest.ts";
+import { endingSupport, loadFleet } from "../fleet.ts";
 import { html, newTabIf } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { recentAlerts } from "../notify.ts";
@@ -163,6 +164,8 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const alerts = recentAlerts(db, 5);
   const digest = latestDigest(db);
   const glance = glanceData(db, now, since);
+  // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
+  const ending = endingSupport(loadFleet(), now, 90);
   const windowLink = (h: number) => html`<a class="${hours === h ? "on" : ""}" href="/today?since=${h}">${h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}</a>`;
 
   const content = html`
@@ -175,6 +178,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile" href="/vulnerabilities?watch=1&changed=1"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
+      <a class="tile ${ending.length ? "warn" : ""}" href="/platforms"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
     </div>
     <div class="glance" aria-label="At a glance">
       <section class="box"><h2>Known exploited <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>

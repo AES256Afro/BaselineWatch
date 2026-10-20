@@ -144,6 +144,41 @@ export function loadFleet(file: string = fleetFile): Fleet {
   return { hardware, releases, errors };
 }
 
+/** The dates a release's support text names, oldest first ("Home and Pro 2027-10-12; Enterprise 2028-10-10" → both). */
+export function supportDates(release: Release): string[] {
+  return [...new Set((release.supportEnds ?? "").match(/\b20\d\d-\d\d-\d\d\b/g) ?? [])].sort();
+}
+
+export interface SupportEnding {
+  release: Release;
+  /** The support date that falls inside the window. */
+  date: string;
+  /** Days from now to that date, zero on the day. */
+  days: number;
+  /** The clause of the support text that carries the date ("Enterprise and Education 2026-11-10"). */
+  clause: string;
+}
+
+/**
+ * Releases with a support date inside the next `days` days (today included), nearest first: the
+ * Today tile and the Platforms page say which editions are about to stop getting fixes. A date
+ * already past is not "ending"; the release's status says it ended.
+ */
+export function endingSupport(fleet: Fleet, now: Date, days = 90): SupportEnding[] {
+  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const out: SupportEnding[] = [];
+  for (const release of fleet.releases) {
+    for (const date of supportDates(release)) {
+      const at = Date.parse(`${date}T00:00:00Z`);
+      const ahead = Math.round((at - start) / 86_400_000);
+      if (ahead < 0 || ahead > days) continue;
+      const clause = (release.supportEnds ?? "").split(/;|\(/).map((c) => c.trim()).find((c) => c.includes(date)) ?? date;
+      out.push({ release, date, days: ahead, clause: clause.replace(/\)$/, "") });
+    }
+  }
+  return out.sort((a, b) => a.days - b.days || a.release.label.localeCompare(b.release.label));
+}
+
 /** The releases of one platform, in the file's order (newest first by convention). */
 export function releasesOf(fleet: Fleet, platform: FleetPlatform): Release[] {
   return fleet.releases.filter((r) => r.platform === platform);

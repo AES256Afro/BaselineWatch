@@ -28,6 +28,21 @@ function item(i: PlanItem): Html {
 `;
 }
 
+/** The plan's release, hardware and areas as a GET URL, so a plan can be bookmarked or sent without the form. */
+export function planLink(plan: TestPlan): string {
+  const q = new URLSearchParams();
+  if (plan.release) q.set("version", plan.release.id);
+  if (plan.hardware) q.set("hardware", plan.hardware.id);
+  if (plan.options.templates === false) q.set("templates", "0");
+  const present = planAreas(plan).map((a) => a.id);
+  if (plan.areasChosen.length !== present.length) {
+    q.set("areas", "1");
+    for (const a of plan.areasChosen) q.append("area", a);
+  }
+  const s = q.toString();
+  return `/baselines/${plan.platform}/tests${s ? `?${s}` : ""}`;
+}
+
 export interface TestPlanOptions extends Who {
   db: DatabaseSync;
   plan: TestPlan;
@@ -103,6 +118,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
           <legend>Export the kept checks</legend>
           ${planFormats.map((f) => html`<button type="submit" formaction="/baselines/${p}/tests/export" name="format" value="${f.id}">${f.label}</button>`)}
           <span class="small">Untick a check, then Rebuild or export; the form carries the state and nothing is stored. One area is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole plan: the checks kept, what was left out and why, a findings table and a sign-off.</span>
+          <span class="small"><a href="${planLink(plan)}">Link to this plan</a>: the release, hardware and areas as a URL to bookmark or send; unticked checks do not travel with it.</span>
         </fieldset>
         ${sections.length
           ? html`<nav class="ptabs" aria-label="Areas of the plan">${sections.map((s) => html`<button type="submit" name="section" value="${s.id}" class="${[s.id === current?.id ? "on" : "", s.tested ? "" : "untested"].filter(Boolean).join(" ")}" ${s.id === current?.id ? html`aria-current="true"` : ""}>${s.label} <span class="count">${s.kept} of ${s.items.length}</span></button>`)}</nav>

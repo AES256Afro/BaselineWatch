@@ -175,6 +175,19 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(collab).toContain("Samsung meeting-room displays and signage");
   });
 
+  it("says what ends support soon on Today and the Platforms page, and links a plan as a URL", async () => {
+    // The app's clock is 2026-10-19 in these tests: Windows 11 23H2 Enterprise ends 2026-11-10, 22 days out.
+    const today = await (await fetch(`${app.base}/today`)).text();
+    expect(today).toContain('<a class="tile warn" href="/platforms"><small>Support ending</small><b>1</b><span>Windows 11, version 23H2: Enterprise and Education 2026-11-10</span></a>');
+    const platforms = await (await fetch(`${app.base}/platforms`)).text();
+    expect(platforms).toContain("<b>Support ending within 90 days:</b>");
+    expect(platforms).toContain('<span class="chip na">ends in 22 days</span> <span class="small">Enterprise and Education 2026-11-10</span>');
+    const plan = await (await fetch(`${app.base}/baselines/macos/tests?version=27&hardware=apple-silicon&areas=1&area=hardware&area=sso`)).text();
+    expect(plan).toContain('<a href="/baselines/macos/tests?version=27&amp;hardware=apple-silicon&amp;areas=1&amp;area=hardware&amp;area=sso">Link to this plan</a>');
+    const whole = await (await fetch(`${app.base}/baselines/macos/tests`)).text();
+    expect(whole).toContain('<a href="/baselines/macos/tests">Link to this plan</a>');
+  });
+
   it("lists every platform, release and hardware family on the Platforms page", async () => {
     const html = await (await fetch(`${app.base}/platforms`)).text();
     expect(html).toContain("<h1>Platforms</h1>");
