@@ -11,3 +11,6 @@ data/*
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+# Claude Code session config: local permissions and dev-server entries that point at
+# per-session scratch folders; nothing in it is meant for another machine.
+.claude/
