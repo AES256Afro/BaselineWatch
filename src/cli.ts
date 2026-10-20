@@ -3,6 +3,7 @@
 //   node src/cli.ts backfill <source-id>          load a standard's published history, oldest first, then its current documents
 //   node src/cli.ts relink <source-id|all>        put a standard's versions back in publication order and re-diff the ones that were linked wrong
 //   node src/cli.ts images <count|all>            fetch og:image for existing news articles that have none, newest first (new articles get theirs at ingest)
+//   node src/cli.ts netscan <run|due>             the network scan (M12.3): run now, or only when due and turned on, then exit
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { adapterFor } from "./adapters/index.ts";
@@ -11,13 +12,17 @@ import { migrate, openDatabase } from "./db.ts";
 import { httpGet } from "./http.ts";
 import { getSource, ingestDocumentTarget, ingestSource, listSources } from "./ingest.ts";
 import { backfillImages } from "./images.ts";
+import { maybeRunNetworkScan, netScanEnabled, runNetworkScan } from "./netscan.ts";
+import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
 
 const [command, target] = process.argv.slice(2);
 
-if ((command !== "fetch" && command !== "backfill" && command !== "relink" && command !== "images") || !target) {
-  console.error("usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>\n       node src/cli.ts images <count|all>");
+if ((command !== "fetch" && command !== "backfill" && command !== "relink" && command !== "images" && command !== "netscan") || !target) {
+  console.error(
+    "usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>\n       node src/cli.ts images <count|all>\n       node src/cli.ts netscan <run|due>",
+  );
   process.exit(2);
 }
 
@@ -54,6 +59,18 @@ if (command === "backfill") {
   }
   const out = await backfillImages(db, config.dataDir, { http: httpGet, log: (line: string) => console.log(line) }, { limit });
   console.log(`[images] examined ${out.examined} article(s) without an image, stored ${out.stored}`);
+} else if (command === "netscan") {
+  if (target !== "run" && target !== "due") {
+    console.error(`netscan takes "run" or "due", got "${target}"`);
+    process.exit(2);
+  }
+  if (!netScanEnabled(db)) {
+    console.error("the network scan is off; the owner turns it on at /scan/network (it sends packets on your network)");
+    process.exit(target === "due" ? 0 : 1);
+  }
+  const options = { transport: parseNotifyUrl(config.notifyUrl), baseUrl: config.baseUrl, log: (line: string) => console.log(line) };
+  if (target === "run") await runNetworkScan(db, options);
+  else if (!(await maybeRunNetworkScan(db, { ...options, timeZone: config.timeZone }))) console.log("[netscan] not due: one already ran today");
 } else if (command === "relink") {
   const sources = target === "all" ? listSources(db) : [getSource(db, target)].filter((s) => s !== null);
   if (sources.length === 0) {

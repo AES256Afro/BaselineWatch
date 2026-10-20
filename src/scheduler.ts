@@ -39,6 +39,8 @@ export interface SchedulerOptions extends IngestDeps {
   log?: (line: string) => void;
   /** When set, the digest is written and sent on its schedule from the same ticks. */
   digest?: { period: "daily" | "weekly" | "off"; hour: number; timeZone: string };
+  /** When set, called every tick: the network scan (M12.3) runs itself when due. True when one ran. */
+  network?: () => Promise<boolean>;
 }
 
 function hostOf(url: string): string {
@@ -72,6 +74,8 @@ export interface Scheduler {
   runOnce(): Promise<IngestResult[]>;
   /** Writes and sends the digest if it is due; true when one was written. */
   runDigest(): Promise<boolean>;
+  /** Runs the network scan if one is due; true when one ran. */
+  runNetwork(): Promise<boolean>;
   stop(): void;
 }
 
@@ -152,10 +156,18 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     return true;
   };
 
+  const runNetwork = async (): Promise<boolean> => {
+    if (!options.network) return false;
+    const ran = await options.network();
+    if (ran) log("[netscan] daily network scan ran");
+    return ran;
+  };
+
   const timer = setInterval(() => {
     // A full disk or a busy database throws from the sqlite calls; logged, never an unhandled rejection that ends the process.
     void runOnce()
       .then(() => runDigest())
+      .then(() => runNetwork())
       .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`));
   }, options.tickMs ?? 60_000);
   timer.unref();
@@ -163,6 +175,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
   return {
     runOnce,
     runDigest,
+    runNetwork,
     stop: () => clearInterval(timer),
   };
 }

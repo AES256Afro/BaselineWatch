@@ -786,12 +786,32 @@ to anyone, which lets the set run on the public instance. Fixtures are the real 
 `test/blocklists.test.ts`, with a modified EasyList showing a line-level diff. Left for M12.3 and
 M12.6: resolving the canaries and matching the scripts against the lists.
 
-#### M12.3: This network
+#### M12.3: This network — shipped 2026-10-20
 Resolver discovery from the server's own lease and `resolv.conf`; forty-eight canaries in four
 categories resolved through it (and the upstream named by a resolver-identity query); Pi-hole
 and AdGuard Home client counts through their APIs when the owner gives a token; the DoH-from-LAN
 test. Done when adding the adfection list to the Pi-hole flips the category from resolved to
 sinkholed on the next run.
+
+*Landed*: `src/netscan.ts` and `/scan/network` (mockup 03, `src/pages/scan-network.ts`), with
+the scan's rows in `net_scans` and `net_canaries` (migration 0030). The resolver is read from
+the dhclient lease first (the router's answer), then `resolv.conf`, following systemd-resolved's
+127.0.0.53 stub through to the real upstream and keeping a bare loopback (a Pi-hole on this
+host). The canaries are the four sets' names plus twelve of the adfection list's domains picked
+by the same lowest-hash rule, read from the Register at scan time, resolved only (A records) and
+classified sinkholed (0.0.0.0, loopback, the resolver's own address, NXDOMAIN or no data),
+resolved, or timeout, with the answer kept verbatim; `whoami.akamai.net` is the control and
+names the upstream, one DoH GET to a public endpoint says whether a browser can bypass the
+resolver from this LAN, and a Pi-hole (`api.php?summaryRaw`) or AdGuard Home (`/control/stats`)
+client count rides along when the owner saves a token at `/scan/network` (stored in
+`app_settings`, shown as set or not set, never rendered). Opt-in: nothing runs until the owner
+turns it on; then daily, once per local date, from the scheduler's ticks. Day-over-day changes
+ride the scan row as JSON: a canary newly resolving or a changed resolver notifies right away
+(kind `network`, KEV priority), everything changed is a digest line, and `/scan`'s row 05 shows
+the latest tally. DNS, the clock, the filesystem and HTTP are injected; `test/netscan.test.ts`
+replays the captured lists and proves the milestone's done: adding the adfection list to the
+Pi-hole flips its category from 12 resolved to 12 sinkholed on the next run, alerting nobody,
+while the reverse direction is one alert.
 
 #### M12.4: Router
 Gateway from the lease; UPnP device description for model and firmware; SSDP and the IGD

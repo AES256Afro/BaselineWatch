@@ -63,6 +63,7 @@ src/blobs.ts         content-addressed snapshot store
 src/html.ts          html`` template with escaping
 src/pages/           server-rendered pages (layout, home, sources, not-found)
 src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
+src/netscan.ts       the network check: canaries through the LAN resolver, daily, opt-in (M12.3)
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation

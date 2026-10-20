@@ -1,5 +1,6 @@
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
+import type { NetworkSummary } from "../netscan.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -15,6 +16,8 @@ export interface ScanPageOptions {
   look: LookState;
   /** A second origin serving the same probe images, for the cross-site set; null for same-site only. */
   probeOrigin: string | null;
+  /** The network check's latest run (M12.3), for row 05; null when none has run. */
+  network: NetworkSummary | null;
 }
 
 interface CheckRow {
@@ -113,7 +116,7 @@ function row(check: CheckRow): Html {
 </article>`;
 }
 
-export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions): string {
+export function renderScan({ owner, open, look, probeOrigin, network }: ScanPageOptions): string {
   const rows = checkRows(probeOrigin).map(row);
   const content = html`<section class="scan" id="scan" data-probe-origin="${probeOrigin ?? ""}">
   <p class="crumbs"><a href="/">Home</a><span>›</span><b>Scan</b></p>
@@ -142,13 +145,17 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
           </div>
           <span class="state na">Not a page's to test</span>
         </article>
-        <article class="check off" data-check="network">
+        <article class="check${network ? "" : " off"}" data-check="network">
           <span class="n">05</span>
           <div>
             <div class="t">Every device on your network</div>
-            <p class="d">No web page can test this. This server can, because it sits on the LAN: the network check planned next resolves canary names through the resolver the router hands out. Until then, the guide's <a href="/scan/guide/windows#router">router</a> and <a href="/scan/guide/windows#network">network</a> sections say what to set on the router and how to prove each setting from any device, and a Pi-hole or AdGuard Home dashboard counts the queries it answered for every device.</p>
+            ${network
+              ? html`<p class="d">No web page can test this; this server can, because it sits on the LAN. The <a href="/scan/network">network check</a> resolved ${network.total} canary names through the resolver this network hands out${network.scan.resolver ? html` (<code>${network.scan.resolver}</code>)` : ""}: ${network.sinkholed} sinkholed, ${network.resolved} resolved. A sinkholed canary is blocked for every device using that resolver.</p>`
+              : html`<p class="d">No web page can test this. This server can, because it sits on the LAN: the <a href="/scan/network">network check</a> resolves canary names through the resolver the router hands out, daily, once the owner turns it on. The guide's <a href="/scan/guide/windows#router">router</a> and <a href="/scan/guide/windows#network">network</a> sections say what to set on the router and how to prove each setting from any device.</p>`}
           </div>
-          <span class="state na">Not a page's to test</span>
+          ${network
+            ? html`<span class="state ${network.resolved === 0 && network.sinkholed > 0 ? "ok" : "warn"}">${network.sinkholed} / ${network.total} sinkholed</span>`
+            : html`<span class="state na">Not run from this server</span>`}
         </article>
       </div>
       <div class="scan-run">
