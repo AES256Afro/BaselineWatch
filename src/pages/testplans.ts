@@ -5,6 +5,7 @@ import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { lines } from "../redline.ts";
 import { areas, planAreas, planFormats, planPlatformName, type Area, type PlanItem, type TestPlan } from "../testplans.ts";
+import { reportStyles } from "../report.ts";
 import { page } from "./layout.ts";
 
 interface Who {
@@ -24,7 +25,7 @@ const choiceValue = (c: DocChoice): string => `${c.key}@${c.documentId}`;
 function item(i: PlanItem): Html {
   const sev = i.severity ? html` <span class="chip sev ${i.severity === "CAT I" || i.severity === "high" ? "critical" : i.severity === "CAT II" || i.severity === "medium" ? "high" : "medium"}">${i.severity}</span>` : html``;
   const na = !i.applicable.ok;
-  return html`<li class="pitem ${i.included ? "" : "off"} ${na ? "na" : ""} ${i.source}"><label class="pitem-head"><input type="checkbox" name="keep" value="${i.id}" ${i.included ? "checked" : ""}${na ? " disabled" : ""}> ${i.source === "template" ? html`<span class="chip">owner's template</span>` : html`<a href="${i.url ?? "#"}"><b>${i.label}</b></a>`}${sev} <span class="pitem-title">${i.title}</span></label>${na ? html`<div class="pitem-meta"><span class="chip na">not applicable</span> <span class="small">${i.applicable.reason}</span></div>` : ""}${i.sourceTitle ? html`<div class="pitem-meta"><span class="small">${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.sourceTitle}</a>` : i.sourceTitle}</span></div>` : ""}${i.expected ? html`<div class="pitem-meta"><span><b>Success looks like:</b> ${i.expected}</span></div>` : ""}${i.fail ? html`<div class="pitem-meta"><span><b>If it does not:</b> ${i.fail}</span></div>` : ""}${i.procedure ? html`<details><summary>Procedure</summary><p class="prose">${lines(i.procedure)}</p></details>` : ""}</li>
+  return html`<li class="pitem ${i.included ? "" : "off"} ${na ? "na" : ""} ${i.source}"><label class="pitem-head"><input type="checkbox" name="keep" value="${i.id}" ${i.included ? "checked" : ""}${na ? " disabled" : ""}> ${i.source === "template" ? html`<span class="chip">owner's template</span>` : html`<a href="${i.url ?? "#"}"><b>${i.label}</b></a>`}${sev} <span class="pitem-title">${i.title}</span></label>${na ? html`<div class="pitem-meta"><span class="chip na">not applicable</span> <span class="small">${i.applicable.reason}</span></div>` : ""}${i.sourceTitle ? html`<div class="pitem-meta"><span class="small">${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.sourceTitle}</a>` : i.sourceTitle}</span></div>` : ""}${i.expected ? html`<div class="pitem-meta"><span><b>Success looks like:</b> ${i.expected}</span></div>` : ""}${i.fail ? html`<div class="pitem-meta"><span><b>If it does not:</b> ${i.fail}</span></div>` : ""}${i.ourValue ? html`<div class="pitem-meta"><span class="chip mod">modified</span> <span><b>Test for our value:</b> ${i.ourValue}</span></div>` : ""}${i.procedure ? html`<details><summary>Procedure</summary><p class="prose">${lines(i.procedure)}</p></details>` : ""}</li>
 `;
 }
 
@@ -34,6 +35,7 @@ export function planLink(plan: TestPlan): string {
   if (plan.release) q.set("version", plan.release.id);
   if (plan.hardware) q.set("hardware", plan.hardware.id);
   if (plan.options.templates === false) q.set("templates", "0");
+  if (plan.options.style && plan.options.style !== "plain") q.set("style", plan.options.style);
   const present = planAreas(plan).map((a) => a.id);
   if (plan.areasChosen.length !== present.length) {
     q.set("areas", "1");
@@ -116,8 +118,11 @@ export function renderTestPlan(options: TestPlanOptions): string {
         ${sections.length ? areaPick : ""}
         <fieldset class="export-row">
           <legend>Export the kept checks</legend>
+          <label for="style">Report look</label>
+          <select id="style" name="style">${reportStyles.map((s) => html`<option value="${s.id}" ${s.id === (plan.options.style ?? "plain") ? "selected" : ""}>${s.label}</option>`)}</select>
           ${planFormats.map((f) => html`<button type="submit" formaction="/baselines/${p}/tests/export" name="format" value="${f.id}">${f.label}</button>`)}
           <span class="small">Untick a check, then Rebuild or export; the form carries the state and nothing is stored. One area is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole plan: the checks kept, what was left out and why, a findings table and a sign-off.</span>
+          <details class="small"><summary>The report looks</summary><dl class="kv">${reportStyles.map((s) => html`<dt>${s.label}</dt><dd>${s.blurb}${s.cover ? " Cover page." : ""}${s.numbered ? " Numbered sections." : ""}</dd>`)}</dl><p>The look applies to Word, PDF, LaTeX and the printable checklist; Markdown, CSV and JSON stay plain. Each follows one of the mockups in <code>docs/mockups/exports</code>.</p></details>
           <span class="small"><a href="${planLink(plan)}">Link to this plan</a>: the release, hardware and areas as a URL to bookmark or send; unticked checks do not travel with it.</span>
         </fieldset>
         ${sections.length
@@ -165,6 +170,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
       ${plan.templates.length
         ? html`<ul class="change-list">${plan.templates.map((t) => html`<li><b>${t.title}</b> <span class="small">${t.steps.length} steps · ${areas.find((a) => a.id === t.area)?.label ?? t.area} · ${t.file}</span>${t.notes ? html`<div class="note">${t.notes}</div>` : ""}</li>`)}</ul>`
         : html`<p class="small">No template applies to ${name}${release ? html` on ${release.label}` : ""}.</p>`}
+      ${plan.notApplied.length ? html`<h3 class="small">Rules not applied <span class="count">${plan.notApplied.length}</span></h3><ul class="change-list">${plan.notApplied.slice(0, 20).map((i) => html`<li><b>${i.label}</b> <span class="chip del">not applied</span> <span class="small">${i.title}</span></li>`)}${plan.notApplied.length > 20 ? html`<li class="small">and ${plan.notApplied.length - 20} more</li>` : ""}</ul><p class="small">The owner's <a href="/baselines/${p}/decisions">decisions</a> keep these out of the plan; a modified rule stays in and is tested for the organisation's value.</p>` : ""}
       ${plan.skippedTemplates.length ? html`<h3 class="small">Left out</h3><ul class="change-list">${plan.skippedTemplates.map((s) => html`<li><b>${s.template.title}</b> <span class="small">${s.reason}</span></li>`)}</ul>` : ""}
       ${plan.templateErrors.length ? html`<p class="small">Could not read: ${plan.templateErrors.join("; ")}</p>` : ""}
       ${plan.fleetErrors.length ? html`<p class="small">data/platforms.yaml: ${plan.fleetErrors.join("; ")}</p>` : ""}

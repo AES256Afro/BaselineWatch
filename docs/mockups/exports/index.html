@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BaselineWatch Export Templates</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+:root{--bg:#f4f5f3;--fg:#17201f;--muted:#5d6a67;--line:#d4dad7;--panel:#fff;--accent:#0f6e56;--ui:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121716;--fg:#e6ebe9;--muted:#97a3a0;--line:#2a3331;--panel:#1a211f;--accent:#4cc9a6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121716;--fg:#e6ebe9;--muted:#97a3a0;--line:#2a3331;--panel:#1a211f;--accent:#4cc9a6;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--ui);margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:75ch;margin:0}
+.disclosure{margin-top:14px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font-size:13px}
+.disclosure b{color:var(--fg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:22px}
+.card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;color:inherit;text-decoration:none}
+.card:hover,.card:focus-visible{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);outline:none}
+.thumb{position:relative;height:220px;overflow:hidden;border-bottom:1px solid var(--line);background:#fff}
+.thumb iframe{position:absolute;top:0;left:0;width:1100px;height:880px;border:0;transform:scale(.27);transform-origin:0 0;pointer-events:none}
+.meta{padding:12px 14px 14px}
+.meta .n{font:600 12px var(--ui);color:var(--accent)}
+.meta strong{display:block;font-size:15px;margin:2px 0 4px}
+.meta span{display:block;color:var(--muted);font-size:13px;line-height:1.4}
+.extra{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.extra section{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 16px;font-size:14px}
+.extra h2{font-size:15px;margin:0 0 6px}
+.extra ul{margin:0;padding-left:18px;color:var(--muted)}
+a{color:var(--accent)}
+code{font:13px "IBM Plex Mono",Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Export templates: 10 mockups</h1>
+<p class="lede">Layouts for exporting a platform's baseline decisions and test plan to PDF, Word and Markdown. Same sample in each: <b>macOS 26 Security Baseline and Test Report</b>, 212 rules, 10 decisions shown, 24 test steps in 7 areas, 5 POA&amp;M items. Print a page to PDF to see its paged layout.</p>
+<p class="disclosure"><b>Sample data.</b> Mockup with sample data. Names, counts and evidence references are invented. DISA STIG and NIST content is public domain; recommendations are paraphrased. No CIS Benchmark text appears anywhere.</p>
+<div class="grid">
+<a class="card" href="01-formal-assessment.html"><div class="thumb"><iframe src="01-formal-assessment.html" title="Formal assessment report preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">01</span><strong>Formal assessment report</strong><span>Serif, numbered sections, Examine/Test method column, signature page. SP 800-53A assessment report layout.</span></div></a>
+<a class="card" href="02-engineering-runbook.html"><div class="thumb"><iframe src="02-engineering-runbook.html" title="Engineering runbook preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">02</span><strong>Engineering runbook</strong><span>Plex Sans and Mono, each test a numbered step with a copy-ready command block and a tick box.</span></div></a>
+<a class="card" href="03-executive-onepager.html"><div class="thumb"><iframe src="03-executive-onepager.html" title="Executive one-pager + appendix preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">03</span><strong>Executive one-pager + appendix</strong><span>Page one: counts, results by area, open items, sign-off. Detail in appendices.</span></div></a>
+<a class="card" href="04-compact-checklist.html"><div class="thumb"><iframe src="04-compact-checklist.html" title="Compact print checklist preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">04</span><strong>Compact print checklist</strong><span>Landscape, two dense columns, P / F / NA tick boxes for marking by hand.</span></div></a>
+<a class="card" href="05-modern-saas.html"><div class="thumb"><iframe src="05-modern-saas.html" title="Modern SaaS preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">05</span><strong>Modern SaaS</strong><span>Figtree, cards, ring chart for the pass rate, pill badges.</span></div></a>
+<a class="card" href="06-dark-console.html"><div class="thumb"><iframe src="06-dark-console.html" title="Dark console preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">06</span><strong>Dark console</strong><span>Martian Mono on near-black, prompts and ASCII bars, test steps as a session transcript. Prints with a dark background.</span></div></a>
+<a class="card" href="07-jira-kanban.html"><div class="thumb"><iframe src="07-jira-kanban.html" title="Jira / kanban cards preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">07</span><strong>Jira / kanban cards</strong><span>Issue cards with keys, priority, labels and assignee avatars. Decisions in three lanes, tests on a Pass / Fail / Other board.</span></div></a>
+<a class="card" href="08-audit-workpaper.html"><div class="thumb"><iframe src="08-audit-workpaper.html" title="Audit workpaper preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">08</span><strong>Audit workpaper</strong><span>Workpaper header block, W/P references, tickmark legend and prepared / reviewed initials and dates on every row.</span></div></a>
+<a class="card" href="09-markdown-native.html"><div class="thumb"><iframe src="09-markdown-native.html" title="Markdown-native preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">09</span><strong>Markdown-native</strong><span>Rendered Markdown (GitHub style) beside the raw source. Raw file: 09-markdown-native.md.</span></div></a>
+<a class="card" href="10-docx-word.html"><div class="thumb"><iframe src="10-docx-word.html" title="Word document (.docx) preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="meta"><span class="n">10</span><strong>Word document (.docx)</strong><span>Letter pages on grey, Calibri-metric Carlito, Word’s built-in Heading and Grid Table styles, TOC with dot leaders, running header and footer.</span></div></a>
+</div>
+<div class="extra">
+<section><h2>Every template includes</h2><ul><li>Cover: platform, three standards with versions, date, version, prepared by, approval block</li><li>Executive summary: recommended / applied / modified / not applied; pass / fail / n/a / not tested</li><li>Decision register: publisher recommendation (STIG ID and CAT, mSCP rule, 800-53 controls) beside our decision, justification and owner</li><li>Test plan by area: procedure, expected result, result, evidence, tester</li><li>POA&amp;M and exceptions; attribution footer</li></ul></section>
+<section><h2>Formats</h2><ul><li><b>PDF</b>: any template; each has <code>@page</code> size and margins and page breaks between sections</li><li><b>docx</b>: 10 is the Word layout; 01 and 08 also convert to Word tables</li><li><b>Markdown</b>: 09, with the raw file <a href="09-markdown-native.md">09-markdown-native.md</a></li></ul></section>
+<section><h2>Notes</h2><ul><li>Mockups use inline styles and Google Fonts; they are not served by the app, so the app's CSP does not apply.</li><li>06 prints with a dark background; 04, 07 and 08 print landscape.</li><li>Back to the <a href="../index.html">UI mockups</a>.</li></ul></section>
+</div>
+</div>
+</body>
+</html>

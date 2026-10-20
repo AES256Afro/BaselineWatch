@@ -6,7 +6,8 @@ import { buildProfile, isBuilderPlatform, type Profile, type ProfileItem, type P
 import { latestDocument } from "./register.ts";
 import { applicability, appliesToAll, findHardware, findRelease, fleetPlatformName, hardwareOf, isFleetPlatform, loadFleet, parseApplies, releasesOf, type Applicability, type Applies, type Fleet, type FleetPlatform, type Hardware, type Release } from "./fleet.ts";
 import { escapeHtml } from "./html.ts";
-import { renderDocx, renderLatex, renderPdf, type Block, type Inline } from "./report.ts";
+import { ourDecision, recommends } from "./decisions.ts";
+import { renderDocx, renderLatex, renderPdf, reportStyle, type Block, type Inline } from "./report.ts";
 import { productName } from "./version.ts";
 
 /**
@@ -94,6 +95,8 @@ export interface PlanItem {
   sourceTitle: string | null;
   /** Whether the step applies to the chosen release and hardware, and why not. */
   applicable: Applicability;
+  /** The organisation's own value, when the owner applies the rule modified: test for this, not the publisher's. */
+  ourValue: string | null;
   /** Whether the person kept it (an inapplicable item is never kept). */
   included: boolean;
 }
@@ -117,6 +120,12 @@ export interface Template {
   notes: string | null;
   /** Which releases and hardware the whole template is for; a step may narrow it further. */
   applies: Applies;
+  /**
+   * Words naming the rules the template tests ("ssh", "smart card"): the template joins the plan
+   * only when a rule the owner applies names one of them, so a team that does not apply an SSH
+   * rule is not asked to test SSH. Empty means it always applies.
+   */
+  requires: string[];
   steps: TemplateStep[];
   file: string;
 }
@@ -161,7 +170,8 @@ export function loadTemplates(dir: string = templatesDir): { templates: Template
         };
       });
       if (steps.length === 0) throw new Error("no steps");
-      templates.push({ id, title, platforms: platforms.length ? platforms : ["all"], area, notes: str(doc.notes), applies: doc.applies === undefined ? appliesToAll : parseApplies(doc.applies), steps, file });
+      const requires = (Array.isArray(doc.requires) ? doc.requires : typeof doc.requires === "string" ? [doc.requires] : []).map((r) => String(r).trim().toLowerCase()).filter((r) => r.length > 1);
+      templates.push({ id, title, platforms: platforms.length ? platforms : ["all"], area, notes: str(doc.notes), applies: doc.applies === undefined ? appliesToAll : parseApplies(doc.applies), requires, steps, file });
     } catch (error) {
       errors.push(`${file}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -179,6 +189,8 @@ export interface PlanOptions extends Omit<ProfileOptions, "platform"> {
   hardware?: string | undefined;
   /** The areas to test; unset means all of them. */
   areas?: Area[] | undefined;
+  /** The report look for the Word, PDF, LaTeX and printable exports (an id from reportStyles); unset is plain. */
+  style?: string | undefined;
 }
 
 export interface TestPlan {
@@ -196,8 +208,12 @@ export interface TestPlan {
   templates: Template[];
   templateErrors: string[];
   fleetErrors: string[];
-  /** Templates left out whole because they do not apply to the chosen release or hardware. */
+  /** Templates left out whole because they do not apply to the chosen release or hardware, or no applied rule names what they test. */
   skippedTemplates: { template: Template; reason: string }[];
+  /** Derived checks left out because the owner decided not to apply their rule. */
+  notApplied: PlanItem[];
+  /** The profile items the owner decided on (modified or not applied), in profile order. */
+  decided: ProfileItem[];
   counts: { included: number; dropped: number; inapplicable: number; untested: number; derived: number; template: number; byArea: Record<Area, number> };
 }
 
@@ -218,8 +234,16 @@ function derived(item: ProfileItem, dropped: Set<string>): PlanItem | null {
     url: item.url,
     sourceTitle: null,
     applicable: { ok: true, reason: null },
+    ourValue: item.decision?.decision === "modify" ? (item.decision.value ?? "see the decision") : null,
     included: !dropped.has(id),
   };
+}
+
+/** Whether a word names an applied rule: by its id or label (os_sshd_*) or a whole word of its title. */
+export function namesApplied(word: string, items: ProfileItem[]): boolean {
+  const w = word.toLowerCase();
+  const re = new RegExp(`(^|[^a-z0-9])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z0-9]|$)`, "i");
+  return items.some((i) => (i.kind === "stig" || i.kind === "mscp") && i.decision?.decision !== "exclude" && (i.id.toLowerCase().includes(w) || i.label.toLowerCase().includes(w) || re.test(i.title)));
 }
 
 /** The builder choices a release's fleet entry names ("key@documentId" for the latest loaded version of each), or nothing where the Register has none. */
@@ -251,10 +275,13 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
     : null;
   const dropped = new Set(options.drop ?? []);
   const items: PlanItem[] = [];
+  const notApplied: PlanItem[] = [];
   if (profile) {
     for (const item of profile.items) {
       const d = derived(item, dropped);
-      if (d) items.push(d);
+      // A rule the owner decided not to apply is not tested; the plan says so and why.
+      if (d && item.decision?.decision === "exclude") notApplied.push({ ...d, included: false, applicable: { ok: false, reason: `not applied${item.decision.reason ? `: ${item.decision.reason}` : ""}` } });
+      else if (d) items.push(d);
     }
   }
   const loaded = options.templates === false ? { templates: [], errors: [] } : loadTemplates(templateDir);
@@ -263,6 +290,10 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
   const templates = forPlatform.filter((t) => {
     const a = applicability(fleet, t.applies, release, hardware);
     if (!a.ok) skippedTemplates.push({ template: t, reason: a.reason ?? "does not apply" });
+    else if (profile && t.requires.length && !t.requires.some((w) => namesApplied(w, profile.items))) {
+      skippedTemplates.push({ template: t, reason: `no applied rule names ${t.requires.join(" or ")}` });
+      return false;
+    }
     return a.ok;
   });
   for (const t of templates) {
@@ -282,6 +313,7 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
         url: step.source?.url ?? null,
         sourceTitle: step.source ? `${step.source.title} (${t.title})` : t.title,
         applicable,
+        ourValue: null,
         included: applicable.ok && !dropped.has(id),
       });
     });
@@ -306,6 +338,8 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
     templateErrors: loaded.errors,
     fleetErrors: fleet.errors,
     skippedTemplates,
+    notApplied,
+    decided: profile ? profile.items.filter((i) => i.decision && i.decision.decision !== "apply") : [],
     counts: {
       included: items.filter(tested).length,
       dropped: items.filter((i) => !i.included && i.applicable.ok).length,
@@ -376,6 +410,7 @@ function planAttribution(plan: TestPlan): string[] {
   if (c?.stig) out.push(`Check procedures: DISA, ${c.stig.label} (US Government work, public domain).`);
   if (c?.mscp) out.push(`macOS checks and expected results: NIST macOS Security Compliance Project, ${c.mscp.label}.`);
   if (plan.counts.template) out.push(`Template steps are the owner's, kept in this instance's data/test-plans; each cites the publisher's document it follows.`);
+  if (plan.decided.length) out.push("Decisions (modified values, rules not applied, reasons and owners) are the owner's, recorded in this instance.");
   if (plan.release || plan.hardware) out.push(`Release and hardware facts are the vendors', kept in this instance's data/platforms.yaml with the page each came from.`);
   out.push("No CIS Benchmark text is included. Nothing in this document was written by a model.");
   return out;
@@ -399,11 +434,12 @@ function facts(plan: TestPlan, meta: { generatedAt: string; version: string }): 
     if (!i.applicable.ok) notTested.push({ label: i.label, title: i.title, why: i.applicable.reason ?? "does not apply" });
     else if (i.included && !plan.areasChosen.includes(i.area)) notTested.push({ label: i.label, title: i.title, why: `${areaLabel(i.area)} is not being tested this time` });
   }
+  for (const i of plan.notApplied) notTested.push({ label: i.label, title: i.title, why: i.applicable.reason ?? "not applied" });
   for (const s of plan.skippedTemplates) notTested.push({ label: s.template.id, title: s.template.title, why: s.reason });
   return {
     title: planTitle(plan),
     stem,
-    summary: `Generated by ${productName} ${meta.version} at ${meta.generatedAt}. ${plan.counts.included} checks: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates.${plan.release ? ` Release: ${plan.release.label}${plan.release.supportEnds ? ` (support: ${plan.release.supportEnds})` : ""}.` : ""}${plan.hardware ? ` Hardware: ${plan.hardware.label}.` : ""}`,
+    summary: `Generated by ${productName} ${meta.version} at ${meta.generatedAt}. ${plan.counts.included} checks: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates.${plan.release ? ` Release: ${plan.release.label}${plan.release.supportEnds ? ` (support: ${plan.release.supportEnds})` : ""}.` : ""}${plan.hardware ? ` Hardware: ${plan.hardware.label}.` : ""}${plan.profile ? ` Baseline decisions: ${plan.profile.counts.decisions.apply} applied as published, ${plan.profile.counts.decisions.modify} modified, ${plan.profile.counts.decisions.exclude} not applied.` : ""}`,
     grouped: areas.map((a) => ({ area: a, items: kept.filter((i) => i.area === a.id) })).filter((g) => g.items.length),
     notTested,
   };
@@ -424,6 +460,12 @@ export function planBlocks(plan: TestPlan, meta: { baseUrl: string; generatedAt:
     blocks.push({ type: "table", header: ["Fact", "Value"], rows });
     for (const n of plan.release.notes) blocks.push({ type: "bullet", runs: [n] });
   }
+  if (plan.profile) {
+    blocks.push({ type: "h1", text: "Baseline decisions" });
+    blocks.push({ type: "p", runs: [`What the publishers recommend, and what this organisation applies. Items not listed (${plan.profile.counts.decisions.apply}) apply as published.`] });
+    if (plan.decided.length) blocks.push({ type: "table", header: ["Item", "Publisher recommends", "Our decision", "Reason", "Owner"], rows: plan.decided.map((i) => [i.label, recommends(i), ourDecision(i), i.decision?.reason ?? "", i.decision?.owner ?? ""]) });
+    else blocks.push({ type: "p", runs: ["Every item applies as the publisher recommends."] });
+  }
   for (const g of f.grouped) {
     blocks.push({ type: "h1", text: `${g.area.label} (${g.items.length})` });
     for (const i of g.items) {
@@ -433,6 +475,7 @@ export function planBlocks(plan: TestPlan, meta: { baseUrl: string; generatedAt:
       if (i.procedure) blocks.push({ type: "code", text: i.procedure });
       if (i.expected) blocks.push({ type: "p", runs: [{ text: "Success looks like: ", bold: true }, i.expected] });
       if (i.fail) blocks.push({ type: "p", runs: [{ text: "If it does not: ", bold: true }, i.fail] });
+      if (i.ourValue) blocks.push({ type: "p", runs: [{ text: "Our value (modified): ", bold: true }, i.ourValue] });
       if (i.sourceTitle || i.url) blocks.push({ type: "p", runs: [{ text: "Source: ", bold: true }, `${i.sourceTitle ?? ""}${i.url ? ` ${absolute(i.url, meta.baseUrl)}` : ""}`.trim()] });
       blocks.push({ type: "p", runs: ["Result: ☐ Pass ☐ Fail ☐ N/A   Evidence: ________   Tester: ________   Date: ________"] });
     }
@@ -454,9 +497,10 @@ export function planBlocks(plan: TestPlan, meta: { baseUrl: string; generatedAt:
 export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: string; generatedAt: string; version: string }): { body: string | Uint8Array; contentType: string; filename: string } {
   const f = facts(plan, meta);
   const kept = testedItems(plan);
-  if (format === "tex") return { body: renderLatex(planBlocks(plan, meta)), contentType: "application/x-tex; charset=utf-8", filename: `${f.stem}.tex` };
-  if (format === "docx") return { body: renderDocx(planBlocks(plan, meta)), contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename: `${f.stem}.docx` };
-  if (format === "pdf") return { body: renderPdf(planBlocks(plan, meta)), contentType: "application/pdf", filename: `${f.stem}.pdf` };
+  const style = reportStyle(plan.options.style);
+  if (format === "tex") return { body: renderLatex(planBlocks(plan, meta), style), contentType: "application/x-tex; charset=utf-8", filename: `${f.stem}.tex` };
+  if (format === "docx") return { body: renderDocx(planBlocks(plan, meta), style), contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename: `${f.stem}.docx` };
+  if (format === "pdf") return { body: renderPdf(planBlocks(plan, meta), style), contentType: "application/pdf", filename: `${f.stem}.pdf` };
   if (format === "json") {
     const body = JSON.stringify(
       {
@@ -472,6 +516,7 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
         attribution: planAttribution(plan),
         items: kept.map((i) => ({ ...i, area: areaLabel(i.area), url: absolute(i.url, meta.baseUrl) })),
         notTested: f.notTested,
+        decisions: plan.decided.map((i) => ({ recommends: recommends(i), ...i.decision })),
       },
       null,
       1,
@@ -483,8 +528,8 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
       const s = v === null || v === undefined ? "" : String(v);
       return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const rows = ["done,area,id,severity,title,source,procedure,expected,if not,reference"];
-    for (const i of kept) rows.push(["", areaLabel(i.area), i.label, i.severity ?? "", i.title, i.source === "template" ? (i.sourceTitle ?? "template") : i.source.toUpperCase(), i.procedure ?? "", i.expected ?? "", i.fail ?? "", absolute(i.url, meta.baseUrl) ?? ""].map(cell).join(","));
+    const rows = ["done,area,id,severity,title,source,procedure,expected,if not,our value,reference"];
+    for (const i of kept) rows.push(["", areaLabel(i.area), i.label, i.severity ?? "", i.title, i.source === "template" ? (i.sourceTitle ?? "template") : i.source.toUpperCase(), i.procedure ?? "", i.expected ?? "", i.fail ?? "", i.ourValue ?? "", absolute(i.url, meta.baseUrl) ?? ""].map(cell).join(","));
     return { body: `${rows.join("\r\n")}\r\n`, contentType: "text/csv; charset=utf-8", filename: `${f.stem}.csv` };
   }
   if (format === "md") {
@@ -498,6 +543,15 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
       for (const n of plan.release.notes) out.push(`- ${n}`);
       out.push("");
     }
+    if (plan.profile) {
+      const md = (s: string) => s.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+      out.push("## Baseline decisions", "");
+      if (plan.decided.length) {
+        out.push("| Item | Publisher recommends | Our decision | Reason | Owner |", "| --- | --- | --- | --- | --- |");
+        for (const i of plan.decided) out.push(`| ${md(i.label)} | ${md(recommends(i))} | ${md(ourDecision(i))} | ${md(i.decision?.reason ?? "")} | ${md(i.decision?.owner ?? "")} |`);
+      } else out.push("Every item applies as the publisher recommends.");
+      out.push("");
+    }
     for (const g of f.grouped) {
       out.push(`## ${g.area.label} (${g.items.length})`, "");
       for (const i of g.items) {
@@ -505,6 +559,7 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
         if (i.procedure) out.push("", "  ```", ...i.procedure.split("\n").map((l) => `  ${l}`), "  ```", "");
         if (i.expected) out.push(`  - Success looks like: ${i.expected}`);
         if (i.fail) out.push(`  - If it does not: ${i.fail}`);
+        if (i.ourValue) out.push(`  - Our value (modified): ${i.ourValue}`);
         if (i.url) out.push(`  - Reference: ${absolute(i.url, meta.baseUrl)}`);
         out.push("  - Result: ☐ Pass ☐ Fail ☐ N/A · Evidence: ____ · Tester: ____ · Date: ____");
       }
@@ -521,16 +576,19 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
     return { body: out.join("\n"), contentType: "text/markdown; charset=utf-8", filename: `${f.stem}.md` };
   }
   const e = escapeHtml;
-  const parts: string[] = [`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(f.title)}</title><link rel="stylesheet" href="${e(meta.baseUrl)}/assets/app.css"></head><body><main class="wrap export">`];
+  const parts: string[] = [`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(f.title)}</title><link rel="stylesheet" href="${e(meta.baseUrl)}/assets/app.css"></head><body><main class="wrap export" data-report="${e(style.id)}">`];
   parts.push(`<h1>${e(f.title)}</h1><p>${e(f.summary)}</p>`);
   if (plan.release) {
     parts.push(`<section><h2>The release under test</h2><dl class="kv"><dt>Release</dt><dd>${e(plan.release.label)}${plan.release.released ? ` (released ${e(plan.release.released)})` : ""}</dd>${plan.release.supportEnds ? `<dt>Support</dt><dd>${e(plan.release.supportEnds)}</dd>` : ""}${plan.hardware ? `<dt>Hardware</dt><dd>${e(plan.hardware.label)}${plan.hardware.note ? `. ${e(plan.hardware.note)}` : ""}</dd>` : ""}${plan.release.models ? `<dt>Models</dt><dd>${e(plan.release.models)}</dd>` : ""}${plan.release.baselines.length ? `<dt>Baselines</dt><dd>${plan.release.baselines.map(e).join("; ")}</dd>` : ""}</dl>${plan.release.notes.length ? `<ul>${plan.release.notes.map((n) => `<li>${e(n)}</li>`).join("")}</ul>` : ""}</section>`);
+  }
+  if (plan.profile && plan.decided.length) {
+    parts.push(`<section><h2>Baseline decisions</h2><table><thead><tr><th>Item</th><th>Publisher recommends</th><th>Our decision</th><th>Reason</th><th>Owner</th></tr></thead><tbody>${plan.decided.map((i) => `<tr><td>${e(i.label)}</td><td>${e(recommends(i))}</td><td>${e(ourDecision(i))}</td><td>${e(i.decision?.reason ?? "")}</td><td>${e(i.decision?.owner ?? "")}</td></tr>`).join("")}</tbody></table></section>`);
   }
   for (const g of f.grouped) {
     parts.push(`<section><h2>${e(g.area.label)} <small>(${g.items.length})</small></h2><ol class="checklist">`);
     for (const i of g.items) {
       const ref = absolute(i.url, meta.baseUrl);
-      parts.push(`<li class="export-item"><label><input type="checkbox"> <code>${e(i.label)}</code> ${e(i.title)}${i.severity ? ` <small>${e(i.severity)}</small>` : ""}</label>${i.sourceTitle ? `<div><small>${e(i.sourceTitle)}</small></div>` : ""}${i.procedure ? `<pre>${e(i.procedure)}</pre>` : ""}${i.expected ? `<div><b>Success looks like:</b> ${e(i.expected)}</div>` : ""}${i.fail ? `<div><b>If it does not:</b> ${e(i.fail)}</div>` : ""}${ref ? `<div><a href="${e(ref)}">${e(ref)}</a></div>` : ""}<div><small>Result: ☐ Pass ☐ Fail ☐ N/A · Evidence: ____ · Tester: ____ · Date: ____</small></div></li>`);
+      parts.push(`<li class="export-item"><label><input type="checkbox"> <code>${e(i.label)}</code> ${e(i.title)}${i.severity ? ` <small>${e(i.severity)}</small>` : ""}</label>${i.sourceTitle ? `<div><small>${e(i.sourceTitle)}</small></div>` : ""}${i.procedure ? `<pre>${e(i.procedure)}</pre>` : ""}${i.expected ? `<div><b>Success looks like:</b> ${e(i.expected)}</div>` : ""}${i.fail ? `<div><b>If it does not:</b> ${e(i.fail)}</div>` : ""}${i.ourValue ? `<div><b>Our value (modified):</b> ${e(i.ourValue)}</div>` : ""}${ref ? `<div><a href="${e(ref)}">${e(ref)}</a></div>` : ""}<div><small>Result: ☐ Pass ☐ Fail ☐ N/A · Evidence: ____ · Tester: ____ · Date: ____</small></div></li>`);
     }
     parts.push("</ol></section>");
   }
