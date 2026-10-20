@@ -48,6 +48,9 @@ export interface HeatmapRow {
 }
 
 export interface Heatmap {
+  /** The document the map is drawn from, so a cell can lead to its release and a family to its controls. */
+  sourceId: string;
+  key: string;
   families: string[];
   rows: HeatmapRow[];
   max: number;
@@ -82,7 +85,7 @@ export function familyHeatmap(db: DatabaseSync, sourceId = "nist-sp-800-53", key
   }
   const families = [...familySet].sort();
   const max = rows.reduce((m, r) => Math.max(m, ...Object.values(r.counts)), 0);
-  return { families, rows, max };
+  return { sourceId, key, families, rows, max };
 }
 
 export interface Velocity {
@@ -108,6 +111,8 @@ export interface Expectation {
   what: string;
   when: string;
   basis: string;
+  /** Where the thing lives here: the standard's versions, or the table its figures come from. */
+  href: string;
 }
 
 /** What is due next, from each publisher's cadence and the latest release seen. */
@@ -119,16 +124,16 @@ export function expectedNext(db: DatabaseSync, now: Date): Expectation[] {
     const quarterMonth = Math.floor(last.getUTCMonth() / 3) * 3 + 3; // the next quarter's first month
     const next = new Date(Date.UTC(last.getUTCFullYear(), quarterMonth, 1));
     const month = next.toLocaleString("en-US", { month: "long", timeZone: "UTC" });
-    out.push({ what: "DISA quarterly STIG release", when: `${month} ${next.getUTCFullYear()}`, basis: `quarterly; last seen ${latestStig.slice(0, 10)}` });
+    out.push({ what: "DISA quarterly STIG release", when: `${month} ${next.getUTCFullYear()}`, basis: `quarterly; last seen ${latestStig.slice(0, 10)}`, href: "/standards/disa-stigs" });
   } else {
-    out.push({ what: "DISA quarterly STIG release", when: "late January, April, July, October", basis: "DISA's maintenance cadence" });
+    out.push({ what: "DISA quarterly STIG release", when: "late January, April, July, October", basis: "DISA's maintenance cadence", href: "/standards/disa-stigs" });
   }
   const latestSct = (db.prepare("SELECT MAX(published_at) AS at FROM documents WHERE source_id = 'microsoft-sct'").get() as { at: string | null }).at;
-  out.push({ what: "Microsoft Security Baseline refresh", when: "with the next Windows feature update or Office channel release", basis: latestSct ? `last toolkit publication ${latestSct.slice(0, 10)}` : "no toolkit publication seen yet" });
+  out.push({ what: "Microsoft Security Baseline refresh", when: "with the next Windows feature update or Office channel release", basis: latestSct ? `last toolkit publication ${latestSct.slice(0, 10)}` : "no toolkit publication seen yet", href: "/standards/microsoft-sct" });
   const latestNist = (db.prepare("SELECT MAX(published_at) AS at FROM documents WHERE source_id = 'nist-sp-800-53' AND document_key = 'catalog'").get() as { at: string | null }).at;
-  out.push({ what: "NIST SP 800-53 patch release", when: "no fixed cadence", basis: latestNist ? `last catalog change ${latestNist.slice(0, 10)}; drafts appear on the CSRC comment feed first` : "watch the CSRC drafts feed" });
+  out.push({ what: "NIST SP 800-53 patch release", when: "no fixed cadence", basis: latestNist ? `last catalog change ${latestNist.slice(0, 10)}; drafts appear on the CSRC comment feed first` : "watch the CSRC drafts feed", href: "/standards/nist-sp-800-53" });
   const epss = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
-  out.push({ what: "EPSS scores", when: "daily", basis: epss ? `last joined ${epss}` : "not joined yet" });
-  out.push({ what: "CISA KEV additions", when: "most weekdays", basis: `${velocity(db, new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()).kevAdditions} in the last 30 days` });
+  out.push({ what: "EPSS scores", when: "daily", basis: epss ? `last joined ${epss}` : "not joined yet", href: "/vulnerabilities?sort=epss" });
+  out.push({ what: "CISA KEV additions", when: "most weekdays", basis: `${velocity(db, new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()).kevAdditions} in the last 30 days`, href: "/?kind=kev" });
   return out;
 }

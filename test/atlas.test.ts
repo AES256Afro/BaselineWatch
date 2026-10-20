@@ -72,6 +72,16 @@ describe("Atlas data", () => {
     expect(atlas).toContain('class="dot changed"');
     expect(atlas).toContain("Expected next");
     expect(atlas).not.toMatch(/style="/);
+    // Every mark leads somewhere: a standard to its versions, a release to its page, a cell to that family's changes in it.
+    const latest = latestDocument(app.db, "nist-sp-800-53", "catalog")!;
+    expect(atlas).toContain('href="/standards/nist-sp-800-53"><title>NIST SP 800-53 (controls): every version');
+    expect(atlas).toContain(`href="/standards/nist-sp-800-53/${latest.id}"><title>catalog 5.2.0`);
+    expect(atlas).toContain('class="hit"');
+    expect(atlas).toContain(`href="/standards/nist-sp-800-53/${latest.id}?family=SA"`);
+    expect(atlas).toContain(`href="/standards/nist-sp-800-53/${latest.id}/browse?family=AC"`);
+    expect(atlas).toContain('href="/triage#affects"');
+    expect(atlas).toContain('href="/?kind=kev"><small>KEV additions</small>');
+    expect(atlas).toContain('<a href="/standards/disa-stigs"><b>DISA quarterly STIG release</b>');
 
     const today = await (await fetch(`${app.base}/today`)).text();
     expect(today).toContain("Needs you");
@@ -80,7 +90,13 @@ describe("Atlas data", () => {
     expect(today).toContain("NIST SP 800-53 (controls) 5.2.0");
     const week = await (await fetch(`${app.base}/today?since=168`)).text();
     expect(week).toContain('class="on" href="/today?since=168"');
-    const latest = latestDocument(app.db, "nist-sp-800-53", "catalog")!;
     expect(today).toContain(`/standards/nist-sp-800-53/${latest.id}`);
+    // The glance panels lead to the lists they count: a series to the News by group, a band to the table, a state to its column.
+    expect(today).toContain('href="/?group=standards"');
+    expect(today).toContain('href="/vulnerabilities?watch=1&amp;changed=1&amp;severity=critical"');
+    expect(today).toContain('href="/vulnerabilities?min_epss=0.5&amp;sort=epss"');
+    expect(today).toContain('href="/triage#affects"');
+    expect(today).toContain('href="/sources#src-cisa-kev"');
+    expect(today).toContain('href="/?source=cisa-kev"');
   });
 });

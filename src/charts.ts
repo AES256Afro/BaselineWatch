@@ -18,7 +18,12 @@ export interface Slice {
   label: string;
   value: number;
   tone: Tone;
+  /** Where the slice leads: the list its figure is counted from. A chart with no destination is only a picture. */
+  href?: string | undefined;
 }
+
+/** The inner markup wrapped in a link when there is somewhere to go, bare otherwise. */
+const linked = (href: string | undefined, inner: Html): Html => (href ? html`<a href="${href}">${inner}</a>` : inner);
 
 const count = (n: number): string => Math.round(n).toLocaleString("en-US");
 const positive = (slices: Slice[]): Slice[] => slices.filter((s) => Number.isFinite(s.value) && s.value > 0);
@@ -26,7 +31,7 @@ const summary = (slices: Slice[]): string => (positive(slices).length ? positive
 
 /** The legend under a chart: one dot and figure per slice, zeros included so a person sees what is counted. */
 function legend(slices: Slice[]): Html {
-  return html`<ul class="legend">${slices.map((s) => html`<li><i class="t-${s.tone}"></i>${s.label} <b>${count(Math.max(0, s.value))}</b></li>`)}</ul>`;
+  return html`<ul class="legend">${slices.map((s) => html`<li>${linked(s.href, html`<i class="t-${s.tone}"></i>${s.label} <b>${count(Math.max(0, s.value))}</b>`)}</li>`)}</ul>`;
 }
 
 /**
@@ -45,7 +50,7 @@ export function donut(slices: Slice[], options: { label: string; centre?: string
   let offset = 0;
   const arcs = shown.map((s) => {
     const length = (s.value / total) * circumference;
-    const arc = html`<circle class="arc t-${s.tone}" cx="${half}" cy="${half}" r="${radius}" stroke-width="${stroke}" stroke-dasharray="${length.toFixed(2)} ${Math.max(0, circumference - length).toFixed(2)}" stroke-dashoffset="${(offset === 0 ? 0 : -offset).toFixed(2)}"><title>${s.label}: ${count(s.value)}</title></circle>`;
+    const arc = linked(s.href, html`<circle class="arc t-${s.tone}" cx="${half}" cy="${half}" r="${radius}" stroke-width="${stroke}" stroke-dasharray="${length.toFixed(2)} ${Math.max(0, circumference - length).toFixed(2)}" stroke-dashoffset="${(offset === 0 ? 0 : -offset).toFixed(2)}"><title>${s.label}: ${count(s.value)}</title></circle>`);
     offset += length;
     return arc;
   });
@@ -70,7 +75,8 @@ export function bars(rows: Slice[], options: { label: string }): Html {
   return html`<ul class="chart bars" aria-label="${options.label}">${rows.map((r) => {
     const value = Number.isFinite(r.value) ? Math.max(0, r.value) : 0;
     const width = Math.min(100, (value / max) * 100);
-    return html`<li><span>${r.label}</span><svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="t-${r.tone}" x="0" y="0" width="${width.toFixed(1)}" height="8" rx="1"></rect></svg><b>${count(value)}</b></li>`;
+    const row = html`<span>${r.label}</span><svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="t-${r.tone}" x="0" y="0" width="${width.toFixed(1)}" height="8" rx="1"></rect></svg><b>${count(value)}</b>`;
+    return r.href ? html`<li class="link"><a href="${r.href}">${row}</a></li>` : html`<li>${row}</li>`;
   })}</ul>`;
 }
 
@@ -79,6 +85,8 @@ export interface Series {
   tone: Tone;
   /** One value per tick, in order. */
   values: number[];
+  /** Where the series leads: the list its items come from. */
+  href?: string | undefined;
 }
 
 /** A round number at or above `n` for the top of an axis: 1, 2, 5 times a power of ten. */
@@ -109,7 +117,7 @@ export function lines(series: Series[], options: { label: string; ticks: string[
   const polylines = series.map((s) => {
     const points = ticks.map((_, i) => `${x(i).toFixed(1)},${y(s.values[i] ?? 0).toFixed(1)}`).join(" ");
     const last = s.values[n - 1] ?? 0;
-    return html`<polyline class="t-${s.tone}" points="${points}"></polyline><circle class="t-${s.tone}" cx="${x(n - 1).toFixed(1)}" cy="${y(last).toFixed(1)}" r="3"></circle>`;
+    return linked(s.href, html`<polyline class="t-${s.tone}" points="${points}"></polyline><circle class="t-${s.tone}" cx="${x(n - 1).toFixed(1)}" cy="${y(last).toFixed(1)}" r="3"></circle>`);
   });
   const words = series.map((s) => `${s.label} ${count(s.values.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0))} in all, ${count(s.values[n - 1] ?? 0)} on ${ticks[n - 1] ?? "the last day"}`).join("; ");
   const named = [0, Math.floor((n - 1) / 2), n - 1].filter((i, k, all) => all.indexOf(i) === k);
@@ -119,7 +127,7 @@ export function lines(series: Series[], options: { label: string; ticks: string[
       <g class="axis">${rows.map((r) => html`<text x="${left - 6}" y="${(r.y + 3.5).toFixed(1)}" text-anchor="end">${count(r.v)}</text>`)}${named.map((i) => html`<text x="${x(i).toFixed(1)}" y="${height - 8}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}">${ticks[i]}</text>`)}</g>
       ${polylines}
     </svg>
-    <figcaption>${legend(series.map((s) => ({ label: s.label, tone: s.tone, value: s.values.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0) })))}</figcaption>
+    <figcaption>${legend(series.map((s) => ({ label: s.label, tone: s.tone, value: s.values.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0), href: s.href })))}</figcaption>
   </figure>`;
 }
 
@@ -130,7 +138,7 @@ export function stacked(parts: Slice[], options: { label: string }): Html {
   let at = 0;
   const rects = shown.map((s) => {
     const width = (s.value / total) * 100;
-    const rect = html`<rect class="t-${s.tone}" x="${at.toFixed(2)}" y="0" width="${width.toFixed(2)}" height="10"><title>${s.label}: ${count(s.value)}</title></rect>`;
+    const rect = linked(s.href, html`<rect class="t-${s.tone}" x="${at.toFixed(2)}" y="0" width="${width.toFixed(2)}" height="10"><title>${s.label}: ${count(s.value)}</title></rect>`);
     at += width;
     return rect;
   });

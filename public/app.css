@@ -129,6 +129,8 @@ h2 { font-size: 19px; }
 .side { display: grid; gap: 16px; min-width: 0; }
 .box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; }
 .box h2 { font-size: 16px; margin-bottom: 8px; }
+.box h2 a { color: inherit; text-decoration: none; }
+.box h2 a:hover { text-decoration: underline; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
 .kv dt { color: var(--mute); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
@@ -317,6 +319,9 @@ select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid va
 @media (max-width: 560px) { .board { grid-template-columns: 1fr; } }
 .tcol { min-width: 0; }
 .tcol h2 { font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+/* A column or a row arrived at by its anchor (the Today and Atlas figures lead here) says so. */
+.tcol:target > h2 { color: var(--acc); }
+tr:target > td { background: var(--ins-bg); }
 .tcards { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .tcard { background: var(--card); border: 1px solid var(--rule); border-top: 3px solid var(--rule); border-radius: 8px; padding: 9px 11px; display: grid; gap: 5px; min-width: 0; }
 .tcard.kev, .tcard.kev-card { border-top-color: var(--del); }
@@ -364,6 +369,7 @@ details.box summary { cursor: pointer; }
 .need .need-main b { font-weight: 600; font-size: 13.5px; }
 .need .need-main b a { color: var(--ink); text-decoration: none; }
 .need .need-main b a:hover { text-decoration: underline; }
+.need .need-main .small a { color: inherit; }
 @media (max-width: 560px) { .need li { grid-template-columns: 1fr; } }
 .latest { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px; }
 .latest li { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; }
@@ -385,6 +391,14 @@ details.box summary { cursor: pointer; }
 .atlas-svg .dot.changed { fill: var(--acc); }
 .atlas-svg .dot.quiet { fill: var(--rule); }
 .atlas-svg a:hover .dot { stroke: var(--ink); }
+/* Every mark on the Atlas is a link; a dot's transparent halo is its real target. */
+.atlas-svg a { cursor: pointer; }
+.atlas-svg .hit { fill: transparent; }
+.atlas-svg a:hover .label, .atlas-svg a:hover .axis { fill: var(--acc); text-decoration: underline; }
+.atlas-svg a:hover .cell { stroke: var(--ink); stroke-width: 1.5; }
+.atlas-svg a:focus-visible { outline: none; }
+.atlas-svg a:focus-visible .dot, .atlas-svg a:focus-visible .cell { stroke: var(--acc); stroke-width: 2; }
+.atlas-svg a:focus-visible .label, .atlas-svg a:focus-visible .axis { fill: var(--acc); }
 .atlas-svg .cell.l0 { fill: var(--paper); stroke: var(--rule); stroke-width: 1; }
 .atlas-svg .cell.l1 { fill: var(--ins-bg); }
 .atlas-svg .cell.l2 { fill: var(--warn-bg); }
@@ -398,10 +412,14 @@ details.box summary { cursor: pointer; }
 .stat div { border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px; }
 .stat small { display: block; color: var(--mute); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .stat b { display: block; font: 600 18px var(--mono); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.stat a { display: block; border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px; color: inherit; text-decoration: none; }
+.stat a:hover { border-color: var(--acc); }
 .due { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
 .due li { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
 .due li:last-child { border-bottom: 0; }
 .due .d { font: 500 12px var(--mono); color: var(--acc); }
+.due li > a { display: grid; gap: 2px; color: inherit; text-decoration: none; }
+.due li > a:hover b { text-decoration: underline; }
 
 /* Browse a version */
 table.browse td.id a { font-family: var(--mono); font-size: 12.5px; text-decoration: none; color: var(--ink); }
@@ -449,11 +467,18 @@ table.browse tr.changed td.id a { color: var(--acc); }
 .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 12.5px; color: var(--mute); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--tone); margin-right: 6px; vertical-align: -1px; }
 .legend b { font: 500 12px var(--mono); color: var(--ink); }
+.legend a { color: inherit; text-decoration: none; }
+.legend a:hover { color: var(--ink); text-decoration: underline; }
+.donut a:hover .arc, .stacked a:hover rect { opacity: 0.75; }
+.lines a:hover polyline { stroke-width: 3; }
 .bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; width: 100%; justify-items: stretch; }
 .bars li { display: grid; grid-template-columns: 90px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 12.5px; color: var(--mute); }
 .bars svg { display: block; width: 100%; height: 10px; }
 .bars rect { fill: var(--tone); }
 .bars b { font: 500 12.5px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.bars li.link { display: block; }
+.bars li.link > a { display: grid; grid-template-columns: 90px minmax(0, 1fr) 44px; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+.bars li.link > a:hover span { color: var(--ink); text-decoration: underline; }
 .lines { justify-items: stretch; }
 .lines svg { display: block; width: 100%; height: auto; }
 .lines .grid line { stroke: var(--grid); stroke-width: 1; }

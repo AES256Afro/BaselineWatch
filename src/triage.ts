@@ -146,10 +146,10 @@ export function triageCounts(db: DatabaseSync): Record<TriageState, number> {
 }
 
 /** Notable, unread, untriaged timeline items: the inbox the board starts from. */
-export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: string; url: string | null; kind: string; published_at: string | null; signals_json: string | null; source_name: string }[] {
+export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: string; url: string | null; kind: string; published_at: string | null; signals_json: string | null; source_id: string; source_name: string }[] {
   return db
     .prepare(
-      `SELECT i.id, i.title, i.url, i.kind, i.published_at, i.signals_json, s.name AS source_name
+      `SELECT i.id, i.title, i.url, i.kind, i.published_at, i.signals_json, s.id AS source_id, s.name AS source_name
        FROM items i JOIN sources s ON s.id = i.source_id
        WHERE i.kind IN ('kev', 'vulnerability', 'release') AND i.read = 0
          AND NOT EXISTS (SELECT 1 FROM triage t WHERE t.subject_kind = 'item' AND t.subject_id = i.id)
