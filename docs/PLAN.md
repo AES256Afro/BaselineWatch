@@ -733,14 +733,35 @@ bare host redirects there without CORS headers, which a page's fetch may not fol
 script picks the name and `*.test.nextdns.io` is in `connect-src`); the probe GIFs
 at `/scan/probe/*` with `no-store` and open CORS; `BW_PROBE_ORIGIN` validated as a bare origin;
 tests for the page, the headers, the probes and the script's logic with fakes. The script runs
-only when the button is pressed. Left for M12.2: the per-platform guides.
+only when the button is pressed. The per-platform guides followed in M12.2.
 
-#### M12.2: Why, guide, lists
+#### M12.2: Why, guide, lists — why and guide shipped 2026-10-19; lists open
 `/scan/why` (mockup 08) and `/scan/guide/<platform>` (mockup 07) with breadcrumbs and sources;
 the adfection list and the canary sets as Register sources (`src/adapters/blocklists.ts`,
 diffed line by line like any standard; the Zero Breach `dist/` exports and the EasyList,
 EasyPrivacy, URLhaus and OpenPhish-derived canary sets). Done when the list's next release
 shows as a diff and every guide step links to the vendor page it follows.
+
+*Landed*: `/scan/guide` and `/scan/guide/{windows,macos,linux,ios,android}`
+(`src/pages/scan-guide.ts`): one page per platform, each section one thing the area checks
+(filter DNS for every app, a blocker in the browser, the device's firewall and what listens,
+the router, the network's exposure and DNS bypass, Lockdown Mode and the advertising
+identifier, the past), each step saying what to open or run, what a clean result looks like,
+what a finding means, with a link to the vendor page it follows and to the why page's section;
+the router and network sections are the same on every platform. Two scripts under
+`public/scan/`, `bw-check.ps1` (Windows PowerShell 5.1 or 7) and `bw-check.sh` (POSIX sh for
+macOS and Linux), do the computer checks in one go (resolver and DoH or DoT, two ad canaries
+looked up and never fetched, the hosts file, the firewall and listeners, SMB out on Windows, the
+gateway's admin page and its UPnP description and mapping table, DNS bypass over plain 53 and
+DoH, IPv6, the advertising setting, Lockdown Mode and the DNS-Client log), upload nothing, need
+no administrator rights, and say so in their headers; they are served as plain text at
+`/scan/scripts/<name>` with their SHA-256 beside every link and `SHA256SUMS` beside them
+(`scripts/scan-sums.mjs` rewrites it; the test fails when it is stale). `/scan/why` gains the
+router, UPnP, exposure, bypass and device sections with their primary documents, and the
+browser check, the why page and the guides link each other. Tests: the routes, every step's
+source and why anchor, the scripts' bytes against the sums, `sh -n` and PowerShell's parser
+where present. *Left*: the adfection list and the canary sets as Register sources, and the
+scripts' indicator matching that depends on them (M12.6).
 
 #### M12.3: This network
 Resolver discovery from the server's own lease and `resolv.conf`; forty-eight canaries in four
