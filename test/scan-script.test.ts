@@ -51,6 +51,15 @@ interface ScanScript {
   describeHiding(result: { total: number; hidden: string[]; visible: string[]; controlsHidden: string[] }): { state: string; text: string; lines: string[] };
   describeRequests(same: Read, cross: Read | null): { state: string; text: string; lines: string[] };
   describeDns(results: Resolver[]): { state: string; text: string; lines: string[] };
+  fixKeys(env: { browser: string; platform: string; inApp: string | null }, brave: boolean): { browser: string; platform: string };
+  verdictOf(h: Described, r: Described, d: Described): { seen: number; fixes: string[]; title: string; text: string };
+  applyFixes(root: unknown, fixes: string[], keys: { browser: string; platform: string }): void;
+}
+
+interface Described {
+  state: string;
+  text: string;
+  lines: string[];
 }
 
 let scan: ScanScript;
@@ -387,5 +396,100 @@ describe("environment", () => {
         },
       }),
     ).toBe(false);
+  });
+});
+
+describe("verdict and fixes", () => {
+  const d = (state: string, text: string): Described => ({ state, text, lines: [] });
+
+  it("names the partly-protected case and opens both fixes", () => {
+    const v = scan.verdictOf(d("ok", "Detected"), d("na", "No difference"), d("na", "None seen"));
+    expect(v.seen).toBe(1);
+    expect(v.fixes).toEqual(["requests", "dns"]);
+    expect(v.title).toBe("Partly protected: ads are hidden here, not stopped.");
+    expect(v.text).toContain("re-run after each");
+  });
+
+  it("congratulates honestly when every row is covered", () => {
+    const v = scan.verdictOf(d("ok", "Detected"), d("ok", "Load difference"), d("ok", "NextDNS"));
+    expect(v).toMatchObject({ seen: 3, fixes: [] });
+    expect(v.title).toContain("Protected");
+    expect(v.text).toContain("not a certificate");
+  });
+
+  it("opens only the DNS fix for a blocking browser, and only the requests fix beside a seen resolver", () => {
+    const dnsOnly = scan.verdictOf(d("na", "Not observed"), d("ok", "Load difference"), d("na", "None seen"));
+    expect(dnsOnly.fixes).toEqual(["dns"]);
+    expect(dnsOnly.title).toBe("This browser blocks ads; every other app is on its own.");
+    const requestsOnly = scan.verdictOf(d("na", "Not observed"), d("na", "No difference"), d("ok", "AdGuard DNS"));
+    expect(requestsOnly.fixes).toEqual(["requests"]);
+    expect(requestsOnly.title).toBe("A resolver filters for this browser, but it still fetches ads.");
+  });
+
+  it("never grows a fix from a row that could not be read, and says so", () => {
+    const v = scan.verdictOf(d("na", "Not observed"), d("na", "Unknown"), d("na", "None seen"));
+    expect(v.fixes).toEqual(["dns"]);
+    expect(v.text).toContain("could not be read");
+    const nothing = scan.verdictOf(d("warn", "Unreadable"), d("na", "Unknown"), d("na", "Unknown"));
+    expect(nothing.fixes).toEqual([]);
+    expect(nothing.title).toBe("Some rows could not be read.");
+  });
+
+  it("keys the fix lines by browser and platform, with in-app and Brave outranking the family", () => {
+    expect(scan.fixKeys({ browser: "Chrome 155", platform: "macOS", inApp: null }, false)).toEqual({ browser: "chrome", platform: "macos" });
+    expect(scan.fixKeys({ browser: "Chrome 155", platform: "macOS", inApp: null }, true)).toEqual({ browser: "brave", platform: "macos" });
+    expect(scan.fixKeys({ browser: "Safari 26", platform: "iPadOS", inApp: "Instagram" }, false)).toEqual({ browser: "inapp", platform: "ios" });
+    expect(scan.fixKeys({ browser: "Samsung Internet 23", platform: "ChromeOS", inApp: null }, false)).toEqual({ browser: "other", platform: "other" });
+  });
+
+  it("unfolds the named panels, shows one line, and points the guide link at the platform's section", () => {
+    interface FakeLine {
+      attrs: Record<string, string>;
+      hidden: boolean;
+      getAttribute(key: string): string | null;
+      setAttribute(key: string, value: string): void;
+    }
+    const el = (attrs: Record<string, string>): FakeLine => ({
+      attrs,
+      hidden: false,
+      getAttribute(key) {
+        return key in this.attrs ? this.attrs[key]! : null;
+      },
+      setAttribute(key, value) {
+        this.attrs[key] = value;
+      },
+    });
+    const panel = (id: string, fors: string[], anchor: string) => {
+      const lines = fors.map((name) => el({ "data-for": name }));
+      const link = el({ "data-guide": "", "data-anchor": anchor, href: "/scan/guide" });
+      return {
+        id,
+        hidden: true,
+        lines,
+        link,
+        querySelector(sel: string) {
+          return sel === '[data-for="other"]' ? (lines.find((l) => l.attrs["data-for"] === "other") ?? null) : null;
+        },
+        querySelectorAll(sel: string) {
+          return sel === "[data-for]" ? lines : sel === "[data-guide]" ? [link] : [];
+        },
+      };
+    };
+    const requests = panel("fix-requests", ["firefox", "chrome", "edge", "safari", "brave", "inapp", "other"], "blocker");
+    const dns = panel("fix-dns", ["macos", "ios", "windows", "android", "linux", "other"], "dns");
+    const root = { querySelector: (sel: string) => (sel === "#fix-requests" ? requests : sel === "#fix-dns" ? dns : null) };
+
+    scan.applyFixes(root, ["requests", "dns"], { browser: "chrome", platform: "macos" });
+    expect(requests.hidden).toBe(false);
+    expect(requests.lines.filter((l) => !l.hidden).map((l) => l.attrs["data-for"])).toEqual(["chrome"]);
+    expect(dns.lines.filter((l) => !l.hidden).map((l) => l.attrs["data-for"])).toEqual(["macos"]);
+    expect(requests.link.attrs.href).toBe("/scan/guide/macos#blocker");
+    expect(dns.link.attrs.href).toBe("/scan/guide/macos#dns");
+
+    scan.applyFixes(root, ["dns"], { browser: "other", platform: "other" });
+    expect(requests.hidden).toBe(true);
+    expect(dns.hidden).toBe(false);
+    expect(dns.lines.filter((l) => !l.hidden).map((l) => l.attrs["data-for"])).toEqual(["other"]);
+    expect(dns.link.attrs.href).toBe("/scan/guide");
   });
 });

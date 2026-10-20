@@ -34,6 +34,14 @@ describe("the Scan page", () => {
     expect(text).toContain('data-probe-origin=""');
     expect(text).toContain("3 test images, 2 controls");
     expect(text).toContain('<section class="scan" id="scan"');
+    expect(text).toContain('<div class="verdict" id="scan-verdict" hidden>');
+    expect(text).toContain('<div class="fix" id="fix-requests" hidden>');
+    expect(text).toContain('<div class="fix" id="fix-dns" hidden>');
+    for (const key of ["firefox", "chrome", "edge", "safari", "brave", "inapp", "other"]) expect(text).toContain(`<li data-for="${key}">`);
+    for (const key of ["macos", "ios", "windows", "android", "linux"]) expect(text).toContain(`<li data-for="${key}">`);
+    expect(text.match(/data-guide/g)).toHaveLength(2);
+    expect(text).toContain("How this row is tested");
+    expect(text).toContain('id="scan-open" hidden');
     expect(text).not.toMatch(/<script>/);
     expect(text).not.toMatch(/ style="/);
     expect(text).toContain('<p class="crumbs"><a href="/">Home</a><span>›</span><b>Scan</b></p>');

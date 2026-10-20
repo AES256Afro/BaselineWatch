@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 13 · one scan, every eye</title>
+<style>
+/* Second round of Scan mockups: same Register tokens as 01-10. Sample data throughout. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+.lede { color: var(--mute); max-width: 80ch; margin: 0 0 16px; }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+button.big { font-size: 15px; padding: 11px 18px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hero { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; margin-bottom: 14px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.hero .lede { margin: 4px 0 0; }
+.stage { display: flex; gap: 6px; margin: 10px 0 2px; flex-wrap: wrap; }
+.stage span { font: 500 11.5px var(--mono); border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; color: var(--mute); }
+.stage span.done { border-color: var(--ins); color: var(--ins); }
+.stage span.run { border-color: var(--acc); color: var(--acc); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 0 0 18px; }
+.tile { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.tile .v { font: 400 28px/1.1 var(--serif); margin: 4px 0; }
+.tile .s { font-size: 12.5px; color: var(--mute); }
+.finding { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 4px 14px; align-items: start; }
+.finding .state { margin-top: 2px; }
+.finding .t { font-weight: 600; }
+.finding .d { color: var(--mute); font-size: 13px; margin-top: 2px; max-width: 86ch; }
+.finding .fixline { font-size: 13.5px; margin-top: 6px; }
+.finding .fixline b { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--acc); margin-right: 6px; }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 13, sample data.</b> One landing for the whole scan, not just the browser rows: the tab's own checks run here, the server's eyes (resolver, router, exposure — M12.3–12.5) report their last daily run beside them, and everything found becomes one ranked findings list where every entry carries its fix. Findings link into the CVE register the product already keeps.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><b>Scan</b></p>
+
+  <div class="hero">
+    <div style="flex:1; min-width: 300px">
+      <h1>Scan <span class="arrow">this browser, and this network</span></h1>
+      <p class="lede">The browser part runs in this tab in four seconds and never uploads. The network part runs from this server, which sits on the LAN and can see what a page cannot: the resolver every device uses, the router, and the firewall from both sides — its last run was <b>06:00 today</b>.</p>
+      <div class="stage"><span class="done">ad hiding ✓</span><span class="done">ad requests ✓</span><span class="run">resolver…</span><span>network 06:00</span><span>router 06:00</span><span>exposure 06:00</span></div>
+    </div>
+    <div><button class="big">Run the browser check</button><div class="small" style="margin-top:6px">4 s · in this tab · nothing uploaded</div></div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">This browser</div><div class="v warn-t" style="color:var(--warn)">1 / 3</div><div class="s">hides ads, doesn't stop them; no filtering DNS seen</div></div>
+    <div class="tile"><div class="k">This network</div><div class="v" style="color:var(--warn)">40 / 48</div><div class="s">canaries sinkholed · resolver 192.168.8.10 (Pi-hole)</div></div>
+    <div class="tile"><div class="k">Router</div><div class="v" style="color:var(--del)">2</div><div class="s">findings · EX7000 · firmware 1.0.11.116</div></div>
+    <div class="tile"><div class="k">Exposure</div><div class="v" style="color:var(--ins)">0</div><div class="s">no port in the public index · read, never scanned</div></div>
+  </div>
+
+  <h2>Everything found, worst first <span class="small">· 5 findings · each with its fix</span></h2>
+
+  <div class="finding">
+    <span class="state bad">Finding</span>
+    <div>
+      <div class="t">The router's firmware is on CISA's exploited list — <a href="#">CVE-2026-20142</a>, due 21 Oct</div>
+      <div class="d">EX7000 running 1.0.11.116, read from its UPnP description; the fixed build is 1.0.11.136. A router on the KEV list is the one device every other device trusts. This product never signs in to the router — updating is yours to do.</div>
+      <div class="fixline"><b>The fix</b> <a href="#">Update the firmware — the vendor's advisory</a> · then Rescan router. CISA's required action and the dates, <a href="#">on the CVE page</a>.</div>
+    </div>
+    <a class="btn ghost" href="#">The fix</a>
+  </div>
+
+  <div class="finding">
+    <span class="state bad">Finding</span>
+    <div>
+      <div class="t">A UPnP mapping forwards TCP 3389 to a LAN device (.44)</div>
+      <div class="d">Remote Desktop forwarded to a machine inside — a mapping some app asked for and nothing cleaned up. Not visible in the public index today, which proves nothing about tomorrow.</div>
+      <div class="fixline"><b>The fix</b> <a href="#">Delete the mapping in the router's admin page</a> (two clicks; the guide shows this model) or turn UPnP off entirely — <a href="#">what that trades away</a>.</div>
+    </div>
+    <a class="btn ghost" href="#">The fix</a>
+  </div>
+
+  <div class="finding">
+    <span class="state warn">Open</span>
+    <div>
+      <div class="t">This browser hides ads but doesn't stop the requests</div>
+      <div class="d">8 of 20 baits hidden, yet all three EasyList-path test images loaded. Hidden ads are still fetched, and the request carries the payload.</div>
+      <div class="fixline"><b>The fix</b> <a href="#">uBlock Origin Lite for Chrome</a> · two minutes · then re-run to see it turn.</div>
+    </div>
+    <a class="btn ghost" href="#">The fix</a>
+  </div>
+
+  <div class="finding">
+    <span class="state warn">Open</span>
+    <div>
+      <div class="t">8 ad-and-tracker canaries resolve on this network</div>
+      <div class="d">The Pi-hole at .10 sinkholes 40 of 48; the eight that resolve are on the adfection list it doesn't carry yet. Every device on the network is as covered as this resolver is.</div>
+      <div class="fixline"><b>The fix</b> <a href="#">Add the adfection list to the Pi-hole</a> — copy its URL from the list's page here; tomorrow's run should read 48 of 48.</div>
+    </div>
+    <a class="btn ghost" href="#">The fix</a>
+  </div>
+
+  <div class="finding">
+    <span class="state warn">Open</span>
+    <div>
+      <div class="t">No filtering DNS answers for this browser</div>
+      <div class="d">The network's Pi-hole covers apps that use the system DNS — but this browser's own DNS-over-HTTPS may bypass it, and this tab saw no filtering resolver answer.</div>
+      <div class="fixline"><b>The fix</b> <a href="#">Point the browser's secure DNS at the Pi-hole, or turn it off</a> — one setting; the guide shows where.</div>
+    </div>
+    <a class="btn ghost" href="#">The fix</a>
+  </div>
+
+  <p class="small">Reading this on the public site: the browser rows are yours and run in your tab; the network, router and exposure rows are this instance's own and are shown read-only, as teaching examples. On your own install they are your network's, opt-in, daily. Signals, not a certificate — <a href="#">limits</a> · <a href="#">privacy of the test</a> · <a href="#">why these checks</a>.</p>
+</main>
+<footer class="foot">BaselineWatch · mockup 13 of the second Scan round · sample data</footer>
+</body>
+</html>
