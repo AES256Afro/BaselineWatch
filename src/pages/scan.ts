@@ -88,7 +88,7 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
           <span class="n">04</span>
           <div>
             <div class="t">Other apps on this device</div>
-            <p class="d">Not measured by a browser. The device scripts planned for this area will read the system resolver, the hosts file and the firewall state and say what the apps actually use. Until then, the device's own DNS setting is the thing to look at.</p>
+            <p class="d">Not measured by a browser. The <a href="/scan/guide">manual guide</a> says how to read the system resolver, the hosts file and the firewall by hand on <a href="/scan/guide/windows">Windows</a>, <a href="/scan/guide/macos">macOS</a>, <a href="/scan/guide/linux">Linux</a>, <a href="/scan/guide/ios">iPhone and iPad</a> and <a href="/scan/guide/android">Android</a>, and one plain script per computer reads them in one go, uploading nothing.</p>
           </div>
           <span class="state na">Not a page's to test</span>
         </article>
@@ -96,7 +96,7 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
           <span class="n">05</span>
           <div>
             <div class="t">Every device on your network</div>
-            <p class="d">No web page can test this. This server can, because it sits on the LAN: the network check planned next resolves canary names through the resolver the router hands out. Until then, look at the router's DNS setting, or at a Pi-hole or AdGuard Home dashboard, which counts the queries it answered for every device.</p>
+            <p class="d">No web page can test this. This server can, because it sits on the LAN: the network check planned next resolves canary names through the resolver the router hands out. Until then, the guide's <a href="/scan/guide/windows#router">router</a> and <a href="/scan/guide/windows#network">network</a> sections say what to set on the router and how to prove each setting from any device, and a Pi-hole or AdGuard Home dashboard counts the queries it answered for every device.</p>
           </div>
           <span class="state na">Not a page's to test</span>
         </article>
@@ -112,6 +112,10 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
       <div class="box">
         <h2>Why scan for ads at all</h2>
         <p class="small">Advertising networks deliver code to a device the way any other content arrives, and that path has been used to deliver spyware: Citizen Lab documented an ad-tech pipeline that placed Candiru's spyware through targeted ads. Blocking ad delivery closes one road in; it is not proof of safety, and ads served from the same domain as the content are not blocked by any of this. <a href="/scan/why">The whole argument, with the sources</a>.</p>
+      </div>
+      <div class="box">
+        <h2>Do it by hand</h2>
+        <p class="small">Everything this area checks, done yourself, one platform at a time, with the command that proves each step and the vendor page it follows: <a href="/scan/guide/windows">Windows</a> · <a href="/scan/guide/macos">macOS</a> · <a href="/scan/guide/linux">Linux</a> · <a href="/scan/guide/ios">iPhone and iPad</a> · <a href="/scan/guide/android">Android</a>. The <a href="/scan/guide">guide index</a> carries the two scripts that do the computer checks in one go, with their checksums.</p>
       </div>
       <div class="box">
         <h2>Limits of this check</h2>
@@ -153,14 +157,29 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
  */
 export function renderScanWhy(options: { owner: boolean; open: boolean; look: LookState }): string {
   const source = (href: string, text: string, note?: string): Html => html`<li><a href="${href}" ${newTab}>${text}</a>${note ? html`, ${note}` : ""}</li>`;
+  const sections: [string, string][] = [
+    ["ads", "Ads as a delivery path"],
+    ["hiding", "Ad hiding"],
+    ["requests", "Ad requests"],
+    ["dns", "Filtering DNS"],
+    ["router", "The router"],
+    ["upnp", "UPnP port mappings"],
+    ["exposure", "What the internet sees"],
+    ["bypass", "DNS bypass and interception"],
+    ["device", "Reading the device itself"],
+    ["harden", "Hardening, in order"],
+  ];
   const content = html`<section class="scan-why">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>Why these checks</b></p>
   <h1>Why these checks <span class="arrow">and what each can prove</span></h1>
   <p class="lede">
     Ads are a delivery path. The same auction that places a shoe advertisement can place code, and it
-    has. Filtering ad delivery closes that road; it is one road, and the checks on the Scan page say
-    which roads are closed on this browser, nothing more.
+    has. Filtering ad delivery closes that road; it is one road, and the checks in this area say
+    which roads are closed on this browser, this device, this network and this router, nothing more.
+    The <a href="/scan">browser check</a> runs in this tab; the <a href="/scan/guide">manual guide</a>
+    does the rest by hand, and its steps lead back here.
   </p>
+  <p class="small">On this page: ${sections.map(([id, title], i) => html`${i > 0 ? " · " : ""}<a href="#${id}">${title}</a>`)}</p>
   <div class="guide">
     <section class="box" id="ads">
       <h2>Ads as a delivery path</h2>
@@ -193,6 +212,54 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
         ${source("https://test.nextdns.io", "NextDNS self-check", "answers with the profile when NextDNS is the resolver")}
         ${source("https://docs.pi-hole.net/", "Pi-hole documentation", "a network-wide resolver that has no self-check")}
       </ul>
+      <p class="small">By hand: the guide's DNS section for <a href="/scan/guide/windows#dns">Windows</a>, <a href="/scan/guide/macos#dns">macOS</a>, <a href="/scan/guide/linux#dns">Linux</a>, <a href="/scan/guide/ios#dns">iPhone and iPad</a> and <a href="/scan/guide/android#dns">Android</a>.</p>
+    </section>
+    <section class="box" id="router">
+      <h2>The router</h2>
+      <p>Every device on the network trusts the router for its address, its resolver and its path out. A router with a known exploited vulnerability on its LAN-side admin page is reachable by any device that joins the network, including a guest's phone; one with remote management open on the WAN side is reachable by everyone, and that is where routers on CISA's Known Exploited Vulnerabilities list are usually exploited. The password printed on the device, and the vendor's default, are in every list an attacker tries first. The guide's router section is the same on every platform: change the password, hand out the filtering resolver by DHCP, turn UPnP and remote management off, note the firmware and look it up in this site's <a href="/vulnerabilities">Vulnerabilities</a> table, where a KEV entry is one CISA has seen exploited. The router check planned for this server will read the model and firmware the gateway announces and do that matching by the hour.</p>
+      <ul class="sources">
+        ${source("https://www.cisa.gov/news-events/news/home-network-security", "CISA, Home Network Security", "default passwords, remote management, UPnP, firmware, the firewall, Wi-Fi encryption")}
+        ${source("https://www.cisa.gov/known-exploited-vulnerabilities-catalog", "CISA, Known Exploited Vulnerabilities catalog")}
+      </ul>
+      <p class="small">By hand: <a href="/scan/guide/windows#router">the router section of the guide</a>.</p>
+    </section>
+    <section class="box" id="upnp">
+      <h2>UPnP port mappings</h2>
+      <p>Universal Plug and Play lets any program on the LAN ask the router to open a port from the internet to that program, without a password: the Internet Gateway Device service's AddPortMapping call is the whole mechanism. Games use it; so does anything that wants to be reachable, and so does malware that wants a way back in. A mapping to a remote-desktop, file-sharing or SSH port is a hole in the firewall that nobody approved. CERT's note on routers that accept UPnP requests on the WAN side shows the worse case, where anyone on the internet can ask. Turning UPnP off removes the mechanism; reading the table once a month catches what it opened. The scripts list the mappings with the same GetGenericPortMappingEntry call any device on the LAN may make, and never add or remove one.</p>
+      <ul class="sources">
+        ${source("https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/", "Open Connectivity Foundation, UPnP Internet Gateway Device v2.0", "the specification of the mapping calls")}
+        ${source("https://www.kb.cert.org/vuls/id/357851", "CERT/CC, VU#357851: UPnP requests accepted over router WAN interfaces")}
+        ${source("https://www.cisa.gov/news-events/news/home-network-security", "CISA, Home Network Security", "disable UPnP when not needed")}
+      </ul>
+      <p class="small">By hand: <a href="/scan/guide/windows#router">the router section of the guide</a>; the scripts' <code>upnp</code> row reads the table.</p>
+    </section>
+    <section class="box" id="exposure">
+      <h2>What the internet sees</h2>
+      <p>Public indexes crawl every address and record what answered. That record is what an attacker reads before touching anything, so the first question about your address is what the index says. The guide asks Shodan's free InternetDB lookup for your public address rather than scanning from here, which keeps this product from being the thing that scans you; it is a record of what the crawlers last saw, not a live scan, and a port that UPnP opened yesterday may not be in it yet. The firewall check planned for this server will ask the same lookup once a day and treat a change as news.</p>
+      <ul class="sources">
+        ${source("https://internetdb.shodan.io/", "Shodan, InternetDB")}
+      </ul>
+      <p class="small">By hand: <a href="/scan/guide/windows#network">the network section of the guide</a>.</p>
+    </section>
+    <section class="box" id="bypass">
+      <h2>DNS bypass and interception</h2>
+      <p>Network-wide filtering only covers devices that use the network's resolver. A device with a hard-coded resolver, or an app or browser using DNS over HTTPS, walks past it unless the router redirects port 53 to the filter and blocks the known public DoH endpoints. The guide's test is one lookup of an ad domain sent straight to a public resolver: a real address means the bypass is open, a sinkholed answer or a timeout means the router caught it. The opposite failure exists too: an ISP or a router that silently answers every DNS query itself, which the same lookup shows when a resolver you did not choose answers. DNS over HTTPS and DNS over TLS are the encrypted forms, worth having on the resolver you chose and worth blocking for the ones you did not.</p>
+      <ul class="sources">
+        ${source("https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245", "Pi-hole FAQ, configuring devices to use the Pi-hole", "including the router redirect")}
+        ${source("https://www.rfc-editor.org/rfc/rfc8484", "RFC 8484, DNS queries over HTTPS")}
+        ${source("https://www.rfc-editor.org/rfc/rfc7858", "RFC 7858, DNS over TLS")}
+      </ul>
+      <p class="small">By hand: <a href="/scan/guide/windows#network">the network section of the guide</a>; the scripts' <code>bypass</code> rows run the same lookups.</p>
+    </section>
+    <section class="box" id="device">
+      <h2>Reading the device itself</h2>
+      <p>A browser test sees one browser. The device scripts read what every app on the device uses: the system resolver, the hosts file, the firewall's state, what listens, and the settings that change how a target is picked. Where an ad leaves a trace, history alone misses it: cookies, cache and local storage keep the hosts an ad frame touched, and that reading against an indicator list is the next step planned for the scripts. Windows does not record DNS lookups unless its DNS-Client log is turned on, so the past is usually unrecorded; turning it on is the one setting the scripts recommend. A clean result means no finding where the script could look; spyware of this grade is built to defeat exactly this kind of check, so a concrete reason to think you were targeted is a reason to use a helpline.</p>
+      <ul class="sources">
+        ${source("https://docs.mvt.re/en/latest/", "Amnesty International, Mobile Verification Toolkit")}
+        ${source("https://www.accessnow.org/help/", "Access Now Digital Security Helpline")}
+        ${source("https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/wevtutil", "Microsoft, wevtutil", "turns the DNS-Client log on")}
+      </ul>
+      <p class="small">By hand: the scripts on the <a href="/scan/guide">guide index</a>, with their checksums.</p>
     </section>
     <section class="box" id="harden">
       <h2>Hardening, in order</h2>
@@ -210,7 +277,7 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     </section>
     <section class="box">
       <h2>How this page is written</h2>
-      <p class="small">Each section rests on a primary document and links to it. Where a sentence is this product's reading rather than the source's words, it says "the check" or "this product". Nothing here is generated by a model. The router, firewall and device sections arrive with their checks.</p>
+      <p class="small">Each section rests on a primary document and links to it. Where a sentence is this product's reading rather than the source's words, it says "the check" or "this product". Nothing here is generated by a model. The router, exposure and bypass checks this server will run itself arrive later; the <a href="/scan/guide">guide</a> does them by hand today.</p>
     </section>
   </div>
 </section>`;

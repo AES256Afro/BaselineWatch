@@ -2,6 +2,28 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **Scan: do it by hand** (M12.2). A manual guide at `/scan/guide` with one page per platform
+  (`/scan/guide/windows`, `macos`, `linux`, `ios`, `android`): each section is one thing the
+  Scan area checks (filter DNS for every app, a blocker in the browser, the device's firewall and
+  what listens, the router, the network's exposure and DNS bypass, Lockdown Mode and the
+  advertising identifier, the past), and each step says what to open or run, what a clean result
+  looks like and what a finding means, with a link to the vendor page it follows and to the why
+  page's section on it. The router and network sections are the same from every platform.
+- **Two scripts that do the computer checks in one go.** `bw-check.ps1` (Windows PowerShell 5.1
+  or 7) and `bw-check.sh` (POSIX sh for macOS and Linux) read the resolver and its encryption,
+  look up two ad canaries (never fetched), the hosts file, the firewall and what listens, SMB out
+  on Windows, the gateway's admin page and its UPnP description and port mappings, whether plain
+  DNS and DNS over HTTPS bypass the network's filter, IPv6, the advertising setting, Lockdown Mode
+  on a Mac and the DNS-Client log on Windows, and print a report. They upload nothing, change
+  nothing and need no administrator rights, and their headers say what they contact. Served as
+  plain text at `/scan/scripts/<name>` with the SHA-256 beside every link and a `SHA256SUMS` file
+  beside them; `scripts/scan-sums.mjs` rewrites the sums and the check fails when they are stale.
+- `/scan/why` gains the router, UPnP, exposure, DNS bypass and device sections with their primary
+  documents, and the browser check, the why page and the guides now link each other, with
+  breadcrumbs on every Scan page.
+
 ## 0.33.0 — 2026-10-19
 
 - **Scan: the browser check** (M12.1). A new **Scan** area at `/scan` runs three checks in the
