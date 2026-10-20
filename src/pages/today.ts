@@ -63,9 +63,11 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
        FROM items WHERE kind = 'kev' AND published_at >= ? GROUP BY vendor ORDER BY n DESC, vendor LIMIT 60`,
     )
     .all(since30) as { vendor: string; n: number }[];
-  const top = vendorRows.slice(0, 5).map((r, i) => ({ label: String(r.vendor).slice(0, 40), value: r.n, tone: vendorTones[i] ?? "mute" }));
+  // A vendor leads to its KEV entries in the News; the rest, and the unnamed, to all of them.
+  const kevList = (vendor?: string) => (vendor ? `/?kind=kev&q=${encodeURIComponent(vendor)}` : "/?kind=kev");
+  const top = vendorRows.slice(0, 5).map((r, i): Slice => ({ label: String(r.vendor).slice(0, 40), value: r.n, tone: vendorTones[i] ?? "mute", href: kevList(r.vendor === "Unknown" ? undefined : String(r.vendor)) }));
   const rest = vendorRows.slice(5).reduce((n, r) => n + r.n, 0);
-  const vendors: Slice[] = rest > 0 ? [...top, { label: "Other", value: rest, tone: "mute" }] : top;
+  const vendors: Slice[] = rest > 0 ? [...top, { label: "Other", value: rest, tone: "mute", href: kevList() }] : top;
 
   const dayKeys = Array.from({ length: 14 }, (_, i) => dayOf(now, 13 - i));
   const perDay = db
@@ -84,6 +86,7 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
     label: g.label,
     tone: g.tone,
     values: dayKeys.map((day) => perDay.filter((r) => r.day === day && r.grp === g.key).reduce((n, r) => n + r.n, 0)),
+    href: `/?group=${g.key}`,
   }));
   const ticks = dayKeys.map((d) => d.slice(5));
 
@@ -98,6 +101,7 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
     label: s.label,
     tone: s.tone,
     value: severityRows.filter((r) => (known.has(r.sev) ? r.sev === s.key : s.key === "unscored")).reduce((n, r) => n + r.n, 0),
+    href: `/vulnerabilities?watch=1&changed=1&severity=${s.key}`,
   }));
 
   const epssRow = db
@@ -111,15 +115,16 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
     )
     .get() as { unscored: number | null; low: number | null; mid: number | null; high: number | null; top: number | null };
   const epss: Slice[] = [
-    { label: "Over 50%", value: epssRow.top ?? 0, tone: "red" },
-    { label: "10 to 50%", value: epssRow.high ?? 0, tone: "amber" },
-    { label: "1 to 10%", value: epssRow.mid ?? 0, tone: "cyan" },
-    { label: "Under 1%", value: epssRow.low ?? 0, tone: "green" },
-    { label: "No score", value: epssRow.unscored ?? 0, tone: "mute" },
+    { label: "Over 50%", value: epssRow.top ?? 0, tone: "red", href: "/vulnerabilities?min_epss=0.5&sort=epss" },
+    { label: "10 to 50%", value: epssRow.high ?? 0, tone: "amber", href: "/vulnerabilities?min_epss=0.1&max_epss=0.5&sort=epss" },
+    { label: "1 to 10%", value: epssRow.mid ?? 0, tone: "cyan", href: "/vulnerabilities?min_epss=0.01&max_epss=0.1&sort=epss" },
+    { label: "Under 1%", value: epssRow.low ?? 0, tone: "green", href: "/vulnerabilities?max_epss=0.01&sort=epss" },
+    { label: "No score", value: epssRow.unscored ?? 0, tone: "mute", href: "/vulnerabilities?epss=none" },
   ];
 
   const counts = triageCounts(db);
-  const triage: Slice[] = triageStates.map((state) => ({ label: stateLabel[state], value: counts[state], tone: triageTones[state] }));
+  // Dismissed cards have no column of their own; the Done column says how many were set aside.
+  const triage: Slice[] = triageStates.map((state) => ({ label: stateLabel[state], value: counts[state], tone: triageTones[state], href: `/triage#${state === "dismissed" ? "done" : state}` }));
 
   const sources = db
     .prepare(
@@ -158,8 +163,8 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const counts = triageCounts(db);
   const inbox = triageInbox(db, 8);
   const latest = db
-    .prepare("SELECT i.title, i.url, i.published_at, s.name AS source_name FROM items i JOIN sources s ON s.id = i.source_id WHERE i.kind = 'article' ORDER BY COALESCE(i.published_at, i.fetched_at) DESC LIMIT 8")
-    .all() as { title: string; url: string | null; published_at: string | null; source_name: string }[];
+    .prepare("SELECT i.title, i.url, i.published_at, s.id AS source_id, s.name AS source_name FROM items i JOIN sources s ON s.id = i.source_id WHERE i.kind = 'article' ORDER BY COALESCE(i.published_at, i.fetched_at) DESC LIMIT 8")
+    .all() as { title: string; url: string | null; published_at: string | null; source_id: string; source_name: string }[];
   const failing = db.prepare("SELECT id, name, last_error FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { id: string; name: string; last_error: string | null }[];
   const alerts = recentAlerts(db, 5);
   const digest = latestDigest(db);
@@ -170,7 +175,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is in the News.</small></h1>
+      <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is in the <a href="/">News</a>.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
     <div class="stats today">
@@ -181,50 +186,50 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile ${ending.length ? "warn" : ""}" href="/platforms"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
     </div>
     <div class="glance" aria-label="At a glance">
-      <section class="box"><h2>Known exploited <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>
-      <section class="box"><h2>Wire <span class="count">items a day, 14 days</span></h2>${lines(glance.days.series, { label: "Wire items a day, 14 days", ticks: glance.days.ticks })}</section>
-      <section class="box"><h2>Watched CVEs <span class="count">changed, ${windowWord}, by CVSS</span></h2>${bars(glance.severity, { label: `Watched CVEs changed in ${windowWord}, by CVSS severity` })}<p class="small"><a href="/vulnerabilities?watch=1&changed=1">In the table</a></p></section>
-      <section class="box"><h2>Vulnerabilities <span class="count">by EPSS band</span></h2>${donut(glance.epss, { label: "Vulnerabilities by EPSS band" })}</section>
-      <section class="box"><h2>Triage <span class="count">by state</span></h2>${stacked(glance.triage, { label: "Triage by state" })}<p class="small"><a href="/triage">The board</a></p></section>
-      <section class="box"><h2>Sources <span class="count">last fetch</span></h2>
+      <section class="box"><h2><a href="/?kind=kev">Known exploited</a> <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>
+      <section class="box"><h2><a href="/">Wire</a> <span class="count">items a day, 14 days</span></h2>${lines(glance.days.series, { label: "Wire items a day, 14 days", ticks: glance.days.ticks })}</section>
+      <section class="box"><h2><a href="/vulnerabilities?watch=1&changed=1">Watched CVEs</a> <span class="count">changed, ${windowWord}, by CVSS</span></h2>${bars(glance.severity, { label: `Watched CVEs changed in ${windowWord}, by CVSS severity` })}<p class="small"><a href="/vulnerabilities?watch=1&changed=1">In the table</a></p></section>
+      <section class="box"><h2><a href="/vulnerabilities?sort=epss">Vulnerabilities</a> <span class="count">by EPSS band</span></h2>${donut(glance.epss, { label: "Vulnerabilities by EPSS band" })}</section>
+      <section class="box"><h2><a href="/triage">Triage</a> <span class="count">by state</span></h2>${stacked(glance.triage, { label: "Triage by state" })}<p class="small"><a href="/triage">The board</a></p></section>
+      <section class="box"><h2><a href="/sources">Sources</a> <span class="count">last fetch</span></h2>
         ${glance.sources.length
-          ? html`<ul class="src-glance">${glance.sources.map((s) => html`<li><span><i class="dot t-${statusTones[s.status ?? ""] ?? "mute"}"></i><a href="/sources">${s.name}</a></span><span class="when">${s.at ? relativeTime(s.at, now) : "never"}${s.status && s.status !== "ok" ? html` · ${s.status}` : ""}</span></li>`)}</ul>`
+          ? html`<ul class="src-glance">${glance.sources.map((s) => html`<li><span><i class="dot t-${statusTones[s.status ?? ""] ?? "mute"}"></i><a href="/sources#src-${s.id}">${s.name}</a></span><span class="when">${s.at ? relativeTime(s.at, now) : "never"}${s.status && s.status !== "ok" ? html` · ${s.status}` : ""}</span></li>`)}</ul>`
           : html`<p class="small">No source has been fetched yet.</p>`}
       </section>
     </div>
     <div class="cols">
       <section class="main">
         <section class="box">
-          <h2>Needs you <span class="count">sorted newest first</span></h2>
+          <h2><a href="/triage">Needs you</a> <span class="count">sorted newest first</span></h2>
           ${inbox.length
             ? html`<ul class="need">${inbox.map((i) => {
                 const s = parseJson<{ dueDate?: string; cvss?: number | null; epss?: number | null; kev?: boolean; watch?: string[] }>(i.signals_json, {});
                 return html`<li class="${i.kind === "kev" || s.kev ? "kev" : i.kind === "release" ? "std" : ""}">
                   <div class="need-main"><b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
-                    <span class="small">${i.source_name} · ${relativeTime(i.published_at, now)}${s.dueDate ? ` · due ${s.dueDate}` : ""}${typeof s.cvss === "number" ? ` · CVSS ${s.cvss.toFixed(1)}` : ""}${typeof s.epss === "number" ? ` · EPSS ${(s.epss * 100).toFixed(0)}%` : ""}${s.watch?.length ? ` · ${s.watch.join(", ")}` : ""}</span></div>
+                    <span class="small"><a href="/?source=${i.source_id}">${i.source_name}</a> · ${relativeTime(i.published_at, now)}${s.dueDate ? ` · due ${s.dueDate}` : ""}${typeof s.cvss === "number" ? ` · CVSS ${s.cvss.toFixed(1)}` : ""}${typeof s.epss === "number" ? ` · EPSS ${(s.epss * 100).toFixed(0)}%` : ""}${s.watch?.length ? ` · ${s.watch.join(", ")}` : ""}</span></div>
                   ${owner ? triageButtons({ kind: "item", id: i.id }, null, `/today?since=${hours}`, { compact: true }) : ""}
                 </li>`;
               })}</ul>`
             : html`<p class="small">Nothing waiting. New KEV entries, notable CVEs and standard releases appear here until placed.</p>`}
         </section>
         <section class="box">
-          <h2>Standards <span class="count">${realReleases.length} release(s) with changes in the window</span></h2>
+          <h2><a href="/register">Standards</a> <span class="count">${realReleases.length} release(s) with changes in the window</span></h2>
           ${realReleases.length
             ? html`<ul class="need">${realReleases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}" ${newTabIf(r.url)}>${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
             : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows the rhythm and what is due next.</p>`}
         </section>
         <section class="box">
-          <h2>News, latest <span class="count"><a href="/">all</a></span></h2>
-          <ul class="latest">${latest.map((a) => html`<li><span class="src">${a.source_name}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
+          <h2><a href="/">News, latest</a> <span class="count"><a href="/">all</a></span></h2>
+          <ul class="latest">${latest.map((a) => html`<li><a class="src" href="/?source=${a.source_id}">${a.source_name}</a>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}<span class="when">${relativeTime(a.published_at, now)}</span></li>`)}</ul>
         </section>
       </section>
       <aside class="side">
         <section class="box">
-          <h2>Sources</h2>
-          ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span></li>`)}</ul>` : html`<p class="small">Every enabled source answered on its last fetch.</p>`}
+          <h2><a href="/sources">Sources</a></h2>
+          ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span></li>`)}</ul>` : html`<p class="small">Every enabled source answered on its last fetch.</p>`}
         </section>
         <section class="box">
-          <h2>Digest and alerts</h2>
+          <h2><a href="/digest">Digest and alerts</a></h2>
           <p class="small">${digest ? html`Last digest <a href="/digest">${relativeTime(digest.generated_at, now)}</a>.` : html`<a href="/digest">No digest yet.</a>`}</p>
           ${alerts.length ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
         </section>
