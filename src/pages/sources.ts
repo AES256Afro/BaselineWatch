@@ -61,7 +61,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
         <thead><tr><th>Source</th><th>Format</th><th>Checked</th><th>Items</th><th>Last fetch</th><th>Licence</th>${owner ? html`<th></th>` : ""}</tr></thead>
         <tbody>${list.map((s) => {
           const adapter = adapterFor(s);
-          return html`<tr class="${s.enabled ? "" : "off"}">
+          return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">
             <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.notes ? html`<div class="note">${s.notes}</div>` : ""}</td>
             <td>${s.format}</td>
             <td>${s.enabled ? s.schedule : "off"}${adapter ? "" : html`<div class="note">no adapter yet</div>`}</td>

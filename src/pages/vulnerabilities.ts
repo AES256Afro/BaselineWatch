@@ -34,7 +34,10 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   if (f.watch) p.set("watch", "1");
   if (f.kev) p.set("kev", "1");
   if (f.minCvss !== undefined) p.set("min_cvss", String(f.minCvss));
+  if (f.severity) p.set("severity", f.severity);
   if (f.minEpss !== undefined) p.set("min_epss", String(f.minEpss));
+  if (f.maxEpss !== undefined) p.set("max_epss", String(f.maxEpss));
+  if (f.noEpss) p.set("epss", "none");
   if (f.changedSince) p.set("changed", "1");
   if (f.q) p.set("q", f.q);
   if (f.sort && f.sort !== "modified") p.set("sort", f.sort);
@@ -60,7 +63,10 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && filters.minEpss === undefined && !filters.changedSince;
+  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince;
+  // A band the Today page sent us into, shown as a chip that takes it off again.
+  const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
 
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
@@ -98,12 +104,14 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       </form>
     </div>
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, minEpss: undefined, changedSince: undefined, offset: 0 })}">All</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, offset: 0 })}">All</a>
       <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
       <a class="${filters.minCvss === 9 ? "on" : ""}" href="${query(filters, { minCvss: filters.minCvss === 9 ? undefined : 9, offset: 0 })}">Critical (9+)</a>
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
       <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, offset: 0 })}">Changed, 24 h</a>
+      ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
+      ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
       <span class="sort">Sort:
         <a class="${(filters.sort ?? "modified") === "modified" ? "on" : ""}" href="${query(filters, { sort: "modified", offset: 0 })}">modified</a>
         <a class="${filters.sort === "published" ? "on" : ""}" href="${query(filters, { sort: "published", offset: 0 })}">published</a>

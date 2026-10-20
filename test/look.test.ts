@@ -135,10 +135,10 @@ describe("the switch on the site", () => {
     expect(text).not.toContain("<Acme>");
     expect(text).toContain('aria-label="Wire items a day, 14 days: News 1 in all, 1 on 10-15; Vulnerabilities 3 in all, 0 on 10-15; Standards 0 in all, 0 on 10-15"');
     expect(text).toContain(">10-02</text>");
-    expect(text).toMatch(/<li><span>Critical<\/span><svg[^>]*><rect class="t-red" x="0" y="0" width="100\.0"/);
+    expect(text).toMatch(/<li class="link"><a href="\/vulnerabilities\?watch=1&amp;changed=1&amp;severity=critical"><span>Critical<\/span><svg[^>]*><rect class="t-red" x="0" y="0" width="100\.0"/);
     expect(text).toContain('aria-label="Vulnerabilities by EPSS band: Over 50% 1, Under 1% 1"');
     expect(text).toContain('aria-label="Triage by state: Affects us 1"');
-    expect(text).toContain('<i class="dot t-green"></i><a href="/sources">CISA Known Exploited Vulnerabilities</a></span><span class="when">2 min ago</span>');
+    expect(text).toContain('<i class="dot t-green"></i><a href="/sources#src-cisa-kev">CISA Known Exploited Vulnerabilities</a></span><span class="when">2 min ago</span>');
     expect(text).toContain("BleepingComputer</a></span><span class=\"when\">1 h ago · error</span>");
     expect(text).toContain("<b>3</b>");
     expect(text).toContain('<a class="tile warn" href="/triage"><small>Needs you</small><b>1</b>');

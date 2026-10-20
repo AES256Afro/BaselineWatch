@@ -56,7 +56,7 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
   const byState = new Map<TriageState, TriageCard[]>();
   for (const c of cards) byState.set(c.state, [...(byState.get(c.state) ?? []), c]);
   const inbox = triageInbox(db, 30);
-  const column = (state: TriageState, extra: Html = html``): Html => html`<section class="tcol ${state}">
+  const column = (state: TriageState, extra: Html = html``): Html => html`<section class="tcol ${state}" id="${state}">
     <h2>${stateLabel[state]} <span class="count">${counts[state]}</span></h2>
     ${extra}
     <ul class="tcards">${(byState.get(state) ?? []).map((c) => card(c, owner, now))}</ul>
@@ -87,7 +87,7 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
     <p class="lede">Where each thing sits on your desk. The inbox is what arrived and has not been placed; the owner moves things with the buttons and adds notes on each item's own page.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="board">
-      <section class="tcol new"><h2>Inbox <span class="count">${inbox.length}</span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small">Placed as new</h3><ul class="tcards">${(byState.get("new") ?? []).map((c) => card(c, owner, now))}</ul>` : ""}</section>
+      <section class="tcol new" id="new"><h2>Inbox <span class="count">${inbox.length}</span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small">Placed as new</h3><ul class="tcards">${(byState.get("new") ?? []).map((c) => card(c, owner, now))}</ul>` : ""}</section>
       ${column("reviewing")}
       ${column("affects")}
       ${column("done", (byState.get("dismissed") ?? []).length ? html`<p class="small">${counts.dismissed} marked not ours, kept out of the way.</p>` : html``)}

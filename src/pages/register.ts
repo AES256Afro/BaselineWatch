@@ -149,8 +149,9 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
   return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open, look });
 }
 
-export function renderRelease(options: { db: DatabaseSync; sourceId: string; documentId: number; now: Date } & Who): string | null {
-  const { db, sourceId, documentId, owner, open, look } = options;
+/** One release and its changes, narrowed to one family when `family` is given: the Atlas map leads here cell by cell. */
+export function renderRelease(options: { db: DatabaseSync; sourceId: string; documentId: number; now: Date; family?: string | undefined } & Who): string | null {
+  const { db, sourceId, documentId, family, owner, open, look } = options;
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
@@ -158,9 +159,9 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
   const changes = releaseChanges(db, documentId);
   const summary = summarizeChanges(changes.map((c) => ({ ref: c.ref, kind: c.kind, field: c.field as RequirementChange["field"], before: c.before_text, after: c.after_text })));
   const explanations = explanationsFor(db, documentId);
-  const labels = new Map<string, { label: string; title: string }>();
-  for (const r of loadRequirements(db, documentId)) labels.set(r.ref, { label: r.label, title: r.title });
-  if (previous) for (const r of loadRequirements(db, previous.id)) if (!labels.has(r.ref)) labels.set(r.ref, { label: r.label, title: r.title });
+  const labels = new Map<string, { label: string; title: string; family: string | null }>();
+  for (const r of loadRequirements(db, documentId)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+  if (previous) for (const r of loadRequirements(db, previous.id)) if (!labels.has(r.ref)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
 
   const byRef = new Map<string, typeof changes>();
   for (const c of changes) byRef.set(c.ref, [...(byRef.get(c.ref) ?? []), c]);
@@ -176,8 +177,21 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       <td><span class="chip ${kind === "added" ? "ins" : kind === "removed" ? "del" : ""}">${fields}</span></td>
     </tr>`;
   };
-  const substantive = order.filter((r) => summary.added.includes(r) || summary.removed.includes(r) || summary.substantive.includes(r));
-  const editorial = order.filter((r) => summary.editorial.includes(r));
+  // The families the changes fall in make the strip; the family asked for narrows both tables.
+  const familyCounts = new Map<string, number>();
+  for (const ref of order) {
+    const f = labels.get(ref)?.family;
+    if (f) familyCounts.set(f, (familyCounts.get(f) ?? 0) + 1);
+  }
+  const inFamily = (ref: string) => !family || labels.get(ref)?.family === family;
+  const substantive = order.filter((r) => inFamily(r) && (summary.added.includes(r) || summary.removed.includes(r) || summary.substantive.includes(r)));
+  const editorial = order.filter((r) => inFamily(r) && summary.editorial.includes(r));
+  const familyLink = (f?: string) => `/standards/${sourceId}/${documentId}${f ? `?family=${encodeURIComponent(f)}` : ""}`;
+  const familyStrip =
+    familyCounts.size > 1 || family
+      ? html`<div class="filters"><a class="${!family ? "on" : ""}" href="${familyLink()}">All · ${byRef.size}</a>${[...familyCounts.keys()].sort().map((f) => html`<a class="${family === f ? "on" : ""}" href="${familyLink(f)}">${f} · ${familyCounts.get(f)}</a>`)}</div>`
+      : html``;
+  const inWords = family ? ` in ${family}` : "";
 
   const content = html`
     <div class="rel">
@@ -200,17 +214,21 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
           ? html`<div class="why gen"><small>Summary <span class="badge">Generated</span></small><p>${e.text}</p></div>`
           : html`<div class="why none"><small>Why this release</small><p>${e.text}</p></div>`,
     )}
+    ${familyStrip}
+    ${family && !substantive.length && !editorial.length
+      ? html`<p class="small">No control in ${family} changed in this release. <a href="/standards/${sourceId}/${documentId}/browse?family=${encodeURIComponent(family)}">Read the family's controls in this version</a>.</p>`
+      : ""}
     ${substantive.length
-      ? html`<section class="box"><h2>Controls added, removed or revised <span class="count">${substantive.length}</span></h2>
+      ? html`<section class="box"><h2>Controls added, removed or revised${inWords} <span class="count">${substantive.length}</span></h2>
           <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
       : ""}
     ${editorial.length
-      ? html`<section class="box"><h2>Discussion, related-control and assessment updates <span class="count">${editorial.length}</span></h2>
+      ? html`<section class="box"><h2>Discussion, related-control and assessment updates${inWords} <span class="count">${editorial.length}</span></h2>
           <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
       : ""}
     <p class="small"><a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · <a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 
-  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open, look });
+  return page({ title: `${source.name} ${doc.version_label ?? ""}${family ? ` · ${family}` : ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open, look });
 }
 
 function paramsText(r: NormalizedRequirement): string | null {

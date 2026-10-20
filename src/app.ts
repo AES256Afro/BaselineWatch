@@ -142,11 +142,15 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
   };
   const sort = str(query.sort);
   const offset = num(query.offset);
+  const severity = str(query.severity)?.toLowerCase();
   return {
     watch: str(query.watch) === "1",
     kev: str(query.kev) === "1",
     minCvss: num(query.min_cvss),
+    severity: severity === "critical" || severity === "high" || severity === "medium" || severity === "low" || severity === "unscored" ? severity : undefined,
     minEpss: num(query.min_epss),
+    maxEpss: num(query.max_epss),
+    noEpss: str(query.epss) === "none",
     changedSince: str(query.changed) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
     q: str(query.q),
     sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
@@ -393,7 +397,7 @@ export function createApp(ctx: AppContext): Express {
   app.get("/standards/:source/:doc", (req, res, next) => {
     const documentId = Number(req.params.doc);
     if (!Number.isInteger(documentId) || documentId <= 0) return next();
-    const html = renderRelease({ db, sourceId: String(req.params.source), documentId, ...who(req, res), now: now() });
+    const html = renderRelease({ db, sourceId: String(req.params.source), documentId, family: str(req.query.family, 40), ...who(req, res), now: now() });
     if (!html) return next();
     res.type("html").send(html);
   });

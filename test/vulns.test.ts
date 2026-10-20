@@ -137,6 +137,13 @@ describe("vulnerability store", () => {
 
     expect(listVulns(db, { kev: true }).total).toBe(2);
     expect(listVulns(db, { minCvss: 9 }).rows.map((r) => r.cve_id)).toEqual(["CVE-2021-44228"]);
+    expect(listVulns(db, { severity: "critical" }).rows.map((r) => r.cve_id)).toEqual(["CVE-2021-44228"]);
+    // The severity words and the EPSS bands each tile the table: every CVE falls in exactly one.
+    const all = listVulns(db).total;
+    const severities = ["critical", "high", "medium", "low", "unscored"] as const;
+    expect(severities.reduce((n, severity) => n + listVulns(db, { severity }).total, 0)).toBe(all);
+    const bands = [{ maxEpss: 0.01 }, { minEpss: 0.01, maxEpss: 0.1 }, { minEpss: 0.1, maxEpss: 0.5 }, { minEpss: 0.5 }, { noEpss: true }];
+    expect(bands.reduce((n, band) => n + listVulns(db, band).total, 0)).toBe(all);
     expect(listVulns(db, { q: "log4j" }).rows.map((r) => r.cve_id)).toEqual(["CVE-2021-44228"]);
     expect(listVulns(db, { q: "CVE-2015-0204" }).total).toBe(1);
     expect(listVulns(db, { sort: "cvss" }).rows[0]?.cve_id).toBe("CVE-2021-44228");
