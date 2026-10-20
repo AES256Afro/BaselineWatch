@@ -5,6 +5,7 @@ import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { lines } from "../redline.ts";
 import { controlLabel, controlPageBase } from "../stigs.ts";
+import { decisionChip } from "./decisions.ts";
 import { page } from "./layout.ts";
 
 interface Who {
@@ -72,9 +73,9 @@ function severityChip(item: ProfileItem): Html {
  * these and a phone loads them all. A Microsoft setting's title is its registry path and its
  * value is a chip, so it carries no apply lines; a control's implementers are in its chips.
  */
-function itemRow(item: ProfileItem, flavour: Flavour, base: string | null, text: boolean): Html {
+function itemRow(platform: string, item: ProfileItem, flavour: Flavour, base: string | null, text: boolean): Html {
   const apply = item.kind === "control" || item.kind === "sct" ? [] : applyLines(item, flavour).filter((l) => l.label !== "Check" && l.label !== "Fix");
-  const meta: Html[] = [];
+  const meta: Html[] = [decisionChip(platform, item)];
   if (item.kind === "control") meta.push(html`<span class="small">${item.implementedBy.length ? html`implemented by ${item.implementedBy.slice(0, 8).join(", ")}${item.implementedBy.length > 8 ? html` and ${item.implementedBy.length - 8} more` : ""}` : "organisational: no technical rule in this profile"}</span>`);
   else if (item.controls.length) meta.push(html`<span>${item.controls.map((c, i) => html`${i ? ", " : ""}${base ? html`<a href="${base}/${c}">${controlLabel(c)}</a>` : controlLabel(c)}`)}</span>`);
   else if (item.kind === "stig") meta.push(html`<span class="small">no control mapping</span>`);
@@ -148,7 +149,7 @@ export function renderBuilder(options: BuilderOptions): string {
     if (last && last.section === item.section) last.items.push(item);
     else groups.push({ section: item.section, items: [item] });
   }
-  const list = (items: ProfileItem[]): Html => html`<ol class="pitems">${items.map((i) => itemRow(i, flavour, base, text))}</ol>`;
+  const list = (items: ProfileItem[]): Html => html`<ol class="pitems">${items.map((i) => itemRow(p, i, flavour, base, text))}</ol>`;
   const group = (g: { section: string; items: ProfileItem[] }): Html => html`<details class="box pgroup">
     <summary><b>${g.section}</b> <span class="count">${g.items.filter((i) => i.included).length} of ${g.items.length} kept</span></summary>
     ${list(g.items)}
@@ -178,8 +179,17 @@ export function renderBuilder(options: BuilderOptions): string {
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="md">Markdown</button>
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="csv">CSV</button>
           <button type="submit" formaction="/baselines/${p}/export" name="format" value="json">JSON</button>
-          <span class="small">${platformFlavours.find((f) => f.id === flavour)?.blurb ?? ""} Untick an item, then Rebuild or export; the form carries the state and nothing is stored. One section is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole profile.</span>
+          <span class="small">${platformFlavours.find((f) => f.id === flavour)?.blurb ?? ""} Untick an item, then Rebuild or export; the page starts from the owner's decisions, so an item marked not applying starts unticked. One section is drawn at a time; what you untick in one is kept when you open another, and every export covers the whole profile.</span>
         </fieldset>
+        ${owner
+          ? html`<fieldset class="export-row">
+          <legend>Record the unticked items as not applying</legend>
+          <label for="bulk-reason">Reason</label> <input id="bulk-reason" name="reason" maxlength="2000" placeholder="Why the organisation does not apply them">
+          <label for="bulk-owner">Owner</label> <input id="bulk-owner" name="owner" maxlength="120">
+          <button type="submit" formaction="/baselines/${p}/decide-unticked">Save as not applying</button>
+          <span class="small">Every unticked item in every section becomes a decision, so the next visit, the exports and the test plan all start from it. Change one later from its chip.</span>
+        </fieldset>`
+          : ""}
         <nav class="ptabs" aria-label="Sections of the profile">${sections.map((s) => html`<button type="submit" name="section" value="${s.id}" class="${s.id === current?.id ? "on" : ""}" ${s.id === current?.id ? html`aria-current="true"` : ""}>${s.label} <span class="count">${s.kept} of ${s.items.length}</span></button>`)}</nav>
         ${current ? html`<h2>${current.label} <span class="count">${current.kept} kept</span></h2><p class="small">${sectionBlurb(current, profile)}</p>${groups.length === 1 ? list(groups[0]!.items) : groups.map(group)}` : html`<p class="small">The STIG has no CAT I or CAT II rules to draw.</p>`}
         ${sections.some((s) => s.id === "controls") ? "" : html`<p class="small">The SP 800-53 High baseline is not loaded; fetch NIST SP 800-53B from Sources to close the list with its controls.</p>`}
@@ -195,6 +205,7 @@ export function renderBuilder(options: BuilderOptions): string {
         <dt>Controls</dt><dd>${c.controls ? html`<a href="/standards/nist-sp-800-53b/${c.controls.documentId}">${c.controls.label}</a>` : "High baseline not loaded"}${c.cciVersion ? html`<br><span class="small">CCI list ${c.cciVersion}</span>` : html`<br><span class="small">CCI list not loaded: no rule-to-control mapping</span>`}</dd>
         ${p === "windows" ? html`<dt>DISA Intune policy</dt><dd>${c.intune ? html`<a href="/standards/disa-intune/${c.intune.documentId}">${c.intune.label}</a> <span class="small">${c.intune.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd><dt>DISA checklist</dt><dd>${c.checklist ? html`<a href="/standards/disa-gpo/${c.checklist.documentId}">${c.checklist.label}</a> <span class="small">${c.checklist.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd>` : ""}
         <dt>Kept</dt><dd>${profile.counts.included} of ${profile.items.length}${profile.counts.dropped ? html` (${profile.counts.dropped} dropped)` : ""}</dd>
+        <dt>Decisions</dt><dd><a href="/baselines/${p}/decisions">${profile.counts.decisions.modify} modified, ${profile.counts.decisions.exclude} not applied</a>; the rest as published</dd>
       </dl>
     </section>
     ${profile.next.map(nextBox)}
@@ -202,7 +213,7 @@ export function renderBuilder(options: BuilderOptions): string {
     <section class="box">
       <h2>Whose words</h2>
       <p class="small">STIG rules: DISA (public domain). Controls: NIST SP 800-53 Rev 5 (public domain), mapped through DISA's CCIs. ${usesMscp(p) ? "Apple rules and payload keys: NIST's macOS Security Compliance Project. " : ""}${p === "windows" ? "Microsoft's values: your own copy of the Security Compliance Toolkit, never redistributed. Intune definitions and checklist verdicts: DISA's own packages. " : ""}No CIS text, nothing from a model.</p>
-      <p class="small"><a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "ios" || p === "ipados" || p === "android" ? "mobile" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
+      <p class="small"><a href="/baselines/${p}/decisions">The ${name} decisions</a> · <a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "ios" || p === "ipados" || p === "android" ? "mobile" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
     </section>`;
 
   const content = html`

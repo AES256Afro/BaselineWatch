@@ -23,6 +23,7 @@ applies:                        # optional, for the whole template
     macos: [">=14"]             # release ids from data/platforms.yaml; >=, <= or exact
   hardware: [apple-silicon, intel-t2]   # hardware ids from data/platforms.yaml
 notes: optional, shown above the steps
+requires: [smart card]          # optional: words an applied rule's id or title must name
 steps:
   - do: what to do, as an instruction (quote it when it contains a colon and a space)
     expect: what a pass looks like (optional)
@@ -33,6 +34,11 @@ steps:
       title: Apple Platform Security, "Startup Disk security policy control"
       url: https://support.apple.com/guide/security/...
 ```
+
+A template with `requires` joins a plan only when a rule the owner applies names one of its
+words, by the rule's id or a whole word of its title (an SSH template needs an SSH rule; a rule
+the owner decided not to apply does not count). The plan tests what the baseline applies and
+nothing else, and lists each template left out with the reason.
 
 Version rules are judged by the order of releases in `data/platforms.yaml`, newest first, so
 `>=24H2` and `>=26` need no number parsing and Windows feature updates sort right.

@@ -18,6 +18,8 @@ import { renderBrowse, renderControl, renderRelease, renderStandard } from "./pa
 import { renderSources } from "./pages/sources.ts";
 import { renderStigPlatform, renderStigsIndex } from "./pages/stigs.ts";
 import { renderBaselinesIndex, renderBuilder } from "./pages/baselines.ts";
+import { renderDecide, renderDecisionBoard } from "./pages/decisions.ts";
+import { decisionsCsv, isDecisionKind, saveDecision } from "./decisions.ts";
 import { renderTestPlan } from "./pages/testplans.ts";
 import { renderPlatforms } from "./pages/platforms.ts";
 import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, type PlanOptions } from "./testplans.ts";
@@ -443,6 +445,60 @@ export function createApp(ctx: AppContext): Express {
     res.type(out.contentType).send(out.body);
   };
   app.get("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, req.query as Record<string, unknown>));
+
+  // Decisions: the owner's answer to each item's recommendation (apply, modify, exclude), stored.
+  // The board lists them per platform (and as CSV); the decide page shows one item against its
+  // recommendation. CAT III rules are included so a decision on one is always reachable.
+  const decisionProfile = (platform: ProfileOptions["platform"], fields: Record<string, unknown>) => buildProfile(db, { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), sct: str(fields.sct, 160), cat3: true });
+  app.get("/baselines/:platform/decisions", (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const saved = Number(str(req.query.saved, 6) ?? "");
+    res.type("html").send(renderDecisionBoard({ profile: decisionProfile(platform, req.query as Record<string, unknown>), ...(Number.isInteger(saved) && saved >= 0 && req.query.saved !== undefined ? { saved } : {}), ...who(req, res) }));
+  });
+  app.get("/baselines/:platform/decisions.csv", (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const profile = decisionProfile(platform, req.query as Record<string, unknown>);
+    res.setHeader("Content-Disposition", `attachment; filename="baselinewatch-${platform}-decisions.csv"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.type("text/csv; charset=utf-8").send(decisionsCsv(profile, config.baseUrl));
+  });
+  app.get("/baselines/:platform/decide", (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const id = str(req.query.item, 300);
+    const profile = decisionProfile(platform, req.query as Record<string, unknown>);
+    const item = id ? profile.items.find((i) => i.id === id) : undefined;
+    if (!item) return next();
+    res.type("html").send(renderDecide({ profile, item, saved: str(req.query.saved) === "1", ...who(req, res) }));
+  });
+  app.post("/baselines/:platform/decide", requireOwner, (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const fields = (req.body ?? {}) as Record<string, unknown>;
+    const id = str(fields.item, 300);
+    const item = id ? decisionProfile(platform, fields).items.find((i) => i.id === id) : undefined;
+    if (!item || !isDecisionKind(fields.decision)) return void res.status(400).type("text").send("Pick an item and a decision.");
+    saveDecision(db, platform, item.id, { decision: fields.decision, value: str(fields.value, 500) ?? null, reason: str(fields.reason, 2000) ?? null, owner: str(fields.owner, 120) ?? null }, now());
+    res.redirect(303, `/baselines/${platform}/decide?item=${encodeURIComponent(item.id)}&saved=1`);
+  });
+  // The builder's unticked items, recorded as not applying in one go, with one reason for all of them.
+  app.post("/baselines/:platform/decide-unticked", requireOwner, (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isBuilderPlatform(platform)) return next();
+    const fields = (req.body ?? {}) as Record<string, unknown>;
+    const profile = buildProfile(db, profileOptions(platform, fields));
+    const reason = str(fields.reason, 2000) ?? null;
+    const owner = str(fields.owner, 120) ?? null;
+    let saved = 0;
+    for (const item of profile.items) {
+      if (item.included || item.decision?.decision === "exclude") continue;
+      saveDecision(db, platform, item.id, { decision: "exclude", reason, owner }, now());
+      saved += 1;
+    }
+    res.redirect(303, `/baselines/${platform}/decisions?saved=${saved}`);
+  });
   app.post("/baselines/:platform/export", (req, res, next) => sendExport(req, res, next, (req.body ?? {}) as Record<string, unknown>));
 
   // Test plans: the same form shape over the derived checks and the owner's templates, drawn one
@@ -456,7 +512,7 @@ export function createApp(ctx: AppContext): Express {
     // The areas to test ride along as checkboxes once the form has been applied; a first GET tests every area.
     // The hidden `areas` marker says the area checkboxes were drawn, so an empty list means none; an older form or a script without it tests every area.
     const chosen = str(fields.areas) === "1" || fields.area !== undefined ? list(fields.area).filter(isArea) : undefined;
-    const base: PlanOptions = { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1", templates: applied ? str(fields.templates) === "1" : str(fields.templates) !== "0", version: str(fields.version, 40), hardware: str(fields.hardware, 60), areas: chosen };
+    const base: PlanOptions = { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), cat3: str(fields.cat3) === "1", templates: applied ? str(fields.templates) === "1" : str(fields.templates) !== "0", version: str(fields.version, 40), hardware: str(fields.hardware, 60), areas: chosen, style: str(fields.style, 20) };
     if (keep) {
       const all = buildTestPlan(db, base).items;
       if (isArea(shown)) {
