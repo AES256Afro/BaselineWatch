@@ -273,7 +273,8 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       }
       const errors = outcomes.filter((o) => o.status === "error");
       const fresh = outcomes.filter((o) => o.status === "ok");
-      const status: IngestStatus = errors.length === outcomes.length ? "error" : fresh.length ? "ok" : "unchanged";
+      // A listing that names nothing to load (no followed STIG matched, no package this month) is unchanged, not an error to retry every half hour.
+      const status: IngestStatus = outcomes.length > 0 && errors.length === outcomes.length ? "error" : fresh.length ? "ok" : "unchanged";
       const detail = outcomes.map((o) => `${o.key}${o.versionLabel ? ` ${o.versionLabel}` : ""}: ${o.status === "ok" ? o.summary : o.status === "error" ? o.error : "unchanged"}`).join("; ");
       const result = done({ status, items: outcomes.length, inserted: fresh.length, detail, error: errors.length ? errors.map((e) => `${e.key}: ${e.error}`).join("; ") : null });
       recordOutcome(db, source, { status, error: result.error, fetchedAt: now().toISOString(), durationMs: result.durationMs });

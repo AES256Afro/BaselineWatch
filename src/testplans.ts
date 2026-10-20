@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
+import { csvLine } from "./csv.ts";
 import { parse as parseYaml } from "yaml";
 import { buildProfile, isBuilderPlatform, type Profile, type ProfileItem, type ProfileOptions } from "./baselines.ts";
 import { latestDocument } from "./register.ts";
@@ -524,12 +525,8 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
     return { body: `${body}\n`, contentType: "application/json; charset=utf-8", filename: `${f.stem}.json` };
   }
   if (format === "csv") {
-    const cell = (v: unknown) => {
-      const s = v === null || v === undefined ? "" : String(v);
-      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
     const rows = ["done,area,id,severity,title,source,procedure,expected,if not,our value,reference"];
-    for (const i of kept) rows.push(["", areaLabel(i.area), i.label, i.severity ?? "", i.title, i.source === "template" ? (i.sourceTitle ?? "template") : i.source.toUpperCase(), i.procedure ?? "", i.expected ?? "", i.fail ?? "", i.ourValue ?? "", absolute(i.url, meta.baseUrl) ?? ""].map(cell).join(","));
+    for (const i of kept) rows.push(csvLine(["", areaLabel(i.area), i.label, i.severity ?? "", i.title, i.source === "template" ? (i.sourceTitle ?? "template") : i.source.toUpperCase(), i.procedure ?? "", i.expected ?? "", i.fail ?? "", i.ourValue ?? "", absolute(i.url, meta.baseUrl) ?? ""]));
     return { body: `${rows.join("\r\n")}\r\n`, contentType: "text/csv; charset=utf-8", filename: `${f.stem}.csv` };
   }
   if (format === "md") {

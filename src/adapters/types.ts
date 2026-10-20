@@ -188,8 +188,10 @@ export function plainText(htmlOrText: string | null | undefined, max = 600): str
     .replace(/<[^>]+>/g, "")
     .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (whole, name: string) => {
       const lower = name.toLowerCase();
-      if (lower.startsWith("#x")) return String.fromCodePoint(Number.parseInt(lower.slice(2), 16));
-      if (lower.startsWith("#")) return String.fromCodePoint(Number(lower.slice(1)));
+      // A numeric reference past U+10FFFF is not a character; left as written rather than thrown at.
+      const codePoint = (n: number): string => (Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : whole);
+      if (lower.startsWith("#x")) return codePoint(Number.parseInt(lower.slice(2), 16));
+      if (lower.startsWith("#")) return codePoint(Number(lower.slice(1)));
       return entities[lower] ?? whole;
     })
     .replace(/\s+/g, " ")

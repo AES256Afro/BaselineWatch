@@ -291,7 +291,7 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   label is the hash of its bytes and the fetch dates it. **Licence**: the Community Feed terms
   (`https://openphish.com/terms.html`) allow non-commercial use only and forbid redistribution,
   derivative works and display to any third party, so the source is marked restricted
-  (`sources.restricted`, migration 0028): the signed-in owner sees the twelve names on the Register
+  (`sources.restricted`, migration 0029): the signed-in owner sees the twelve names on the Register
   as for any list; a visitor sees the versions, how many entries each holds and how many came,
   went or changed, with the names and text withheld and the licence quoted in their place; the
   JSON API and the MCP tools return neither names nor text to anyone, and no generated summary is

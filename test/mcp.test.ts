@@ -73,6 +73,13 @@ describe("the MCP server", () => {
 
     const changes = textOf(await client.callTool({ name: "standard_changes", arguments: { source: "nist-sp-800-53", limit: 5 } })) as { changes: unknown[] };
     expect(changes.changes).toHaveLength(5);
+    // The owner's licensed copies (CIS, Microsoft) are quoted on screen only, never through a tool.
+    for (const source of ["cis-benchmarks", "microsoft-sct"]) {
+      const held = await client.callTool({ name: "requirement", arguments: { source, ref: "1.1.1" } });
+      expect(held.isError).toBe(true);
+      expect((held.content as { text: string }[])[0]?.text).toContain("licensed copy");
+      expect((await client.callTool({ name: "release", arguments: { source } })).isError).toBe(true);
+    }
 
     const wire = textOf(await client.callTool({ name: "search_wire", arguments: { kind: "release" } })) as { items: { title: string }[] };
     expect(wire.items.some((i) => /5\.2\.0: 3 added/.test(i.title))).toBe(true);
