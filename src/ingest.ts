@@ -45,7 +45,8 @@ async function addGeneratedSummary(
     changes: stored.changes.map((c) => ({ label: labels.get(c.ref)?.label ?? c.ref.toUpperCase(), title: labels.get(c.ref)?.title ?? "", kind: c.kind, field: c.field, before: c.before, after: c.after })),
   });
   if (text) {
-    db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'generated', ?, NULL, ?)").run(stored.documentId, text, at);
+    // The model was asked for a few sentences; num_predict is advisory, so the stored text is clipped regardless.
+    db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'generated', ?, NULL, ?)").run(stored.documentId, text.slice(0, 4000), at);
   }
 }
 
@@ -342,7 +343,12 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const result = done({ status: "error", error: message });
-    recordOutcome(db, source, { status: "error", error: message, fetchedAt: now().toISOString(), durationMs: result.durationMs });
+    try {
+      recordOutcome(db, source, { status: "error", error: message, fetchedAt: now().toISOString(), durationMs: result.durationMs });
+    } catch (recordError) {
+      // A busy database (another process holding the lock past the timeout) must not turn one source's error into a thrown sweep.
+      deps.log?.(`[ingest] ${source.id}: could not record the error (${recordError instanceof Error ? recordError.message : String(recordError)})`);
+    }
     return result;
   }
 }

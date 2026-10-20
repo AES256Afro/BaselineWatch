@@ -28,7 +28,7 @@ describe("outbound fetching", () => {
     }
     for (const ip of ["8.8.8.8", "1.1.1.1", "172.32.0.1", "2606:4700::1111", "::ffff:8.8.8.8", "::ffff:808:808", "2002:808:808::1", "64:ff9b::808:808"]) expect(privateAddress(ip), ip).toBe(false);
     // The forms the URL parser writes: hex-mapped IPv4, compressed leading zeros, zone ids, 6to4 and NAT64 carrying a LAN address.
-    for (const ip of ["::ffff:7f00:1", "::ffff:a00:1", "::ffff:c0a8:80a", "::127.0.0.1", "::2", "[::1]", "fe80::1%eth0", "2002:c0a8:1::1", "64:ff9b::a00:1", "0:0:0:0:0:ffff:c0a8:1", "::ffff:0:c0a8:1", "zz::1"]) {
+    for (const ip of ["::ffff:7f00:1", "::ffff:a00:1", "::ffff:c0a8:80a", "::127.0.0.1", "::2", "[::1]", "[127.0.0.1]", "[10.0.0.1]", "fe80::1%eth0", "fec0::1", "2002:c0a8:1::1", "64:ff9b::a00:1", "0:0:0:0:0:ffff:c0a8:1", "::ffff:0:c0a8:1", "zz::1"]) {
       expect(privateAddress(ip), ip).toBe(true);
     }
     expect(hextets("2001:db8::1")).toEqual([0x2001, 0xdb8, 0, 0, 0, 0, 0, 1]);

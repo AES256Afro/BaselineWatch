@@ -75,14 +75,19 @@ export interface Scheduler {
   stop(): void;
 }
 
-async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+/** Runs the tasks a few at a time. A task that throws is handed to `onError` for its result, so one failure never ends the others' run. */
+async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number, onError: (index: number, error: unknown) => T): Promise<T[]> {
   const results: T[] = [];
   let next = 0;
   const workers = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
     while (next < tasks.length) {
       const index = next;
       next += 1;
-      results[index] = await tasks[index]!();
+      try {
+        results[index] = await tasks[index]!();
+      } catch (error) {
+        results[index] = onError(index, error);
+      }
     }
   });
   await Promise.all(workers);
@@ -124,7 +129,12 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
         }
         return results;
       });
-      const results = (await runLimited(perHost, options.concurrency ?? 3)).flat();
+      const results = (
+        await runLimited(perHost, options.concurrency ?? 3, (index, error) => {
+          log(`[scheduler] host batch ${index} failed: ${error instanceof Error ? error.message : String(error)}`);
+          return [];
+        })
+      ).flat();
       for (const r of results) log(formatResult(r));
       return results;
     })().finally(() => {
