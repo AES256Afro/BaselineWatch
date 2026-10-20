@@ -643,3 +643,38 @@ table.fleet details summary { cursor: pointer; }
 .hw { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
 .hw li { border-top: 1px solid var(--rule); padding-top: 6px; }
 .hw .chip { font-size: 10.5px; }
+
+/* Scan (M12): breadcrumbs, the check rows the script fills, the run line, and the baits it plants. */
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 18px 0 8px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+.checks { display: grid; gap: 10px; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px 12px; align-items: start; min-width: 0; }
+.check .n { font: 500 13px var(--mono); color: var(--mute); padding-top: 3px; }
+.check .t { font-weight: 600; }
+.check .t .chip { margin-left: 6px; font-weight: 500; }
+.check .d { color: var(--mute); font-size: 13px; margin: 2px 0 0; }
+.check .ev { margin: 8px 0 0; padding-left: 18px; font-size: 13px; }
+.check .ev li { margin: 2px 0; overflow-wrap: anywhere; }
+.check .matters { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 13px; }
+.check.off .t { color: var(--mute); }
+.state.warn { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.state.bad { color: var(--del); background: var(--del-bg); border-color: transparent; }
+.state.na { color: var(--mute); background: var(--panel-2); border-color: transparent; }
+.state.run { color: var(--acc); border-color: var(--acc); }
+@media (max-width: 560px) { .check { grid-template-columns: minmax(0, 1fr) auto; } .check .n { display: none; } }
+.scan-run { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 14px 0 8px; }
+.scan-run button { font-size: 13px; padding: 7px 14px; }
+.scan-run button[disabled] { opacity: 0.6; cursor: default; }
+.sources { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--mute); }
+.sources li { margin: 3px 0; }
+/* The planted baits: real 1px boxes off to the left, so a blocker's display:none reads as no box at all. */
+.bw-baits { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: visible; }
+.bw-bait { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; }
+[data-look="console"] .check { border-radius: 6px; }
+[data-look="console"] .state.warn { color: var(--amber); border-color: var(--amber); }
+[data-look="console"] .state.bad { color: var(--red); border-color: var(--red); }
+[data-look="console"] .state.na { color: var(--mute); border-color: var(--rule-2); }
+[data-look="console"] .state.run { color: var(--acc); border-color: var(--acc); }
