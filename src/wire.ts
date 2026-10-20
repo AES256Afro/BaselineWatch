@@ -81,9 +81,10 @@ function build(filters: WireFilters, options: { copies?: boolean } = {}): Built 
   }
   if (filters.before) {
     // The list is ordered by date then id, so the cursor compares on both: an older item with a
-    // higher id (a CVE whose published date is years back) is neither repeated nor skipped.
-    clauses.push("(COALESCE(i.published_at, i.fetched_at), i.id) < (SELECT COALESCE(b.published_at, b.fetched_at), b.id FROM items b WHERE b.id = ?)");
-    params.push(filters.before);
+    // higher id (a CVE whose published date is years back) is neither repeated nor skipped. A
+    // cursor whose item is gone (a republished release) starts the list over rather than dead-ending.
+    clauses.push("((COALESCE(i.published_at, i.fetched_at), i.id) < (SELECT COALESCE(b.published_at, b.fetched_at), b.id FROM items b WHERE b.id = ?) OR NOT EXISTS (SELECT 1 FROM items b WHERE b.id = ?))");
+    params.push(filters.before, filters.before);
   }
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }

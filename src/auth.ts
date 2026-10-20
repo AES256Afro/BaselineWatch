@@ -129,8 +129,15 @@ export class LoginThrottle {
     return entry.count >= this.limit;
   }
   fail(key: string, nowMs: number): void {
-    // Expired entries are swept once the map is large, so many distinct addresses cannot grow it without bound.
-    if (this.failures.size >= 10_000) for (const [k, e] of this.failures) if (e.until < nowMs) this.failures.delete(k);
+    // Expired entries are swept once the map is large, and the oldest live ones go when that frees nothing,
+    // so many distinct addresses cannot grow it without bound.
+    if (this.failures.size >= 10_000) {
+      for (const [k, e] of this.failures) if (e.until < nowMs) this.failures.delete(k);
+      for (const k of this.failures.keys()) {
+        if (this.failures.size < 10_000) break;
+        this.failures.delete(k);
+      }
+    }
     const entry = this.failures.get(key);
     if (!entry || entry.until < nowMs) this.failures.set(key, { count: 1, until: nowMs + this.windowMs });
     else entry.count += 1;

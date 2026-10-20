@@ -220,8 +220,8 @@ const texEscape = (s: string): string =>
     .replace(/–/g, "--")
     .replace(/—/g, "---")
     .replace(/[•·]/g, "\\textbullet{}")
-    // inputenc with T1 carries Latin-1; anything beyond it (CJK, emoji) would stop the compile, so it folds to ?.
-    .replace(/[Ā-￿]/g, "?");
+    // inputenc with T1 carries Latin-1 and Latin Extended-A; anything beyond (CJK, emoji) would stop the compile, so it folds to ?.
+    .replace(/[ƀ-￿]/g, "?");
 
 const texRuns = (runs: Inline[]): string =>
   runs

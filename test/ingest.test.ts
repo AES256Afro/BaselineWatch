@@ -150,6 +150,8 @@ describe("the Wire", () => {
     expect(next).toHaveLength(1);
     expect(next[0]!.id).toBe(ordered[2]!.id);
     expect(firstPage.map((i) => i.id)).not.toContain(next[0]!.id);
+    // A stale cursor (its item republished and gone) starts over at the top rather than showing nothing.
+    expect(listWire(db, { limit: 2, before: 999_999 }).map((i) => i.id)).toEqual(firstPage.map((i) => i.id));
   });
 });
 

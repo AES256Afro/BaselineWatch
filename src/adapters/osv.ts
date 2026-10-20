@@ -107,7 +107,7 @@ export function storeOsvRecords(
   let inserted = 0;
   let updated = 0;
   const alerts: AlertDraft[] = [];
-  ctx.db.exec("BEGIN");
+  ctx.db.exec("BEGIN IMMEDIATE");
   try {
     for (const group of groups.values()) {
       const primary = group.find((r) => /^GHSA-/i.test(r.id)) ?? group[0]!;

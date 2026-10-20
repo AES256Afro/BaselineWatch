@@ -137,7 +137,7 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
   let inserted = 0;
   let updated = 0;
   const alerts: AlertDraft[] = [];
-  ctx.db.exec("BEGIN");
+  ctx.db.exec("BEGIN IMMEDIATE");
   try {
     for (const { cve } of records) {
       const result = upsertVuln(ctx.db, normalizeNvd(cve), observedAt, watch);

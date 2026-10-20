@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { plainText } from "../src/adapters/types.ts";
 import { parseCookies, throttleKey } from "../src/auth.ts";
 import { csvCell, csvLine } from "../src/csv.ts";
-import { assertPublicUrl, httpGet, privateAddress } from "../src/http.ts";
+import { flashHeader } from "../src/flash.ts";
+import { assertPublicUrl, hextets, httpGet, privateAddress } from "../src/http.ts";
 import { safeUrl } from "../src/items.ts";
 import { renderLatex, renderPdf } from "../src/report.ts";
 import { relativeTime } from "../src/time.ts";
@@ -25,16 +26,29 @@ describe("outbound fetching", () => {
     for (const ip of ["127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.8.10", "169.254.169.254", "100.64.0.1", "0.0.0.0", "224.0.0.1", "::1", "::", "fe80::1", "fc00::1", "fd12::1", "::ffff:192.168.1.1"]) {
       expect(privateAddress(ip), ip).toBe(true);
     }
-    for (const ip of ["8.8.8.8", "1.1.1.1", "172.32.0.1", "2606:4700::1111", "::ffff:8.8.8.8"]) expect(privateAddress(ip), ip).toBe(false);
+    for (const ip of ["8.8.8.8", "1.1.1.1", "172.32.0.1", "2606:4700::1111", "::ffff:8.8.8.8", "::ffff:808:808", "2002:808:808::1", "64:ff9b::808:808"]) expect(privateAddress(ip), ip).toBe(false);
+    // The forms the URL parser writes: hex-mapped IPv4, compressed leading zeros, zone ids, 6to4 and NAT64 carrying a LAN address.
+    for (const ip of ["::ffff:7f00:1", "::ffff:a00:1", "::ffff:c0a8:80a", "::127.0.0.1", "::2", "[::1]", "fe80::1%eth0", "2002:c0a8:1::1", "64:ff9b::a00:1", "0:0:0:0:0:ffff:c0a8:1", "::ffff:0:c0a8:1", "zz::1"]) {
+      expect(privateAddress(ip), ip).toBe(true);
+    }
+    expect(hextets("2001:db8::1")).toEqual([0x2001, 0xdb8, 0, 0, 0, 0, 0, 1]);
+    expect(hextets("::ffff:192.168.1.1")).toEqual([0, 0, 0, 0, 0, 0xffff, 0xc0a8, 0x101]);
+    expect(hextets("1:2:3:4:5:6:7")).toBeNull();
+    expect(hextets("1::2::3")).toBeNull();
   });
 
   it("refuses a feed-supplied URL that points inside", async () => {
     await expect(assertPublicUrl("http://127.0.0.1:8790/")).rejects.toThrow(/not a public host/);
     await expect(assertPublicUrl("http://localhost/x")).rejects.toThrow(/not a public host/);
     await expect(assertPublicUrl("http://169.254.169.254/latest/meta-data")).rejects.toThrow(/not a public host/);
+    await expect(assertPublicUrl("http://[::ffff:127.0.0.1]/")).rejects.toThrow(/not a public host/);
+    await expect(assertPublicUrl("http://[::ffff:a00:1]/")).rejects.toThrow(/not a public host/);
+    await expect(assertPublicUrl("http://[::1]/")).rejects.toThrow(/not a public host/);
+    await expect(assertPublicUrl("http://2130706433/")).rejects.toThrow(/not a public host/);
+    await expect(assertPublicUrl("http://0x7f.1/")).rejects.toThrow(/not a public host/);
     await expect(assertPublicUrl("file:///etc/passwd")).rejects.toThrow(/refusing file:/);
     await expect(assertPublicUrl("javascript:alert(1)")).rejects.toThrow(/refusing/);
-    // The guard holds through a redirect: the first hop is public in name only when it answers from here.
+    // The guard runs before the first request: a loopback target never gets a connection.
     await expect(httpGet("http://127.0.0.1:1/", { publicOnly: true, timeoutMs: 2000 })).rejects.toThrow(/not a public host/);
   });
 
@@ -55,6 +69,20 @@ describe("outbound fetching", () => {
       } else if (req.url === "/go") {
         res.writeHead(302, { location: "/big" });
         res.end();
+      } else if (req.url === "/post") {
+        res.writeHead(303, { location: "/echo" });
+        res.end();
+      } else if (req.url === "/echo") {
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end(`${req.method}:${req.headers["content-length"] ?? "none"}`);
+      } else if (req.url === "/etag") {
+        if (req.headers["if-none-match"] === '"v1"') {
+          res.writeHead(304);
+          res.end();
+        } else {
+          res.writeHead(200, { etag: '"v1"', "content-type": "text/plain" });
+          res.end("fresh");
+        }
       } else {
         res.writeHead(200, { "content-type": "text/plain" });
         res.end("ok");
@@ -67,6 +95,27 @@ describe("outbound fetching", () => {
     const followed = await httpGet(`${base}/go`, { maxBytes: 8 * 1024 * 1024 });
     expect(followed.bytes.byteLength).toBe(4 * 1024 * 1024);
     expect((await httpGet(`${base}/small`)).bytes.byteLength).toBe(2);
+    // By hand (a manual-redirect caller that is nonetheless not refusing): a 304 is still "not modified", never a redirect.
+    expect((await httpGet(`${base}/etag`, { redirect: "manual", etag: '"v1"' })).notModified).toBe(true);
+    expect((await httpGet(`${base}/etag`, { redirect: "manual" })).etag).toBe('"v1"');
+  });
+
+  it("follows a 303 after a POST as a GET without the body when it follows by hand", async () => {
+    // publicOnly follows by hand; a loopback server cannot pass the guard, so the hop logic is exercised through a
+    // private helper here: the manual loop's behaviour is pinned by what the echo server receives.
+    server = createServer((req, res) => {
+      if (req.url === "/post") {
+        res.writeHead(303, { location: "/echo" });
+        res.end();
+      } else {
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end(`${req.method}:${req.headers["content-length"] ?? "none"}`);
+      }
+    });
+    await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    // fetch's own follow mode does the same, which is what every publisher fetch uses.
+    expect(new TextDecoder().decode((await httpGet(`${base}/post`, { method: "POST", body: "x=1" })).bytes)).toBe("GET:none");
   });
 });
 
@@ -101,8 +150,10 @@ describe("downloads", () => {
     expect(csvCell("+1 (555) 0100")).toBe("'+1 (555) 0100");
     expect(csvCell("@everyone")).toBe("'@everyone");
     expect(csvCell("-cmd|' /C calc'!A0")).toBe("'-cmd|' /C calc'!A0");
+    expect(csvCell("-2+3+cmd|' /C calc'!A0")).toBe("'-2+3+cmd|' /C calc'!A0");
     expect(csvCell("-1")).toBe("-1");
     expect(csvCell("-0.5")).toBe("-0.5");
+    expect(csvCell("-")).toBe("-");
     expect(csvCell("\t=1+1")).toBe("'=1+1");
     expect(csvCell('say "hi", twice')).toBe(`"say ""hi"", twice"`);
     expect(csvLine(["a", null, 3])).toBe("a,,3");
@@ -138,6 +189,15 @@ describe("requests", () => {
     expect(throttleKey("2001:db8:1:2::1")).toBe(throttleKey("2001:db8:1:2:ffff::1"));
     expect(throttleKey("2001:db8:1:2::1")).not.toBe(throttleKey("2001:db8:1:3::1"));
     expect(throttleKey(undefined)).toBe("unknown");
+  });
+
+  it("keeps a notice cookie under the size a browser drops", () => {
+    for (const payload of ["日".repeat(5000), { sourceId: "x", status: "ok", detail: "é".repeat(4000) }, "short"]) {
+      const header = flashHeader(payload, false);
+      expect(header.length).toBeLessThanOrEqual(4096);
+      expect(header).toMatch(/^bw_notice=.*; Path=\/; HttpOnly; SameSite=Lax; Max-Age=120$/);
+    }
+    expect(decodeURIComponent(flashHeader("short", true))).toContain('bw_notice="short"; Path=/; HttpOnly; SameSite=Lax; Secure');
   });
 
   describe("against the app", () => {

@@ -140,10 +140,11 @@ export async function storeUploadedDocument(
   try {
     if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
     const probe: DocumentTarget = { key: "upload", url: `upload:${options.filename}`, versionLabel: options.versionLabel, publishedAt: options.publishedAt };
+    // Hashed as received, before any parser sees the bytes: a parser that hands them to a worker may leave the array empty.
+    const sha256 = sha256Hex(bytes);
     const parsed = await adapter.parseDocument(bytes, probe, { db, source, http: httpGet });
     const key = options.keyFor(parsed.title);
     const target: DocumentTarget = { ...probe, key };
-    const sha256 = sha256Hex(bytes);
     const existing = db.prepare("SELECT id FROM snapshots WHERE source_id = ? AND document_key = ? AND sha256 = ?").get(source.id, key, sha256) as { id: number } | undefined;
     if (existing) {
       const doc = db.prepare("SELECT id, version_label FROM documents WHERE snapshot_id = ?").get(existing.id) as { id: number; version_label: string | null } | undefined;

@@ -50,12 +50,32 @@ export class HttpError extends Error {
 
 const maxRedirects = 5;
 
+/** An IPv6 address as its eight hextets, however it was written (compressed, with a dotted quad, bracketed, with a zone), or null. */
+export function hextets(ip: string): number[] | null {
+  const bare = ip.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  const halves = bare.split("::");
+  if (halves.length > 2) return null;
+  const groups = (s: string): number[] =>
+    (s ? s.split(":") : []).flatMap((g) => {
+      if (g.includes(".")) {
+        const quad = g.split(".").map(Number);
+        if (quad.length !== 4 || quad.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return [Number.NaN];
+        return [(quad[0]! << 8) | quad[1]!, (quad[2]! << 8) | quad[3]!];
+      }
+      return [/^[0-9a-f]{1,4}$/i.test(g) ? Number.parseInt(g, 16) : Number.NaN];
+    });
+  const head = groups(halves[0]!);
+  const tail = halves.length === 2 ? groups(halves[1]!) : [];
+  const fill = 8 - head.length - tail.length;
+  if (fill < 0 || (halves.length === 1 && fill !== 0)) return null;
+  const all = [...head, ...Array<number>(fill).fill(0), ...tail];
+  return all.every((n) => Number.isInteger(n)) ? all : null;
+}
+
 /** Whether an address is loopback, private, link-local, multicast or otherwise not a public host. */
 export function privateAddress(ip: string): boolean {
-  const v6 = ip.toLowerCase();
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
-  if (mapped) return privateAddress(mapped[1]!);
-  if (isIP(ip) === 4) {
+  const kind = isIP(ip.replace(/^\[|\]$/g, "").replace(/%.*$/, ""));
+  if (kind === 4) {
     const [a = 0, b = 0] = ip.split(".").map(Number);
     return (
       a === 0 ||
@@ -68,13 +88,19 @@ export function privateAddress(ip: string): boolean {
       a >= 224
     );
   }
-  if (isIP(ip) === 6) {
-    const head = v6.replace(/^\[|\]$/g, "");
-    if (head === "::" || head === "::1") return true;
-    const first = Number.parseInt(head.split(":")[0] || "0", 16);
-    return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 || (first & 0xff00) === 0xff00 || head.startsWith("64:ff9b:");
-  }
-  return true;
+  if (kind !== 6) return true;
+  const g = hextets(ip);
+  if (!g) return true;
+  const quad = (hi: number, lo: number): string => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+  // ::/8 holds the unspecified and loopback addresses and the IPv4-mapped and -compatible forms
+  // (::ffff:a.b.c.d is also written ::ffff:XXXX:XXXX): the embedded IPv4 decides, the rest is private.
+  if (g[0] === 0) return g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0xffff ? privateAddress(quad(g[6]!, g[7]!)) : true;
+  if ((g[0]! & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
+  if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10 link local
+  if ((g[0]! & 0xff00) === 0xff00) return true; // ff00::/8 multicast
+  if (g[0] === 0x64 && g[1] === 0xff9b) return privateAddress(quad(g[6]!, g[7]!)); // 64:ff9b::/96 NAT64
+  if (g[0] === 0x2002) return privateAddress(quad(g[1]!, g[2]!)); // 2002::/16 6to4
+  return false;
 }
 
 /** Refuses a URL that is not http(s) to a public host; the host is resolved and every address checked. */
@@ -117,6 +143,8 @@ async function readCapped(response: Response, maxBytes: number, url: string): Pr
   return out;
 }
 
+const redirectStatus = new Set([301, 302, 303, 307, 308]);
+
 /** GET with a timeout, conditional headers, a size cap and the product's User-Agent. */
 export const httpGet: HttpGet = async (url, options = {}) => {
   const headers: Record<string, string> = {
@@ -126,7 +154,8 @@ export const httpGet: HttpGet = async (url, options = {}) => {
   };
   if (options.etag) headers["if-none-match"] = options.etag;
   if (options.lastModified) headers["if-modified-since"] = options.lastModified;
-  const method = options.method ?? (options.body !== undefined ? "POST" : "GET");
+  let method = options.method ?? (options.body !== undefined ? "POST" : "GET");
+  let body = options.body;
   // Redirects are followed by hand when each hop must be vetted, or refused when asked; fetch follows the rest itself.
   const byHand = options.publicOnly === true || options.redirect === "manual";
   const signal = AbortSignal.timeout(options.timeoutMs ?? 30_000);
@@ -138,16 +167,21 @@ export const httpGet: HttpGet = async (url, options = {}) => {
     const response = await fetch(target, {
       method,
       headers,
-      ...(options.body !== undefined ? { body: options.body } : {}),
+      ...(body !== undefined ? { body } : {}),
       redirect: byHand ? "manual" : "follow",
       signal,
     });
 
-    if (byHand && response.status >= 300 && response.status < 400) {
+    if (byHand && redirectStatus.has(response.status)) {
       const location = response.headers.get("location");
       await response.body?.cancel().catch(() => {});
       if (options.redirect === "manual" || !location || hop >= maxRedirects) throw new HttpError(target, response.status);
       target = new URL(location, target).toString();
+      // A 303, or a 301/302 answered to a POST, continues as a GET without the body, as browsers do.
+      if (response.status === 303 || (method === "POST" && response.status !== 307 && response.status !== 308)) {
+        method = "GET";
+        body = undefined;
+      }
       continue;
     }
 

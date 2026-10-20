@@ -7,7 +7,8 @@
 export function csvCell(value: unknown): string {
   let s = value === null || value === undefined ? "" : String(value);
   s = s.replace(/^[\t\r]+/, "");
-  if (/^[=+@]/.test(s) || /^-(?![\d.]|$)/.test(s)) s = `'${s}`;
+  // A leading minus is kept only on a plain number: "-2+3+cmd|' /C calc'!A0" is a formula too.
+  if (/^[=+@]/.test(s) || (s.startsWith("-") && !/^-(\d+(\.\d*)?|\.\d+)?$/.test(s))) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

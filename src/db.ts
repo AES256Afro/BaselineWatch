@@ -38,8 +38,14 @@ export function migrate(db: DatabaseSync, dir: string = migrationsDir): Migratio
     const id = file.replace(/\.sql$/, "");
     if (done.has(id)) continue;
     const sql = readFileSync(path.join(dir, file), "utf8");
-    db.exec("BEGIN");
+    // The write lock is taken up front, and the check repeated under it: two processes starting on
+    // the same file (the server and a cron fetch) then apply a new migration once, not twice.
+    db.exec("BEGIN IMMEDIATE");
     try {
+      if (db.prepare("SELECT 1 FROM schema_migrations WHERE id = ?").get(id)) {
+        db.exec("COMMIT");
+        continue;
+      }
       db.exec(sql);
       db.prepare("INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)").run(id, new Date().toISOString());
       db.exec("COMMIT");

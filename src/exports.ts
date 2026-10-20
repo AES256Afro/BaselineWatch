@@ -12,11 +12,12 @@ import { productName } from "./version.ts";
 export function publicProfile(profile: Profile): Profile {
   if (!profile.components.sct && !profile.items.some((i) => i.kind === "sct" || i.sctValue !== null)) return profile;
   const items = profile.items.filter((i) => i.kind !== "sct").map((i) => (i.sctValue === null ? i : { ...i, sctValue: null }));
+  const byKind = { ...profile.counts.byKind, sct: 0 };
   return {
     ...profile,
     components: { ...profile.components, sct: null },
     items,
-    counts: { ...profile.counts, included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length },
+    counts: { ...profile.counts, byKind, included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length },
   };
 }
 
