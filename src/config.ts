@@ -99,6 +99,21 @@ function origin(env: Env, key: string): string | null {
   return url.origin;
 }
 
+/** An http(s) URL to a service (a path is fine, credentials are not), or nothing. */
+function httpUrl(env: Env, key: string): string | null {
+  const value = optional(env, key);
+  if (value === null) return null;
+  const problem = new Error(`${key} must be an http(s) URL such as http://ollama:11434, got "${value}"`);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw problem;
+  }
+  if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw problem;
+  return value;
+}
+
 function flag(env: Env, key: string, fallback: boolean): boolean {
   const value = env[key];
   if (value === undefined || value.trim() === "") return fallback;
@@ -135,7 +150,7 @@ export function loadConfig(env: Env = process.env): Config {
     nvdBackfillDays: days(env, "BW_NVD_BACKFILL_DAYS", 7),
     notifyUrl: optional(env, "BW_NOTIFY_URL"),
     newsImages: flag(env, "BW_NEWS_IMAGES", true),
-    llmUrl: optional(env, "BW_LLM_URL"),
+    llmUrl: httpUrl(env, "BW_LLM_URL"),
     llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
     digest: choice(env, "BW_DIGEST", ["daily", "weekly", "off"] as const, "daily"),
     digestHour: hour(env, "BW_DIGEST_HOUR", 7),

@@ -14,14 +14,24 @@ function pdfjs(): Promise<typeof PdfJs> {
   return loader;
 }
 
+/** Enough for any benchmark or revision history; a hostile file with a million pages or a deflate bomb stops here. */
+const maxPages = 3000;
+const maxChars = 16 * 1024 * 1024;
+const deadlineMs = 120_000;
+
 export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
   const lib = await pdfjs();
   // pdfjs transfers the array's buffer to its worker, which detaches it: it gets its own copy, so the caller's bytes stay whole.
   const task = lib.getDocument({ data: new Uint8Array(bytes), useSystemFonts: false, disableFontFace: true, verbosity: 0 });
-  const doc = await task.promise;
+  // Parsing runs on this thread (no worker in Node): past the deadline the document is torn down and the next page read fails.
+  const timer = setTimeout(() => void task.destroy().catch(() => {}), deadlineMs);
+  timer.unref();
   const pages: string[] = [];
+  let chars = 0;
   try {
-    for (let i = 1; i <= doc.numPages; i += 1) {
+    const doc = await task.promise;
+    const count = Math.min(doc.numPages, maxPages);
+    for (let i = 1; i <= count && chars <= maxChars; i += 1) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
       const lines: string[] = [];
@@ -49,10 +59,13 @@ export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
         if (item.hasEOL) flush();
       }
       flush();
-      pages.push(lines.join("\n"));
+      const text = lines.join("\n");
+      chars += text.length;
+      pages.push(text);
     }
   } finally {
-    await task.destroy();
+    clearTimeout(timer);
+    await task.destroy().catch(() => {});
   }
   return pages;
 }

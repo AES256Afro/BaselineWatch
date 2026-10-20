@@ -74,9 +74,10 @@ export function hextets(ip: string): number[] | null {
 
 /** Whether an address is loopback, private, link-local, multicast or otherwise not a public host. */
 export function privateAddress(ip: string): boolean {
-  const kind = isIP(ip.replace(/^\[|\]$/g, "").replace(/%.*$/, ""));
+  const bare = ip.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  const kind = isIP(bare);
   if (kind === 4) {
-    const [a = 0, b = 0] = ip.split(".").map(Number);
+    const [a = 0, b = 0] = bare.split(".").map(Number);
     return (
       a === 0 ||
       a === 10 ||
@@ -89,7 +90,7 @@ export function privateAddress(ip: string): boolean {
     );
   }
   if (kind !== 6) return true;
-  const g = hextets(ip);
+  const g = hextets(bare);
   if (!g) return true;
   const quad = (hi: number, lo: number): string => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
   // ::/8 holds the unspecified and loopback addresses and the IPv4-mapped and -compatible forms
@@ -97,6 +98,7 @@ export function privateAddress(ip: string): boolean {
   if (g[0] === 0) return g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0xffff ? privateAddress(quad(g[6]!, g[7]!)) : true;
   if ((g[0]! & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
   if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10 link local
+  if ((g[0]! & 0xffc0) === 0xfec0) return true; // fec0::/10 site local (deprecated, still routed on old networks)
   if ((g[0]! & 0xff00) === 0xff00) return true; // ff00::/8 multicast
   if (g[0] === 0x64 && g[1] === 0xff9b) return privateAddress(quad(g[6]!, g[7]!)); // 64:ff9b::/96 NAT64
   if (g[0] === 0x2002) return privateAddress(quad(g[1]!, g[2]!)); // 2002::/16 6to4
