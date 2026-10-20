@@ -735,7 +735,7 @@ at `/scan/probe/*` with `no-store` and open CORS; `BW_PROBE_ORIGIN` validated as
 tests for the page, the headers, the probes and the script's logic with fakes. The script runs
 only when the button is pressed. The per-platform guides followed in M12.2.
 
-#### M12.2: Why, guide, lists — why and guide shipped 2026-10-19; lists open
+#### M12.2: Why, guide, lists — shipped 2026-10-19
 `/scan/why` (mockup 08) and `/scan/guide/<platform>` (mockup 07) with breadcrumbs and sources;
 the adfection list and the canary sets as Register sources (`src/adapters/blocklists.ts`,
 diffed line by line like any standard; the Zero Breach `dist/` exports and the EasyList,
@@ -760,8 +760,27 @@ no administrator rights, and say so in their headers; they are served as plain t
 router, UPnP, exposure, bypass and device sections with their primary documents, and the
 browser check, the why page and the guides link each other. Tests: the routes, every step's
 source and why anchor, the scripts' bytes against the sums, `sh -n` and PowerShell's parser
-where present. *Left*: the adfection list and the canary sets as Register sources, and the
-scripts' indicator matching that depends on them (M12.6).
+where present. *Left*: the scripts' indicator matching against the lists (M12.6).
+
+*Lists landed 2026-10-19* (`src/adapters/blocklists.ts`, migration 0027): seven standards
+sources, each a document whose entries are its requirements, diffed line by line. Zero Breach's
+indicator list (`iocs/adfection_iocs.txt`: 405 indicators, 292 domains and 111 addresses, each with
+its tier, confidence and the report it was read from as its guidance) and its DNS and ad blocklist
+exports (`dist/adfection.domains.txt`, `dist/adfection.adblock.txt`, 291 domains), the current
+commit read from the GitHub commits API so an unchanged list costs one small request, the commit's
+first line kept as the release's reason, and the commit that added the exports pinned as history
+so the first diff is real (adtimizer.co out, 67 domains in). Four canary sets of twelve names:
+EasyList and EasyPrivacy's outright domain rules (`||domain^`, with or without `$third-party`,
+weekly), URLhaus's host file and OpenPhish's feed reduced to registrable names (two labels once
+`www.` is dropped, no addresses, no shared-platform subdomains, daily); the twelve whose names hash
+lowest under SHA-256, so the pick is deterministic and moves only when the list drops one or gains
+a name that hashes lower. Each requirement's text is the line as published (OpenPhish keeps the
+origin, never a path), so a changed rule is a revision and a dropped name a removal. OpenPhish's
+Community Feed terms forbid showing any part of the feed to third parties, so that source is
+registered off; a private instance's owner may turn the row on. Fixtures are the real responses
+(two Zero Breach commits of 2026-10-18 and the four lists as served on 2026-10-20), replayed in
+`test/blocklists.test.ts`, with a modified EasyList showing a line-level diff. Left for M12.3 and
+M12.6: resolving the canaries and matching the scripts against the lists.
 
 #### M12.3: This network
 Resolver discovery from the server's own lease and `resolv.conf`; forty-eight canaries in four

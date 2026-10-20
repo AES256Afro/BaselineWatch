@@ -239,6 +239,62 @@ new downloads).
 - **Why include it**: free structured diffs of STIG and CIS content before the official drops
   are parsed, and a sanity check on our own XCCDF parsing.
 
+### Blocklists and canary sets for the Scan area (added 2026-10-19)
+One adapter, `src/adapters/blocklists.ts`, seven sources in the standards group, each list a
+document whose entries are its requirements (ref and label the name, the line as published the
+text), diffed line by line like any standard. Nothing is ever fetched from a name on a list: the
+lists are documents read from their publishers, and canary names are only ever resolved by the
+network check (M12.3), never loaded and never linked from a page. Fixtures in
+`test/fixtures/blocklists/` are the real responses, kept byte for byte.
+
+- **Zero Breach: AdFection / Candiru indicators and exports** (`adfection-indicators`,
+  `adfection-dns`, `adfection-adblock`). Repository `https://github.com/interplains/zero-breach`;
+  `iocs/adfection_iocs.txt` (one `indicator <TAB> tier <TAB> confidence <TAB> source-tag` line per
+  indicator under `#` comments; a `# Source:` comment names the report the following indicators were
+  read from, kept as each entry's guidance; 405 indicators on 2026-10-18: 292 domains, 111 addresses,
+  two SHA-256 hashes), `dist/adfection.domains.txt` (one domain per line, the Pi-hole and AdGuard
+  Home form, 291 domains) and `dist/adfection.adblock.txt` (`||domain^` rules for a browser blocker).
+  **Fetch**: the GitHub commits API (`/repos/interplains/zero-breach/commits?path=<file>&per_page=1`,
+  no token) names the current commit, and the file is read at that exact commit from
+  `raw.githubusercontent.com` only when it moved; the version label is the commit date and short
+  sha, the commit's first line is the publisher's reason, and the commit that added the exports
+  (`e36dc96`, 2026-10-18 14:01 UTC) is pinned as history so a first fetch opens on a real diff
+  (adtimizer.co out, 67 domains in, by 22:36 UTC the same day). **Cadence**: daily. **Shape**:
+  `requirement-set`; for indicators the tier is the family (command-and-control, validator server,
+  ad delivery, historical Candiru infrastructure, spyware sample, abused signed driver, Candiru
+  infrastructure and its addresses), the statement names tier, confidence and source tag, and the
+  extras keep the type. **Licence**: the indicator data is CC0 1.0 (`iocs/LICENSE.md`); the software
+  is Apache-2.0; the project is not affiliated with or endorsed by the researchers it cites (its
+  NOTICE says so, and so do the attribution column and the footer). **Diffability**: excellent;
+  names are stable and the exports are sorted.
+- **Ad canaries (EasyList)** and **Tracker canaries (EasyPrivacy)** (`canary-ads`,
+  `canary-trackers`). `https://easylist.to/easylist/easylist.txt` (2.2 MB, about 50,000 outright
+  domain rules) and `easyprivacy.txt` (1.5 MB, about 43,000). **Derivation**: the rules that block a
+  domain outright, `||domain^` with or without `$third-party` and nothing else (a `$popup` or
+  `$image` rule is not one); of those names the twelve whose SHA-256 is lowest, in name order. The
+  statement is the rule as published, so a rule that gains or loses `$third-party` is a revision.
+  Version from `! Version:`, date from `! Last modified:`. **Cadence**: weekly; the lists move
+  several times a day but the twelve rarely do. **Licence**: EasyList's dual licence, GPLv3 or
+  CC BY-SA 3.0 (`https://easylist.to/pages/licence.html`); twelve rules are quoted with attribution.
+- **Malware canaries (URLhaus)** (`canary-malware`). `https://urlhaus.abuse.ch/downloads/hostfile/`
+  (12 KB, CRLF; the hosts of malware URLs online right now, the list a Pi-hole takes). **Derivation**:
+  `127.0.0.1<TAB>host` lines reduced to registrable names (two labels once a leading `www.` is
+  dropped; no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a
+  resolver must not sinkhole), then the twelve that hash lowest. Version and date from
+  `# Last updated:`. **Cadence**: daily, because the host file turns over as sites go offline.
+  **Licence**: abuse.ch Community data, free under its fair-use terms (`https://urlhaus.abuse.ch/api/`);
+  commercial use may need the paid API.
+- **Phishing canaries (OpenPhish)** (`canary-phishing`, registered off).
+  `https://openphish.com/feed.txt` (15 KB, 300 URLs, refreshed every twelve hours; redirects to the
+  `openphish/public_feed` repository). **Derivation**: the URLs' hosts reduced the same way; each
+  entry keeps the origin (`https://host/`) and never a path. The feed carries no version, so the
+  label is the hash of its bytes and the fetch dates it. **Licence**: the Community Feed terms
+  (`https://openphish.com/terms.html`) allow non-commercial use only and forbid redistribution,
+  derivative works and display to any third party. A public instance of this product would display
+  the names on the Register, so the source ships with `enabled = 0` and there is no switch in the
+  app; the owner of a private instance may turn the row on by hand and the adapter is tested
+  against the real feed.
+
 ---
 
 ## B. Vulnerabilities
@@ -379,3 +435,7 @@ Read by hand today and by small HTML adapters in M11.5. Each publishes on a page
 - "EPSS scores provided by FIRST."
 - CIS and Microsoft content is shown from the user's own uploaded or fetched copy under their
   own licence; BaselineWatch does not redistribute it.
+- "AdFection / Candiru indicators are the Zero Breach project's (CC0), which is not affiliated
+  with the researchers it cites. Canary names are quoted from EasyList and EasyPrivacy (GPLv3 or
+  CC BY-SA 3.0) and from URLhaus by abuse.ch; they are only ever resolved, never loaded, and
+  nothing here links to them."
