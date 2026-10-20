@@ -30,7 +30,9 @@ import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
 import { renderGuide } from "./pages/guide.ts";
 import { renderScan, renderScanWhy } from "./pages/scan.ts";
+import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "./pages/scan-guide.ts";
 import { probeGif, probePaths, resolverCheckSources } from "./scan.ts";
+import { readScanScripts, scanScriptFiles, sumsFile, sumsText } from "./scan-scripts.ts";
 import { renderToday } from "./pages/today.ts";
 import { renderTriage } from "./pages/triage.ts";
 import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
@@ -332,6 +334,29 @@ export function createApp(ctx: AppContext): Express {
   });
   app.get("/scan/why", (req, res) => {
     res.type("html").send(renderScanWhy(who(req, res)));
+  });
+  // The manual guide (M12.2) and its scripts: static files under public/scan, read once so the sums
+  // shown beside the links are of the bytes served, and served as plain text so a person can read a
+  // script in the browser before downloading it. Every one of these pages keeps the strict policy.
+  const scanScripts = readScanScripts(path.join(publicDir, "scan"));
+  app.get("/scan/guide", (req, res) => {
+    res.type("html").send(renderScanGuideIndex({ ...who(req, res), scripts: scanScripts }));
+  });
+  app.get("/scan/guide/:platform", (req, res, next) => {
+    const platform = String(req.params.platform);
+    if (!isGuidePlatform(platform)) return next();
+    res.type("html").send(renderScanGuide(platform, { ...who(req, res), scripts: scanScripts }));
+  });
+  app.get("/scan/scripts/:file", (req, res, next) => {
+    const file = String(req.params.file);
+    if (!scanScriptFiles.includes(file)) return next();
+    const script = scanScripts.find((s) => s.file === file);
+    const body = file === sumsFile ? Buffer.from(sumsText(scanScripts), "utf8") : script?.content;
+    if (!body) return next();
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Content-Disposition", `inline; filename="${file}"`);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.send(body);
   });
   const probe = (_req: Request, res: Response): void => {
     res.setHeader("Cache-Control", "no-store");
