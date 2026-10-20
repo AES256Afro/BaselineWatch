@@ -102,7 +102,11 @@ function origin(env: Env, key: string): string | null {
 function flag(env: Env, key: string, fallback: boolean): boolean {
   const value = env[key];
   if (value === undefined || value.trim() === "") return fallback;
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+  const word = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(word)) return true;
+  if (["0", "false", "no", "off"].includes(word)) return false;
+  // A typo must not quietly turn a flag off (close the site, stop the scheduler); it is refused at start-up.
+  throw new Error(`${key} must be true or false (1/0, yes/no, on/off), got "${value}"`);
 }
 
 function port(env: Env, key: string, fallback: number): number {

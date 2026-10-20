@@ -16,7 +16,8 @@ function pdfjs(): Promise<typeof PdfJs> {
 
 export async function pdfPages(bytes: Uint8Array): Promise<string[]> {
   const lib = await pdfjs();
-  const task = lib.getDocument({ data: bytes, useSystemFonts: false, disableFontFace: true, verbosity: 0 });
+  // pdfjs transfers the array's buffer to its worker, which detaches it: it gets its own copy, so the caller's bytes stay whole.
+  const task = lib.getDocument({ data: new Uint8Array(bytes), useSystemFonts: false, disableFontFace: true, verbosity: 0 });
   const doc = await task.promise;
   const pages: string[] = [];
   try {

@@ -276,7 +276,8 @@ export function createApp(ctx: AppContext): Express {
       return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookState(req, config) }));
     }
     const given = ((req.body ?? {}) as Record<string, unknown>).password;
-    if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given)) {
+    // The configured password is read trimmed, so the typed one is compared the same way.
+    if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given.trim())) {
       throttle.fail(key, now().getTime());
       return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookState(req, config) }));
     }
@@ -517,7 +518,8 @@ export function createApp(ctx: AppContext): Express {
     const profile = decisionProfile(platform, req.query as Record<string, unknown>);
     res.setHeader("Content-Disposition", `attachment; filename="baselinewatch-${platform}-decisions.csv"`);
     res.setHeader("Cache-Control", "no-store");
-    res.type("text/csv; charset=utf-8").send(decisionsCsv(profile, config.baseUrl));
+    // Microsoft's values are quoted on screen only: a reader who is not the owner downloads the decisions without them.
+    res.type("text/csv; charset=utf-8").send(decisionsCsv(who(req, res).owner ? profile : publicProfile(profile), config.baseUrl));
   });
   app.get("/baselines/:platform/decide", (req, res, next) => {
     const platform = String(req.params.platform);
@@ -547,10 +549,18 @@ export function createApp(ctx: AppContext): Express {
     const reason = str(fields.reason, 2000) ?? null;
     const owner = str(fields.owner, 120) ?? null;
     let saved = 0;
-    for (const item of profile.items) {
-      if (item.included || item.decision?.decision === "exclude") continue;
-      saveDecision(db, platform, item.id, { decision: "exclude", reason, owner }, now());
-      saved += 1;
+    // One transaction for the whole set: all the exclusions land, or none do, and one fsync rather than hundreds.
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      for (const item of profile.items) {
+        if (item.included || item.decision?.decision === "exclude") continue;
+        saveDecision(db, platform, item.id, { decision: "exclude", reason, owner }, now());
+        saved += 1;
+      }
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
     }
     res.redirect(303, `/baselines/${platform}/decisions?saved=${saved}`);
   });
@@ -692,7 +702,8 @@ export function createApp(ctx: AppContext): Express {
     let size = 0;
     const limit = 60 * 1024 * 1024;
     try {
-      for await (const chunk of req) {
+      // Leaving the loop early must not destroy the socket, or the 413 never reaches the browser.
+      for await (const chunk of req.iterator({ destroyOnReturn: false })) {
         size += (chunk as Buffer).length;
         if (size > limit) {
           res.status(413).type("text").send("That file is larger than 60 MB.");
@@ -703,7 +714,7 @@ export function createApp(ctx: AppContext): Express {
     } catch {
       return res.status(400).type("text").send("The upload did not complete.");
     }
-    const form = parseMultipart(new Uint8Array(Buffer.concat(chunks)), boundary);
+    const form = parseMultipart(Buffer.concat(chunks), boundary);
     const file = form.files.find((f) => f.field === "pdf") ?? form.files[0];
     if (!file || file.bytes.length === 0) return res.status(400).type("text").send("No PDF was attached.");
     const source = getSource(db, "cis-benchmarks");

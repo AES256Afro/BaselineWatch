@@ -153,7 +153,7 @@ export function storeDocument(
   const versionLabel = target.versionLabel ?? parsed.versionLabel;
   const previous = previousFor(db, source.id, target.key, publishedAt);
 
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     const inserted = db
       .prepare(
@@ -427,7 +427,7 @@ export function relinkDocument(db: DatabaseSync, source: SourceRow, doc: Documen
 export function relinkSource(db: DatabaseSync, source: SourceRow, at: string): { keys: number; relinked: number } {
   const keys = db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = ? ORDER BY document_key").all(source.id) as { document_key: string }[];
   let relinked = 0;
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const { document_key } of keys) {
       const docs = db

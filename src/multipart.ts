@@ -14,12 +14,9 @@ export interface ParsedForm {
   files: UploadedFile[];
 }
 
+/** Buffer's native search over the same bytes: a 60 MB body of dashes is not a byte-by-byte scan on the event loop. */
 function indexOf(haystack: Uint8Array, needle: Uint8Array, from = 0): number {
-  outer: for (let i = from; i <= haystack.length - needle.length; i += 1) {
-    for (let j = 0; j < needle.length; j += 1) if (haystack[i + j] !== needle[j]) continue outer;
-    return i;
-  }
-  return -1;
+  return Buffer.from(haystack.buffer, haystack.byteOffset, haystack.byteLength).indexOf(Buffer.from(needle.buffer, needle.byteOffset, needle.byteLength), from);
 }
 
 export function boundaryOf(contentType: string | undefined): string | null {
@@ -51,7 +48,8 @@ export function parseMultipart(body: Uint8Array, boundary: string): ParsedForm {
     const name = /name="([^"]*)"/i.exec(disposition)?.[1] ?? "";
     const filename = /filename="([^"]*)"/i.exec(disposition)?.[1];
     const type = /content-type:\s*([^\r\n]+)/i.exec(headers)?.[1]?.trim() ?? "application/octet-stream";
-    if (filename !== undefined) files.push({ field: name, filename: filename.replace(/.*[\\/]/, ""), contentType: type, bytes: content });
+    // A file's bytes are copied out as a plain Uint8Array: pdfjs refuses a Node Buffer, and the copy lets the whole body go.
+    if (filename !== undefined) files.push({ field: name, filename: filename.replace(/.*[\\/]/, ""), contentType: type, bytes: new Uint8Array(content) });
     else fields[name] = dec.decode(content);
     position = next;
   }

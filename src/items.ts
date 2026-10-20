@@ -5,7 +5,7 @@ import { canonicalUrl, type ParsedItem } from "./adapters/types.ts";
 export function safeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const trimmed = url.trim();
-  return /^https?:\/\/\S+$/i.test(trimmed) || /^\/(?!\/)/.test(trimmed) ? trimmed : null;
+  return /^https?:\/\/./i.test(trimmed) || /^\/(?!\/)/.test(trimmed) ? trimmed : null;
 }
 
 /** Inserts new timeline items and updates changed ones; read and starred flags are never touched. */
@@ -21,7 +21,7 @@ export function upsertItems(db: DatabaseSync, sourceId: string, items: ParsedIte
   );
   let inserted = 0;
   let updated = 0;
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const item of items) {
       const signals = item.signals ? JSON.stringify(item.signals) : null;

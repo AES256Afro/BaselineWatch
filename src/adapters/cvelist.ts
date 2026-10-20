@@ -133,7 +133,7 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
     "UPDATE vulns SET description = COALESCE(?, description), vuln_status = ?, published_at = COALESCE(published_at, ?), last_modified_at = ?, last_seen_at = ? WHERE cve_id = ?",
   );
   const change = ctx.db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, ?, ?, ?, ?)");
-  ctx.db.exec("BEGIN");
+  ctx.db.exec("BEGIN IMMEDIATE");
   try {
     for (const record of records) {
       if (record.dataType !== undefined && record.dataType !== "CVE_RECORD") continue;

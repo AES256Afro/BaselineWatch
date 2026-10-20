@@ -426,7 +426,7 @@ export function applyKev(db: DatabaseSync, entries: { cveId: string; dateAdded: 
   const update = db.prepare("UPDATE vulns SET kev = 1, kev_date_added = COALESCE(kev_date_added, ?), kev_due_date = COALESCE(?, kev_due_date), kev_ransomware = ? WHERE cve_id = ?");
   const change = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'kev', NULL, ?)");
   let flagged = 0;
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const e of entries) {
       const row = select.get(e.cveId) as { kev: number } | undefined;
@@ -461,7 +461,7 @@ export function applyEpss(db: DatabaseSync, scores: Iterable<EpssScore>, scoreDa
   const change = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'epss', ?, ?)");
   let updated = 0;
   let changes = 0;
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const s of scores) {
       const current = known.get(s.cveId);
@@ -496,7 +496,7 @@ export function recomputeWatchHits(db: DatabaseSync): number {
   }[];
   const update = db.prepare("UPDATE vulns SET watch_hit = ?, watch_labels_json = ? WHERE cve_id = ?");
   let changed = 0;
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const r of rows) {
       const labels = matchWatch(

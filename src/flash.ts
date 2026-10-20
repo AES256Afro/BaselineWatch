@@ -13,11 +13,14 @@ const attributes = (secure: boolean): string => `Path=/; HttpOnly; SameSite=Lax$
 
 /** The Set-Cookie header that carries `payload` (a string or a small JSON object) to the next page. */
 export function flashHeader(payload: unknown, secure: boolean): string {
-  let value = encodeURIComponent(JSON.stringify(payload));
-  if (value.length > maxLength) {
-    // A fetch's detail can run long; keep the head of it rather than overflow the cookie.
-    const shortened = typeof payload === "string" ? `${payload.slice(0, 1000)}…` : { ...(payload as Record<string, unknown>), detail: `${String((payload as Record<string, unknown>).detail ?? "").slice(0, 1000)}…` };
-    value = encodeURIComponent(JSON.stringify(shortened));
+  // A fetch's detail can run long; it is cut until the encoded cookie fits, since a browser drops one over 4 KB.
+  const encode = (p: unknown): string => encodeURIComponent(JSON.stringify(p));
+  let keep = 1200;
+  let value = encode(payload);
+  while (value.length > maxLength && keep > 0) {
+    const shortened = typeof payload === "string" ? `${payload.slice(0, keep)}…` : { ...(payload as Record<string, unknown>), detail: `${String((payload as Record<string, unknown>).detail ?? "").slice(0, keep)}…` };
+    value = encode(shortened);
+    keep = Math.floor(keep / 2);
   }
   return `${cookieName}=${value}; ${attributes(secure)}; Max-Age=120`;
 }
