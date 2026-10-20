@@ -10,7 +10,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, isLicensedSource } from "./api.ts";
-import { changeSummaryFor, changeSummaryText, explanationsFor, getDocument, latestDocument, notesFor, releaseChanges, requirementIn } from "./register.ts";
+import { getSource } from "./ingest.ts";
+import { changeSummaryFor, changeSummaryText, explanationsFor, getDocument, latestDocument, licenceOf, notesFor, releaseChanges, requirementIn } from "./register.ts";
 import { productName, productVersion } from "./version.ts";
 
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
@@ -32,6 +33,9 @@ const limit = z.number().int().min(1).max(200).optional().describe("How many row
 /** The API's readers take query strings; a tool's numbers go over as the strings they would be in a URL. */
 const s = (v: string | number | boolean | undefined): string | undefined => (v === undefined || v === false ? undefined : v === true ? "1" : String(v));
 
+/** Why a restricted source's entries are not in a tool's answer: said the same way in every tool that would have carried them. */
+const withheldBy = (source: { name: string; licence: string | null }): string => `The entries of ${source.name} are withheld under the publisher's licence (${licenceOf(source)}); the instance's owner sees them on its pages. Versions and counts are in list_standards.`;
+
 /** A fresh server for one request: tools over the live database, nothing kept between calls. */
 export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
   const server = new McpServer(
@@ -40,13 +44,19 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
       instructions:
         `${productName} tracks security news, CVEs and the standards themselves (NIST SP 800-53 and its baselines, FedRAMP's rules, DISA STIGs, Microsoft baselines, CIS by upload). ` +
         "Every tool reads; none writes. Figures come from the instance's own database. Standards changes carry the publisher's stated reason when one was captured; a summary marked generated came from a model and is labelled so. " +
+        "A standard flagged restricted is tracked under a licence that forbids showing its entries to third parties: its versions, counts and reasons are here, its entries' names and text are not, in any tool. " +
         `Links point at ${baseUrl}.`,
     },
   );
 
   server.registerTool(
     "list_standards",
-    { title: "Tracked standards", description: "Every standard the Register tracks, with its loaded versions (id, version, publication date, requirement count, predecessor) and links.", inputSchema: {}, annotations: readOnly },
+    {
+      title: "Tracked standards",
+      description: "Every standard the Register tracks, with its loaded versions (id, version, publication date, requirement count, predecessor) and links. One flagged restricted yields versions and counts only: no tool returns its entries.",
+      inputSchema: {},
+      annotations: readOnly,
+    },
     async () => asText({ standards: apiStandards(db, baseUrl) }),
   );
 
@@ -54,7 +64,7 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
     "standard_changes",
     {
       title: "Changes to standards",
-      description: "Control- or rule-level changes across releases: ref, kind (added, removed, modified), the field, before and after text, and the publisher's note when one exists. Filter by source id and date.",
+      description: "Control- or rule-level changes across releases: ref, kind (added, removed, modified), the field, before and after text, and the publisher's note when one exists. Filter by source id and date. A restricted source's changes are left out.",
       inputSchema: { source: z.string().max(60).optional().describe("A source id from list_standards, such as nist-sp-800-53 or fedramp-rules"), since, limit },
       annotations: readOnly,
     },
@@ -65,7 +75,7 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
     "release",
     {
       title: "One release of a standard",
-      description: "A loaded version of a standard: what it is, what changed against the version before it (summary and the first 200 changes with the publisher's notes), and the release's stated reason. Without document_id, the latest version of the source's first document key.",
+      description: "A loaded version of a standard: what it is, what changed against the version before it (summary and the first 200 changes with the publisher's notes), and the release's stated reason. Without document_id, the latest version of the source's first document key. For a restricted source the changes are counted, not listed.",
       inputSchema: { source: z.string().max(60).describe("Source id"), document_id: z.number().int().optional().describe("A version id from list_standards; the latest when omitted") },
       annotations: readOnly,
     },
@@ -77,9 +87,11 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
         doc = first ? latestDocument(db, args.source, first.document_key) : null;
       }
       if (!doc || doc.source_id !== args.source) return failure(`No loaded version for ${args.source}${args.document_id !== undefined ? ` with id ${args.document_id}` : ""}.`);
+      const source = getSource(db, doc.source_id);
+      const restricted = source?.restricted === 1;
       const summary = changeSummaryFor(db, doc.id);
       const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
-      const changes = releaseChanges(db, doc.id).slice(0, 200);
+      const changes = restricted ? [] : releaseChanges(db, doc.id).slice(0, 200);
       return asText({
         id: doc.id,
         source: doc.source_id,
@@ -91,8 +103,12 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
         previous: previous ? { id: previous.id, version: previous.version_label, published: previous.published_at } : null,
         summary: previous ? changeSummaryText(summary) : "loaded as the first version",
         counts: { added: summary.added.length, removed: summary.removed.length, revised: summary.substantive.length, editorial: summary.editorial.length },
-        reasons: explanationsFor(db, doc.id).map((e) => ({ kind: e.kind, text: e.text, url: e.source_url })),
+        // The publisher's words and the "no reason" marker travel; a generated summary of a restricted release would quote its entries, and none is ever made.
+        reasons: explanationsFor(db, doc.id)
+          .filter((e) => !restricted || e.kind !== "generated")
+          .map((e) => ({ kind: e.kind, text: e.text, url: e.source_url })),
         changes: changes.map((c) => ({ ref: c.ref, kind: c.kind, field: c.field, before: c.before_text, after: c.after_text, notes: notesFor(db, doc.id, c.ref).map((n) => n.text) })),
+        ...(restricted && source ? { restricted: true, withheld: withheldBy(source) } : {}),
         url: `${baseUrl}/standards/${doc.source_id}/${doc.id}`,
       });
     },
@@ -102,12 +118,15 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
     "requirement",
     {
       title: "One control or rule",
-      description: "The current text of a requirement in a standard (statement, guidance, parameters, related controls) and the releases that changed it.",
+      description: "The current text of a requirement in a standard (statement, guidance, parameters, related controls) and the releases that changed it. Not for a restricted source, whose entries are withheld.",
       inputSchema: { source: z.string().max(60).describe("Source id"), ref: z.string().max(80).describe("The requirement's ref, lower case, such as ac-2.1, sa-24, afc-frp-vre or ksi-ced-rat") },
       annotations: readOnly,
     },
     async (args) => {
       if (isLicensedSource(args.source)) return licensed(args.source);
+      // Refused before the ref is looked up, so the answer says nothing about whether it is on the list.
+      const source = getSource(db, args.source);
+      if (source?.restricted === 1) return failure(withheldBy(source));
       const ref = args.ref.trim().toLowerCase();
       const rows = db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = ? ORDER BY document_key").all(args.source) as { document_key: string }[];
       for (const { document_key } of rows) {

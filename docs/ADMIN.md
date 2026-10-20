@@ -62,7 +62,12 @@ Switch the scheduler off with `BW_SCHEDULER=false` and run the same work from cr
 npm run fetch -- due
 ```
 
-The owner can fetch any source immediately from the Sources page. A standard's first fetch loads
+The owner can fetch any source immediately from the Sources page, and turn one off or on there
+(Turn off takes it out of the schedule and keeps what was loaded; Turn on puts it back, and the
+scheduler picks the change up on its next pass). A source marked restricted (its licence forbids
+showing its entries to third parties, such as the OpenPhish canary set) shows its entries to the
+signed-in owner only; visitors see versions and counts, and the API and MCP tools return neither
+names nor text. A standard's first fetch loads
 its published history before the current file, without alerts; `npm run backfill -- <source>`
 does the same on demand. Order does not matter: a version that
 arrives after a newer one is slotted into its place by publication date and the newer one is
