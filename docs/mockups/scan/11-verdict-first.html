@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 11 · verdict first</title>
+<style>
+/* Second round of Scan mockups: same Register tokens as 01-10. Sample data throughout. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0 0 70px; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.box h2 { font: 500 17px var(--serif); margin: 0 0 6px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.verdict { border: 1px solid var(--rule); border-left: 6px solid var(--warn); background: var(--card); border-radius: 10px; padding: 14px 16px; margin: 0 0 16px; }
+.verdict h2 { font: 500 22px/1.2 var(--serif); margin: 0 0 4px; }
+.verdict p { margin: 0; color: var(--mute); max-width: 80ch; }
+.verdict .tally { float: right; text-align: right; font: 300 40px/1 var(--sans); color: var(--warn); }
+.verdict .tally .small { display: block; }
+.check { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+.check .head { display: flex; gap: 10px; align-items: baseline; }
+.check .head .t { font-weight: 600; }
+.check .head .state { margin-left: auto; }
+.check .ev { color: var(--mute); font-size: 13px; margin: 4px 0 0; }
+.fix { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+.fix h3 { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--acc); margin: 0 0 6px; }
+.fix ol { margin: 0 0 8px; padding-left: 20px; font-size: 13.5px; }
+.fix ol li { margin: 3px 0; }
+.fix .small { margin-top: 6px; display: block; }
+.sticky { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--rule-2); padding: 10px 20px; }
+.sticky .inner { max-width: 1180px; margin: 0 auto; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 11, sample data.</b> The landing after a run, verdict first: one sentence that says where this browser stands, then each signal with its fix right under it, written for the browser and platform the check just saw. The prose that today sits above the results moves behind the "More" links; the fix steps come from the guide pages that already shipped.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><b>Scan</b></p>
+  <h1>Scan <span class="arrow">this browser</span></h1>
+
+  <div class="verdict">
+    <div class="tally">1<span class="small">of 3 protections seen</span></div>
+    <h2>Partly protected: ads are hidden here, not stopped.</h2>
+    <p>Something in this Chrome hides ad slots, but ad requests still left this tab, and no filtering resolver answered for it. Two fixes below close the gap; each takes about two minutes, then re-run to see the rows turn. Signals, not a certificate — <a href="#">what this can and cannot prove</a>.</p>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="check">
+        <div class="head"><span class="t">Ad hiding</span><span class="small">cosmetic filtering</span><span class="state ok">Detected</span></div>
+        <p class="ev">8 of 20 baits hidden, both controls visible — a filter list is hiding ad-shaped elements in this browser. <a href="#">More</a></p>
+      </div>
+
+      <div class="check">
+        <div class="head"><span class="t">Ad requests</span><span class="small">the request carries the payload</span><span class="state bad">Not stopped</span></div>
+        <p class="ev">Every test image on an EasyList path loaded. Whatever hides the slots above is not stopping the requests underneath — the ads are hidden and still fetched. <a href="#">More</a></p>
+        <div class="fix">
+          <h3>Close this gap · in Chrome</h3>
+          <ol>
+            <li>Install <a href="#">uBlock Origin Lite</a> from the Chrome Web Store (the page it follows: the developer's install note).</li>
+            <li>Leave the default filter lists on; nothing else to configure.</li>
+            <li>Reload this page, then re-run. This row should read <b>Blocked</b> and the row above should hide 20 of 20.</li>
+          </ol>
+          <span class="small">Using Safari, Firefox, Edge or Brave instead? The guide has <a href="#">the same two minutes for each</a>. On a work machine where extensions are managed, skip to the resolver fix below — it needs no extension.</span>
+        </div>
+      </div>
+
+      <div class="check">
+        <div class="head"><span class="t">Filtering DNS</span><span class="small">covers every app, not one browser</span><span class="state bad">None seen</span></div>
+        <p class="ev">Neither AdGuard DNS nor NextDNS answered for this browser; Cloudflare, Quad9 and a Pi-hole have no self-check, so an effective filter may still be on. <a href="#">More</a></p>
+        <div class="fix">
+          <h3>Close this gap · on macOS</h3>
+          <ol>
+            <li>Download <a href="#">AdGuard DNS's configuration profile</a> (or make a free <a href="#">NextDNS</a> profile — it names itself in this check, so the fix proves itself).</li>
+            <li>System Settings › Privacy &amp; Security › Profiles › double-click the file › Install.</li>
+            <li>Re-run. This row should name the resolver it saw.</li>
+          </ol>
+          <span class="small">A filtering resolver covers every app on this Mac, not just this browser. iPhone, Android, Windows and the router: <a href="#">one page each</a>. Already running a Pi-hole? This row cannot see it from a browser — <a href="#">the network check</a> is its eye.</span>
+        </div>
+      </div>
+
+      <h1 style="font-size:20px; margin-top:24px">What this page cannot see <span class="arrow">and what can</span></h1>
+      <div class="check">
+        <div class="head"><span class="t">Other apps, other devices</span><span class="state" style="background:var(--panel-2)">From the server</span></div>
+        <p class="ev">A page sees one tab. This server sits on your network, so the <a href="#">network check</a> resolves 48 canary names through the resolver your router hands out, reads the router's firmware against the CVE register, and looks at the firewall from both sides. Runs daily once the owner turns it on; the results live under <a href="#">Scan › This network</a>.</p>
+      </div>
+    </div>
+
+    <aside>
+      <div class="box">
+        <h2>Environment</h2>
+        <dl class="kv">
+          <dt>Browser</dt><dd>Chrome 155</dd>
+          <dt>Platform</dt><dd>macOS</dd>
+          <dt>In-app view</dt><dd>no</dd>
+          <dt>Ran</dt><dd>1.9 s · in this tab</dd>
+        </dl>
+        <p class="small">The fix steps above are written for this pair. Results are drawn into this page and never uploaded.</p>
+      </div>
+      <div class="box">
+        <h2>Why scan for ads at all</h2>
+        <p class="small">Ad networks deliver code the way any content arrives, and that path has carried spyware: Citizen Lab documented an ad-tech pipeline that placed Candiru's spyware through targeted ads. Blocking delivery closes one road in. <a href="#">The whole argument, with the sources.</a></p>
+      </div>
+      <div class="box">
+        <h2>Limits, in one breath</h2>
+        <p class="small">Signals, not a certificate. One browser, not the device. A zero is "not seen", never "unprotected". <a href="#">The full limits.</a></p>
+      </div>
+    </aside>
+  </div>
+</main>
+<div class="sticky"><div class="inner">
+  <button>Re-run the check</button>
+  <span class="small">About four seconds, in this tab. Changed a blocker or installed a profile? Reload this page first.</span>
+  <span class="small" style="margin-left:auto">2 fixes open</span>
+</div></div>
+<footer class="foot">BaselineWatch · mockup 11 of the second Scan round · sample data</footer>
+</body>
+</html>

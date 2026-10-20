@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 14 · score and history</title>
+<style>
+/* Second round of Scan mockups: same Register tokens as 01-10. Sample data throughout. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+h2 { font: 500 20px/1.2 var(--serif); margin: 22px 0 8px; }
+.lede { color: var(--mute); max-width: 80ch; margin: 0 0 16px; }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.small { font-size: 12.5px; color: var(--mute); }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.cols { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.box h2 { font-size: 17px; margin: 0 0 8px; }
+.dial { width: 170px; height: 170px; border-radius: 50%; margin: 6px auto 10px; display: grid; place-items: center;
+  background: conic-gradient(var(--warn) 0 58%, var(--panel-2) 58% 100%); }
+.dial .in { width: 132px; height: 132px; border-radius: 50%; background: var(--card); display: grid; place-items: center; text-align: center; }
+.dial .n { font: 300 44px/1 var(--sans); }
+.dial .w { font-size: 12px; color: var(--mute); }
+.areas { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.areas li { display: grid; grid-template-columns: 110px 1fr 38px; gap: 10px; align-items: center; padding: 5px 0; }
+.areas .bar { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.areas .bar i { display: block; height: 100%; background: var(--acc); }
+.areas .bar i.w { background: var(--warn); }
+.areas .bar i.b { background: var(--del); }
+.areas .n { text-align: right; color: var(--mute); font-family: var(--mono); font-size: 12px; }
+.delta { border-left: 4px solid var(--rule-2); padding: 2px 0 2px 12px; margin: 10px 0; font-size: 13.5px; }
+.delta.up { border-color: var(--ins); }
+.delta.down { border-color: var(--del); }
+.delta .when { color: var(--mute); font-size: 12px; }
+.queue { margin: 0; padding: 0; list-style: none; }
+.queue li { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 12px; align-items: center; border-top: 1px solid var(--rule); padding: 10px 0; }
+.queue li:first-child { border-top: 0; }
+.queue .pts { font: 600 15px var(--mono); color: var(--ins); }
+.queue .t { font-weight: 600; font-size: 14px; }
+.queue .s { color: var(--mute); font-size: 12.5px; }
+.spark { display: inline-flex; gap: 3px; align-items: flex-end; height: 44px; margin-top: 4px; }
+.spark i { display: block; width: 14px; background: var(--acc); border-radius: 2px 2px 0 0; opacity: .85; }
+.spark i.w { background: var(--warn); }
+.spark i.b { background: var(--del); }
+pre { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre-wrap; }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 14, sample data.</b> The scan as a figure that moves: one honest score (points for protections <em>seen</em>, never a safety grade), the areas behind it, fourteen days of history, what changed since the last run, and the open fixes ranked by what each is worth. A changed score is a digest line and an alert — a daily scan is only useful when a change is news.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="#">Scan</a><span>›</span><b>Standing</b></p>
+  <h1>Scan <span class="arrow">where this network stands</span></h1>
+
+  <div class="cols">
+    <aside>
+      <div class="box" style="text-align:center">
+        <div class="dial"><div class="in"><div><div class="n">58</div><div class="w">of 100 · covered in part</div></div></div></div>
+        <p class="small" style="text-align:left">Points for protections this product <b>observed</b>: filters seen filtering, canaries sinkholed, no exposed port, firmware not on the exploited list. Not a safety certificate — a perfect 100 still proves no absence of anything. <a href="#">How the score is made</a>, line by line.</p>
+      </div>
+      <div class="box">
+        <h2>Fourteen days</h2>
+        <div class="spark" aria-hidden="true"><i style="height:40%"></i><i style="height:40%"></i><i style="height:46%"></i><i style="height:46%"></i><i style="height:46%"></i><i style="height:52%"></i><i style="height:52%"></i><i class="b" style="height:36%"></i><i class="b" style="height:36%"></i><i style="height:52%"></i><i style="height:52%"></i><i style="height:58%"></i><i style="height:58%"></i><i class="w" style="height:58%"></i></div>
+        <p class="small">40, 40, 46, 46, 46, 52, 52, <b style="color:var(--del)">36</b>, 36, 52, 52, 58, 58, 58. The dip: the router's firmware joined KEV on the 12th; the recovery: the update, two days later. <a href="#">Every run, kept</a>.</p>
+      </div>
+    </aside>
+
+    <div>
+      <div class="box">
+        <h2>The areas</h2>
+        <ul class="areas">
+          <li><span>This browser</span><span class="bar"><i class="w" style="width:33%"></i></span><span class="n">1/3</span></li>
+          <li><span>Every app (DNS)</span><span class="bar"><i class="b" style="width:8%"></i></span><span class="n">0/1</span></li>
+          <li><span>This network</span><span class="bar"><i style="width:83%"></i></span><span class="n">40/48</span></li>
+          <li><span>Router</span><span class="bar"><i class="w" style="width:55%"></i></span><span class="n">2 open</span></li>
+          <li><span>Exposure</span><span class="bar"><i style="width:100%"></i></span><span class="n">clean</span></li>
+        </ul>
+      </div>
+
+      <div class="box">
+        <h2>Since Tuesday's run</h2>
+        <div class="delta down"><b>New:</b> the router's firmware is now on CISA's exploited list (<a href="#">CVE-2026-20142</a>, due 21 Oct). −16 points. <a href="#">The fix</a>. <span class="when">06:00 today, router check</span></div>
+        <div class="delta up"><b>Better:</b> six more canaries sinkholed after the Pi-hole picked up EasyPrivacy's update. +4. <span class="when">06:00 today, network check</span></div>
+        <div class="delta"><b>Same:</b> this browser still hides ads without stopping them; no filtering DNS seen for it. The two fixes are still <a href="#">two minutes each</a>. <span class="when">your last browser run, 08:12</span></div>
+      </div>
+
+      <div class="box">
+        <h2>Open fixes, best first <span class="small">· points are what the next run would show</span></h2>
+        <ul class="queue">
+          <li><span class="pts">+16</span><div><div class="t">Update the router's firmware to 1.0.11.136</div><div class="s">on the exploited list · the vendor's advisory, linked · never signed in to from here</div></div><a class="btn ghost" href="#">The fix</a></li>
+          <li><span class="pts">+12</span><div><div class="t">Give this device a filtering resolver</div><div class="s">AdGuard profile or NextDNS · covers every app, not one browser</div></div><a class="btn ghost" href="#">The fix</a></li>
+          <li><span class="pts">+8</span><div><div class="t">Stop ad requests in this browser</div><div class="s">uBlock Origin Lite · the hidden ads are still fetched today</div></div><a class="btn ghost" href="#">The fix</a></li>
+          <li><span class="pts">+4</span><div><div class="t">Add the adfection list to the Pi-hole</div><div class="s">8 canaries still resolve · the list is a tracked source here, diffed on change</div></div><a class="btn ghost" href="#">The fix</a></li>
+        </ul>
+      </div>
+
+      <div class="box">
+        <h2>How a change reaches you</h2>
+        <pre>Digest, 20 Oct 06:04 — Scan: 58 of 100 (was 52).
+New: router firmware on KEV (CVE-2026-20142, due 21 Oct) — the fix is one update.
+Better: canaries 40/48 after EasyPrivacy's refresh. Open: filtering DNS (+12), browser requests (+8).</pre>
+        <p class="small">The same line goes to the notifier the hour a router finding lands, like a KEV addition does today. History, alerts and the digest are the server's; your browser rows stay in your browser.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="foot">BaselineWatch · mockup 14 of the second Scan round · sample data</footer>
+</body>
+</html>

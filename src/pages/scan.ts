@@ -24,6 +24,48 @@ interface CheckRow {
   chip: string;
   what: Html;
   why: Html;
+  /** The fix panel the script unfolds when this row comes back open; absent for rows with nothing to fix. */
+  fix?: Html;
+}
+
+/**
+ * The fix for the requests row: one line per browser family, every line server-rendered and
+ * hidden; the script unfolds the panel when the row reads "No difference" and shows the line for
+ * the browser it detected ("other" when it detected none). The depth lives in the guide; the
+ * data-guide link is retargeted to the detected platform's page.
+ */
+function requestsFix(): Html {
+  return html`<div class="fix" id="fix-requests" hidden>
+    <h3>Close this gap</h3>
+    <ul class="fixways">
+      <li data-for="firefox">In Firefox: install <a href="https://addons.mozilla.org/firefox/addon/ublock-origin/" ${newTab}>uBlock Origin</a> from Mozilla's add-ons site and leave the default lists on.</li>
+      <li data-for="chrome">In Chrome: install <a href="https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh" ${newTab}>uBlock Origin Lite</a> from the Chrome Web Store, the build written for Chrome's newer extension interface, and leave the default lists on.</li>
+      <li data-for="edge">In Edge: install <a href="https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh" ${newTab}>uBlock Origin Lite</a> (Edge installs from the Chrome Web Store) and leave the default lists on.</li>
+      <li data-for="safari">In Safari: content blockers come from the App Store (AdGuard, 1Blocker, Wipr use Apple's content-blocker interface); after installing one, turn it on under Safari › Settings › Extensions.</li>
+      <li data-for="brave">This is Brave: its shields block requests without hiding by class names, so check Shields is up for this site (the lion icon) rather than installing anything.</li>
+      <li data-for="inapp">This is an app's in-app view, which carries no blocker at all. Open this page in Safari, Chrome or Firefox and close the gap there.</li>
+      <li data-for="other">Install uBlock Origin, or uBlock Origin Lite where the browser requires it; the guide names the right build per browser.</li>
+    </ul>
+    <p class="proof">About two minutes. Then reload this page and re-run: this row should turn to <b>Load difference</b>, and the hiding row should climb.</p>
+    <p class="small">The full step, with what a clean result looks like and the vendor pages it follows: <a data-guide data-anchor="blocker" href="/scan/guide">a content blocker in the browser</a>.</p>
+  </div>`;
+}
+
+/** The fix for the DNS row: one line per platform, unfolded the same way. */
+function dnsFix(): Html {
+  return html`<div class="fix" id="fix-dns" hidden>
+    <h3>Close this gap</h3>
+    <ul class="fixways">
+      <li data-for="macos">On this Mac: install <a href="https://adguard-dns.io/en/public-dns.html" ${newTab}>AdGuard DNS's configuration profile</a> or make a free <a href="https://nextdns.io" ${newTab}>NextDNS</a> profile, then System Settings › Privacy &amp; Security › Profiles › Install. NextDNS names its profile to the re-run, so the fix proves itself.</li>
+      <li data-for="ios">On this iPhone or iPad: install the resolver's configuration profile (<a href="https://adguard-dns.io/en/public-dns.html" ${newTab}>AdGuard DNS</a> or <a href="https://nextdns.io" ${newTab}>NextDNS</a>), then Settings › General › VPN &amp; Device Management › Install.</li>
+      <li data-for="windows">On this PC: Settings › Network &amp; internet › your adapter › DNS server assignment › Edit, and enter a filtering resolver's addresses (<a href="https://adguard-dns.io/en/public-dns.html" ${newTab}>AdGuard DNS</a> or <a href="https://nextdns.io" ${newTab}>NextDNS</a>), with DNS over HTTPS on where offered.</li>
+      <li data-for="android">On this phone: Settings › Network &amp; internet › Private DNS, and enter the filtering resolver's hostname (AdGuard DNS's <code>dns.adguard-dns.com</code>, or your NextDNS profile's name). It covers every app, including Chrome.</li>
+      <li data-for="linux">On this computer: point systemd-resolved or NetworkManager at a filtering resolver; the guide has the exact lines and the command that proves each.</li>
+      <li data-for="other">Set this device's DNS to a filtering resolver (AdGuard DNS, NextDNS); the guide has the steps, one platform at a time.</li>
+    </ul>
+    <p class="proof">Re-run after: this row should name the resolver that answered, for every app on this device, not just this browser.</p>
+    <p class="small">Already behind a Pi-hole, or on a VPN with its own filter? This row cannot see those from a browser, so "none seen" may be wrong in your favour; the network check is their eye. Full steps: <a data-guide data-anchor="dns" href="/scan/guide">filter DNS for every app</a>.</p>
+  </div>`;
 }
 
 function checkRows(probeOrigin: string | null): CheckRow[] {
@@ -40,6 +82,7 @@ function checkRows(probeOrigin: string | null): CheckRow[] {
       id: "requests",
       n: "02",
       title: "Ad requests",
+      fix: requestsFix(),
       chip: probeOrigin ? "6 test images, 4 controls" : "3 test images, 2 controls",
       what: html`Images on paths that match EasyList's request rules (<code>/ad_images/</code>, <code>/adsbanner-</code>, <code>/ad_skyscraper.gif</code>) on this server${probeOrigin ? html` and on one cross-site host` : ""}, each between two control images with identical bytes. No cookies, no referrer, never displayed. The test is a load difference, not a verdict: a timeout is unknown, a failure this page's own policy caused is reported as such, and a failed test image is tried once more before it counts.`,
       why: html`Hiding a slot is not the same as stopping the request; the request is what carries the payload. A blocker that fails this test but passes the first is hiding ads it still fetched.`,
@@ -48,6 +91,7 @@ function checkRows(probeOrigin: string | null): CheckRow[] {
       id: "dns",
       n: "03",
       title: "Filtering DNS for this browser",
+      fix: dnsFix(),
       chip: "AdGuard, NextDNS self-checks",
       what: html`A fresh random name under <code>-dnscheck.adguard-dns.com</code> resolves only through AdGuard's resolvers and names the server group; <code>test.nextdns.io</code> answers only through NextDNS and names the profile. Cloudflare, Quad9 and a Pi-hole have no such endpoint; the network check, which runs from this server, will cover them.`,
       why: html`A browser blocker protects one browser; a filtering resolver covers every app that uses the system DNS. This row sees the resolver this browser uses, which a VPN, iCloud Private Relay or the browser's own DNS-over-HTTPS can make different from the device's.`,
@@ -60,9 +104,10 @@ function row(check: CheckRow): Html {
   <span class="n">${check.n}</span>
   <div>
     <div class="t">${check.title} <span class="chip">${check.chip}</span></div>
-    <p class="d">${check.what}</p>
+    <details class="how"><summary>How this row is tested</summary><p class="d">${check.what}</p></details>
     <ul class="ev" hidden></ul>
     <p class="matters"><b>Why it matters.</b> ${check.why} <a href="/scan/why#${check.id}">More</a></p>
+    ${check.fix ?? ""}
   </div>
   <span class="state na">Not run</span>
 </article>`;
@@ -80,6 +125,11 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
     whether ad code was stopped elsewhere or whether this device was ever reached. Results are drawn
     into this page and never uploaded.
   </p>
+  <div class="verdict" id="scan-verdict" hidden>
+    <p class="tally"><b id="scan-verdict-count">0</b><span>of 3 protections seen</span></p>
+    <h2 id="scan-verdict-title"></h2>
+    <p id="scan-verdict-text"></p>
+  </div>
   <div class="cols">
     <div class="main">
       <div class="checks">
@@ -104,6 +154,7 @@ export function renderScan({ owner, open, look, probeOrigin }: ScanPageOptions):
       <div class="scan-run">
         <button type="button" class="primary" id="scan-run" disabled>Run the check</button>
         <span class="small" id="scan-status" role="status" aria-live="polite">Waiting for the script.</span>
+        <span class="small open-count" id="scan-open" hidden></span>
         <noscript><span class="small">The check is a script in this tab; with scripts off it cannot run. Nothing else on this site needs one.</span></noscript>
       </div>
       <p class="small">After changing a blocker's settings, reload first. In-app browsers (Instagram, Facebook, TikTok) have no blockers and cannot install a DNS profile; open this page in Safari, Chrome or Firefox instead.</p>

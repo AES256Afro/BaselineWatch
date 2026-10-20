@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 12 · the fix path</title>
+<style>
+/* Second round of Scan mockups: same Register tokens as 01-10. Sample data throughout. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+.lede { color: var(--mute); max-width: 76ch; margin: 0 0 16px; }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* The path: where you are between scanning and being covered. */
+.path { display: flex; gap: 0; margin: 18px 0 22px; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--card); }
+.path .st { flex: 1; padding: 10px 14px 12px; border-left: 1px solid var(--rule); position: relative; }
+.path .st:first-child { border-left: 0; }
+.path .st .k { font: 600 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); }
+.path .st .t { font-weight: 600; font-size: 14px; margin-top: 2px; }
+.path .st .s { font-size: 12px; color: var(--mute); }
+.path .st.done { background: var(--panel-2); }
+.path .st.done .k::after { content: " ✓"; color: var(--ins); }
+.path .st.now { box-shadow: inset 0 -3px 0 var(--acc); }
+.path .st.later { opacity: 0.65; }
+.task { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; display: grid; grid-template-columns: 30px minmax(0,1fr); gap: 4px 12px; }
+.task .tick { width: 22px; height: 22px; border: 2px solid var(--rule-2); border-radius: 50%; margin-top: 2px; }
+.task .tick.done { border-color: var(--ins); background: var(--ins); position: relative; }
+.task .tick.done::after { content: "✓"; color: #fff; position: absolute; inset: 0; text-align: center; font: 700 14px/22px var(--sans); }
+.task h2 { font: 500 18px var(--serif); margin: 0; }
+.task .why { color: var(--mute); font-size: 13px; margin: 2px 0 8px; max-width: 76ch; }
+.task ol { margin: 0 0 10px; padding-left: 20px; font-size: 13.5px; }
+.task ol li { margin: 4px 0; }
+.task .proof { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
+.task .proof b { font-weight: 600; }
+.foot { max-width: 980px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 12, sample data.</b> The scan as a path instead of a report: four stations from "scan this browser" to "your whole network", the page always saying where you are, what the one next action is, and how the re-check will prove it worked. Each station is today's pages reordered — nothing here needs a new check, only new wrapping. "I did it — re-check" re-runs just that row.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="#">Scan</a><span>›</span><b>Fix this browser</b></p>
+  <h1>Scan <span class="arrow">step 2 of 4: fix this browser</span></h1>
+  <p class="lede">The run at 08:12 found ads hidden but not stopped, and no filtering resolver. Two fixes, about two minutes each, in the order that pays best. The page re-checks after each, so you leave each step knowing it worked — not hoping.</p>
+
+  <div class="path">
+    <div class="st done"><div class="k">Step 1</div><div class="t">Scan this browser</div><div class="s">ran in 1.9 s · 1 of 3 seen</div></div>
+    <div class="st now"><div class="k">Step 2</div><div class="t">Fix this browser</div><div class="s">2 fixes open</div></div>
+    <div class="st later"><div class="k">Step 3</div><div class="t">Cover every app</div><div class="s">filtering DNS for the device</div></div>
+    <div class="st later"><div class="k">Step 4</div><div class="t">Your network</div><div class="s">resolver · router · firewall, from this server</div></div>
+  </div>
+
+  <div class="task">
+    <div class="tick done"></div>
+    <div>
+      <h2>Something already hides ad slots <span class="state ok">Detected</span></h2>
+      <p class="why">8 of 20 baits hidden. Nothing to do here — the next task makes the same tool stop the requests too.</p>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="tick"></div>
+    <div>
+      <h2>Stop ad requests, not just hide them <span class="state bad">Not stopped</span></h2>
+      <p class="why">Every test image on an EasyList path loaded: the ads this browser hides are still fetched, and the request is what carries the payload. <a href="#">Why it matters</a>.</p>
+      <ol>
+        <li>Install <a href="#">uBlock Origin Lite</a> from the Chrome Web Store.</li>
+        <li>Keep the default lists. Reload this page.</li>
+      </ol>
+      <div class="proof"><b>How you'll know:</b> the re-check loads the three test images again; with the blocker on, none should load and this row turns <b>Blocked</b>.</div>
+      <div class="row"><button>I did it — re-check this row</button><a class="btn ghost" href="#">I use a different browser</a><a class="small" href="#">Skip — and what skipping leaves open</a></div>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="tick"></div>
+    <div>
+      <h2>Give this browser a filtering resolver <span class="state bad">None seen</span></h2>
+      <p class="why">A blocker protects one browser; a filtering resolver answers for every app that uses the system DNS. Neither AdGuard DNS nor NextDNS answered here. A Pi-hole or Quad9 may still be filtering — they have no self-check; step 4 is their eye. <a href="#">Why it matters</a>.</p>
+      <ol>
+        <li>Download the <a href="#">AdGuard DNS profile</a>, or create a <a href="#">NextDNS</a> profile (it names itself to the re-check).</li>
+        <li>System Settings › Privacy &amp; Security › Profiles › Install. <span class="small">On iPhone, Android and Windows: <a href="#">one page each</a>.</span></li>
+      </ol>
+      <div class="proof"><b>How you'll know:</b> the re-check asks the resolver to name itself; this row turns to the resolver's own answer, e.g. <code>NextDNS · profile f3a9d1</code>.</div>
+      <div class="row"><button>I did it — re-check this row</button><a class="small" href="#">Skip for now</a></div>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="tick"></div>
+    <div>
+      <h2>Then: the three eyes a page cannot have</h2>
+      <p class="why">Step 4 runs from this server, which sits on your network: 48 canary names through the resolver the router hands out, the router's firmware against the CVE register and KEV, and the firewall from both sides. The owner turns it on once under <a href="#">Sources</a>; after that it runs daily and its changes reach the <a href="#">digest</a>.</p>
+      <div class="row"><a class="btn ghost" href="#">Preview step 4 with sample data</a></div>
+    </div>
+  </div>
+
+  <p class="small">Progress lives in this browser only (nothing uploaded, nothing stored on the server for visitors). Leaving and coming back keeps your place; "skip" is always honest about what stays open.</p>
+</main>
+<footer class="foot">BaselineWatch · mockup 12 of the second Scan round · sample data</footer>
+</body>
+</html>

@@ -696,9 +696,28 @@ h1 .arrow { color: var(--mute); font-weight: 400; }
 .state.na { color: var(--mute); background: var(--panel-2); border-color: transparent; }
 .state.run { color: var(--acc); border-color: var(--acc); }
 @media (max-width: 560px) { .check { grid-template-columns: minmax(0, 1fr) auto; } .check .n { display: none; } }
-.scan-run { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 14px 0 8px; }
+.scan-run { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 14px 0 8px; padding: 10px 14px; background: var(--card); border: 1px solid var(--rule-2); border-radius: 10px; }
 .scan-run button { font-size: 13px; padding: 7px 14px; }
 .scan-run button[disabled] { opacity: 0.6; cursor: default; }
+.scan-run .open-count { margin-left: auto; color: var(--warn); font-weight: 600; }
+/* The verdict after a run: one sentence and a tally, toned by whether fixes stay open. */
+.verdict { background: var(--card); border: 1px solid var(--rule); border-left: 6px solid var(--warn); border-radius: 10px; padding: 12px 16px; margin: 0 0 14px; }
+.verdict[data-tone="ok"] { border-left-color: var(--ins); }
+.verdict .tally { float: right; text-align: right; margin: 0 0 0 16px; color: var(--warn); }
+.verdict[data-tone="ok"] .tally { color: var(--ins); }
+.verdict .tally b { display: block; font: 300 36px/1 var(--sans); }
+.verdict .tally span { font-size: 11.5px; color: var(--mute); }
+.verdict h2 { margin: 0 0 4px; font-size: 20px; }
+.verdict p { margin: 0; color: var(--mute); font-size: 13.5px; max-width: 80ch; }
+/* The fix panel under an open row, and the folded "how this row is tested". */
+.check .how { margin: 2px 0 0; }
+.check .how summary { font-size: 12.5px; color: var(--mute); cursor: pointer; }
+.check .fix { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+.check .fix h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--acc); }
+.check .fixways { margin: 0; padding: 0; list-style: none; font-size: 13.5px; }
+.check .fixways li { margin: 0 0 6px; }
+.check .fix .proof { margin: 6px 0 0; font-size: 13px; }
+.check .fix .small { margin: 6px 0 0; display: block; }
 .sources { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--mute); }
 .sources li { margin: 3px 0; }
 /* The planted baits: real 1px boxes off to the left, so a blocker's display:none reads as no box at all. */

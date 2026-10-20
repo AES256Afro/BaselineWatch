@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan · mockup 15 · the remediation desk</title>
+<style>
+/* Second round of Scan mockups: same Register tokens as 01-10. Sample data throughout. */
+:root {
+  --paper: #f3f4f1; --card: #ffffff; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
+  --acc: #0f6e56; --acc-ink: #ffffff; --warn: #8a5a00; --del: #b3261e; --ins: #1b6e3a; --gen: #7a4fb3;
+  --panel-2: #eef0ed;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif; --sans: "Public Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", Consolas, "SFMono-Regular", monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
+a { color: var(--acc); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.mast { background: var(--card); border-bottom: 1px solid var(--rule); }
+.mast-inner { max-width: 1180px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mast .name { font: 600 19px var(--serif); color: var(--ink); text-decoration: none; }
+.mast nav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size: 14px; }
+.mast nav a[aria-current] { border-bottom: 2px solid var(--acc); }
+.mast .meta { margin-left: auto; color: var(--mute); font-size: 12.5px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 40px; }
+.crumbs { font-size: 12.5px; color: var(--mute); margin: 0 0 10px; }
+.crumbs a { color: var(--mute); }
+.crumbs span { margin: 0 6px; }
+.crumbs b { color: var(--ink); font-weight: 500; }
+h1 { font: 500 30px/1.15 var(--serif); margin: 0 0 6px; }
+h1 .arrow { color: var(--mute); font-weight: 400; }
+.lede { color: var(--mute); max-width: 82ch; margin: 0 0 16px; }
+.disclosure { background: var(--panel-2); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: var(--mute); margin: 0 0 16px; }
+.small { font-size: 12.5px; color: var(--mute); }
+.state { display: inline-block; font: 600 11px var(--sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule-2); color: var(--mute); white-space: nowrap; }
+.state.bad { background: var(--del); border-color: var(--del); color: #fff; }
+.state.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.state.ok { background: var(--ins); border-color: var(--ins); color: #fff; }
+button, .btn { font: 600 13px var(--sans); background: var(--acc); color: var(--acc-ink); border: 1px solid var(--acc); border-radius: 7px; padding: 7px 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: var(--card); color: var(--ink); border-color: var(--rule-2); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.risk { font: 600 10px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--rule-2); border-radius: 4px; padding: 1px 6px; color: var(--mute); margin-left: 6px; }
+.item { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.item .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.item .head .t { font-weight: 600; font-size: 15px; }
+.item .head .state { margin-left: auto; }
+.item .d { color: var(--mute); font-size: 13.5px; margin: 4px 0 10px; max-width: 90ch; }
+.ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.way { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; background: var(--panel-2); }
+.way h3 { font: 600 11px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); margin: 0 0 6px; }
+.way p { font-size: 13px; margin: 0 0 8px; color: var(--mute); }
+.way .mono-line { display: flex; gap: 6px; align-items: center; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; font: 12px var(--mono); overflow-x: auto; white-space: nowrap; margin-bottom: 8px; }
+.preview { border: 1px solid var(--rule-2); border-left: 5px solid var(--acc); background: var(--card); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 13.5px; }
+.preview b { font-weight: 600; }
+.foot { max-width: 1180px; margin: 20px auto 0; padding: 12px 20px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--mute); }
+.audit { font: 12.5px var(--mono); color: var(--mute); border-top: 1px dashed var(--rule); margin-top: 10px; padding-top: 8px; }
+</style>
+</head>
+<body>
+<header class="mast"><div class="mast-inner">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities</a><a href="#" aria-current="page">Scan</a></nav>
+  <div class="meta">signed in · Desk ▾</div>
+</div></header>
+<main class="wrap">
+  <div class="disclosure"><b>Mockup 15, sample data, the owner signed in.</b> "Would you like us to do it?" — answered honestly. Every open finding offers up to three ways: <b>show me how</b> (the guide step), <b>the exact command</b> (copy, with its checksum), and, where this server can act safely on things it already has credentials for, <b>do it from here</b> — previewed and confirmed like a BoxPilot job, logged, and verified by the next run. The router is never signed in to; browsers are never remote-controlled; those stay honest "show me how"s.</div>
+  <p class="crumbs"><a href="#">Home</a><span>›</span><a href="#">Scan</a><span>›</span><b>Fix what it found</b></p>
+  <h1>Scan <span class="arrow">4 open, 1 fixed this week</span></h1>
+  <p class="lede">Each card is one finding from the last runs, worst first. Whatever way you pick, the proof is the same: the next run turns the row, and the change lands in history and the digest.</p>
+
+  <div class="item">
+    <div class="head"><span class="t">Router firmware on CISA's exploited list · <a href="#">CVE-2026-20142</a></span><span class="small">due 21 Oct</span><span class="state bad">Finding</span></div>
+    <p class="d">EX7000 at 1.0.11.116; fixed in 1.0.11.136. This server read the version from the router's UPnP description and will read it again after you update — it never signs in to the router and never changes it.</p>
+    <div class="ways">
+      <div class="way"><h3>Show me how</h3><p>The vendor's advisory and update page, and this model's four steps in the guide.</p><a class="btn ghost" href="#">Open the guide step</a></div>
+      <div class="way"><h3>After you update</h3><p>Rescan the router from here; the finding closes itself when the version reads 1.0.11.136.</p><button class="ghost">Rescan the router now</button></div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="head"><span class="t">Eight canaries still resolve: the Pi-hole doesn't carry the adfection list</span><span class="state warn">Open</span></div>
+    <p class="d">The Pi-hole at .10 answers for every device and sinkholes 40 of 48 canary names. The eight that resolve are ad-delivered-spyware domains from the adfection list — a source this product tracks and diffs like any standard.</p>
+    <div class="ways">
+      <div class="way"><h3>Do it from here <span class="risk">changes the Pi-hole</span></h3><p>The Sources page holds a Pi-hole API token. This server can add the list for you.</p><button>Add the list to the Pi-hole…</button></div>
+      <div class="way"><h3>The exact command</h3><p>Or paste one line into the Pi-hole box yourself:</p><div class="mono-line"><span>pihole adlist add https://cybercard.net/lists/adfection.domains.txt</span><a class="btn ghost" style="padding:2px 8px" href="#">Copy</a></div></div>
+      <div class="way"><h3>Show me how</h3><p>Where that box is in the Pi-hole's own interface, with its documentation linked.</p><a class="btn ghost" href="#">Open the guide step</a></div>
+    </div>
+    <div class="preview"><b>Before it runs:</b> adds one adlist (291 domains, list version of 18 Oct) through the Pi-hole's API using the token on file, triggers its gravity update, and re-resolves the 48 canaries. Nothing else on the Pi-hole is touched, and removing the list is the same one line. <span class="row" style="display:inline-flex; gap:8px; margin-left:8px"><button style="padding:4px 10px">Do it</button><button class="ghost" style="padding:4px 10px">Not now</button></span></div>
+    <div class="audit">like every job: queued by you, one log line with what changed, undone by the inverse — 19 Oct 06:12 · canaries re-run · 40 → 48 would read here</div>
+  </div>
+
+  <div class="item">
+    <div class="head"><span class="t">A UPnP mapping forwards TCP 3389 to .44</span><span class="state warn">Open</span></div>
+    <p class="d">Remote Desktop, forwarded to a machine inside, requested over UPnP by something and never cleaned up. Deleting a mapping is a router change, so it is yours to do — this product draws the line at its own credentials.</p>
+    <div class="ways">
+      <div class="way"><h3>Show me how</h3><p>This model's admin page, the two clicks, and what turning UPnP off entirely trades away.</p><a class="btn ghost" href="#">Open the guide step</a></div>
+      <div class="way"><h3>After you delete it</h3><p>Rescan from here; the walk of the mapping table should come back empty.</p><button class="ghost">Rescan mappings now</button></div>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="head"><span class="t">This browser hides ads but doesn't stop them · no filtering DNS seen for it</span><span class="state warn">Open · yours in the tab</span></div>
+    <p class="d">Browser fixes happen in the browser — nothing here can or should reach into it. Two minutes each, from the run at 08:12 (Chrome on macOS).</p>
+    <div class="ways">
+      <div class="way"><h3>Show me how</h3><p>uBlock Origin Lite, then the AdGuard or NextDNS profile; re-run proves both.</p><a class="btn ghost" href="#">The two fixes</a></div>
+      <div class="way"><h3>Every other device</h3><p>The same two minutes for iPhone, Android, Windows — one page each.</p><a class="btn ghost" href="#">The guide</a></div>
+    </div>
+  </div>
+
+  <div class="item" style="opacity:.75">
+    <div class="head"><span class="t">SMB was reachable outward from the LAN</span><span class="state ok">Fixed 16 Oct</span></div>
+    <p class="d">Closed at the firewall on the 16th; the daily run has read "blocked" since. <a href="#">The run that confirmed it</a>.</p>
+  </div>
+
+  <p class="small">The line this page holds: this server acts only with credentials the owner gave it on the Sources page (a Pi-hole or AdGuard Home token today), every action is previewed, confirmed, logged and reversible, and the proof is always the next run — never the button's own word. Routers, browsers and other people's devices stay "show me how".</p>
+</main>
+<footer class="foot">BaselineWatch · mockup 15 of the second Scan round · sample data</footer>
+</body>
+</html>

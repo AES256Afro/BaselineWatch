@@ -402,6 +402,95 @@ export function describeDns(results) {
   return { state: "na", text: "Unknown", lines };
 }
 
+// ------------------------------------------------------- verdict and fixes
+
+/**
+ * Which fix-panel lines fit where the check ran: a browser key for the requests panel and a
+ * platform key for the DNS panel, each falling back to "other" when nothing matched. An in-app
+ * view outranks the browser family (it has no blocker at all), and Brave outranks Chrome (its
+ * shields are the fix, not an extension).
+ */
+export function fixKeys(env, brave) {
+  const family = String(env.browser || "").split(" ")[0].toLowerCase();
+  const browser = env.inApp ? "inapp" : brave ? "brave" : ["firefox", "chrome", "edge", "safari"].includes(family) ? family : "other";
+  const platforms = { iOS: "ios", iPadOS: "ios", Android: "android", Windows: "windows", macOS: "macos", Linux: "linux" };
+  return { browser, platform: platforms[env.platform] || "other" };
+}
+
+/**
+ * One sentence that says where this browser stands, from the three rows' described results, and
+ * which fix panels to unfold. "Open" is only a definite negative (every test image loaded; both
+ * resolvers said no); an unknown row is named but never grows a fix, because a fix for a row that
+ * could not be read would be guessing.
+ */
+export function verdictOf(h, r, d) {
+  const hidingSeen = h.state === "ok";
+  const requestsSeen = r.state === "ok";
+  const dnsSeen = d.state === "ok";
+  const openRequests = r.text === "No difference";
+  const openDns = d.text === "None seen";
+  const unknowns = (requestsSeen || openRequests ? 0 : 1) + (dnsSeen || openDns ? 0 : 1) + (h.state === "warn" ? 1 : 0);
+  const seen = [hidingSeen, requestsSeen, dnsSeen].filter(Boolean).length;
+  const fixes = [...(openRequests ? ["requests"] : []), ...(openDns ? ["dns"] : [])];
+
+  let title;
+  let text;
+  if (openRequests && openDns) {
+    title = hidingSeen ? "Partly protected: ads are hidden here, not stopped." : "No protection seen in this browser.";
+    text = hidingSeen
+      ? "Something hides ad slots in this browser, but the requests underneath still left this tab, and no filtering resolver answered. The two fixes below close the gap; re-run after each and watch the row turn."
+      : "Nothing hid the baits, every test image loaded, and no filtering resolver answered for this browser. The two fixes below are about two minutes each; re-run after each and watch the row turn.";
+  } else if (openRequests) {
+    title = dnsSeen ? "A resolver filters for this browser, but it still fetches ads." : "This browser fetches ads: nothing stopped the test requests.";
+    text = `${dnsSeen ? "The filtering resolver below answers for this browser, yet every" : "Every"} test image loaded: requests on ad paths still go out. The fix below closes that; re-run after to see the row turn.`;
+  } else if (openDns) {
+    title = requestsSeen ? "This browser blocks ads; every other app is on its own." : "No filtering resolver answered for this browser.";
+    text = `${requestsSeen ? "Requests on ad paths are stopped in this tab. " : ""}No filtering resolver answered, and a resolver is what covers every app on this device, not one browser. The fix below closes that — unless a Pi-hole or a VPN's filter already does, which this page cannot see.`;
+  } else if (fixes.length === 0 && unknowns === 0) {
+    title = seen === 3 ? "Protected: hidden, blocked, and a filtering resolver answering." : "Nothing left to fix that this page can see.";
+    text = "Every row this page can read came back covered. Still signals, not a certificate: this is one browser, and ads served from a site's own domain pass every blocker.";
+  }
+  if (unknowns > 0) {
+    title = title || "Some rows could not be read.";
+    text = (text || "") + ` ${unknowns} row${unknowns === 1 ? "" : "s"} could not be read this run; an unreadable row gets no fix, because it would be a guess. Re-running usually settles it.`;
+    text = text.trim();
+  }
+  return { seen, fixes, title, text };
+}
+
+/**
+ * Unfolds the fix panels the verdict named, shows the one line that fits this browser or
+ * platform ("other" when none does), and points each panel's guide link at the detected
+ * platform's page and the panel's own section.
+ */
+export function applyFixes(root, fixes, keys) {
+  const panels = [
+    { id: "fix-requests", open: fixes.includes("requests"), key: keys.browser },
+    { id: "fix-dns", open: fixes.includes("dns"), key: keys.platform },
+  ];
+  for (const panel of panels) {
+    const el = root.querySelector(`#${panel.id}`);
+    if (!el) continue;
+    el.hidden = !panel.open;
+    if (!panel.open) continue;
+    let matched = false;
+    for (const line of el.querySelectorAll("[data-for]")) {
+      const hit = line.getAttribute("data-for") === panel.key;
+      line.hidden = !hit;
+      matched = matched || hit;
+    }
+    if (!matched) {
+      const fallback = el.querySelector('[data-for="other"]');
+      if (fallback) fallback.hidden = false;
+    }
+    for (const link of el.querySelectorAll("[data-guide]")) {
+      const anchor = link.getAttribute("data-anchor") || "";
+      const platform = keys.platform === "other" ? "" : `/${keys.platform}`;
+      link.setAttribute("href", `/scan/guide${platform}${platform && anchor ? `#${anchor}` : ""}`);
+    }
+  }
+}
+
 /** Finds the page's parts, arms the button, and runs the three checks when it is pressed. */
 export function wire(doc, view) {
   const root = doc.getElementById("scan");
@@ -425,10 +514,11 @@ export function wire(doc, view) {
     for (const id of ["hiding", "requests", "dns"]) setRow(doc, root, id, "run", "Running", []);
 
     const env = environment(nav);
+    const brave = await isBrave(nav);
     setEnv(root, "browser", env.browser);
     setEnv(root, "platform", env.platform);
     setEnv(root, "inapp", env.inApp ? `${env.inApp}: no blocker here, and no DNS profile can be installed` : "not an in-app view");
-    setEnv(root, "brave", (await isBrave(nav)) ? "Brave: shields block requests without hiding by class names" : "not Brave");
+    setEnv(root, "brave", brave ? "Brave: shields block requests without hiding by class names" : "not Brave");
 
     status.textContent = "Running: ad hiding…";
     const hiding = await checkHiding(doc, view);
@@ -447,6 +537,26 @@ export function wire(doc, view) {
     const results = await Promise.all([checkAdGuard(fetchFn, randomLabel(view.crypto)), checkNextDns(fetchFn, randomLabel(view.crypto))]);
     const d = describeDns(results);
     setRow(doc, root, "dns", d.state, d.text, d.lines);
+
+    const v = verdictOf(h, r, d);
+    const banner = doc.getElementById("scan-verdict");
+    if (banner) {
+      const count = doc.getElementById("scan-verdict-count");
+      const title = doc.getElementById("scan-verdict-title");
+      const text = doc.getElementById("scan-verdict-text");
+      if (count) count.textContent = String(v.seen);
+      if (title) title.textContent = v.title;
+      if (text) text.textContent = v.text;
+      banner.setAttribute("data-tone", v.fixes.length === 0 ? "ok" : "warn");
+      banner.hidden = false;
+    }
+    applyFixes(root, v.fixes, fixKeys(env, brave));
+    const open = doc.getElementById("scan-open");
+    if (open) {
+      open.textContent = v.fixes.length === 0 ? "" : `${v.fixes.length} ${v.fixes.length === 1 ? "fix" : "fixes"} open above`;
+      open.hidden = v.fixes.length === 0;
+    }
+    root.classList.add("ran");
 
     const seconds = ((view.performance.now() - started) / 1000).toFixed(1);
     status.textContent = `Ran in ${seconds} s in this tab. Signals, not a certificate; after changing a blocker's settings, reload first.`;
