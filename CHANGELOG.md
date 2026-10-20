@@ -2,7 +2,7 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
-## Unreleased
+## 0.33.0 — 2026-10-19
 
 - **Scan: the browser check** (M12.1). A new **Scan** area at `/scan` runs three checks in the
   tab and sees that browser only: ad hiding (twenty bait elements named like ad slots beside two
