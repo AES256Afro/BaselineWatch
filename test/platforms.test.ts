@@ -75,6 +75,12 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(index).toContain("6 platforms");
     expect(index).toContain('<a href="/baselines/ios">iOS</a>');
     expect(index).toContain('<a href="/baselines/android">Android</a>');
+    // A card's state and figures lead to the STIG page, the Register source or the watchlist they come from.
+    expect(index).toContain('<a href="/baselines/ios">iOS</a></b><a class="state ok" href="/stigs/mobile">1 STIG loaded</a>');
+    expect(index).toContain('<a href="/baselines/android">Android</a></b><a class="state wait" href="/stigs/mobile">No STIG loaded</a>');
+    expect(index).toContain('<a href="/watchlist">follow a STIG first</a>');
+    expect(index).toMatch(/<a class="n" href="\/standards\/microsoft-sct">\d+ Microsoft baselines?<\/a>/);
+    expect(index).toContain('<h2><a href="/platforms">Test plans</a></h2>');
     const builder = await (await fetch(`${app.base}/baselines/ios`)).text();
     expect(builder).toContain("Apple iOS/iPadOS 26 V1R2");
     expect(builder).toContain("AIOS-26-006500");
@@ -192,6 +198,10 @@ describe("platform engineering: the release and hardware under test", () => {
   it("lists every platform, release and hardware family on the Platforms page", async () => {
     const html = await (await fetch(`${app.base}/platforms`)).text();
     expect(html).toContain("<h1>Platforms</h1>");
+    // A platform's name and counts are permalinks to its section; the template count opens its test plan.
+    expect(html).toMatch(/<b><a href="#macos">macOS<\/a><\/b><span class="small"><a href="#macos">\d+ releases<\/a> · <a href="#macos-hardware">\d+ hardware families<\/a> · <a href="\/baselines\/macos\/tests">\d+ templates<\/a><\/span>/);
+    expect(html).toContain('<ul class="hw" id="macos-hardware">');
+    expect(html).toContain('<h2><a href="/register">In the Register</a></h2>');
     expect(html).toContain("macOS 27 Golden Gate");
     expect(html).toContain("Windows 11, version 26H2");
     expect(html).toContain('href="/baselines/macos/tests?version=27"');

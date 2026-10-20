@@ -65,20 +65,21 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
 
   const sections = groups.map(
     ({ platform, stigs }) => html`<section class="box">
-      <h2><a href="/stigs/${platform.id}">${platform.label}</a> <span class="count">${stigs.length} STIG${stigs.length === 1 ? "" : "s"}</span></h2>
+      <h2><a href="/stigs/${platform.id}">${platform.label}</a> <span class="count"><a href="/stigs/${platform.id}">${stigs.length} STIG${stigs.length === 1 ? "" : "s"}</a></span></h2>
       <p class="small">${platform.blurb}</p>
       <div class="table-wrap"><table>
         <thead><tr><th>STIG</th><th>Version</th><th>Published</th><th>CAT I</th><th>CAT II</th><th>CAT III</th><th>Against the previous version</th></tr></thead>
         <tbody>${stigs.map((s) => {
           const summary = s.previous ? changeSummaryText(changeSummaryFor(db, s.latest.id)) : "first version loaded";
+          const cat = (n: 1 | 2 | 3) => `/stigs/${platform.id}?stig=${encodeURIComponent(s.key)}&cat=${n}`;
           return html`<tr>
             <td><a href="/stigs/${platform.id}?stig=${encodeURIComponent(s.key)}"><b>${s.product}</b></a></td>
             <td><a href="/standards/disa-stigs/${s.latest.id}">${s.latest.version_label ?? "version unknown"}</a></td>
-            <td>${s.latest.published_at ? s.latest.published_at.slice(0, 10) : "—"}</td>
-            <td class="n">${s.counts["CAT I"]}</td>
-            <td class="n">${s.counts["CAT II"]}</td>
-            <td class="n">${s.counts["CAT III"]}</td>
-            <td>${s.previous ? html`<a href="/standards/disa-stigs/${s.latest.id}">${summary}</a>` : summary} <span class="small">· loaded ${relativeTime(s.latest.parsed_at, now)}</span></td>
+            <td>${s.latest.published_at ? html`<a href="/standards/disa-stigs/${s.latest.id}">${s.latest.published_at.slice(0, 10)}</a>` : "—"}</td>
+            <td class="n"><a href="${cat(1)}">${s.counts["CAT I"]}</a></td>
+            <td class="n"><a href="${cat(2)}">${s.counts["CAT II"]}</a></td>
+            <td class="n"><a href="${cat(3)}">${s.counts["CAT III"]}</a></td>
+            <td>${s.previous ? html`<a href="/standards/disa-stigs/${s.latest.id}">${summary}</a>` : html`<a href="/standards/disa-stigs/${s.latest.id}/browse">${summary}</a>`} <span class="small">· loaded ${relativeTime(s.latest.parsed_at, now)}</span></td>
           </tr>`;
         })}</tbody>
       </table></div>
@@ -96,18 +97,18 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
       </section>
       <aside class="side">
         <section class="box">
-          <h2>Rules to controls</h2>
-          <p class="small">${map.documentId !== null ? html`Each rule's CCIs are indexed to NIST SP 800-53 by DISA's <a href="/standards/disa-cci">CCI list</a>, version ${map.version ?? "unknown"} (${map.controls.size} identifiers). The control pages in the Register show the reverse: the rules that implement each control.` : html`DISA's CCI list has not loaded yet, so rules show their CCIs without the control they index. ${owner ? html`Fetch it from the <a href="/sources">Sources</a> page.` : ""}`}</p>
+          <h2><a href="/standards/disa-cci">Rules to controls</a></h2>
+          <p class="small">${map.documentId !== null ? html`Each rule's CCIs are indexed to NIST SP 800-53 by DISA's <a href="/standards/disa-cci">CCI list</a>, version ${map.version ?? "unknown"} (<a href="/standards/disa-cci">${map.controls.size} identifiers</a>). The control pages in the Register show the reverse: the rules that implement each control.` : html`DISA's CCI list has not loaded yet, so rules show their CCIs without the control they index. ${owner ? html`Fetch it from the <a href="/sources#src-disa-cci">Sources</a> page.` : ""}`}</p>
         </section>
-        <section class="box">
-          <h2>Platforms</h2>
+        <section class="box" id="by-platform">
+          <h2><a href="#by-platform">Platforms</a></h2>
           <ul class="src-list">${platforms.map((p) => {
             const n = groups.find((g) => g.platform.id === p.id)?.stigs.length ?? 0;
-            return html`<li><a href="/stigs/${p.id}">${p.label}</a><b>${n}</b></li>`;
+            return html`<li><a href="/stigs/${p.id}">${p.label}</a><b><a href="/stigs/${p.id}">${n}</a></b></li>`;
           })}</ul>
         </section>
         <section class="box">
-          <h2>Follow another STIG</h2>
+          <h2><a href="/watchlist">Follow another STIG</a></h2>
           <p class="small">The library holds over four hundred documents; only the followed ones are downloaded. ${owner ? html`Add a <a href="/watchlist">watchlist</a> entry of kind Baseline with the product's name as DISA writes it ("Oracle Linux 9", "VMware vSphere 8.0") and fetch the library again. Entries replace the default set.` : "The owner follows more through the watchlist."}</p>
         </section>
       </aside>
@@ -189,26 +190,26 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
       ${shownCats.map((c) =>
         grouped[c].length
           ? html`<section class="box cat">
-              <h2>${c} <span class="count">${grouped[c].length}</span></h2>
+              <h2><a href="${link({ cat: c })}">${c}</a> <span class="count"><a href="${link({ cat: c })}">${grouped[c].length}</a></span></h2>
               <p class="small">${catMeaning[c]}</p>
               <ol class="rules">${grouped[c].map((r) => ruleItem(r, chosen, map, base, changed))}</ol>
             </section>`
           : "",
       )}
-      ${!cat && grouped.other.length ? html`<section class="box"><h2>Unrated <span class="count">${grouped.other.length}</span></h2><ol class="rules">${grouped.other.map((r) => ruleItem(r, chosen, map, base, changed))}</ol></section>` : ""}`;
+      ${!cat && grouped.other.length ? html`<section class="box" id="unrated"><h2><a href="#unrated">Unrated</a> <span class="count"><a href="#unrated">${grouped.other.length}</a></span></h2><ol class="rules">${grouped.other.map((r) => ruleItem(r, chosen, map, base, changed))}</ol></section>` : ""}`;
 
     aside = html`
       <section class="box">
-        <h2>${chosen.product}</h2>
+        <h2><a href="/standards/disa-stigs/${chosen.latest.id}">${chosen.product}</a></h2>
         <dl class="kv">
           <dt>Version</dt><dd><a href="/standards/disa-stigs/${chosen.latest.id}">${chosen.latest.version_label ?? "unknown"}</a></dd>
           <dt>Published</dt><dd>${chosen.latest.published_at ? chosen.latest.published_at.slice(0, 10) : "unknown"} · loaded ${relativeTime(chosen.latest.parsed_at, now)}</dd>
-          <dt>Rules</dt><dd>${rules.length}: ${chosen.counts["CAT I"]} CAT I, ${chosen.counts["CAT II"]} CAT II, ${chosen.counts["CAT III"]} CAT III</dd>
+          <dt>Rules</dt><dd><a href="${link({ cat: undefined })}">${rules.length}</a>: <a href="${link({ cat: "CAT I" })}">${chosen.counts["CAT I"]} CAT I</a>, <a href="${link({ cat: "CAT II" })}">${chosen.counts["CAT II"]} CAT II</a>, <a href="${link({ cat: "CAT III" })}">${chosen.counts["CAT III"]} CAT III</a></dd>
           <dt>Source</dt><dd><a href="${chosen.latest.source_url ?? "https://www.cyber.mil/stigs/downloads/"}" ${newTabIf(chosen.latest.source_url ?? "https://www.cyber.mil/")}>DISA zip</a></dd>
         </dl>
       </section>
       <section class="box">
-        <h2>What changed in ${chosen.latest.version_label ?? "this version"}</h2>
+        <h2><a href="/standards/disa-stigs/${chosen.latest.id}">What changed in ${chosen.latest.version_label ?? "this version"}</a></h2>
         ${!chosen.previous
           ? html`<p class="small">First version loaded; the next release will be diffed against it rule by rule.</p>`
           : summary && changedRefs.length === 0
@@ -225,8 +226,8 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
 
   const cisa = html`
     <section class="box">
-      <h2>CISA on ${label}</h2>
-      <h3 class="small">Known exploited <span class="count">${kev.total}</span></h3>
+      <h2><a href="/?kind=kev">CISA on ${label}</a></h2>
+      <h3 class="small"><a href="/?kind=kev">Known exploited</a> <span class="count"><a href="/?kind=kev">${kev.total}</a></span></h3>
       ${kev.entries.length
         ? html`<ul class="kev-list">${kev.entries.map((k) => {
             const known = db.prepare("SELECT 1 FROM vulns WHERE cve_id = ?").get(k.cve) !== undefined;
@@ -235,7 +236,7 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
           })}</ul>
           <p class="small"><a href="/?kind=kev">All KEV additions in the News</a></p>`
         : html`<p class="small">No KEV entry names ${label === "every platform" ? "it" : label}${kev.total === 0 && (db.prepare("SELECT COUNT(*) AS n FROM items WHERE kind = 'kev'").get() as { n: number }).n === 0 ? "; the catalog has not been fetched yet" : ""}.</p>`}
-      <h3 class="small">Directives <span class="count">${directives.length}</span></h3>
+      <h3 class="small"><a href="/?source=cisa-directives">Directives</a> <span class="count"><a href="/?source=cisa-directives">${directives.length}</a></span></h3>
       ${directives.length
         ? html`<ul class="kev-list">${directives.map(
             (d) => html`<li><a href="${d.url ?? "https://www.cisa.gov/news-events/directives"}" ${newTabIf(d.url)}>${d.title}</a><span class="when">${d.kind === "ed" ? "Emergency Directive" : d.kind === "bod" ? "Binding Operational Directive" : "Directive"}${d.publishedAt ? html` · ${d.publishedAt.slice(0, 10)}` : ""}${d.platforms.includes("all") ? " · every platform" : ""}</span></li>`,
@@ -247,7 +248,7 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
   const content = html`
     <div class="rel">
       <h1>${label} <span class="arrow">STIGs</span></h1>
-      <div class="when">${stigs.length} STIG${stigs.length === 1 ? "" : "s"} followed · <a href="/stigs">All platforms</a></div>
+      <div class="when"><a href="/standards/disa-stigs">${stigs.length} STIG${stigs.length === 1 ? "" : "s"} followed</a> · <a href="/stigs">All platforms</a></div>
     </div>
     <div class="cols">
       <section class="main">${main}</section>

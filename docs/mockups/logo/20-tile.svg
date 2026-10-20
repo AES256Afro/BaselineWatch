@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<title>BaselineWatch mark 20: Tile</title>
+<style>svg{--ink:#1b1f23;--acc:#0f6e56;--del:#b3261e;--ins:#1b6e3a;--mute:#5f6b70}@media (prefers-color-scheme:dark){svg{--ink:#e7eae6;--acc:#4cc9a6;--del:#ff8a80;--ins:#7fd99a;--mute:#9aa6a3}}.si{stroke:var(--ink);fill:none}.fi{fill:var(--ink)}.sa{stroke:var(--acc);fill:none}.fa{fill:var(--acc)}.sd{stroke:var(--del);fill:none}.fd{fill:var(--del)}.sn{stroke:var(--ins);fill:none}.fn{fill:var(--ins)}.sm{stroke:var(--mute);fill:none}</style>
+<rect class="fi" x="9" y="9" width="14" height="14" rx="2"/><rect class="fi" x="25" y="9" width="14" height="14" rx="2"/><rect class="fi" x="41" y="9" width="14" height="14" rx="2"/><rect class="fi" x="9" y="25" width="14" height="14" rx="2"/><rect class="fi" x="25" y="25" width="14" height="14" rx="2"/><rect class="fa" x="41" y="25" width="14" height="14" rx="2"/><rect class="fi" x="9" y="41" width="14" height="14" rx="2"/><rect class="fi" x="25" y="41" width="14" height="14" rx="2"/><rect class="fi" x="41" y="41" width="14" height="14" rx="2"/>
+</svg>

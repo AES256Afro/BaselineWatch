@@ -121,9 +121,14 @@ describe("STIG pages", () => {
     expect(html).toContain("Apple macOS 26 (Tahoe)");
     expect(html).toContain("Microsoft Windows 11");
     expect(html).toContain("V2R11");
-    expect(html).toContain("CCI list</a>, version 2026-07-14 (19 identifiers)");
+    expect(html).toContain('CCI list</a>, version 2026-07-14 (<a href="/standards/disa-cci">19 identifiers</a>)');
     expect(html).not.toContain('<a href="/stigs/linux">Linux</a> <span class="count"');
     expect(html).toContain('aria-current="page">STIGs</a>');
+    // Each platform's count and each CAT cell lead to the rules they count.
+    expect(html).toContain('<a href="/stigs/windows">Windows</a> <span class="count"><a href="/stigs/windows">2 STIGs</a></span>');
+    expect(html).toMatch(/<td class="n"><a href="\/stigs\/macos\?stig=stig%3A[^"&]+&amp;cat=1">\d+<\/a><\/td>/);
+    expect(html).toContain('<li><a href="/stigs/linux">Linux</a><b><a href="/stigs/linux">0</a></b></li>');
+    expect(html).toContain('<h2><a href="/watchlist">Follow another STIG</a></h2>');
   });
 
   it("draws one STIG's rules by CAT with check, fix and the controls each maps to", async () => {
@@ -137,8 +142,13 @@ describe("STIG pages", () => {
     expect(html).toContain("<summary>Check</summary>");
     expect(html).toContain("<summary>Fix</summary>");
     expect(html).toContain("fdesetup status");
-    // CAT I rules come first; the CAT filter keeps only one group.
-    expect(html.indexOf("CAT I <span")).toBeLessThan(html.indexOf("CAT II <span"));
+    // CAT I rules come first; the CAT filter keeps only one group; each group's heading is the filter for it.
+    expect(html.indexOf("CAT I</a> <span")).toBeLessThan(html.indexOf("CAT II</a> <span"));
+    expect(html).toMatch(/<h2><a href="\/stigs\/macos\?cat=1">CAT I<\/a> <span class="count"><a href="\/stigs\/macos\?cat=1">\d+<\/a><\/span><\/h2>/);
+    expect(html).toContain('<a href="/standards/disa-stigs">1 STIG followed</a>');
+    expect(html).toMatch(/<dt>Rules<\/dt><dd><a href="\/stigs\/macos">\d+<\/a>: <a href="\/stigs\/macos\?cat=1">\d+ CAT I<\/a>/);
+    expect(html).toContain('<h3 class="small"><a href="/?kind=kev">Known exploited</a> <span class="count"><a href="/?kind=kev">1</a></span></h3>');
+    expect(html).toMatch(/<h3 class="small"><a href="\/\?source=cisa-directives">Directives<\/a> <span class="count"><a href="\/\?source=cisa-directives">\d+<\/a><\/span><\/h3>/);
     const catOne = await (await fetch(`${app.base}/stigs/macos?cat=1`)).text();
     expect(catOne).toContain("APPL-26-002064"); // gatekeeper, high
     expect(catOne).not.toContain("APPL-26-000070"); // screen saver timeout, medium

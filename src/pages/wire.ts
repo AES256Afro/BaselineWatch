@@ -134,16 +134,16 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
   });
 
   const sourceList = counts.map(
-    (c) => html`<li class="${filters.source === c.source_id ? "on" : ""}"><a href="${query(filters, { source: c.source_id, before: undefined })}">${c.name}</a><b>${c.unread ?? 0}</b></li>`,
+    (c) => html`<li class="${filters.source === c.source_id ? "on" : ""}"><a href="${query(filters, { source: c.source_id, before: undefined })}">${c.name}</a><b><a href="${query(filters, { source: c.source_id, unread: true, before: undefined })}">${c.unread ?? 0}</a></b></li>`,
   );
 
   // The desk box: the owner's queue at a glance, or the sign-in prompt on the public site.
   const tc = owner ? triageCounts(db) : null;
   const deskBox = owner
     ? html`<section class="box desk-box">
-        <h2>Owner's desk</h2>
+        <h2><a href="/triage">Owner's desk</a></h2>
         <ul class="kev-list">
-          <li><a href="/triage">Triage</a><span class="when">${(tc?.affects ?? 0) + (tc?.reviewing ?? 0)} open</span></li>
+          <li><a href="/triage">Triage</a><a class="when" href="/triage#affects">${(tc?.affects ?? 0) + (tc?.reviewing ?? 0)} open</a></li>
           <li><a href="/watchlist">Watchlist</a></li>
           <li><a href="/digest">Digest</a></li>
           <li><a href="/sources">Sources</a></li>
@@ -151,7 +151,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
       </section>`
     : open
       ? ""
-      : html`<section class="box desk-box"><h2>Owner's desk</h2><p class="small">Triage, watchlist, digest and sources live in the Desk menu. <a href="/login">Sign in</a> to see your queue here.</p></section>`;
+      : html`<section class="box desk-box"><h2><a href="/login">Owner's desk</a></h2><p class="small">Triage, watchlist, digest and sources live in the Desk menu. <a href="/login">Sign in</a> to see your queue here.</p></section>`;
 
   // In the KEV lately: the newest catalog entries, each linking to its CVE page when it has one.
   const kevRows = db
@@ -159,7 +159,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
     .all() as Pick<WireItem, "title" | "url" | "external_id" | "published_at" | "fetched_at" | "signals_json">[];
   const kevBox = kevRows.length
     ? html`<section class="box">
-        <h2>In the KEV lately</h2>
+        <h2><a href="/?kind=kev">In the KEV lately</a></h2>
         <ul class="kev-list">
           ${kevRows.map((k) => {
             const due = signals(k).dueDate;
@@ -212,9 +212,9 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
       <aside class="side">
         ${kevBox}
         <section class="box">
-          <h2>Sources <span class="count">${totalUnread} unread</span></h2>
+          <h2><a href="/sources">Sources</a> <span class="count"><a href="${query(filters, { unread: true, before: undefined })}">${totalUnread} unread</a></span></h2>
           <ul class="src-list">
-            <li class="${!filters.source ? "on" : ""}"><a href="${query(filters, { source: undefined, before: undefined })}">All sources</a><b>${totalUnread}</b></li>
+            <li class="${!filters.source ? "on" : ""}"><a href="${query(filters, { source: undefined, before: undefined })}">All sources</a><b><a href="${query(filters, { source: undefined, unread: true, before: undefined })}">${totalUnread}</a></b></li>
             ${sourceList}
           </ul>
         </section>
