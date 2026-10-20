@@ -237,7 +237,8 @@ describe("triage and digest pages", () => {
     const kev = getSource(app.db, "cisa-kev")!;
     await ingestSource(app.db, app.dataDir, kev, { http: fakeHttp({ [kev.url]: { bytes: fixture("kev.json") } }), now: () => at });
     const board = await (await fetch(`${app.base}/triage`)).text();
-    expect(board).toContain("Inbox <span class=\"count\">3</span>");
+    expect(board).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">3</a></span></h2>');
+    expect(board).toContain('<a href="#affects">0 affect us</a> · <a href="#reviewing">0 reviewing</a> · <a href="#done">0 done</a>');
     expect(board).toContain("Ahsay AhsayCBS");
     expect(board).not.toContain("Affects us</button>");
 
@@ -247,8 +248,16 @@ describe("triage and digest pages", () => {
     const moved = await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "affects", back: "/triage" }, cookie);
     expect(moved.status).toBe(303);
     const after = await (await fetch(`${app.base}/triage`, { headers: { cookie } })).text();
-    expect(after).toContain("Inbox <span class=\"count\">2</span>");
-    expect(after).toContain("Affects us <span class=\"count\">1</span>");
+    expect(after).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">2</a></span></h2>');
+    expect(after).toContain('<h2><a href="#affects">Affects us</a> <span class="count"><a href="#affects">1</a></span></h2>');
+    // Dismissed cards stay out of the way under Done; their count opens them.
+    expect((await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "dismissed", back: "/triage" }, cookie)).status).toBe(303);
+    const hidden = await (await fetch(`${app.base}/triage`, { headers: { cookie } })).text();
+    expect(hidden).toContain('<a href="/triage?dismissed=1#dismissed">1 marked not ours</a>');
+    expect(hidden).not.toContain("Not ours</a>");
+    const shown = await (await fetch(`${app.base}/triage?dismissed=1`, { headers: { cookie } })).text();
+    expect(shown).toContain('<h3 class="small" id="dismissed"><a href="#dismissed">Not ours</a> <span class="count"><a href="#dismissed">1</a></span></h3>');
+    expect(shown.indexOf("Not ours</a>")).toBeLessThan(shown.indexOf("Ahsay AhsayCBS"));
     expect((await formPost(app.base, "/triage", { kind: "item", id: String(itemId), state: "bogus" }, cookie)).status).toBe(400);
     expect((await formPost(app.base, "/triage", { kind: "item", id: String(itemId), state: "affects", due: "soon" }, cookie)).status).toBe(400);
     const noted = await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "reviewing", note: "Two devices.", due: "2026-10-30", back: "/wire" }, cookie);
@@ -263,6 +272,10 @@ describe("triage and digest pages", () => {
 
     const wire = await (await fetch(`${app.base}/wire?kind=kev`, { headers: { cookie } })).text();
     expect(wire).toContain('action="/triage"');
+    // A source's unread count opens that source's unread items, keeping the kind filter.
+    expect(wire).toMatch(/<a href="\/\?source=cisa-kev&amp;kind=kev">CISA Known Exploited Vulnerabilities<\/a><b><a href="\/\?source=cisa-kev&amp;kind=kev&amp;unread=1">\d+<\/a><\/b>/);
+    expect(wire).toContain('<h2><a href="/?kind=kev">In the KEV lately</a></h2>');
+    expect(wire).toMatch(/<li><a href="\/triage">Triage<\/a><a class="when" href="\/triage#affects">\d+ open<\/a><\/li>/);
     const detailId = (app.db.prepare("SELECT id FROM items LIMIT 1").get() as { id: number }).id;
     void detailId;
 
@@ -271,11 +284,15 @@ describe("triage and digest pages", () => {
     expect(digestBefore).toContain("No notifier is configured");
     expect((await formPost(app.base, "/digest/run", {}, cookie)).status).toBe(303);
     const digestAfter = await (await fetch(`${app.base}/digest`)).text();
-    expect(digestAfter).toContain("Daily digest");
+    expect(digestAfter).toContain('<section class="box digest" id="latest"><h2><a href="#latest">Daily digest</a> <span class="count"><a href="#latest">');
     expect(digestAfter).toContain("Known exploited (CISA KEV): 3 added");
     expect(digestAfter).toContain("digest · unconfigured");
+    expect(digestAfter).toContain('<h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">1</a></span></h2>');
     const home = await (await fetch(`${app.base}/register`)).text();
     expect(home).toContain("Needs you");
-    expect(home).toContain("not yet placed");
+    expect(home).toMatch(/<dt>Inbox<\/dt><dd><a href="\/triage#new">\d+ not yet placed<\/a><\/dd>/);
+    expect(home).toContain('<dt>Last digest</dt><dd><a href="/digest#latest">');
+    expect(home).toContain('<dt>Last alert</dt><dd><a href="/digest#alerts">');
+    expect(home).toContain('<span class="count"><a href="/standards/cisa-kev">catalog ');
   });
 });

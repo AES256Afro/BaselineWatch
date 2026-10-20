@@ -16,13 +16,17 @@ interface Who {
 
 const platformName = (p: BuilderPlatform): string => builderPlatforms.find((b) => b.id === p)?.label ?? p;
 
+/** The STIG page a builder platform's rules are drawn on: the three mobile platforms share one. */
+const stigPlatform = (p: BuilderPlatform): string => (p === "ios" || p === "ipados" || p === "android" ? "mobile" : p);
+
 export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): string {
   const { db, owner, open, look } = options;
   const cards = builderPlatforms.map((p) => {
     const s = builderSummary(db, p.id);
+    const stigs = `/stigs/${stigPlatform(p.id)}`;
     return html`<li class="std">
-      <div class="std-head"><b><a href="/baselines/${p.id}">${p.label}</a></b>${s.stigs.length ? html`<span class="state ok">${s.stigs.length} STIG${s.stigs.length === 1 ? "" : "s"} loaded</span>` : html`<span class="state wait">No STIG loaded</span>`}</div>
-      <div class="std-meta"><span>${s.stigs.map((st) => st.product).join(", ") || "follow a STIG first"}</span>${p.id === "windows" ? html`<span>${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</span>` : ""}${usesMscp(p.id) ? html`<span>${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</span>` : ""}<span>${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</span></div>
+      <div class="std-head"><b><a href="/baselines/${p.id}">${p.label}</a></b>${s.stigs.length ? html`<a class="state ok" href="${stigs}">${s.stigs.length} STIG${s.stigs.length === 1 ? "" : "s"} loaded</a>` : html`<a class="state wait" href="${stigs}">No STIG loaded</a>`}</div>
+      <div class="std-meta"><span>${s.stigs.length ? s.stigs.map((st, i) => html`${i ? ", " : ""}<a href="${stigs}?stig=${encodeURIComponent(st.key)}">${st.product}</a>`) : html`<a href="/watchlist">follow a STIG first</a>`}</span>${p.id === "windows" ? html`<a class="n" href="/standards/microsoft-sct">${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</a>` : ""}${usesMscp(p.id) ? html`<a class="n" href="/standards/nist-mscp">${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</a>` : ""}<a class="n" href="/standards/nist-sp-800-53b">${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</a></div>
       <p class="std-note">${p.blurb}</p>
     </li>`;
   });
@@ -35,15 +39,15 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
       </section>
       <aside class="side">
         <section class="box">
-          <h2>How a profile is built</h2>
+          <h2><a href="/guide#register">How a profile is built</a></h2>
           <p class="small">A STIG's rules come first. On Windows, Microsoft's Security Compliance Toolkit settings are joined to rules by registry path and the rest listed as what Microsoft adds; DISA's own Intune policy and checklist say which rules its settings-catalog policy sets and which are outside its scope. On macOS, NIST's macOS Security Compliance Project rules are joined by STIG id and carry the configuration-profile keys. Every rule maps to SP 800-53 through DISA's CCIs; the High baseline's controls close the list, each with the rules that implement it.</p>
         </section>
         <section class="box">
-          <h2>What is never exported</h2>
+          <h2><a href="/guide#register">What is never exported</a></h2>
           <p class="small">CIS Benchmark text (your own upload, your own licence) and anything a model wrote. Microsoft's values appear only as the page quotes them. Each export carries the publishers' attributions.</p>
         </section>
         <section class="box">
-          <h2>Test plans</h2>
+          <h2><a href="/platforms">Test plans</a></h2>
           <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>; from the templates alone: <a href="/baselines/ios/tests">iOS</a>, <a href="/baselines/ipados/tests">iPadOS</a>, <a href="/baselines/android/tests">Android</a>, <a href="/baselines/collaboration/tests">Collaboration</a>. Each release and the hardware it runs on are on the <a href="/platforms">Platforms</a> page.</p>
         </section>
       </aside>
@@ -98,7 +102,7 @@ function nextBox(n: NextComparison): Html {
   const list = (rows: { label: string; title: string; what?: string }[], chip: string, kind: string) =>
     rows.length ? html`<ul class="change-list">${rows.slice(0, 10).map((r) => html`<li><b>${r.label}</b> <span class="chip ${kind}">${chip}</span> ${r.title}${r.what ? html` <span class="small">(${r.what})</span>` : ""}</li>`)}${rows.length > 10 ? html`<li class="small">and ${rows.length - 10} more</li>` : ""}</ul>` : "";
   return html`<section class="box">
-    <h2>${what}: current versus next</h2>
+    <h2><a href="/standards/${n.next.source}/${n.next.documentId}">${what}: current versus next</a></h2>
     <p class="small">${n.current.label} against <a href="/standards/${n.next.source}/${n.next.documentId}">${n.next.label}</a>${n.next.publishedAt ? ` (${n.next.publishedAt.slice(0, 10)})` : ""}: the strict set gains ${n.added.length}, loses ${n.removed.length}, and ${n.changed.length} change${n.changed.length === 1 ? "s" : ""}.</p>
     ${list(n.added, "gains", "ins")}${list(n.removed, "loses", "del")}${list(n.changed, "changes", "mod")}
   </section>`;
@@ -155,6 +159,17 @@ export function renderBuilder(options: BuilderOptions): string {
     ${list(g.items)}
   </details>`;
   const platformFlavours = flavours.filter((f) => f.id === "plain" || (usesMscp(p) && f.id === "jamf") || (p === "windows" && f.id === "intune") || (p === "linux" && f.id === "linux"));
+  // A section's heading as a plain link: the documents it was built from ride along, the unticked items start from the owner's decisions.
+  const sectionHref = (id?: SectionId): string => {
+    const q = new URLSearchParams();
+    if (c.stig) q.set("stig", choiceValue(c.stig));
+    if (c.sct) q.set("sct", choiceValue(c.sct));
+    if (c.mscp) q.set("mscp", choiceValue(c.mscp));
+    if (profile.options.cat3) q.set("cat3", "1");
+    if (id) q.set("section", id);
+    const s = q.toString();
+    return `/baselines/${p}${s ? `?${s}` : ""}`;
+  };
 
   const main = !c.stig
     ? html`<div class="empty"><b>No ${name} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> and fetch the DISA library from <a href="/sources">Sources</a>.` : "The owner can follow one through the watchlist."}</p></div>`
@@ -191,29 +206,29 @@ export function renderBuilder(options: BuilderOptions): string {
         </fieldset>`
           : ""}
         <nav class="ptabs" aria-label="Sections of the profile">${sections.map((s) => html`<button type="submit" name="section" value="${s.id}" class="${s.id === current?.id ? "on" : ""}" ${s.id === current?.id ? html`aria-current="true"` : ""}>${s.label} <span class="count">${s.kept} of ${s.items.length}</span></button>`)}</nav>
-        ${current ? html`<h2>${current.label} <span class="count">${current.kept} kept</span></h2><p class="small">${sectionBlurb(current, profile)}</p>${groups.length === 1 ? list(groups[0]!.items) : groups.map(group)}` : html`<p class="small">The STIG has no CAT I or CAT II rules to draw.</p>`}
+        ${current ? html`<h2><a href="${sectionHref(current.id)}">${current.label}</a> <span class="count"><a href="${sectionHref(current.id)}">${current.kept} kept</a></span></h2><p class="small">${sectionBlurb(current, profile)}</p>${groups.length === 1 ? list(groups[0]!.items) : groups.map(group)}` : html`<p class="small">The STIG has no CAT I or CAT II rules to draw.</p>`}
         ${sections.some((s) => s.id === "controls") ? "" : html`<p class="small">The SP 800-53 High baseline is not loaded; fetch NIST SP 800-53B from Sources to close the list with its controls.</p>`}
       </form>`;
 
   const aside = html`
     <section class="box">
-      <h2>Built from</h2>
+      <h2><a href="/register">Built from</a></h2>
       <dl class="kv">
         ${c.stig ? html`<dt>STIG</dt><dd><a href="/standards/disa-stigs/${c.stig.documentId}">${c.stig.label}</a>${c.stig.publishedAt ? html` <span class="small">${c.stig.publishedAt.slice(0, 10)}</span>` : ""}</dd>` : ""}
         ${c.sct ? html`<dt>Microsoft baseline</dt><dd><a href="/standards/microsoft-sct/${c.sct.documentId}">${c.sct.label}</a></dd>` : p === "windows" ? html`<dt>Microsoft baseline</dt><dd>not loaded</dd>` : ""}
         ${c.mscp ? html`<dt>mSCP</dt><dd><a href="/standards/nist-mscp/${c.mscp.documentId}">${c.mscp.label}</a></dd>` : usesMscp(p) ? html`<dt>mSCP</dt><dd>not loaded</dd>` : ""}
         <dt>Controls</dt><dd>${c.controls ? html`<a href="/standards/nist-sp-800-53b/${c.controls.documentId}">${c.controls.label}</a>` : "High baseline not loaded"}${c.cciVersion ? html`<br><span class="small">CCI list ${c.cciVersion}</span>` : html`<br><span class="small">CCI list not loaded: no rule-to-control mapping</span>`}</dd>
         ${p === "windows" ? html`<dt>DISA Intune policy</dt><dd>${c.intune ? html`<a href="/standards/disa-intune/${c.intune.documentId}">${c.intune.label}</a> <span class="small">${c.intune.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd><dt>DISA checklist</dt><dd>${c.checklist ? html`<a href="/standards/disa-gpo/${c.checklist.documentId}">${c.checklist.label}</a> <span class="small">${c.checklist.version ?? ""}</span>` : "none for this STIG in DISA's package"}</dd>` : ""}
-        <dt>Kept</dt><dd>${profile.counts.included} of ${profile.items.length}${profile.counts.dropped ? html` (${profile.counts.dropped} dropped)` : ""}</dd>
+        <dt>Kept</dt><dd><a href="${sectionHref(current?.id)}">${profile.counts.included} of ${profile.items.length}${profile.counts.dropped ? ` (${profile.counts.dropped} dropped)` : ""}</a></dd>
         <dt>Decisions</dt><dd><a href="/baselines/${p}/decisions">${profile.counts.decisions.modify} modified, ${profile.counts.decisions.exclude} not applied</a>; the rest as published</dd>
       </dl>
     </section>
     ${profile.next.map(nextBox)}
-    ${c.stig && profile.next.length === 0 ? html`<section class="box"><h2>Current versus next</h2><p class="small">No newer version of the STIG${p === "windows" ? ", the Microsoft baseline" : usesMscp(p) ? " or the next mSCP branch" : ""} is loaded; when one arrives this box lists what the strict set gains and loses.</p></section>` : ""}
+    ${c.stig && profile.next.length === 0 ? html`<section class="box"><h2><a href="/standards/disa-stigs">Current versus next</a></h2><p class="small">No newer version of the STIG${p === "windows" ? ", the Microsoft baseline" : usesMscp(p) ? " or the next mSCP branch" : ""} is loaded; when one arrives this box lists what the strict set gains and loses.</p></section>` : ""}
     <section class="box">
-      <h2>Whose words</h2>
+      <h2><a href="/guide#register">Whose words</a></h2>
       <p class="small">STIG rules: DISA (public domain). Controls: NIST SP 800-53 Rev 5 (public domain), mapped through DISA's CCIs. ${usesMscp(p) ? "Apple rules and payload keys: NIST's macOS Security Compliance Project. " : ""}${p === "windows" ? "Microsoft's values: your own copy of the Security Compliance Toolkit, never redistributed. Intune definitions and checklist verdicts: DISA's own packages. " : ""}No CIS text, nothing from a model.</p>
-      <p class="small"><a href="/baselines/${p}/decisions">The ${name} decisions</a> · <a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${p === "ios" || p === "ipados" || p === "android" ? "mobile" : p}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
+      <p class="small"><a href="/baselines/${p}/decisions">The ${name} decisions</a> · <a href="/baselines/${p}/tests">The ${name} test plan</a> · <a href="/stigs/${stigPlatform(p)}">The ${name} STIG pages</a> · <a href="/baselines">All platforms</a></p>
     </section>`;
 
   const content = html`

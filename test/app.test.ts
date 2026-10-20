@@ -45,14 +45,31 @@ describe("pages", () => {
     expect(text).toContain("https://cybercard.net");
     expect(text).not.toContain("not-shown");
     expect(text).toContain("NVD API key</dt><dd>set");
+    // The totals strip and the side boxes lead to where each figure is counted.
+    expect(text).toMatch(/<a href="\/sources#standards"><small>Standards tracked<\/small><b>\d+<\/b><\/a>/);
+    expect(text).toContain('<a href="/sources"><small>Sources enabled</small>');
+    expect(text).toContain('<a href="#tracked"><small>Snapshots</small>');
+    expect(text).toContain('<a href="/?kind=release"><small>Changes</small>');
+    expect(text).toContain('<a href="/?unread=1"><small>News, unread</small>');
+    expect(text).toContain('<a href="#instance"><small>Database</small>');
+    expect(text).toContain('<h2><a href="/triage">Needs you</a></h2>');
+    expect(text).toContain('<h2><a href="/?kind=kev">Known exploited, newest</a>');
+    expect(text).toContain('<section class="box" id="instance">\n          <h2><a href="/health">This instance</a></h2>');
+    expect(text).toContain('<a href="https://github.com/AES256Afro/BaselineWatch/blob/main/docs/PLAN.md" target="_blank" rel="noopener">What comes next</a>');
+    expect(text).toMatch(/<a class="n" href="\/standards\/nist-sp-800-53">0 snapshots · 0 changes<\/a>/);
   });
 
   it("serves the Sources register and an empty Wire", async () => {
     const text = await (await fetch(`${app.base}/sources`)).text();
     expect(text).toContain("CISA Known Exploited Vulnerabilities");
     expect(text).toContain("r/netsec");
+    // Each group heads to the News filtered to it, its count to the table, and an item count to that source's items.
+    expect(text).toMatch(/<section id="standards">\s*<h2><a href="\/\?group=standards">Standards and baselines<\/a> <span class="count"><a href="#standards">\d+<\/a><\/span><\/h2>/);
+    expect(text).toContain('<td class="n"><a href="/?source=cisa-kev">0</a></td>');
     const wire = await (await fetch(`${app.base}/wire`)).text();
     expect(wire).toContain("Nothing here yet.");
+    expect(wire).toContain('<h2><a href="/sources">Sources</a> <span class="count"><a href="/?unread=1">0 unread</a></span></h2>');
+    expect(wire).toContain('<a href="/">All sources</a><b><a href="/?unread=1">0</a></b>');
   });
 
   it("serves the guide and links it from the masthead and the footer", async () => {

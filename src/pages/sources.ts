@@ -55,8 +55,8 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
 
   const tables: Html[] = [];
   for (const [group, list] of groups) {
-    tables.push(html`<section>
-      <h2>${groupLabel[group] ?? group} <span class="count">${list.length}</span></h2>
+    tables.push(html`<section id="${group}">
+      <h2><a href="/?group=${group}">${groupLabel[group] ?? group}</a> <span class="count"><a href="#${group}">${list.length}</a></span></h2>
       <div class="table-wrap"><table>
         <thead><tr><th>Source</th><th>Format</th><th>Checked</th><th>Items</th><th>Last fetch</th><th>Licence</th>${owner ? html`<th></th>` : ""}</tr></thead>
         <tbody>${list.map((s) => {
@@ -65,7 +65,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
             <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.notes ? html`<div class="note">${s.notes}</div>` : ""}</td>
             <td>${s.format}</td>
             <td>${s.enabled ? s.schedule : "off"}${adapter ? "" : html`<div class="note">no adapter yet</div>`}</td>
-            <td class="n">${s.item_count}</td>
+            <td class="n"><a href="/?source=${s.id}">${s.item_count}</a></td>
             <td>${s.last_fetch_at
               ? html`${shortStamp(s.last_fetch_at)} <span class="status ${s.last_status ?? ""}">${s.last_status ?? ""}</span>${s.last_duration_ms !== null ? html` <span class="small">${s.last_duration_ms} ms</span>` : ""}`
               : html`<span class="state wait">never</span>`}${s.last_error ? html`<div class="note err">${s.last_error}</div>` : ""}${hintFor(s, adapter)}</td>

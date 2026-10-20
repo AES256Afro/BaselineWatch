@@ -52,9 +52,11 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
   const byKey = new Map<string, DocumentRow[]>();
   for (const d of documents) byKey.set(d.document_key, [...(byKey.get(d.document_key) ?? []), d]);
 
+  // The key's heading reads the newest version; the count is a permalink to its table of versions.
+  const anchor = (key: string) => `doc-${key.replace(/[^a-z0-9]+/gi, "-")}`;
   const sections = [...byKey.entries()].map(
-    ([key, docs]) => html`<section class="box">
-      <h2>${keyLabel(key)} <span class="count">${docs.length} version${docs.length === 1 ? "" : "s"}</span></h2>
+    ([key, docs]) => html`<section class="box" id="${anchor(key)}">
+      <h2><a href="/standards/${sourceId}/${docs[0]!.id}/browse">${keyLabel(key)}</a> <span class="count"><a href="#${anchor(key)}">${docs.length} version${docs.length === 1 ? "" : "s"}</a></span></h2>
       <div class="table-wrap"><table>
         <thead><tr><th>Version</th><th>Published</th><th>Requirements</th><th>Against the previous version</th><th>Loaded</th></tr></thead>
         <tbody>${docs.map((d) => {
@@ -62,8 +64,8 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
           return html`<tr>
             <td><a href="/standards/${sourceId}/${d.id}"><b>${d.version_label ?? "version unknown"}</b></a></td>
             <td>${d.published_at ? d.published_at.slice(0, 10) : "—"}</td>
-            <td class="n">${d.requirement_count}</td>
-            <td>${summary}</td>
+            <td class="n"><a href="/standards/${sourceId}/${d.id}/browse">${d.requirement_count}</a></td>
+            <td>${d.previous_document_id ? html`<a href="/standards/${sourceId}/${d.id}">${summary}</a>` : html`<a href="/standards/${sourceId}/${d.id}/browse">${summary}</a>`}</td>
             <td class="small">${relativeTime(d.parsed_at, now)}</td>
           </tr>`;
         })}</tbody>
@@ -120,7 +122,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
   const content = html`
     <div class="rel">
       <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
-      <div class="when">${doc.requirement_count} requirements · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
+      <div class="when"><a href="/standards/${sourceId}/${documentId}/browse">${doc.requirement_count} requirements</a> · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
     </div>
     <div class="wire-top">
       <form method="get" action="/standards/${sourceId}/${documentId}/browse" class="search" role="search">
@@ -199,13 +201,13 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key)} source</a></div>
     </div>
     <div class="pills">
-      ${summary.added.length ? html`<span class="pill ins">+ ${summary.added.length} added: ${summary.added.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.added.length > 10 ? "…" : ""}</span>` : ""}
-      ${summary.removed.length ? html`<span class="pill del">− ${summary.removed.length} removed: ${summary.removed.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.removed.length > 10 ? "…" : ""}</span>` : ""}
-      ${summary.substantive.length ? html`<span class="pill mod">~ ${summary.substantive.length} revised: ${summary.substantive.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.substantive.length > 10 ? "…" : ""}</span>` : ""}
-      ${summary.editorial.length ? html`<span class="pill">${summary.editorial.length} with discussion, related-control or assessment updates</span>` : ""}
-      ${!previous ? html`<span class="pill none">First version loaded: ${doc.requirement_count} requirements, nothing to compare yet</span>` : ""}
-      ${previous && changes.length === 0 ? html`<span class="pill none">No control-level changes against ${previous.version_label ?? "the previous version"}</span>` : ""}
-      ${changes.length ? (() => { const noted = notedChangeCount(db, documentId); return noted ? html`<span class="pill">${noted} of ${byRef.size} changed requirements carry the publisher's note</span>` : ""; })() : ""}
+      ${summary.added.length ? html`<a class="pill ins" href="#substantive">+ ${summary.added.length} added: ${summary.added.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.added.length > 10 ? "…" : ""}</a>` : ""}
+      ${summary.removed.length ? html`<a class="pill del" href="#substantive">− ${summary.removed.length} removed: ${summary.removed.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.removed.length > 10 ? "…" : ""}</a>` : ""}
+      ${summary.substantive.length ? html`<a class="pill mod" href="#substantive">~ ${summary.substantive.length} revised: ${summary.substantive.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.substantive.length > 10 ? "…" : ""}</a>` : ""}
+      ${summary.editorial.length ? html`<a class="pill" href="#editorial">${summary.editorial.length} with discussion, related-control or assessment updates</a>` : ""}
+      ${!previous ? html`<a class="pill none" href="/standards/${sourceId}/${documentId}/browse">First version loaded: ${doc.requirement_count} requirements, nothing to compare yet</a>` : ""}
+      ${previous && changes.length === 0 ? html`<a class="pill none" href="/standards/${sourceId}/${previous.id}">No control-level changes against ${previous.version_label ?? "the previous version"}</a>` : ""}
+      ${changes.length ? (() => { const noted = notedChangeCount(db, documentId); return noted ? html`<a class="pill" href="#substantive">${noted} of ${byRef.size} changed requirements carry the publisher's note</a>` : ""; })() : ""}
     </div>
     ${explanations.map((e) =>
       e.kind === "publisher"
@@ -219,11 +221,11 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       ? html`<p class="small">No control in ${family} changed in this release. <a href="/standards/${sourceId}/${documentId}/browse?family=${encodeURIComponent(family)}">Read the family's controls in this version</a>.</p>`
       : ""}
     ${substantive.length
-      ? html`<section class="box"><h2>Controls added, removed or revised${inWords} <span class="count">${substantive.length}</span></h2>
+      ? html`<section class="box" id="substantive"><h2><a href="#substantive">Controls added, removed or revised${inWords}</a> <span class="count"><a href="#substantive">${substantive.length}</a></span></h2>
           <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
       : ""}
     ${editorial.length
-      ? html`<section class="box"><h2>Discussion, related-control and assessment updates${inWords} <span class="count">${editorial.length}</span></h2>
+      ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
           <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
       : ""}
     <p class="small"><a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · <a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
@@ -257,7 +259,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   const implementedBy =
     map && sourceId === "nist-sp-800-53" && map.documentId !== null
       ? html`<section class="box">
-          <h2>STIG rules that implement this control <span class="count">${implementers.reduce((n, h) => n + h.rules.length, 0)}</span></h2>
+          <h2><a href="/stigs">STIG rules that implement this control</a> <span class="count"><a href="/stigs">${implementers.reduce((n, h) => n + h.rules.length, 0)}</a></span></h2>
           ${implementers.length
             ? implementers.map(
                 (hit) => html`<h3 class="small"><a href="/stigs/${hit.stig.platform}?stig=${encodeURIComponent(hit.stig.key)}">${hit.stig.product}</a> ${hit.stig.latest.version_label ?? ""}</h3>
@@ -288,10 +290,10 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       <div class="when">${source.name} ${doc.version_label ?? ""}${previous ? html` against ${previous.version_label ?? "previous"}` : ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
     </div>
     <div class="pills">
-      <span class="pill ${kind === "added" ? "ins" : kind === "removed" ? "del" : kind === "modified" ? "mod" : "none"}">${kind === "first" ? "first version loaded" : kind}</span>
-      ${shown.family ? html`<span class="pill">${shown.family}</span>` : ""}
+      <a class="pill ${kind === "added" ? "ins" : kind === "removed" ? "del" : kind === "modified" ? "mod" : "none"}" href="/standards/${sourceId}/${documentId}">${kind === "first" ? "first version loaded" : kind}</a>
+      ${shown.family ? html`<a class="pill" href="/standards/${sourceId}/${documentId}?family=${encodeURIComponent(shown.family)}">${shown.family}</a>` : ""}
       ${shown.status === "withdrawn" ? html`<span class="pill del">withdrawn</span>` : ""}
-      ${baselines.map((b) => html`<span class="pill">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</span>`)}
+      ${baselines.map((b) => html`<a class="pill" href="/standards/nist-sp-800-53b">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</a>`)}
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
     </div>
     ${mapping}
