@@ -4,6 +4,7 @@ import { createApp, pullSettings } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { listSources } from "./ingest.ts";
+import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
@@ -41,6 +42,8 @@ if (config.scheduler) {
     transport: parseNotifyUrl(config.notifyUrl),
     baseUrl: config.baseUrl,
     digest: { period: config.digest, hour: config.digestHour, timeZone: config.timeZone },
+    // The LAN scan (M12.3) runs itself daily once the owner has turned it on at /scan/network.
+    network: () => maybeRunNetworkScan(db, { timeZone: config.timeZone, baseUrl: config.baseUrl, transport: parseNotifyUrl(config.notifyUrl), log: (line) => console.log(line) }),
   });
   if (config.notifyUrl && !parseNotifyUrl(config.notifyUrl)) {
     console.log("[notify] BW_NOTIFY_URL is not an ntfy://, gotify:// or http(s):// address; alerts will be logged as unconfigured");

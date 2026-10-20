@@ -24,7 +24,9 @@ describe("the Scan page", () => {
     const text = await response.text();
     for (const id of ["hiding", "requests", "dns", "apps", "network"]) expect(text).toContain(`data-check="${id}"`);
     expect(text.match(/<span class="state na">Not run<\/span>/g)).toHaveLength(3);
-    expect(text.match(/Not a page's to test/g)).toHaveLength(2);
+    expect(text.match(/Not a page's to test/g)).toHaveLength(1);
+    expect(text).toContain("Not run from this server");
+    expect(text).toContain('<a href="/scan/network">network check</a>');
     expect(text).toContain('<button type="button" class="primary" id="scan-run" disabled>Run the check</button>');
     expect(text).toContain("Limits of this check");
     expect(text).toContain("Privacy of the test");

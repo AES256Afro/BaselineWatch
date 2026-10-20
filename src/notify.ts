@@ -9,7 +9,7 @@ import { HttpError, httpGet, type HttpGet } from "./http.ts";
  * Email goes through one of these (ntfy and Apprise both forward to mail) rather than SMTP here.
  */
 export interface Notification {
-  kind: "kev" | "release" | "watch" | "directive" | "digest" | "test";
+  kind: "kev" | "release" | "watch" | "directive" | "digest" | "network" | "test";
   title: string;
   body: string;
   url?: string | null;
@@ -69,11 +69,11 @@ export async function send(transport: Transport | null, n: Notification, http: H
   const post = { method: "POST" as const, timeoutMs: 20_000, redirect: "manual" as const };
   try {
     if (transport.scheme === "ntfy") {
-      const headers: Record<string, string> = { title: headerValue(n.title), tags: n.kind === "kev" ? "rotating_light" : n.kind === "directive" ? "warning" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
+      const headers: Record<string, string> = { title: headerValue(n.title), tags: n.kind === "kev" || n.kind === "network" ? "rotating_light" : n.kind === "directive" ? "warning" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
       if (n.url) headers.click = headerValue(n.url);
       await http(transport.endpoint, { ...post, body: n.body, headers });
     } else if (transport.scheme === "gotify") {
-      const body = JSON.stringify({ title: n.title, message: n.url ? `${n.body}\n${n.url}` : n.body, priority: n.kind === "kev" || n.kind === "directive" ? 7 : 4 });
+      const body = JSON.stringify({ title: n.title, message: n.url ? `${n.body}\n${n.url}` : n.body, priority: n.kind === "kev" || n.kind === "directive" || n.kind === "network" ? 7 : 4 });
       await http(transport.endpoint, { ...post, body, headers: { "content-type": "application/json", "x-gotify-key": transport.token ?? "" } });
     } else {
       await http(transport.endpoint, { ...post, body: JSON.stringify({ kind: n.kind, title: n.title, body: n.body, url: n.url ?? null }), headers: { "content-type": "application/json" } });

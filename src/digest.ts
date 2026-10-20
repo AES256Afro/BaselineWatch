@@ -71,6 +71,27 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   for (const s of starred) lines.push(`- ${s.title}${s.url ? ` ${s.url}` : ""}`);
   lines.push("");
 
+  // The network scan (M12.3): a day-over-day change is news; an unchanged run says nothing here.
+  const scans = db.prepare("SELECT changes_json FROM net_scans WHERE finished_at > ? AND finished_at <= ? AND changes_json IS NOT NULL ORDER BY id").all(from, to) as { changes_json: string }[];
+  const netLines: string[] = [];
+  let netChanges = 0;
+  for (const scan of scans) {
+    const changes = parseJson<{ resolverChanged?: { from: string | null; to: string | null } | null; newlyResolving?: { category: string; name: string }[]; newlySinkholed?: { category: string; name: string }[] }>(scan.changes_json, {});
+    if (changes.resolverChanged) {
+      netLines.push(`- the resolver changed: ${changes.resolverChanged.from ?? "none"} → ${changes.resolverChanged.to ?? "none"}`);
+      netChanges += 1;
+    }
+    for (const c of (changes.newlyResolving ?? []).slice(0, 10)) netLines.push(`- ${c.name} (${c.category}) now resolves; it was sinkholed`);
+    for (const c of (changes.newlySinkholed ?? []).slice(0, 10)) netLines.push(`- ${c.name} (${c.category}) is now sinkholed`);
+    netChanges += (changes.newlyResolving?.length ?? 0) + (changes.newlySinkholed?.length ?? 0);
+  }
+  if (netChanges > 0) {
+    lines.push(`This network: ${netChanges} change(s) ${baseUrl}/scan/network`);
+    lines.push(...netLines);
+    if (netChanges > netLines.length) lines.push(`- …and ${netChanges - netLines.length} more`);
+    lines.push("");
+  }
+
   const counts = triageCounts(db);
   const open = (["affects", "reviewing", "new"] as TriageState[]).map((s) => `${counts[s]} ${stateLabel[s].toLowerCase()}`).join(", ");
   const due = db.prepare("SELECT COUNT(*) AS n FROM triage WHERE due_at IS NOT NULL AND due_at <= ? AND state NOT IN ('done', 'dismissed')").get(day(to)) as { n: number };
