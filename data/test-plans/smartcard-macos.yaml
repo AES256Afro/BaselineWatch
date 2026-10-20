@@ -1,0 +1,31 @@
+id: smartcard-macos
+title: Smart card (PIV or CAC) sign-in on macOS
+platforms: [macos]
+area: authentication
+requires: [smart card, smartcard]
+notes: Joins the plan only when an applied rule enforces smart card authentication (mSCP auth_smartcard_enforce and the STIG rules it joins). Test with a provisioned PIV or CAC card and its reader.
+steps:
+  - do: Insert the card and run sc_auth identities and security list-smartcards.
+    expect: The card is listed with its certificates, and its identity is paired to the test user.
+    fail: Pair the identity with sc_auth pair, or check the attribute mapping in the smart card configuration profile if the fleet maps by UPN instead of pairing.
+    source:
+      title: macOS Security Compliance Project, auth_smartcard_enforce
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/auth/auth_smartcard_enforce.yaml
+  - do: Sign out and sign in at the login window with the card and its PIN; then try a password sign-in.
+    expect: The card and PIN sign in; a password alone is refused because smart card enforcement is on.
+    fail: If a password still works, the enforcement key is not set; check the com.apple.security.smartcard payload the rule names.
+    source:
+      title: macOS Security Compliance Project, auth_smartcard_enforce
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/auth/auth_smartcard_enforce.yaml
+  - do: Remove the card while signed in.
+    expect: The screen locks (or the user is signed out) as the smart card removal policy sets.
+    fail: Check the removal action in the login window payload (tokenRemovalAction); record a finding if it is unset.
+    source:
+      title: macOS Security Compliance Project, auth_smartcard_enforce
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/auth/auth_smartcard_enforce.yaml
+  - do: Run sudo -v with the card inserted.
+    expect: sudo asks for the card's PIN, not the password, where the configuration requires the card for sudo.
+    fail: Check /etc/pam.d/sudo for pam_smartcard.so; record a finding if the baseline requires it and it is absent.
+    source:
+      title: macOS Security Compliance Project, auth_smartcard_enforce
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/auth/auth_smartcard_enforce.yaml

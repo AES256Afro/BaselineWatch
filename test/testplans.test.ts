@@ -32,17 +32,23 @@ describe("areas", () => {
       "entra-join-hello-windows",
       "entra-sso-mobile",
       "filevault-escrow",
+      "firewall-macos",
       "hardware-root-android",
       "hardware-root-ios",
       "hardware-root-linux",
       "hardware-root-macos",
       "hardware-root-windows",
+      "ipados-shared-ipad",
       "luks-escrow",
       "macos-release-checks",
       "mdm-enrolment",
       "platform-sso-entra-macos",
+      "smartcard-macos",
+      "ssh-macos",
       "sso-intune-browsers",
       "sso-jamf-browsers",
+      "sso-jamf-connect",
+      "sso-kerberos-extension",
       "windows-feature-update",
     ]);
     const jamf = templates.find((t) => t.id === "sso-jamf-browsers")!;
@@ -102,7 +108,9 @@ describe("test plans", () => {
     expect(without.items.every((i) => i.source !== "template")).toBe(true);
     const mac = buildTestPlan(app.db, { platform: "macos" });
     expect(mac.items.filter((i) => i.source === "mscp").map((i) => i.label).sort()).toEqual(["os_sip_enable", "pwpolicy_minimum_length_enforce"]);
-    expect(mac.templates.map((t) => t.id)).toEqual(["conditional-access", "filevault-escrow", "hardware-root-macos", "macos-release-checks", "mdm-enrolment", "platform-sso-entra-macos", "sso-jamf-browsers"]);
+    expect(mac.templates.map((t) => t.id)).toEqual(["conditional-access", "filevault-escrow", "hardware-root-macos", "macos-release-checks", "mdm-enrolment", "platform-sso-entra-macos", "smartcard-macos", "sso-jamf-browsers", "sso-jamf-connect", "sso-kerberos-extension"]);
+    // The fixtures apply a smart card rule but no SSH or firewall rule, so those templates are left out, saying why.
+    expect(mac.skippedTemplates.map((s) => `${s.template.id}: ${s.reason}`)).toEqual(["firewall-macos: no applied rule names firewall", "ssh-macos: no applied rule names ssh or sshd"]);
     expect(mac.items.find((i) => i.label === "APPL-26-005020")?.area).toBe("encryption");
   });
 
@@ -135,7 +143,7 @@ describe("test plans", () => {
     expect(md).toContain("- [ ] **sso-intune-browsers 3**");
     expect(md).toContain("## Attribution");
     const csv = await (await fetch(`${base}/baselines/macos/tests/export?format=csv&drop=template:conditional-access:1`)).text();
-    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,reference");
+    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,our value,reference");
     expect(csv).toContain("APPL-26-005020");
     expect(csv).not.toContain("conditional-access 1,");
     expect(csv).toContain("conditional-access 2,");

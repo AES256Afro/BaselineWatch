@@ -1,0 +1,30 @@
+id: sso-jamf-connect
+title: Jamf Connect at the login window, with the identity provider's password kept in sync
+platforms: [macos]
+area: sso
+notes: For fleets that use Jamf Connect instead of (or before) Platform SSO. Test with Jamf Connect's login window and menu bar app configured for your identity provider (Microsoft Entra, Okta, Google) on a Mac enrolled in Jamf Pro.
+steps:
+  - do: On a wiped, enrolled Mac, create the first account through the Jamf Connect login window with the test identity.
+    expect: The identity provider's sign-in (with MFA) appears at the login window and creates a local account named as the configuration sets.
+    fail: Check that the Jamf Connect login configuration profile is scoped to the Mac and that the loginwindow mechanism is installed (authchanger -print lists JamfConnectLogin); re-push the profile and restart.
+    source:
+      title: Jamf Connect documentation, "About Jamf Connect"
+      url: https://learn.jamf.com/en-US/bundle/jamf-connect-documentation-current/page/About_Jamf_Connect.html
+  - do: Sign out and back in; then check the menu bar app's connection state.
+    expect: The local password is the identity provider's password; the menu bar app shows the user signed in.
+    fail: Compare the menu bar app's identity provider settings with the login window's; a different client ID or tenant breaks the sync.
+    source:
+      title: Jamf Connect documentation, "About Jamf Connect"
+      url: https://learn.jamf.com/en-US/bundle/jamf-connect-documentation-current/page/About_Jamf_Connect.html
+  - do: Change the password at the identity provider, then let the menu bar app check in (or choose to sign in again).
+    expect: The app prompts for the new and old passwords once and updates the local and FileVault passwords to match.
+    fail: If FileVault still takes the old password, the user is not a FileVault user or the secure token is missing; check fdesetup list and sysadminctl -secureTokenStatus for the user.
+    source:
+      title: Jamf Connect documentation, "About Jamf Connect"
+      url: https://learn.jamf.com/en-US/bundle/jamf-connect-documentation-current/page/About_Jamf_Connect.html
+  - do: Disable the test account at the identity provider and try to sign in at the login window with network access.
+    expect: Sign-in is refused at the identity provider; the Mac does not fall back to a stale local password where the configuration forbids it.
+    fail: Treat it as a finding; set the configuration to require network authentication when online and record the decision.
+    source:
+      title: Jamf Connect documentation, "About Jamf Connect"
+      url: https://learn.jamf.com/en-US/bundle/jamf-connect-documentation-current/page/About_Jamf_Connect.html
