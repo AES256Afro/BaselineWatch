@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BaselineWatch Logo Mockups</title>
+<link rel="icon" href="01-datum.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f4f5f3;--fg:#17201f;--muted:#5d6a67;--line:#d4dad7;--panel:#fff;--panel2:#f7f8f6;--ink:#1b1f23;--acc:#0f6e56;--del:#b3261e;--ins:#1b6e3a;--mute:#5f6b70;
+  --ui:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,serif;--mono:"JetBrains Mono",Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121716;--fg:#e6ebe9;--muted:#97a3a0;--line:#2a3331;--panel:#1a211f;--panel2:#20292a;--ink:#e7eae6;--acc:#4cc9a6;--del:#ff8a80;--ins:#7fd99a;--mute:#9aa6a3;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121716;--fg:#e6ebe9;--muted:#97a3a0;--line:#2a3331;--panel:#1a211f;--panel2:#20292a;--ink:#e7eae6;--acc:#4cc9a6;--del:#ff8a80;--ins:#7fd99a;--mute:#9aa6a3;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--ui);margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 48px}
+.head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:75ch;margin:0}
+.theme{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.theme button{appearance:none;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;padding:7px 12px;cursor:pointer}
+.theme button+button{border-left:1px solid var(--line)}
+.theme button[aria-pressed="true"]{background:var(--acc);color:#fff}
+:root[data-theme="dark"] .theme button[aria-pressed="true"]{color:#06211a}
+.disclosure{margin-top:14px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);font-size:13px}
+.disclosure b{color:var(--fg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:22px}
+.card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;min-width:0}
+.card header{display:flex;align-items:baseline;gap:8px;padding:10px 14px 0}
+.card header .n{font:600 12px var(--ui);color:var(--acc)}
+.card header h2{font:600 15px var(--ui);margin:0;flex:1}
+.card header .file{font:12px var(--mono);color:var(--muted);text-decoration:none}
+.card header .file:hover{color:var(--acc);text-decoration:underline}
+.stage{display:grid;place-items:center;height:150px;margin:10px 14px 0;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.lockup{display:flex;align-items:center;gap:10px;padding:12px 14px 0}
+.word{font:500 26px/1 var(--serif);letter-spacing:-.005em;color:var(--ink)}
+.favs{display:flex;align-items:flex-end;gap:12px;padding:12px 14px 0;flex-wrap:wrap}
+.fav{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fav small{font-size:11px;color:var(--muted);white-space:nowrap}
+.fav .box{display:grid;place-items:center;width:40px;height:40px}
+.loupe{width:64px;height:64px;image-rendering:pixelated;border:1px solid var(--line);background:var(--panel2)}
+.tile{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel2)}
+.tab{display:flex;align-items:center;gap:7px;height:30px;padding:0 12px 0 10px;border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;background:var(--panel2);font:12px var(--ui);color:var(--fg);white-space:nowrap;margin-left:auto}
+.why{margin:10px 14px 14px;color:var(--muted);font-size:13px;line-height:1.4}
+.si{stroke:var(--ink);fill:none}.fi{fill:var(--ink)}.sa{stroke:var(--acc);fill:none}.fa{fill:var(--acc)}
+.sd{stroke:var(--del);fill:none}.fd{fill:var(--del)}.sn{stroke:var(--ins);fill:none}.fn{fill:var(--ins)}.sm{stroke:var(--mute);fill:none}
+.extra{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.extra section{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 16px;font-size:14px;min-width:0}
+.extra h2{font-size:15px;margin:0 0 6px}
+.extra ul{margin:0;padding-left:18px;color:var(--muted)}
+.extra li+li{margin-top:4px}
+.extra pre{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:var(--panel2);font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--fg)}
+.words{display:grid;gap:10px;margin-top:8px}
+.words div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.words .w1{font:500 24px/1 var(--serif);color:var(--ink)}
+.words .w2{font:600 15px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.words .w2 b{color:var(--acc);font-weight:inherit}
+.words .w3{font:500 24px/1 var(--serif);color:var(--ink)}
+.words .w3 i{font-style:italic;font-weight:400;color:var(--acc)}
+.words small{font-size:12px;color:var(--muted)}
+a{color:var(--acc)}
+code{font:13px var(--mono)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="s01" viewBox="0 0 64 64"><path class="si" d="M6 46H58" stroke-width="6"/><path class="fa" d="M32 42L19 20H45Z"/></symbol><symbol id="s02" viewBox="0 0 64 64"><path class="si" d="M6 40Q32 4 58 40" stroke-width="6"/><path class="si" d="M4 40H60" stroke-width="6"/><circle class="fa" cx="32" cy="31" r="7"/></symbol><symbol id="s03" viewBox="0 0 64 64"><path class="fi" d="M32 10L54 44H10Z"/><path class="sa" d="M4 52H60" stroke-width="6"/></symbol><symbol id="s04" viewBox="0 0 64 64"><rect class="si" x="5" y="21" width="54" height="22" rx="11" stroke-width="6"/><circle class="fa" cx="32" cy="32" r="6"/></symbol><symbol id="s05" viewBox="0 0 64 64"><path class="si" d="M4 40H22" stroke-width="6" stroke-linecap="square"/><path class="sa" d="M22 40L29 16L36 50L42 40" stroke-width="6" stroke-linejoin="round"/><path class="si" d="M42 40H60" stroke-width="6" stroke-linecap="square"/></symbol><symbol id="s06" viewBox="0 0 64 64"><circle class="si" cx="31" cy="37" r="10" stroke-width="7"/><path class="si" d="M18 6V54" stroke-width="8"/><path class="sa" d="M14 50H58" stroke-width="8"/></symbol><symbol id="s07" viewBox="0 0 64 64"><path class="fi" d="M14 12H22V18H28V12H36V18H42V12H50V26H14Z"/><rect class="fi" x="21" y="26" width="22" height="23"/><path class="sa" d="M4 52H60" stroke-width="6"/></symbol><symbol id="s08" viewBox="0 0 64 64"><path class="si" d="M4 46H60" stroke-width="6"/><path class="si" d="M14 33V43M24 33V43M44 33V43M54 33V43" stroke-width="5"/><path class="sa" d="M34 14V43" stroke-width="6"/></symbol><symbol id="s09" viewBox="0 0 64 64"><path class="sd" d="M8 22H20" stroke-width="6"/><path class="sm" d="M28 22H56" stroke-width="6" stroke-linecap="round"/><path class="sn" d="M8 42H20M14 36V48" stroke-width="6"/><path class="sm" d="M28 42H56" stroke-width="6" stroke-linecap="round"/></symbol><symbol id="s10" viewBox="0 0 64 64"><circle class="si" cx="32" cy="32" r="19" stroke-width="6"/><path class="sa" d="M4 32H60" stroke-width="6"/></symbol><symbol id="s11" viewBox="0 0 64 64"><path class="si" d="M20 6V50" stroke-width="6"/><path class="fa" d="M23 8L48 18L23 28Z"/><path class="si" d="M6 52H58" stroke-width="6"/></symbol><symbol id="s12" viewBox="0 0 64 64"><rect class="si" x="13" y="7" width="38" height="50" rx="4" stroke-width="5"/><path class="sm" d="M22 20H42M22 44H42" stroke-width="5" stroke-linecap="round"/><path class="sa" d="M22 32H42" stroke-width="6" stroke-linecap="round"/></symbol><symbol id="s13" viewBox="0 0 64 64"><path class="si" d="M32 12V42M23 12H41M23 42H41" stroke-width="6"/><path class="sa" d="M6 52H58" stroke-width="6"/></symbol><symbol id="s14" viewBox="0 0 64 64"><path class="fa" d="M11 42A21 21 0 0 1 53 42Z"/><path class="si" d="M4 42H60" stroke-width="6"/></symbol><symbol id="s15" viewBox="0 0 64 64"><path class="si" d="M8 18H52" stroke-width="7" stroke-linecap="round"/><path class="sa" d="M16 32H60" stroke-width="7" stroke-linecap="round"/><path class="si" d="M8 46H52" stroke-width="7" stroke-linecap="round"/></symbol><symbol id="s16" viewBox="0 0 64 64"><path class="si" d="M32 5L54 13V29C54 43 44 53 32 59C20 53 10 43 10 29V13Z" stroke-width="6" stroke-linejoin="round"/><path class="sa" d="M10 32H54" stroke-width="6"/></symbol><symbol id="s17" viewBox="0 0 64 64"><circle class="si" cx="32" cy="32" r="23" stroke-width="6"/><path class="si" d="M32 32V16" stroke-width="6" stroke-linecap="round"/><path class="sa" d="M32 32H13" stroke-width="6" stroke-linecap="round"/><circle class="fi" cx="32" cy="32" r="4"/></symbol><symbol id="s18" viewBox="0 0 64 64"><circle class="si" cx="27" cy="27" r="16" stroke-width="6"/><path class="si" d="M39 39L56 56" stroke-width="8" stroke-linecap="round"/><path class="sa" d="M19 27H35" stroke-width="5" stroke-linecap="round"/></symbol><symbol id="s19" viewBox="0 0 64 64"><path class="si" d="M10 14L21 44L32 22L43 44L54 14" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/><path class="sa" d="M6 54H58" stroke-width="6"/></symbol><symbol id="s20" viewBox="0 0 64 64"><rect class="fi" x="9" y="9" width="14" height="14" rx="2"/><rect class="fi" x="25" y="9" width="14" height="14" rx="2"/><rect class="fi" x="41" y="9" width="14" height="14" rx="2"/><rect class="fi" x="9" y="25" width="14" height="14" rx="2"/><rect class="fi" x="25" y="25" width="14" height="14" rx="2"/><rect class="fa" x="41" y="25" width="14" height="14" rx="2"/><rect class="fi" x="9" y="41" width="14" height="14" rx="2"/><rect class="fi" x="25" y="41" width="14" height="14" rx="2"/><rect class="fi" x="41" y="41" width="14" height="14" rx="2"/></symbol></svg>
+<div class="wrap">
+<div class="head">
+  <div>
+    <h1>Logo and favicon: 20 mockups</h1>
+    <p class="lede">Twenty marks for BaselineWatch, each shown at display size, in the masthead lockup, at the two favicon sizes, in a browser tab and on an app tile. The accent is the site's own green; ink and accent swap for dark mode inside each SVG, so any of these works as a favicon as it stands. Diff, Tower and Horizon are taken further on the <a href="refined/">refinements sheet</a>.</p>
+  </div>
+  <div class="theme" role="group" aria-label="Colour scheme"><button type="button" data-set="auto" aria-pressed="true">Auto</button><button type="button" data-set="light" aria-pressed="false">Light</button><button type="button" data-set="dark" aria-pressed="false">Dark</button></div>
+</div>
+<p class="disclosure"><b>How to read a card.</b> The large mark is for the masthead and reports. The two small boxes are the mark at 32 and 16 CSS pixels as your screen draws them; the boxed square beside them is the same 16-pixel icon rasterised once at 1× and blown up four times, which is what a browser tab gets on a plain monitor. If a mark survives that box it survives everywhere.</p>
+<div class="grid">
+
+<article class="card" id="m01">
+  <header><span class="n">01</span><h2>Datum</h2><a class="file" href="01-datum.svg">01-datum.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s01"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s01"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">The surveyor's datum: the triangle marks the reference everything else is measured from.</p>
+</article>
+
+<article class="card" id="m02">
+  <header><span class="n">02</span><h2>Eye</h2><a class="file" href="02-eye.svg">02-eye.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s02"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s02"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">An eye whose lower lid is the baseline; the pupil is the point being watched.</p>
+</article>
+
+<article class="card" id="m03">
+  <header><span class="n">03</span><h2>Delta</h2><a class="file" href="03-delta.svg">03-delta.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s03"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s03"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">Delta for change, standing just above the line it changed from.</p>
+</article>
+
+<article class="card" id="m04">
+  <header><span class="n">04</span><h2>Level</h2><a class="file" href="04-level.svg">04-level.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s04"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s04"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A spirit level: the bubble sits where the baseline says it should.</p>
+</article>
+
+<article class="card" id="m05">
+  <header><span class="n">05</span><h2>Trace</h2><a class="file" href="05-trace.svg">05-trace.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s05"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s05"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A flat trace with one excursion; the Register is the excursion.</p>
+</article>
+
+<article class="card" id="m06">
+  <header><span class="n">06</span><h2>Stem</h2><a class="file" href="06-stem.svg">06-stem.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s06"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s06"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A geometric b whose foot runs on as the baseline.</p>
+</article>
+
+<article class="card" id="m07">
+  <header><span class="n">07</span><h2>Tower</h2><a class="file" href="07-tower.svg">07-tower.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s07"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s07"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">The watchtower on its ground line: the oldest kind of watch.</p>
+</article>
+
+<article class="card" id="m08">
+  <header><span class="n">08</span><h2>Rule</h2><a class="file" href="08-rule.svg">08-rule.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s08"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s08"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A rule with one tick raised: the version that moved.</p>
+</article>
+
+<article class="card" id="m09">
+  <header><span class="n">09</span><h2>Diff</h2><a class="file" href="09-diff.svg">09-diff.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s09"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s09"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">The hunk: a removed line and an added one, as the Register shows them.</p>
+</article>
+
+<article class="card" id="m10">
+  <header><span class="n">10</span><h2>Reticle</h2><a class="file" href="10-reticle.svg">10-reticle.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s10"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s10"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A sight with the horizon through it: watching, not aiming.</p>
+</article>
+
+<article class="card" id="m11">
+  <header><span class="n">11</span><h2>Flag</h2><a class="file" href="11-flag.svg">11-flag.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s11"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s11"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A marker planted on the line: this is the baseline, here.</p>
+</article>
+
+<article class="card" id="m12">
+  <header><span class="n">12</span><h2>Ledger</h2><a class="file" href="12-ledger.svg">12-ledger.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s12"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s12"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A register page with one entry highlighted.</p>
+</article>
+
+<article class="card" id="m13">
+  <header><span class="n">13</span><h2>Cursor</h2><a class="file" href="13-cursor.svg">13-cursor.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s13"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s13"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">An insertion cursor resting on the baseline: the next edit is coming.</p>
+</article>
+
+<article class="card" id="m14">
+  <header><span class="n">14</span><h2>Horizon</h2><a class="file" href="14-horizon.svg">14-horizon.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s14"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s14"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A sun on the horizon: the dawn watch.</p>
+</article>
+
+<article class="card" id="m15">
+  <header><span class="n">15</span><h2>Drift</h2><a class="file" href="15-drift.svg">15-drift.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s15"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s15"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">Three rules, one shifted: drift from baseline in one glance.</p>
+</article>
+
+<article class="card" id="m16">
+  <header><span class="n">16</span><h2>Shield</h2><a class="file" href="16-shield.svg">16-shield.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s16"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s16"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">The expected shield, with the baseline drawn straight through it.</p>
+</article>
+
+<article class="card" id="m17">
+  <header><span class="n">17</span><h2>Dial</h2><a class="file" href="17-dial.svg">17-dial.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s17"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s17"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A watch set to nine: the hour hand lies along the baseline.</p>
+</article>
+
+<article class="card" id="m18">
+  <header><span class="n">18</span><h2>Lens</h2><a class="file" href="18-lens.svg">18-lens.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s18"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s18"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A loupe over a line: the Register's field-level diff.</p>
+</article>
+
+<article class="card" id="m19">
+  <header><span class="n">19</span><h2>W</h2><a class="file" href="19-w.svg">19-w.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s19"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s19"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">W for Watch, standing on its baseline.</p>
+</article>
+
+<article class="card" id="m20">
+  <header><span class="n">20</span><h2>Tile</h2><a class="file" href="20-tile.svg">20-tile.svg</a></header>
+  <div class="stage"><svg class="mark " width="112" height="112" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg></div>
+  <div class="lockup"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg><span class="word">BaselineWatch</span></div>
+  <div class="favs">
+    <div class="fav"><div class="box"><svg class="mark " width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg></div><small>32</small></div>
+    <div class="fav"><div class="box"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg></div><small>16</small></div>
+    <div class="fav"><canvas class="loupe" width="16" height="16" data-mark="s20"></canvas><small>16 at 1×</small></div>
+    <div class="fav"><div class="tile"><svg class="mark " width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg></div><small>tile</small></div>
+    <div class="tab" aria-label="Browser tab"><svg class="mark " width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><use href="#s20"/></svg><span>BaselineWatch</span></div>
+  </div>
+  <p class="why">A grid of settings with one cell changed.</p>
+</article>
+</div>
+<div class="extra">
+<section><h2>Wordmark treatments</h2>
+<div class="words">
+  <div><span class="w1">BaselineWatch</span><small>Newsreader 500, as the masthead sets it today</small></div>
+  <div><span class="w2">Baseline<b>Watch</b></span><small>Public Sans caps, tracked, accent on Watch</small></div>
+  <div><span class="w3">Baseline<i>Watch</i></span><small>Newsreader with Watch in italic accent</small></div>
+</div></section>
+<section><h2>Wiring a favicon</h2><ul>
+<li>Copy the chosen SVG to <code>public/favicon.svg</code> and add it to the layout head. Firefox and Chromium follow the SVG's <code>prefers-color-scheme</code> rule; Safari ignores SVG favicons, so keep a PNG or ICO beside it.</li>
+<li>Export a 180 px PNG for <code>apple-touch-icon</code> and a 32 px ICO for the fallback; the mark's ink should be solid on those, not theme-aware.</li>
+<li>The BoxPilot manifest's <code>icon</code> is an emoji string today (🛡️); the catalog card is a separate question from the favicon.</li></ul>
+<pre>&lt;link rel="icon" href="/favicon.svg" type="image/svg+xml"&gt;
+&lt;link rel="icon" href="/favicon.ico" sizes="32x32"&gt;
+&lt;link rel="apple-touch-icon" href="/apple-touch-icon.png"&gt;</pre></section>
+<section><h2>Notes</h2><ul>
+<li>All marks sit on a 64-unit grid with strokes of six units or more, so nothing thinner than a pixel and a half reaches the 16 px icon.</li>
+<li>Marks 09 (Diff) and 20 (Tile) carry a third colour; the rest are ink plus one accent, which also keeps a one-colour print version trivial.</li>
+<li>Mockup page uses inline styles, a little script for the theme switch and the 1× loupe, and Google Fonts; it is not served by the app, so the app's CSP does not apply.</li></ul></section>
+</div>
+</div>
+<script>
+(function(){
+  var root=document.documentElement, KEY="bw-logo-theme";
+  var C={light:{"ink":"#1b1f23","acc":"#0f6e56","del":"#b3261e","ins":"#1b6e3a","mute":"#5f6b70"},dark:{"ink":"#e7eae6","acc":"#4cc9a6","del":"#ff8a80","ins":"#7fd99a","mute":"#9aa6a3"}};
+  var CLS=".si{stroke:var(--ink);fill:none}.fi{fill:var(--ink)}.sa{stroke:var(--acc);fill:none}.fa{fill:var(--acc)}.sd{stroke:var(--del);fill:none}.fd{fill:var(--del)}.sn{stroke:var(--ins);fill:none}.fn{fill:var(--ins)}.sm{stroke:var(--mute);fill:none}";
+  function current(){var t=root.dataset.theme;if(t==="light"||t==="dark")return t;return matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}
+  function loupes(){
+    var c=C[current()], ns="http://www.w3.org/2000/svg";
+    document.querySelectorAll("canvas.loupe").forEach(function(cv){
+      var sym=document.getElementById(cv.dataset.mark);
+      var svg=document.createElementNS(ns,"svg");
+      svg.setAttribute("xmlns",ns);svg.setAttribute("viewBox","0 0 64 64");svg.setAttribute("width","16");svg.setAttribute("height","16");
+      var st=document.createElementNS(ns,"style");
+      st.textContent="svg{--ink:"+c.ink+";--acc:"+c.acc+";--del:"+c.del+";--ins:"+c.ins+";--mute:"+c.mute+"}"+CLS;
+      svg.appendChild(st);
+      Array.prototype.forEach.call(sym.childNodes,function(n){svg.appendChild(n.cloneNode(true));});
+      var url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:"image/svg+xml"}));
+      var img=new Image();
+      img.onload=function(){var ctx=cv.getContext("2d");ctx.clearRect(0,0,16,16);ctx.drawImage(img,0,0,16,16);URL.revokeObjectURL(url);};
+      img.src=url;
+    });
+  }
+  function set(mode){
+    if(mode==="auto")delete root.dataset.theme;else root.dataset.theme=mode;
+    document.querySelectorAll(".theme button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.set===mode));});
+    try{localStorage.setItem(KEY,mode);}catch(e){}
+    loupes();
+  }
+  document.querySelectorAll(".theme button").forEach(function(b){b.addEventListener("click",function(){set(b.dataset.set);});});
+  var saved="auto";try{saved=localStorage.getItem(KEY)||"auto";}catch(e){}
+  set(saved);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){if(!root.dataset.theme)loupes();});
+})();
+</script>
+</body>
+</html>

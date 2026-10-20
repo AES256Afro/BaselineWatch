@@ -536,6 +536,8 @@ export interface VulnFilters {
   /** Only CVEs that have no EPSS score yet. */
   noEpss?: boolean;
   changedSince?: string | undefined;
+  /** Only CVEs first seen since this instant: the list the "New, 24 h" figure is counted from. */
+  newSince?: string | undefined;
   q?: string | undefined;
   sort?: "modified" | "published" | "cvss" | "epss";
   offset?: number;
@@ -568,6 +570,10 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
   if (filters.changedSince) {
     clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)");
     params.push(filters.changedSince);
+  }
+  if (filters.newSince) {
+    clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field = 'new')");
+    params.push(filters.newSince);
   }
   if (filters.q) {
     const words = filters.q

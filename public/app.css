@@ -131,6 +131,12 @@ h2 { font-size: 19px; }
 .box h2 { font-size: 16px; margin-bottom: 8px; }
 .box h2 a { color: inherit; text-decoration: none; }
 .box h2 a:hover { text-decoration: underline; }
+/* Every heading, count and figure is a link to where its data lives; they keep their own colour and underline on hover. */
+section > h2 a, .tcol h2 a, h2.later a, h3.small a, .count a, .stats > a, .std-meta a.n, .src-list b a { color: inherit; text-decoration: none; }
+section > h2 a:hover, .tcol h2 a:hover, h2.later a:hover, h3.small a:hover, .count a:hover, .std-meta a.n:hover, .src-list b a:hover { text-decoration: underline; }
+.stats > a:hover { border-color: var(--acc); }
+a.state { text-decoration: none; }
+.box:target, .std:target { border-color: var(--acc); }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
 .kv dt { color: var(--mute); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
