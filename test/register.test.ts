@@ -307,6 +307,9 @@ describe("Register pages", () => {
     expect((await fetch(`${app.base}/standards/nope`)).status).toBe(404);
     expect((await fetch(`${app.base}/standards/nist-sp-800-53/999999`)).status).toBe(404);
     expect((await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/zz-99`)).status).toBe(404);
-    expect((await fetch(`${app.base}/standards`, { redirect: "manual" })).status).toBe(302);
+    // /standards was a redirect to /register until the all-standards catalog took the path.
+    const catalog = await fetch(`${app.base}/standards`);
+    expect(catalog.status).toBe(200);
+    expect(await catalog.text()).toContain("<h1>All standards</h1>");
   });
 });

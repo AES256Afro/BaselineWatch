@@ -43,6 +43,7 @@ const formatLabel: Record<string, string> = {
   "sct-zip": "GPO backups and Excel",
   "pdf-upload": "PDF you upload",
   "csrc-pdf": "PDFs from CSRC pages",
+  docx: "Word document listing",
   git: "git history",
   rss: "RSS",
   atom: "Atom",

@@ -101,6 +101,32 @@ new downloads).
   800-96 (2006) and 800-147 (2011) PDFs; the fixtures are the 201-3 and 201-2 pages and the
   extracted text of 800-78-5.
 
+### NASA Cybersecurity Policy Reference (added 2026-10-20)
+- **Source**: `nasa-cyber-ref`, adapter `src/adapters/nasa-policy.ts`. NASA's per-OS hardening
+  standards (the Agency Security Configuration Standards, enumerated by NASA-SPEC-2600) are
+  written by OCIO's Cybersecurity Standards and Engineering Team (CSET) and sit behind
+  cset.nasa.gov (NASA access only); the public knowledge of that world is the quarterly
+  **Cybersecurity Policy Reference**, a Word document linked from
+  `https://www.nasa.gov/cybersecurity-policies/`.
+- **Fetch**: the page is read for the `.docx` link (the filename changes per quarter:
+  `cybersecurity-policy-reference-changes-for2026-q3-update-1.docx`); the file is ~100 KB and the
+  snapshot hash makes an unchanged quarter cost one page read and one small download. Weekly.
+- **Shape**: `requirement-set`, one document key `reference`. Eight sections (NPD/NPR directives,
+  NAIIs, handbooks, NASA standards, memoranda, other federal documents, FIPS, NIST), each listed
+  document one requirement: ref is the section key plus the id's stable part (`directive:npr-2810.1`
+  covers 2810.1F and a later 2810.1G; a NIST number's letter stays, SP 800-53A), label the id as
+  printed, statement the dates and expiry, guidance the status note the title carried after an
+  asterisk ("Comment period closed as of 8/14/26"). The version is the document's "Current as of
+  last publication" date.
+- **Rationale**: none published; the document states no reason for its changes.
+- **Licence**: US Government work, public domain.
+- **Diffability**: good. Ids are stable, dates and notes live in diffable fields, so a quarterly
+  update reads as renewals, revisions and swaps. Checked 2026-10-20 against the real 2026 Q3
+  document (the fixture, byte for byte): 8 sections, ~280 documents, NASA-SPEC-2600 Version 6.0
+  dated January 12, 2026.
+- **Where it shows**: the All standards page (`/standards`) beside the per-OS table and the NIST
+  publications with CSRC's drafts open for comment.
+
 ### Other NIST CSRC publications (CSF 2.0, 800-61r3, 800-63-4, 800-207, drafts)
 - **Fetch**: drafts open for comment feed
   `https://csrc.nist.gov/CSRC/media/feeds/pubs/drafts-open-for-comment.xml` (JSON twin at
