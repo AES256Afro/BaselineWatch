@@ -4,7 +4,7 @@ import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "today" | "register" | "catalog" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "guide" | "scan";
+export type Area = "today" | "register" | "catalog" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "branding" | "guide" | "scan";
 
 /**
  * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
@@ -26,6 +26,7 @@ const areas: Record<Area, { label: string; path: string }> = {
   watchlist: { label: "Watchlist", path: "/watchlist" },
   digest: { label: "Digest", path: "/digest" },
   sources: { label: "Sources", path: "/sources" },
+  branding: { label: "Branding", path: "/branding" },
   guide: { label: "Guide", path: "/guide" },
 };
 
@@ -34,7 +35,7 @@ export function areaPath(area: Area): string {
 }
 
 const standardsGroup: Area[] = ["register", "catalog", "stigs", "baselines", "platforms", "atlas"];
-const deskGroup: Area[] = ["triage", "watchlist", "digest", "sources"];
+const deskGroup: Area[] = ["triage", "watchlist", "digest", "sources", "branding"];
 
 export interface PageOptions {
   title: string;
@@ -101,6 +102,7 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title === productName ? title : `${title} · ${productName}`}</title>
+${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
 <link rel="stylesheet" href="/assets/app.css?v=${productVersion}">
 <meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
 ${script ? html`<script type="module" src="${script}?v=${productVersion}"></script>` : ""}
@@ -108,7 +110,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
 <body>
 <header class="mast">
   <div class="mast-inner">
-    <a class="name" href="/">${productName}</a>
+    <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
     <nav aria-label="Areas">
       ${link("wire")}${link("today")}<details class="group${standardsGroup.includes(active) ? " on" : ""}">
         <summary>Standards</summary>

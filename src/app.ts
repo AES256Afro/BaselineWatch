@@ -43,6 +43,8 @@ import { renderVulnDetail, renderVulnList } from "./pages/vulnerabilities.ts";
 import { renderWatchlist } from "./pages/watchlist.ts";
 import { renderNews } from "./pages/wire.ts";
 import { getBlob } from "./blobs.ts";
+import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand, readBrandMarks, saveBrandImage, type BrandKind } from "./branding.ts";
+import { renderBranding } from "./pages/branding.ts";
 import { imageFor } from "./images.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
@@ -189,6 +191,9 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
 export function createApp(ctx: AppContext): Express {
   const { config, db } = ctx;
   const now = ctx.now ?? (() => new Date());
+  // Every page wears the look the browser chose and the branding the owner uploaded.
+  const lookOf = (req: Request): LookState => ({ ...lookState(req, config), brand: readBrand(db) });
+  const brandMarks = readBrandMarks(path.join(import.meta.dirname, "..", "docs", "mockups", "logo"));
   const throttle = new LoginThrottle();
   const app = express();
   app.disable("x-powered-by");
@@ -234,6 +239,21 @@ export function createApp(ctx: AppContext): Express {
     app.use(`/assets/fonts/${family}`, express.static(path.join(import.meta.dirname, "..", "node_modules", "@fontsource-variable", family, "files"), { index: false, maxAge: "30d", immutable: true, fallthrough: true }));
   }
 
+  // The branding the owner applied, served like /assets: the sign-in page on a closed instance
+  // wears it too. The layout's URLs carry the hash, so those answers can be cached hard; the
+  // fixed /favicon.ico cannot, or a replacement would never reach the tab.
+  const sendBrand = (kind: BrandKind, cache: string) => (_req: Request, res: Response, next: NextFunction): void => {
+    const image = readBrand(db)[kind];
+    if (!image) return next();
+    const bytes = getBlob(config.dataDir, image.sha256);
+    if (!bytes) return next();
+    res.setHeader("Cache-Control", cache);
+    res.type(image.type).send(bytes);
+  };
+  app.get("/branding/logo", sendBrand("logo", "public, max-age=31536000, immutable"));
+  app.get("/branding/favicon", sendBrand("favicon", "public, max-age=31536000, immutable"));
+  app.get("/favicon.ico", sendBrand("favicon", "public, max-age=3600"));
+
   // The read-only JSON API. Same read gating as the pages (applied below), same data.
   const json = (res: Response, body: unknown): void => {
     res.setHeader("Cache-Control", "no-store");
@@ -271,7 +291,7 @@ export function createApp(ctx: AppContext): Express {
   // Sign-in is reachable even when reading is closed.
   app.get("/login", (req, res) => {
     const state = authState(req, config, now().getTime());
-    res.type("html").send(renderLogin({ next: safeBack(req.query.next, "/"), open: state.open, look: lookState(req, config) }));
+    res.type("html").send(renderLogin({ next: safeBack(req.query.next, "/"), open: state.open, look: lookOf(req) }));
   });
   app.post("/login", (req, res) => {
     const state = authState(req, config, now().getTime());
@@ -279,13 +299,13 @@ export function createApp(ctx: AppContext): Express {
     if (state.open) return res.redirect(303, next);
     const key = throttleKey(req.ip);
     if (throttle.blocked(key, now().getTime())) {
-      return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookState(req, config) }));
+      return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookOf(req) }));
     }
     const given = ((req.body ?? {}) as Record<string, unknown>).password;
     // The configured password is read trimmed, so the typed one is compared the same way.
     if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given.trim())) {
       throttle.fail(key, now().getTime());
-      return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookState(req, config) }));
+      return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookOf(req) }));
     }
     throttle.clear(key);
     res.setHeader("Set-Cookie", sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)));
@@ -301,7 +321,7 @@ export function createApp(ctx: AppContext): Express {
   // button's name and value is the whole request; the other setting keeps its current value.
   app.post("/look", (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const current = lookState(req, config);
+    const current = lookOf(req);
     const look = body.look === undefined ? current.look : body.look;
     const scheme = body.scheme === undefined ? current.scheme : body.scheme;
     if (!isLook(look) || !isScheme(scheme)) return res.status(400).type("text").send("That look or colour scheme is not one this build has.");
@@ -315,7 +335,7 @@ export function createApp(ctx: AppContext): Express {
     res.locals.owner = state.owner;
     res.locals.open = state.open;
     if (config.publicRead || state.owner) return next();
-    if (req.method === "GET") return res.status(401).type("html").send(renderLogin({ next: req.originalUrl, open: false, look: lookState(req, config) }));
+    if (req.method === "GET") return res.status(401).type("html").send(renderLogin({ next: req.originalUrl, open: false, look: lookOf(req) }));
     res.status(401).type("text").send("Sign in first.");
   });
 
@@ -323,7 +343,7 @@ export function createApp(ctx: AppContext): Express {
     if (res.locals.owner === true) return next();
     res.status(403).type("text").send("Only the owner can do that. Sign in at /login.");
   };
-  const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookState(req, config) });
+  const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookOf(req) });
 
   // News is home; the Register (the old home) lives at /register; /wire stays good as an alias.
   app.get("/", (req, res) => {
@@ -824,6 +844,64 @@ export function createApp(ctx: AppContext): Express {
     res.append("Set-Cookie", flashHeader({ sourceId: source.id, status: enabled ? "enabled" : "disabled", detail }, secureCookies(req)));
     res.redirect(303, `/sources#src-${source.id}`);
   };
+  // Branding (the Desk): the owner picks one of the repo's marks or uploads an image, and every
+  // page wears it at once. The bytes go to the blob store; app_settings carries hash and type.
+  app.get("/branding", (req, res) => {
+    res.type("html").send(renderBranding({ brand: readBrand(db), marks: brandMarks, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
+  });
+  app.get("/branding/marks/:id", (req, res, next) => {
+    const mark = brandMarks.find((m) => m.id === String(req.params.id));
+    if (!mark) return next();
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.type("image/svg+xml").send(Buffer.from(mark.bytes));
+  });
+  app.post("/branding/mark", requireOwner, (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const kind = str(body.kind, 10);
+    const mark = brandMarks.find((m) => m.id === str(body.mark, 80));
+    if (!isBrandKind(kind) || !mark) return res.status(400).type("text").send("Pick a mark and whether it is the logo or the favicon.");
+    applyBrandMark(db, config.dataDir, kind, mark, now().toISOString());
+    res.append("Set-Cookie", flashHeader(`${mark.title} is now the ${kind}, on every page at once.`, secureCookies(req)));
+    res.redirect(303, "/branding");
+  });
+  app.post("/branding/:kind", requireOwner, async (req, res, next) => {
+    const kind = String(req.params.kind);
+    if (!isBrandKind(kind)) return next();
+    const boundary = boundaryOf(req.headers["content-type"]);
+    if (!boundary) return res.status(400).type("text").send("Send the image as multipart/form-data.");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    // The image plus the form's own framing; what the file itself may hold is branding.ts's call.
+    const limit = maxBrandBytes + 16 * 1024;
+    try {
+      // Leaving the loop early must not destroy the socket, or the 413 never reaches the browser.
+      for await (const chunk of req.iterator({ destroyOnReturn: false })) {
+        size += (chunk as Buffer).length;
+        if (size > limit) {
+          res.status(413).type("text").send("That file is larger than 2 MB.");
+          return;
+        }
+        chunks.push(chunk as Buffer);
+      }
+    } catch {
+      return res.status(400).type("text").send("The upload did not complete.");
+    }
+    const form = parseMultipart(Buffer.concat(chunks), boundary);
+    const file = form.files.find((f) => f.field === "image") ?? form.files[0];
+    if (!file || file.bytes.length === 0) return res.status(400).type("text").send("No image was attached.");
+    const outcome = saveBrandImage(db, config.dataDir, kind, file.bytes, now().toISOString());
+    if (!outcome.ok) return res.status(422).type("text").send(`Could not use ${file.filename}: ${outcome.error}.`);
+    res.append("Set-Cookie", flashHeader(`${file.filename} is now the ${kind}, on every page at once.`, secureCookies(req)));
+    res.redirect(303, "/branding");
+  });
+  app.post("/branding/:kind/remove", requireOwner, (req, res, next) => {
+    const kind = String(req.params.kind);
+    if (!isBrandKind(kind)) return next();
+    clearBrandImage(db, kind);
+    res.append("Set-Cookie", flashHeader(kind === "logo" ? "The logo is removed; the masthead carries the wordmark alone." : "The favicon is removed.", secureCookies(req)));
+    res.redirect(303, "/branding");
+  });
+
   app.post("/sources/:id/enable", requireOwner, setEnabled(true));
   app.post("/sources/:id/disable", requireOwner, setEnabled(false));
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
@@ -849,7 +927,7 @@ export function createApp(ctx: AppContext): Express {
     } catch {
       // A malformed escape sequence is shown as sent.
     }
-    res.status(404).type("html").send(renderNotFound(shown, lookState(req, config)));
+    res.status(404).type("html").send(renderNotFound(shown, lookOf(req)));
   });
 
   app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {

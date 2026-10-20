@@ -147,6 +147,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
           <li><a href="/watchlist">Watchlist</a></li>
           <li><a href="/digest">Digest</a></li>
           <li><a href="/sources">Sources</a></li>
+          <li><a href="/branding">Branding</a></li>
         </ul>
       </section>`
     : open
