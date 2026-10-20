@@ -1,3 +1,4 @@
+import { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapter, canaryAdsAdapter, canaryMalwareAdapter, canaryPhishingAdapter, canaryTrackersAdapter } from "./blocklists.ts";
 import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
 import { cisaDirectivesAdapter } from "./cisa-directives.ts";
@@ -48,6 +49,13 @@ const byId: Record<string, Adapter> = {
   "reddit-asknetsec": redditAdapter,
   "reddit-malware": redditAdapter,
   "reddit-reverseengineering": redditAdapter,
+  "adfection-indicators": adfectionIndicatorsAdapter,
+  "adfection-dns": adfectionDnsAdapter,
+  "adfection-adblock": adfectionAdblockAdapter,
+  "canary-ads": canaryAdsAdapter,
+  "canary-trackers": canaryTrackersAdapter,
+  "canary-malware": canaryMalwareAdapter,
+  "canary-phishing": canaryPhishingAdapter,
 };
 
 /** Whether the adapter can run on a schedule; a manual-upload adapter cannot. */
@@ -65,4 +73,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { cciAdapter, cisAdapter, cisaDirectivesAdapter, csrcPubsAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };
+export { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapter, canaryAdsAdapter, canaryMalwareAdapter, canaryPhishingAdapter, canaryTrackersAdapter, cciAdapter, cisAdapter, cisaDirectivesAdapter, csrcPubsAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };

@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+# Captured list responses are kept byte for byte (URLhaus publishes CRLF); the parsers accept either ending.
+test/fixtures/blocklists/*.txt -text

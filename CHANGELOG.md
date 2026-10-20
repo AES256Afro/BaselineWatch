@@ -2,6 +2,25 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## Unreleased
+
+- **The lists behind the Scan area are Register sources** (M12.2, the lists half). Seven new
+  standards sources read by one adapter, `src/adapters/blocklists.ts`, each list a document whose
+  entries are its requirements, diffed line by line, so a list's next release shows on `/register`
+  as a diff with a date like any standard. From the Zero Breach project: the AdFection / Candiru
+  indicator list (every domain, address and file hash with its tier, confidence and the report it
+  was read from) and its DNS and ad blocklist exports; the current commit comes from the GitHub
+  API, so an unchanged list costs one small request, and the commit's first line is the release's
+  stated reason. Four canary sets of twelve names each, derived from public lists the way their
+  Sources notes describe: ad domains from EasyList and tracker domains from EasyPrivacy (the rules
+  that block a domain outright, weekly), malware hosts from URLhaus and phishing hosts from OpenPhish
+  (registrable names only, daily); the twelve are the names that hash lowest under SHA-256, so
+  nobody chose them and the set moves only when the list does. Names on a list are quoted and never
+  fetched, linked or loaded; the network check (M12.3) will resolve the canaries and nothing more.
+  The OpenPhish set is registered off, because the feed's terms forbid showing any part of it to
+  third parties, which a public instance would do. Licences and attributions are on the Sources
+  page and in the footer; the fixtures are the real responses of 2026-10-19 and 2026-10-20.
+
 ## 0.34.0 — 2026-10-19
 
 - **Decisions beside the recommendation.** Every item of a platform's baseline (a STIG rule, an
