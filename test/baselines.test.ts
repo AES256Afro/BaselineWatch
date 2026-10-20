@@ -120,6 +120,10 @@ describe("the baseline builder", () => {
     expect(page).toContain("Intune: 1 definition");
     expect(page).toContain("DISA: Not applicable to the policy");
     expect(page).toContain('<button type="submit" name="section" value="cat2" class="" >STIG rules: CAT II <span class="count">2 of 2</span></button>');
+    // The drawn section's heading is a plain link to itself, carrying the documents it was built from.
+    expect(page).toMatch(/<h2><a href="\/baselines\/windows\?stig=stig%3Amicrosoft-windows-11%40\d+&amp;sct=[^"]+&amp;section=cat1">STIG rules: CAT I<\/a> <span class="count"><a href="[^"]+">\d+ kept<\/a><\/span><\/h2>/);
+    expect(page).toContain('<h2><a href="/register">Built from</a></h2>');
+    expect(page).toMatch(/<dt>Kept<\/dt><dd><a href="\/baselines\/windows\?[^"]+">\d+ of \d+<\/a>/);
     expect(page).toContain("Microsoft&#39;s baseline adds");
     expect(page).toContain("SP 800-53 High baseline controls");
     expect(page).toContain('aria-current="page">Baselines</a>');
@@ -241,7 +245,7 @@ describe("the baseline builder", () => {
     expect(withText).toContain("<summary>How to apply, check and fix</summary>");
     expect(withText).toContain('<h4 class="small">Check</h4>');
     const macos = await (await fetch(`${base}/baselines/macos?section=mscp`)).text();
-    expect(macos).toContain("<h2>mSCP adds <span class=\"count\">2 kept</span></h2>");
+    expect(macos).toMatch(/<h2><a href="\/baselines\/macos\?stig=[^"]+&amp;mscp=[^"]+&amp;section=mscp">mSCP adds<\/a> <span class="count"><a href="[^"]+">2 kept<\/a><\/span><\/h2>/);
     expect(macos).toContain('name="keep" value="mscp:');
   });
 

@@ -246,6 +246,17 @@ describe("vulnerability pages", () => {
     expect(list).toContain("CVE-2021-44228");
     expect(list).toContain("CVE-2015-0204");
     expect(list).toContain("10.0 critical");
+    // Every figure in the totals strip is a link to the list it is counted from.
+    expect(list).toContain('<a href="/vulnerabilities"><small>CVEs known</small>');
+    expect(list).toMatch(/<a href="\/vulnerabilities\?new=1"><small>New, 24 h<\/small><b>\d+<\/b><\/a>/);
+    expect(list).toContain('<a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small>');
+    expect(list).toContain('<a href="/vulnerabilities?kev=1"><small>In KEV</small>');
+    expect(list).toContain('<a href="/vulnerabilities?watch=1"><small>Match watchlist</small>');
+    expect(list).toContain('<a href="/sources#src-first-epss"><small>EPSS scores</small>');
+    expect(list).toContain('href="/sources#src-nvd-cves"');
+    const fresh = await (await fetch(`${app.base}/vulnerabilities?new=1`)).text();
+    expect(fresh).toContain("CVE-2021-44228");
+    expect(fresh).toContain('<a class="on" href="/vulnerabilities">New, 24 h</a>');
     const kevOnly = await (await fetch(`${app.base}/vulnerabilities?kev=1`)).text();
     expect(kevOnly).toContain("CVE-2021-44228");
     expect(kevOnly).not.toContain("CVE-2015-1197");
@@ -255,8 +266,10 @@ describe("vulnerability pages", () => {
     const detail = await fetch(`${app.base}/vulnerabilities/cve-2021-44228`);
     expect(detail.status).toBe(200);
     const detailText = await detail.text();
-    expect(detailText).toContain("Change history");
+    expect(detailText).toContain('<h2><a href="#history">Change history</a> <span class="count"><a href="#history">');
     expect(detailText).toContain("First seen");
+    expect(detailText).toMatch(/<dt>KEV<\/dt><dd><a href="\/vulnerabilities\?kev=1">added /);
+    expect(detailText).toContain('<a href="/vulnerabilities?severity=critical">10.0 CRITICAL</a>');
     expect(detailText).toContain("SSVC exploitation: active");
     expect(detailText).toContain("cpe:2.3:");
     expect((await fetch(`${app.base}/vulnerabilities/CVE-2026-0`)).status).toBe(404);
@@ -270,6 +283,8 @@ describe("vulnerability pages", () => {
     const watchPage = await (await fetch(`${app.base}/watchlist`, { headers: { cookie } })).text();
     expect(watchPage).toContain("Plant");
     expect(watchPage).toContain("Remove");
+    expect(watchPage).toContain('<h2><a href="#add">Add to the watchlist</a></h2>');
+    expect(watchPage).toContain('<h2><a href="/vulnerabilities?watch=1">How matching works</a></h2>');
     const mine = await (await fetch(`${app.base}/vulnerabilities?watch=1`)).text();
     expect(mine).toContain("CVE-2021-44228");
     expect(mine).not.toContain("CVE-2015-1197");

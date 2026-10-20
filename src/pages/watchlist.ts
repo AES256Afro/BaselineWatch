@@ -39,8 +39,8 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
       </section>
       <aside class="side">
         ${owner
-          ? html`<section class="box">
-              <h2>Add to the watchlist</h2>
+          ? html`<section class="box" id="add">
+              <h2><a href="#add">Add to the watchlist</a></h2>
               <form method="post" action="/watchlist" class="stack">
                 <label for="kind">Kind</label>
                 <select id="kind" name="kind">
@@ -58,9 +58,9 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
                 <button type="submit" class="primary">Add</button>
               </form>
             </section>`
-          : html`<section class="box"><h2>Owner only</h2><p class="small">Sign in to change the watchlist.</p></section>`}
+          : html`<section class="box"><h2><a href="/login">Owner only</a></h2><p class="small"><a href="/login">Sign in</a> to change the watchlist.</p></section>`}
         <section class="box">
-          <h2>How matching works</h2>
+          <h2><a href="/vulnerabilities?watch=1">How matching works</a></h2>
           <p class="small">Product entries match the CPE criteria NVD attaches to a CVE: a bare name matches the vendor or the product field, <code>vendor:product</code> matches both, and a <code>cpe:2.3:</code> prefix matches literally. A platform entry matches by the CPE's operating system or browser, then NVD's vendor and product, then the way the description names the platform for a CVE NVD has not analysed yet, so a new macOS CVE reaches the News, the alerts ("New Apple CVE") and the digest at once. CVEs that have no CPE yet otherwise match only by keyword. Every CVE is re-checked when the list changes.</p>
         </section>
       </aside>

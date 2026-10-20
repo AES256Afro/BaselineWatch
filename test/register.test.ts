@@ -256,13 +256,18 @@ describe("Register pages", () => {
     const standard = await (await fetch(`${app.base}/standards/nist-sp-800-53`)).text();
     expect(standard).toContain("5.1.1+u4");
     expect(standard).toContain("3 added");
+    // The key's heading reads the newest version, its count is a permalink to the table, and each row's figures lead on.
+    expect(standard).toContain(`<section class="box" id="doc-catalog">\n      <h2><a href="/standards/nist-sp-800-53/${latest.id}/browse">Catalog</a> <span class="count"><a href="#doc-catalog">2 versions</a></span></h2>`);
+    expect(standard).toContain(`<td class="n"><a href="/standards/nist-sp-800-53/${latest.id}/browse">42</a></td>`);
+    expect(standard).toMatch(new RegExp(`<td><a href="/standards/nist-sp-800-53/${latest.id}">3 added[^<]*</a></td>`));
 
     const release = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}`)).text();
     expect(release).toContain("SA-24");
     expect(release).toContain("Design For Cyber Resiliency");
     expect(release).toContain("in the publisher's words");
     expect(release).toContain("NIST issued a minor release");
-    expect(release).toContain("Controls added, removed or revised");
+    expect(release).toContain('<section class="box" id="substantive"><h2><a href="#substantive">Controls added, removed or revised</a> <span class="count"><a href="#substantive">');
+    expect(release).toContain('<a class="pill ins" href="#substantive">+ 3 added: ');
     // The Atlas map leads here one family at a time.
     const saOnly = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}?family=SA`)).text();
     expect(saOnly).toContain("<b>SA-24</b>");
@@ -277,8 +282,11 @@ describe("Register pages", () => {
     expect(control).toContain("<ins>");
     expect(control).toContain("Before · 5.1.1+u4");
     const ac1 = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/ac-1`)).text();
-    expect(ac1).toContain("Moderate baseline");
+    expect(ac1).toContain('<a class="pill" href="/standards/nist-sp-800-53b">Moderate baseline</a>');
     expect(ac1).toContain("Policy and Procedures");
+    // The family pill narrows the release to that family, the way the Atlas does.
+    expect(ac1).toContain(`<a class="pill" href="/standards/nist-sp-800-53/${latest.id}?family=AC">AC</a>`);
+    expect(ac1).toContain(`<a class="pill none" href="/standards/nist-sp-800-53/${latest.id}">unchanged</a>`);
 
     const added = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/sa-24`)).text();
     expect(added).toContain("added");
@@ -286,6 +294,7 @@ describe("Register pages", () => {
 
     const browse = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/browse?family=SA`)).text();
     expect(browse).toContain("SA-24");
+    expect(browse).toContain(`<a href="/standards/nist-sp-800-53/${latest.id}/browse">42 requirements</a>`);
     expect(browse).toContain("Design For Cyber Resiliency");
     expect(browse).toContain("changed here");
     expect(browse).not.toContain("Integrity Verification"); // SI family filtered out

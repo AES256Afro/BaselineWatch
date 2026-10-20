@@ -16,7 +16,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
       one links to the page where you can see it in use.
     </p>
     <div class="guide">
-      <section class="box">
+      <section class="box" id="areas">
         <h2>The three reading areas</h2>
         <p>
           <a href="/">News</a> is the home page: articles from the sources the site follows, plus
@@ -27,7 +27,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           active exploitation; the table keeps the rest.
         </p>
       </section>
-      <section class="box">
+      <section class="box" id="register">
         <h2>The Register</h2>
         <p>
           <a href="/register">The Register</a> tracks changes to the standards themselves: NIST
@@ -38,7 +38,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           rather than the publisher's own words, it carries a label saying so.
         </p>
       </section>
-      <section class="box">
+      <section class="box" id="kev">
         <h2>KEV — known to be exploited</h2>
         <p>
           <a href="/vulnerabilities?kev=1">KEV</a> is CISA's Known Exploited Vulnerabilities
@@ -49,7 +49,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           list the same way.
         </p>
       </section>
-      <section class="box">
+      <section class="box" id="epss">
         <h2>EPSS — how likely exploitation is</h2>
         <p>
           <a href="/vulnerabilities?min_epss=0.5">EPSS</a>, the Exploit Prediction Scoring System
@@ -59,7 +59,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           CVE as news when its EPSS passes 50%.
         </p>
       </section>
-      <section class="box">
+      <section class="box" id="cvss">
         <h2>CVSS — how bad the flaw itself is</h2>
         <p>
           <a href="/vulnerabilities?min_cvss=9">CVSS</a>, the Common Vulnerability Scoring
@@ -69,7 +69,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           certainty.
         </p>
       </section>
-      <section class="box">
+      <section class="box" id="cat">
         <h2>CAT I, II and III — STIG severities</h2>
         <p>
           DISA grades every <a href="/stigs">STIG</a> rule by what ignoring it costs. CAT I means

@@ -25,13 +25,13 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
     <div class="cols">
       <section class="main">
         ${latest
-          ? html`<section class="box digest"><h2>${latest.period.charAt(0).toUpperCase()}${latest.period.slice(1)} digest <span class="count">${shortStamp(latest.generated_at)}</span></h2><div class="digest-body">${body(latest)}</div></section>`
+          ? html`<section class="box digest" id="latest"><h2><a href="#latest">${latest.period.charAt(0).toUpperCase()}${latest.period.slice(1)} digest</a> <span class="count"><a href="#latest">${shortStamp(latest.generated_at)}</a></span></h2><div class="digest-body">${body(latest)}</div></section>`
           : html`<div class="empty"><b>No digest yet.</b><p>The first one is written at the scheduled hour${owner ? ", or now with the button above" : ""}.</p></div>`}
-        ${older.length ? html`<h2 class="later">Earlier</h2>${older.map((d) => html`<details class="box"><summary>${d.period} digest, ${shortStamp(d.generated_at)}</summary><div class="digest-body">${body(d)}</div></details>`)}` : ""}
+        ${older.length ? html`<h2 class="later" id="earlier"><a href="#earlier">Earlier</a></h2>${older.map((d) => html`<details class="box"><summary>${d.period} digest, ${shortStamp(d.generated_at)}</summary><div class="digest-body">${body(d)}</div></details>`)}` : ""}
       </section>
       <aside class="side">
-        <section class="box">
-          <h2>Alerts sent <span class="count">${alerts.length}</span></h2>
+        <section class="box" id="alerts">
+          <h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">${alerts.length}</a></span></h2>
           ${alerts.length
             ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>`
             : html`<p class="small">None yet. KEV additions, watched CVE changes and standard releases are sent as they arrive, after a source's first load.</p>`}

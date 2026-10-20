@@ -23,6 +23,13 @@ function severityChip(row: VulnRow): Html {
   return html`<span class="chip sev ${level}" title="CVSS ${row.cvss_version ?? ""} ${row.cvss_vector ?? ""}">${row.cvss_score.toFixed(1)} ${level}</span>`;
 }
 
+/** The table narrowed to the CVE's own CVSS band, the way the Today page bands them. */
+function severityHref(row: VulnRow): string {
+  if (row.cvss_score === null) return "/vulnerabilities?severity=unscored";
+  const level = (row.cvss_severity ?? "").toLowerCase();
+  return level === "critical" || level === "high" || level === "medium" || level === "low" ? `/vulnerabilities?severity=${level}` : `/vulnerabilities?min_cvss=${row.cvss_score}`;
+}
+
 function epssText(row: VulnRow): string {
   if (row.epss === null) return "—";
   return `${(row.epss * 100).toFixed(row.epss < 0.01 ? 2 : 1)}%`;
@@ -39,6 +46,7 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   if (f.maxEpss !== undefined) p.set("max_epss", String(f.maxEpss));
   if (f.noEpss) p.set("epss", "none");
   if (f.changedSince) p.set("changed", "1");
+  if (f.newSince) p.set("new", "1");
   if (f.q) p.set("q", f.q);
   if (f.sort && f.sort !== "modified") p.set("sort", f.sort);
   if (f.offset) p.set("offset", String(f.offset));
@@ -63,7 +71,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince;
+  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince;
   // A band the Today page sent us into, shown as a chip that takes it off again.
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
@@ -86,12 +94,12 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 
   const content = html`
     <div class="stats" aria-label="Totals">
-      <div><small>CVEs known</small><b>${figure(stats.total)}</b></div>
-      <div><small>New, 24 h</small><b>${figure(stats.newSince)}</b></div>
-      <div><small>Changed, 24 h</small><b>${figure(stats.changedSince)}</b></div>
-      <div><small>In KEV</small><b>${figure(stats.kev)}</b></div>
-      <div><small>Match watchlist</small><b>${figure(stats.watch)}</b></div>
-      <div><small>EPSS scores</small><b>${epssDate ?? "—"}</b></div>
+      <a href="/vulnerabilities"><small>CVEs known</small><b>${figure(stats.total)}</b></a>
+      <a href="/vulnerabilities?new=1"><small>New, 24 h</small><b>${figure(stats.newSince)}</b></a>
+      <a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small><b>${figure(stats.changedSince)}</b></a>
+      <a href="/vulnerabilities?kev=1"><small>In KEV</small><b>${figure(stats.kev)}</b></a>
+      <a href="/vulnerabilities?watch=1"><small>Match watchlist</small><b>${figure(stats.watch)}</b></a>
+      <a href="/sources#src-first-epss"><small>EPSS scores</small><b>${epssDate ?? "—"}</b></a>
     </div>
     <div class="wire-top">
       <h1>Vulnerabilities</h1>
@@ -104,12 +112,13 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       </form>
     </div>
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, offset: 0 })}">All</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, offset: 0 })}">All</a>
       <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
       <a class="${filters.minCvss === 9 ? "on" : ""}" href="${query(filters, { minCvss: filters.minCvss === 9 ? undefined : 9, offset: 0 })}">Critical (9+)</a>
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
       <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, offset: 0 })}">Changed, 24 h</a>
+      <a class="${filters.newSince ? "on" : ""}" href="${query(filters, { newSince: filters.newSince ? undefined : since, offset: 0 })}">New, 24 h</a>
       ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
       ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
       <span class="sort">Sort:
@@ -126,7 +135,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
           <tbody>${tableRows}</tbody>
         </table></div>
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
-    <p class="small">NVD cursor: ${cursor ? shortStamp(cursor) : html`no pull yet — <a href="/sources">Sources</a> shows each feed's state and what to do when one fails`}. The News page shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
+    <p class="small">NVD cursor: ${cursor ? html`<a href="/sources#src-nvd-cves">${shortStamp(cursor)}</a>` : html`no pull yet — <a href="/sources#src-nvd-cves">Sources</a> shows each feed's state and what to do when one fails`}. The <a href="/?kind=vulnerability">News page</a> shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
   return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look });
 }
@@ -204,8 +213,8 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
       <section class="main">
         <p class="lede">${row.description ?? "No description."}</p>
         ${fixPanel(fix)}
-        <section class="box">
-          <h2>Change history <span class="count">${changes.length}</span></h2>
+        <section class="box" id="history">
+          <h2><a href="#history">Change history</a> <span class="count"><a href="#history">${changes.length}</a></span></h2>
           ${changes.length
             ? html`<ol class="hist">${changes.map(
                 (c) => html`<li><time>${shortStamp(c.observed_at)}</time><b>${c.field === "new" ? "First seen" : c.field === "cvss" ? "CVSS" : c.field === "kev" ? "CISA KEV" : c.field === "epss" ? "EPSS" : c.field.charAt(0).toUpperCase() + c.field.slice(1)}</b>${
@@ -214,43 +223,43 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
               )}</ol>`
             : html`<p class="small">Nothing recorded yet.</p>`}
         </section>
-        <section class="box">
-          <h2>Affected (CPE criteria) <span class="count">${cpes.length}</span></h2>
+        <section class="box" id="cpes">
+          <h2><a href="#cpes">Affected (CPE criteria)</a> <span class="count"><a href="#cpes">${cpes.length}</a></span></h2>
           ${cpes.length ? html`<ul class="cpes">${cpes.slice(0, 40).map((c) => html`<li><code>${c}</code></li>`)}${cpes.length > 40 ? html`<li class="small">and ${cpes.length - 40} more</li>` : ""}</ul>` : html`<p class="small">NVD has not attached CPE configurations yet.</p>`}
         </section>
         ${packages.length
-          ? html`<section class="box">
-          <h2>Affected packages <span class="count">${packages.length}</span></h2>
+          ? html`<section class="box" id="packages">
+          <h2><a href="#packages">Affected packages</a> <span class="count"><a href="#packages">${packages.length}</a></span></h2>
           <ul class="cpes">${packages.map(
             (p) => html`<li><code>${p.ecosystem}:${p.name}</code>${p.fixed.length ? html` · fixed in ${p.fixed.join(", ")}` : p.lastAffected.length ? html` · affected through ${p.lastAffected.join(", ")}` : html` · no fix listed`}<span class="small"> · ${p.advisory}</span></li>`,
           )}</ul>
         </section>`
           : ""}
-        <section class="box">
-          <h2>References <span class="count">${references.length}</span></h2>
+        <section class="box" id="references">
+          <h2><a href="#references">References</a> <span class="count"><a href="#references">${references.length}</a></span></h2>
           <ul class="refs">${references.slice(0, 60).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a>${r.tags.length ? html` <span class="small">${r.tags.join(", ")}</span>` : ""}</li>`)}</ul>
         </section>
       </section>
       <aside class="side">
-        ${owner
-          ? html`<section class="box"><h2>Triage</h2>${triageForm({ kind: "vuln", id: row.id }, getTriage(db, "vuln", row.id), `/vulnerabilities/${row.cve_id}`)}</section>`
-          : (() => {
-              const t = getTriage(db, "vuln", row.id);
-              return t ? html`<section class="box"><h2>Triage</h2><p><span class="chip">${t.state}</span>${t.due_at ? html` due ${t.due_at}` : ""}</p>${t.note ? html`<p class="small">${t.note}</p>` : ""}</section>` : "";
-            })()}
-        <section class="box">
-          <h2>Scores</h2>
+        ${(() => {
+            const t = getTriage(db, "vuln", row.id);
+            const board = t ? `/triage#${t.state}` : "/triage";
+            if (owner) return html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2>${triageForm({ kind: "vuln", id: row.id }, t, `/vulnerabilities/${row.cve_id}`)}</section>`;
+            return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p>${t.note ? html`<p class="small">${t.note}</p>` : ""}</section>` : "";
+          })()}
+        <section class="box" id="scores">
+          <h2><a href="#scores">Scores</a></h2>
           <dl class="kv">
-            <dt>CVSS</dt><dd>${row.cvss_score !== null ? html`${row.cvss_score.toFixed(1)} ${row.cvss_severity ?? ""} (v${row.cvss_version})<br><code class="small">${row.cvss_vector ?? ""}</code><br><span class="small">scored by ${row.cvss_source ?? "unknown"}</span>` : "not yet scored"}</dd>
-            <dt>EPSS</dt><dd>${row.epss !== null ? html`${epssText(row)} (percentile ${((row.epss_percentile ?? 0) * 100).toFixed(0)}%, ${row.epss_date ?? ""})` : "no score"}</dd>
-            <dt>KEV</dt><dd>${row.kev ? html`added ${row.kev_date_added ?? "?"}, due ${row.kev_due_date ?? "?"}` : "not listed"}</dd>
+            <dt>CVSS</dt><dd>${row.cvss_score !== null ? html`<a href="${severityHref(row)}">${row.cvss_score.toFixed(1)} ${row.cvss_severity ?? ""}</a> (v${row.cvss_version})<br><code class="small">${row.cvss_vector ?? ""}</code><br><span class="small">scored by ${row.cvss_source ?? "unknown"}</span>` : html`<a href="/vulnerabilities?severity=unscored">not yet scored</a>`}</dd>
+            <dt>EPSS</dt><dd>${row.epss !== null ? html`<a href="/vulnerabilities?sort=epss">${epssText(row)}</a> (percentile ${((row.epss_percentile ?? 0) * 100).toFixed(0)}%, <a href="/sources#src-first-epss">${row.epss_date ?? ""}</a>)` : html`<a href="/vulnerabilities?epss=none">no score</a>`}</dd>
+            <dt>KEV</dt><dd>${row.kev ? html`<a href="/vulnerabilities?kev=1">added ${row.kev_date_added ?? "?"}, due ${row.kev_due_date ?? "?"}</a>` : "not listed"}</dd>
             ${Object.keys(ssvc).length ? html`<dt>SSVC</dt><dd>${Object.entries(ssvc).map(([k, v]) => html`${k}: ${v}<br>`)}</dd>` : ""}
-            <dt>CWE</dt><dd>${cwes.length ? cwes.join(", ") : "—"}</dd>
-            <dt>Published</dt><dd>${shortStamp(row.published_at)}</dd>
-            <dt>Modified</dt><dd>${shortStamp(row.last_modified_at)} (${relativeTime(row.last_modified_at, now)})</dd>
+            <dt>CWE</dt><dd>${cwes.length ? cwes.map((c, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?q=${encodeURIComponent(c)}">${c}</a>`) : "—"}</dd>
+            <dt>Published</dt><dd><a href="/vulnerabilities?sort=published">${shortStamp(row.published_at)}</a></dd>
+            <dt>Modified</dt><dd><a href="/vulnerabilities">${shortStamp(row.last_modified_at)}</a> (${relativeTime(row.last_modified_at, now)})</dd>
             <dt>Source</dt><dd>${row.source_identifier ?? "—"}</dd>
-            <dt>Vendors</dt><dd>${vendors.join(", ") || "—"}</dd>
-            <dt>Products</dt><dd>${products.join(", ") || "—"}</dd>
+            <dt>Vendors</dt><dd>${vendors.length ? vendors.map((v, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?q=${encodeURIComponent(v)}">${v}</a>`) : "—"}</dd>
+            <dt>Products</dt><dd>${products.length ? products.map((p, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?q=${encodeURIComponent(p)}">${p}</a>`) : "—"}</dd>
             ${aliases.length ? html`<dt>Also known as</dt><dd>${aliases.join(", ")}</dd>` : ""}
           </dl>
         </section>

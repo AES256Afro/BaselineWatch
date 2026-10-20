@@ -49,18 +49,24 @@ function card(c: TriageCard, owner: boolean, now: Date): Html {
   </li>`;
 }
 
-export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; notice?: string | undefined; look: LookState }): string {
+export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; notice?: string | undefined; dismissed?: boolean; look: LookState }): string {
   const { db, owner, open, now, notice, look } = options;
   const counts = triageCounts(db);
   const cards = listTriage(db, { limit: 300 });
   const byState = new Map<TriageState, TriageCard[]>();
   for (const c of cards) byState.set(c.state, [...(byState.get(c.state) ?? []), c]);
   const inbox = triageInbox(db, 30);
-  const column = (state: TriageState, extra: Html = html``): Html => html`<section class="tcol ${state}" id="${state}">
-    <h2>${stateLabel[state]} <span class="count">${counts[state]}</span></h2>
-    ${extra}
+  const column = (state: TriageState, after: Html = html``): Html => html`<section class="tcol ${state}" id="${state}">
+    <h2><a href="#${state}">${stateLabel[state]}</a> <span class="count"><a href="#${state}">${counts[state]}</a></span></h2>
     <ul class="tcards">${(byState.get(state) ?? []).map((c) => card(c, owner, now))}</ul>
+    ${after}
   </section>`;
+  // The dismissed cards stay out of the way under Done; the count on the board opens them (?dismissed=1).
+  const dismissed = (byState.get("dismissed") ?? []).length
+    ? options.dismissed
+      ? html`<h3 class="small" id="dismissed"><a href="#dismissed">Not ours</a> <span class="count"><a href="#dismissed">${counts.dismissed}</a></span></h3><ul class="tcards">${(byState.get("dismissed") ?? []).map((c) => card(c, owner, now))}</ul><p class="small"><a href="/triage#done">Hide them again</a></p>`
+      : html`<p class="small"><a href="/triage?dismissed=1#dismissed">${counts.dismissed} marked not ours</a>, kept out of the way.</p>`
+    : html``;
 
   const inboxList = html`${inbox.length
     ? html`<ul class="tcards inbox">${inbox.map((i) => {
@@ -82,15 +88,15 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
   const content = html`
     <div class="wire-top">
       <h1>Triage</h1>
-      <div class="small">${owner ? html`<a href="/triage.csv">Download CSV</a> · ` : ""}${counts.affects} affect us · ${counts.reviewing} reviewing · ${counts.done} done</div>
+      <div class="small">${owner ? html`<a href="/triage.csv">Download CSV</a> · ` : ""}<a href="#affects">${counts.affects} affect us</a> · <a href="#reviewing">${counts.reviewing} reviewing</a> · <a href="#done">${counts.done} done</a></div>
     </div>
     <p class="lede">Where each thing sits on your desk. The inbox is what arrived and has not been placed; the owner moves things with the buttons and adds notes on each item's own page.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="board">
-      <section class="tcol new" id="new"><h2>Inbox <span class="count">${inbox.length}</span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small">Placed as new</h3><ul class="tcards">${(byState.get("new") ?? []).map((c) => card(c, owner, now))}</ul>` : ""}</section>
+      <section class="tcol new" id="new"><h2><a href="#new">Inbox</a> <span class="count"><a href="#new">${inbox.length}</a></span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small" id="placed"><a href="#placed">Placed as new</a> <span class="count"><a href="#placed">${counts.new}</a></span></h3><ul class="tcards">${(byState.get("new") ?? []).map((c) => card(c, owner, now))}</ul>` : ""}</section>
       ${column("reviewing")}
       ${column("affects")}
-      ${column("done", (byState.get("dismissed") ?? []).length ? html`<p class="small">${counts.dismissed} marked not ours, kept out of the way.</p>` : html``)}
+      ${column("done", dismissed)}
     </div>`;
 
   return page({ title: "Triage", active: "triage", content, meta: html`${counts.affects + counts.reviewing} open`, owner, open, look });

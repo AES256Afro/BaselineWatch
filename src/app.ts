@@ -152,6 +152,7 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
     maxEpss: num(query.max_epss),
     noEpss: str(query.epss) === "none",
     changedSince: str(query.changed) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
+    newSince: str(query.new) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
     q: str(query.q),
     sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
     offset: offset !== undefined && offset >= 0 ? Math.floor(offset) : 0,
@@ -617,7 +618,7 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/triage", (req, res) => {
-    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: str(req.query.notice, 300) }));
+    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: str(req.query.notice, 300), dismissed: str(req.query.dismissed) === "1" }));
   });
   app.get("/triage.csv", requireOwner, (_req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="baselinewatch-triage.csv"');
