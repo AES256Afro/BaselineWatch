@@ -25,8 +25,9 @@ describe("platform engineering: the release and hardware under test", () => {
     const intel = buildTestPlan(app.db, { platform: "macos", version: "26", hardware: "intel" });
     expect(intel.release?.label).toBe("macOS 26 Tahoe");
     expect(intel.hardware?.id).toBe("intel");
-    expect(intel.skippedTemplates.map((s) => s.template.id)).toEqual(["hardware-root-macos"]);
-    expect(intel.skippedTemplates[0]!.reason).toMatch(/needs Apple silicon Mac .* or Intel Mac with the Apple T2/);
+    // Left out for the hardware, and (separately) for naming no applied rule.
+    expect(intel.skippedTemplates.map((s) => s.template.id)).toEqual(["firewall-macos", "hardware-root-macos", "ssh-macos"]);
+    expect(intel.skippedTemplates.find((s) => s.template.id === "hardware-root-macos")!.reason).toMatch(/needs Apple silicon Mac .* or Intel Mac with the Apple T2/);
     const rosetta = intel.items.find((i) => i.id === "template:macos-release-checks:3")!;
     expect(rosetta.applicable).toEqual({ ok: false, reason: "applies to macOS >=27, not macOS 26 Tahoe" });
     expect(rosetta.included).toBe(false);
@@ -35,7 +36,7 @@ describe("platform engineering: the release and hardware under test", () => {
 
     // macOS 13 Ventura is too old for Platform SSO.
     const ventura = buildTestPlan(app.db, { platform: "macos", version: "13" });
-    expect(ventura.skippedTemplates.map((s) => s.template.id)).toEqual(["platform-sso-entra-macos"]);
+    expect(ventura.skippedTemplates.map((s) => s.template.id)).toEqual(["firewall-macos", "platform-sso-entra-macos", "ssh-macos"]);
 
     // Windows 11 23H2: the 24H2 and 25H2 behaviours do not apply; the first step always does.
     const w23 = buildTestPlan(app.db, { platform: "windows", version: "23H2", hardware: "tpm-2" });
@@ -105,7 +106,7 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(json.notTested.some((n) => /not being tested/.test(n.why))).toBe(true);
     expect(json.items.some((i) => i.fail)).toBe(true);
     const csv = String(exportPlan(plan, "csv", meta).body);
-    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,reference");
+    expect(csv.split("\r\n")[0]).toBe("done,area,id,severity,title,source,procedure,expected,if not,our value,reference");
   });
 
   it("builds the iOS plan from its STIG and the templates, and templates-only plans for Android and the meeting rooms", () => {
@@ -115,7 +116,7 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(ios.items.filter((i) => i.source === "stig").map((i) => i.label).sort()).toEqual(["AIOS-26-006500", "AIOS-26-006800", "AIOS-26-007500", "AIOS-26-011200", "AIOS-26-012500", "AIOS-26-013200"]);
     expect(ios.items.find((i) => i.label === "AIOS-26-013200")?.area).toBe("mdm");
     expect(ios.items.find((i) => i.label === "AIOS-26-006500")?.area).toBe("authentication");
-    expect(ios.templates.map((t) => t.id)).toEqual(["conditional-access", "entra-sso-mobile", "hardware-root-ios", "mdm-enrolment"]);
+    expect(ios.templates.map((t) => t.id)).toEqual(["conditional-access", "entra-sso-mobile", "hardware-root-ios", "mdm-enrolment", "sso-kerberos-extension"]);
     expect(ios.items.find((i) => i.id === "template:hardware-root-ios:5")!.applicable.ok).toBe(true);
     const ipad = buildTestPlan(app.db, { platform: "ipados", version: "26" });
     expect(ipad.profile?.components.stig?.key).toBe("stig:apple-ios-ipados-26");

@@ -1,0 +1,24 @@
+id: ipados-shared-ipad
+title: Shared iPad with Managed Apple Accounts
+platforms: [ipados]
+area: authentication
+notes: Only for iPads configured as Shared iPad. Test with two Managed Apple Accounts from Apple Business Manager or Apple School Manager.
+steps:
+  - do: Sign in at the Shared iPad login screen with the first managed account, create a note and a file, then sign out.
+    expect: Sign-in succeeds; sign-out returns to the login screen.
+    fail: Check the iPad was enrolled as Shared iPad through Automated Device Enrollment and that the account is a Managed Apple Account in the organisation.
+    source:
+      title: Apple Platform Deployment guide (Shared iPad)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Sign in with the second account and look for the first account's note and file.
+    expect: None of the first account's data is visible to the second.
+    fail: Treat any crossover as a finding and stop using the iPad as shared until it is explained.
+    source:
+      title: Apple Platform Deployment guide (Shared iPad)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Sign in to a temporary session (where allowed) and sign out.
+    expect: The temporary session's data is erased at sign-out; where the baseline disallows temporary sessions, the option is absent.
+    fail: If the option shows when the baseline disallows it, the restriction did not apply; re-push the Shared iPad settings.
+    source:
+      title: Apple Platform Deployment guide (Shared iPad)
+      url: https://support.apple.com/guide/deployment/welcome/web

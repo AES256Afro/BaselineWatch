@@ -1,0 +1,24 @@
+id: sso-kerberos-extension
+title: Kerberos SSO extension against Active Directory
+platforms: [macos, ios, ipados]
+area: sso
+notes: For organisations with on-premises Active Directory. The MDM deploys an Extensible Single Sign-On payload of type Kerberos with the realm and the hosts it covers. Run on the corporate network or VPN.
+steps:
+  - do: Sign in to the Kerberos SSO extension when it prompts (or from its menu); on a Mac, run app-sso -l, then app-sso -i with the realm, then klist.
+    expect: The realm is listed and signed in; klist shows a ticket-granting ticket for the user in that realm.
+    fail: Confirm the payload's realm is in capitals and the device can resolve the domain controllers (the SRV records for _kerberos._tcp under the realm); without DNS the extension cannot find a KDC.
+    source:
+      title: Apple Platform Deployment guide (Extensible Single Sign-On, Kerberos)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Open an intranet site and a file share that use Kerberos authentication, in Safari and in Finder (on iPhone or iPad, Safari only).
+    expect: Both open without a password prompt.
+    fail: Check that the hosts are listed in the payload's Hosts (with a leading dot for a whole domain) and that the server has a service principal name for the name used.
+    source:
+      title: Apple Platform Deployment guide (Extensible Single Sign-On, Kerberos)
+      url: https://support.apple.com/guide/deployment/welcome/web
+  - do: Let the Active Directory password reach its expiry warning (or set a short one on the test account) and change it through the extension.
+    expect: The extension warns before expiry, changes the password against Active Directory, and on a Mac syncs the local password when password sync is configured.
+    fail: If the local password does not follow, check that password sync is enabled in the payload and the local account is the one the extension is bound to.
+    source:
+      title: Apple Platform Deployment guide (Extensible Single Sign-On, Kerberos)
+      url: https://support.apple.com/guide/deployment/welcome/web
