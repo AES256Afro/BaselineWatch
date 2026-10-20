@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<title>BaselineWatch mark 18: Lens</title>
+<style>svg{--ink:#1b1f23;--acc:#0f6e56;--del:#b3261e;--ins:#1b6e3a;--mute:#5f6b70}@media (prefers-color-scheme:dark){svg{--ink:#e7eae6;--acc:#4cc9a6;--del:#ff8a80;--ins:#7fd99a;--mute:#9aa6a3}}.si{stroke:var(--ink);fill:none}.fi{fill:var(--ink)}.sa{stroke:var(--acc);fill:none}.fa{fill:var(--acc)}.sd{stroke:var(--del);fill:none}.fd{fill:var(--del)}.sn{stroke:var(--ins);fill:none}.fn{fill:var(--ins)}.sm{stroke:var(--mute);fill:none}</style>
+<circle class="si" cx="27" cy="27" r="16" stroke-width="6"/><path class="si" d="M39 39L56 56" stroke-width="8" stroke-linecap="round"/><path class="sa" d="M19 27H35" stroke-width="5" stroke-linecap="round"/>
+</svg>
