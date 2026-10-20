@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { loadDecisions, type Decision, type DecisionKind } from "./decisions.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
 import { latestDocument, listDocuments, loadRequirements, type DocumentRow } from "./register.ts";
 import { cciMap, compareControlRefs, controlLabel, controlsFor, followedStigs, type CciMap, type StigSummary } from "./stigs.ts";
@@ -87,6 +88,8 @@ export interface ProfileItem {
   url: string;
   /** On a control item: the labels of the included rules that implement it. */
   implementedBy: string[];
+  /** The owner's stored decision on it, or null when the publisher's recommendation stands. */
+  decision: Decision | null;
   /** Whether the person kept it. */
   included: boolean;
 }
@@ -97,7 +100,7 @@ export interface ProfileOptions {
   sct?: string | undefined;
   mscp?: string | undefined;
   cat3?: boolean;
-  /** Item ids the person unticked. */
+  /** Item ids the person unticked; when absent, the items the owner decided not to apply. */
   drop?: string[];
 }
 
@@ -129,7 +132,7 @@ export interface Profile {
   choices: { stigs: DocChoice[]; scts: DocChoice[]; mscps: DocChoice[] };
   items: ProfileItem[];
   next: NextComparison[];
-  counts: { included: number; dropped: number; byKind: Record<ProfileItem["kind"], number> };
+  counts: { included: number; dropped: number; byKind: Record<ProfileItem["kind"], number>; decisions: Record<DecisionKind, number> };
 }
 
 const stigPlatform: Record<BuilderPlatform, string> = { windows: "windows", macos: "macos", linux: "linux", ios: "mobile", ipados: "mobile", android: "mobile" };
@@ -334,7 +337,9 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
   const intuneDoc = latestDocument(db, "disa-intune", "intune:package");
   const checklistDoc = latestDocument(db, "disa-gpo", "gpo:checklists");
   const families = stig ? (disaPolicyFamilies[stig.key] ?? { intune: null, checklist: null }) : { intune: null, checklist: null };
-  const dropped = new Set(options.drop ?? []);
+  const decisions = loadDecisions(db, options.platform);
+  // A form that carries its own drops wins; otherwise the profile starts from the owner's decisions.
+  const dropped = new Set(options.drop ?? [...decisions.values()].filter((d) => d.decision === "exclude").map((d) => d.itemId));
   const items: ProfileItem[] = [];
 
   // DISA's Intune settings and checklist verdicts for this STIG, when it ships them.
@@ -373,6 +378,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
       sctValue: null,
       url: `/standards/disa-stigs/${stig!.documentId}/${r.ref}`,
       implementedBy: [],
+      decision: null,
       included: !dropped.has(`stig:${r.ref}`),
     };
     stigItems.set(r.label, item);
@@ -409,6 +415,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
         sctValue: r.statement,
         url: `/standards/microsoft-sct/${sct.documentId}/${encodeURIComponent(r.ref)}`,
         implementedBy: [],
+        decision: null,
         included: !dropped.has(`sct:${r.ref}`),
       });
     }
@@ -450,6 +457,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
         sctValue: null,
         url: `/standards/nist-mscp/${mscp.documentId}/${r.ref}`,
         implementedBy: [],
+        decision: null,
         included: !dropped.has(`mscp:${r.ref}`),
       });
     }
@@ -482,6 +490,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
         sctValue: null,
         url: catalogDoc ? `/standards/nist-sp-800-53/${catalogDoc.id}/${c}` : `/standards/nist-sp-800-53b`,
         implementedBy: implementers.get(c) ?? [],
+        decision: null,
         included: !dropped.has(`control:${c}`),
       });
     }
@@ -489,6 +498,11 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
 
   const byKind: Record<ProfileItem["kind"], number> = { stig: 0, sct: 0, mscp: 0, control: 0 };
   for (const i of items) if (i.included) byKind[i.kind] += 1;
+  const decided: Record<DecisionKind, number> = { apply: 0, modify: 0, exclude: 0 };
+  for (const i of items) {
+    i.decision = decisions.get(i.id) ?? null;
+    decided[i.decision?.decision ?? "apply"] += 1;
+  }
   const components: Components = {
     stig,
     sct,
@@ -506,7 +520,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
     choices: { stigs, scts, mscps },
     items,
     next: compareNext(db, { stig, sct, mscp }, { stigs, scts, mscps }, cats, map),
-    counts: { included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length, byKind },
+    counts: { included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length, byKind, decisions: decided },
   };
 }
 

@@ -24,6 +24,33 @@ Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`
   documents, and the browser check, the why page and the guides now link each other, with
   breadcrumbs on every Scan page.
 
+## 0.34.0 — 2026-10-19
+
+- **Decisions beside the recommendation.** Every item of a platform's baseline (a STIG rule, an
+  mSCP rule, a Microsoft setting, an SP 800-53 High control) now carries the owner's decision next
+  to what the publisher recommends: apply as published, apply modified with the organisation's
+  own value, or not applied, each with a reason and an owner. A chip on each builder row opens the
+  item's decide page (the recommendation, its controls, payload keys, check and fix on the left,
+  the decision on the right, with previous and next to walk the rules); `/baselines/<platform>/decisions`
+  lays them out as a board in three columns and downloads every item and its decision as CSV.
+  The builder starts from the decisions (an item not applied starts unticked), and the owner can
+  record every unticked item as not applying in one go, with one reason. Stored in
+  `baseline_decisions` (migration 0026); writes need the owner's sign-in.
+- **The test plan tests what is applied.** A rule the owner does not apply leaves the plan and is
+  listed as not tested with the reason; a modified rule stays and is tested for the organisation's
+  value. A template can name the rules it needs (`requires: [ssh, sshd]`): it joins the plan only
+  when an applied rule names one of them, and the plan says why when it does not. New templates:
+  Jamf Connect at the login window, the Kerberos SSO extension (macOS, iOS, iPadOS), smart card
+  sign-in, SSH hardening and the application firewall on macOS (each requiring its rule), and
+  Shared iPad. Every export carries a **Baseline decisions** table: publisher recommends, our
+  decision, reason, owner.
+- **Eleven report looks.** The Word, PDF, LaTeX and printable exports take a look from a select
+  beside the export buttons: Plain (as before) or one of the ten mockups now kept in
+  `docs/mockups/exports` (formal assessment, engineering runbook, executive, compact checklist,
+  modern, dark console, board, audit workpaper, Markdown-native, Word). A look sets colours,
+  typefaces (Times, Helvetica or Courier in the PDF), a cover page and numbered sections; the
+  content is the same in all of them, and the plan's link keeps the look chosen.
+
 ## 0.33.0 — 2026-10-19
 
 - **Scan: the browser check** (M12.1). A new **Scan** area at `/scan` runs three checks in the
