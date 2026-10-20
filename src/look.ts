@@ -1,4 +1,5 @@
 import { parseCookies } from "./auth.ts";
+import type { Brand } from "./branding.ts";
 import { html, type Html } from "./html.ts";
 import { safeBack } from "./paths.ts";
 
@@ -44,6 +45,11 @@ export interface LookChoice {
 /** The choice as the page draws it, with the path the switch returns the browser to. */
 export interface LookState extends LookChoice {
   back: string;
+  /**
+   * The instance's uploaded logo and favicon (branding.ts). It rides with the look because every
+   * page already hands the look to the layout, which is the one place that wears it.
+   */
+  brand?: Brand;
 }
 
 /** The browser's choice from its cookies, or the instance's defaults for whatever is missing or not a known word. */
