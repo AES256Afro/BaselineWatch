@@ -13,6 +13,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY src ./src
 COPY public ./public
 COPY data ./data
+# The Branding page offers the design sheets' marks; without this the gallery is empty in production.
+COPY docs/mockups/logo ./docs/mockups/logo
 RUN mkdir -p /data && chown node:node /data
 
 USER node

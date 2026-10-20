@@ -3,7 +3,10 @@ data/*
 !data/test-plans
 !data/mitigations.yaml
 !data/platforms.yaml
-docs
+docs/*
+!docs/mockups
+docs/mockups/*
+!docs/mockups/logo
 test
 boxpilot
 scripts
