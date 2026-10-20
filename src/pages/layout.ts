@@ -134,7 +134,7 @@ ${strip ?? ""}
 <footer class="foot">
   <div class="wrap">
     <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="/guide">how to read this site</a> · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
-    <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed. Article images belong to their publishers and link to the original story.</p>
+    <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed. Article images belong to their publishers and link to the original story. AdFection / Candiru indicators are the Zero Breach project's (CC0), which is not affiliated with the researchers it cites. Canary names are quoted from EasyList and EasyPrivacy (GPLv3 or CC BY-SA 3.0) and from URLhaus by abuse.ch; they are only ever resolved, never loaded, and nothing here links to them.</p>
   </div>
 </footer>
 </body>

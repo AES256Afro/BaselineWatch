@@ -45,6 +45,8 @@ const formatLabel: Record<string, string> = {
   rss: "RSS",
   atom: "Atom",
   json: "JSON",
+  text: "plain text list",
+  adblock: "Adblock Plus list",
   csv: "CSV",
   html: "HTML listing",
 };
