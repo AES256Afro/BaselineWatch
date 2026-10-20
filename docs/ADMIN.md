@@ -236,6 +236,15 @@ second BaselineWatch instance, or of this one under another hostname (`https://p
 scheme, host and optional port, nothing else, or the app refuses to start). That origin serves
 the same four paths, so any instance 0.33 or later will do, including the public one.
 
+The manual guide (`/scan/guide` and one page per platform) and the why page stay under the strict
+policy. The two device scripts live in `public/scan/` and are served as plain text at
+`/scan/scripts/bw-check.ps1`, `/scan/scripts/bw-check.sh` and `/scan/scripts/SHA256SUMS`; the
+SHA-256 shown beside each link is computed from the bytes served when the app starts. After
+editing a script, run `node scripts/scan-sums.mjs` to rewrite `SHA256SUMS`: `npm run check`
+fails while the recorded sums disagree with the files. The scripts contact only the device's own
+resolver, the gateway and, for the bypass rows, 8.8.8.8, 1.1.1.1 and dns.google; nothing is
+fetched from an advertising domain, and nothing is uploaded anywhere.
+
 ## Access
 
 Reading is open when `BW_PUBLIC_READ` is true (the default; the public site holds no private
