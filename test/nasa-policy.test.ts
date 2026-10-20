@@ -58,6 +58,17 @@ describe("parseReference on the real 2026 Q3 document", () => {
     expect(standards.entries.some((e) => e.id === "NASA-STD-2607" && e.title === "Network Security")).toBe(true);
   });
 
+  it("keeps each row's own hyperlink as the document's source", () => {
+    const spec = reference.sections[3]!.entries.find((e) => e.id.startsWith("NASA-SPEC-2600"))!;
+    expect(spec.url).toMatch(/^https:\/\/cset\.nasa\.gov\/ascs\//);
+    const npr = reference.sections[0]!.entries.find((e) => e.id === "NPR 2810.1F")!;
+    expect(npr.url).toBe("https://nodis3.gsfc.nasa.gov/displayDir.cfm?t=NPR&c=2810&s=1F");
+    const fips = reference.sections[6]!.entries.find((e) => e.id === "FIPS 140-3")!;
+    expect(fips.url).toBe("https://csrc.nist.gov/pubs/fips/140-3/final");
+    const rows = referenceRequirements(reference);
+    expect(rows.find((r) => r.ref === "standard:nasa-spec-2600")!.extra.url).toMatch(/^https:\/\/cset\.nasa\.gov\//);
+  });
+
   it("splits a NIST row's status note from its title", () => {
     const nist = reference.sections[7]!;
     const mscp = nist.entries.find((e) => e.id === "SP 800-219 Rev. 2")!;

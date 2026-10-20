@@ -116,8 +116,9 @@ new downloads).
   document one requirement: ref is the section key plus the id's stable part (`directive:npr-2810.1`
   covers 2810.1F and a later 2810.1G; a NIST number's letter stays, SP 800-53A), label the id as
   printed, statement the dates and expiry, guidance the status note the title carried after an
-  asterisk ("Comment period closed as of 8/14/26"). The version is the document's "Current as of
-  last publication" date.
+  asterisk ("Comment period closed as of 8/14/26"), and each row's own hyperlink (NODIS for a
+  directive, CSET or NTSS for a NASA standard, CSRC for FIPS and SP) kept as the document's
+  source link. The version is the document's "Current as of last publication" date.
 - **Rationale**: none published; the document states no reason for its changes.
 - **Licence**: US Government work, public domain.
 - **Diffability**: good. Ids are stable, dates and notes live in diffable fields, so a quarterly

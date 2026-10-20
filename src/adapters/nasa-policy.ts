@@ -32,6 +32,8 @@ interface ReferenceEntry {
   expiry: string | null;
   /** Memoranda name a sender instead of an id. */
   from: string | null;
+  /** Where the row's own hyperlink leads: NODIS for a directive, CSET or NTSS for a NASA standard, CSRC for FIPS and SP. */
+  url: string | null;
 }
 
 export interface ReferenceSection {
@@ -45,14 +47,28 @@ export interface ParsedReference {
   sections: ReferenceSection[];
 }
 
+function decodeXmlAttribute(value: string): string {
+  return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+}
+
 /** Word field codes (HYPERLINK …) and deleted text are markup, not content. */
-function docxBodyXml(bytes: Uint8Array): string {
+function docxParts(bytes: Uint8Array): { xml: string; links: Map<string, string> } {
   const entries = unzipAll(bytes);
   const doc = findEntry(entries, /^word\/document\.xml$/);
   if (!doc) throw new Error("not a Word document: word/document.xml is missing");
-  return entryText(doc)
+  // Word keeps hyperlink targets apart from the text, as relationships the runs point at by id.
+  const links = new Map<string, string>();
+  const rels = findEntry(entries, /^word\/_rels\/document\.xml\.rels$/);
+  if (rels) {
+    for (const m of entryText(rels).matchAll(/Id="(rId\d+)"[^>]*Target="([^"]+)"/g)) {
+      const target = decodeXmlAttribute(m[2]!);
+      if (/^https?:\/\//i.test(target)) links.set(m[1]!, target);
+    }
+  }
+  const xml = entryText(doc)
     .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g, "")
     .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g, "");
+  return { xml, links };
 }
 
 /** The readable text of one XML fragment: tags stripped, entities decoded, whitespace collapsed. */
@@ -71,7 +87,7 @@ const headerCells = new Set(["document id", "memo subject", "subject/title"]);
  * Rows whose first cell is the column header ("Document ID", "Memo Subject") are furniture.
  */
 export function parseReference(bytes: Uint8Array): ParsedReference {
-  const xml = docxBodyXml(bytes);
+  const { xml, links } = docxParts(bytes);
   const sections: ReferenceSection[] = [];
   let asOf: string | null = null;
   let lastParagraph = "";
@@ -102,6 +118,7 @@ export function parseReference(bytes: Uint8Array): ParsedReference {
       const [titleRaw, ...noteParts] = (memos ? first : (cells[1] ?? "")).split("*");
       const note = noteParts.join("; ").trim() || null;
       const expiry = memos ? null : cells[3]?.trim() || null;
+      const linkId = /<w:hyperlink[^>]*r:id="(rId\d+)"/.exec(row[0]!)?.[1];
       entries.push({
         id: first,
         title: (titleRaw ?? "").trim(),
@@ -109,6 +126,7 @@ export function parseReference(bytes: Uint8Array): ParsedReference {
         date: cells[2]?.trim() || null,
         expiry: expiry && /^not listed$/i.test(expiry) ? null : expiry,
         from: memos ? cells[1]?.trim() || null : null,
+        url: (linkId && links.get(linkId)) || null,
       });
     }
     if (entries.length > 0) sections.push({ heading, entries });
@@ -186,7 +204,7 @@ export function referenceRequirements(reference: ParsedReference): NormalizedReq
         // The document's own section order, so the pages read the way NASA wrote it.
         sortKey: `${String(index).padStart(2, "0")}.${ref}`,
         status: "active",
-        extra: {},
+        extra: entry.url ? { url: entry.url } : {},
       });
     }
   }

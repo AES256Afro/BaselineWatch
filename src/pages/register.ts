@@ -380,6 +380,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("related", "Related controls", before?.related.length ? [...before.related].sort().join(", ") : null, after?.related.length ? [...after.related].sort().join(", ") : null)}
     ${field("extra", "Fix", typeof before?.extra.fix === "string" ? before.extra.fix : null, typeof after?.extra.fix === "string" ? after.extra.fix : null)}
     ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}
+    ${typeof shown.extra.url === "string" && /^https?:\/\//i.test(shown.extra.url) ? html`<section class="field"><h3>Published at</h3><p class="prose"><a href="${shown.extra.url}" ${newTabIf(shown.extra.url)}>${shown.extra.url}</a></p></section>` : ""}
     ${implementedBy}`;
 
   const shortTitle = shown.title.length > 70 ? `${shown.title.slice(0, 69).trimEnd()}…` : shown.title;

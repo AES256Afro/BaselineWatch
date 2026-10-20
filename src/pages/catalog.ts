@@ -25,6 +25,7 @@ interface LatestRow {
   title: string | null;
   published_at: string | null;
   parsed_at: string;
+  source_url: string | null;
 }
 
 /** The newest loaded version of every publication the NIST sources track. */
@@ -32,7 +33,7 @@ function latestPerKey(db: DatabaseSync, sourceIds: string[]): LatestRow[] {
   const marks = sourceIds.map(() => "?").join(", ");
   return db
     .prepare(
-      `SELECT d.id, d.source_id, d.document_key, d.version_label, d.title, d.published_at, d.parsed_at
+      `SELECT d.id, d.source_id, d.document_key, d.version_label, d.title, d.published_at, d.parsed_at, d.source_url
        FROM documents d
        WHERE d.source_id IN (${marks})
          AND d.id = (SELECT MAX(x.id) FROM documents x WHERE x.source_id = d.source_id AND x.document_key = d.document_key)
@@ -66,8 +67,13 @@ interface DraftItem {
   published_at: string | null;
 }
 
+/** A link to the bytes a document was read from: the zip, PDF, JSON or page the publisher serves. */
+function sourceLink(url: string | null): Html {
+  return url ? html`<a href="${url}" ${newTab}>source</a>` : html``;
+}
+
 /** The drafts CSRC has open for comment, as the csrc-drafts feed last delivered them. */
-function openDrafts(db: DatabaseSync, limit = 30): DraftItem[] {
+function openDrafts(db: DatabaseSync, limit = 100): DraftItem[] {
   return db
     .prepare("SELECT title, url, published_at FROM items WHERE source_id = 'csrc-drafts' ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ?")
     .all(limit) as unknown as DraftItem[];
@@ -97,6 +103,7 @@ function osSection(db: DatabaseSync, fleet: Fleet, now: Date): Html {
           <td>${label}</td>
           <td>${doc ? html`<a href="/standards/${sourceId}/${doc.id}">${doc.version_label ?? doc.title ?? key}</a>` : html`<span class="small">not loaded yet</span>`}</td>
           <td class="small">${doc?.published_at ? relativeTime(doc.published_at, now) : "—"}</td>
+          <td class="small">${sourceLink(doc?.source_url ?? null)}</td>
           <td>${doc ? statusChip(doc, now) : html`<span class="chip na">pending</span>`}</td>
         </tr>`);
       }
@@ -105,7 +112,7 @@ function osSection(db: DatabaseSync, fleet: Fleet, now: Date): Html {
     return html`<section class="std" id="os-${p.id}">
       <div class="std-head"><b><a href="#os-${p.id}">${p.label}</a></b><span class="small"><a href="/baselines/${p.id}">builder</a> · <a href="/baselines/${p.id}/tests">test plan</a></span></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Release</th><th>Standard</th><th>Current version</th><th>Published</th><th></th></tr></thead>
+        <thead><tr><th>Release</th><th>Standard</th><th>Current version</th><th>Published</th><th>Source</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </section>`;
@@ -122,13 +129,14 @@ function nistSection(db: DatabaseSync, now: Date): Html {
     <div class="std-head"><b><a href="#nist">NIST publications</a></b><span class="small">${latest.length} tracked · <a href="/register">Register</a></span></div>
     ${latest.length
       ? html`<div class="table-wrap"><table>
-          <thead><tr><th>Publication</th><th>Set</th><th>Current version</th><th>Published</th><th></th></tr></thead>
+          <thead><tr><th>Publication</th><th>Set</th><th>Current version</th><th>Published</th><th>Source</th><th></th></tr></thead>
           <tbody>${latest.map(
             (d) => html`<tr>
               <td><a href="/standards/${d.source_id}/${d.id}">${d.title ?? d.document_key}</a></td>
               <td class="small">${nistSourceNames[d.source_id] ?? d.source_id}</td>
               <td>${d.version_label ?? "—"}</td>
               <td class="small">${d.published_at ? relativeTime(d.published_at, now) : "—"}</td>
+              <td class="small">${sourceLink(d.source_url)}</td>
               <td>${statusChip(d, now)}</td>
             </tr>`,
           )}</tbody>
@@ -164,19 +172,30 @@ function nasaSection(db: DatabaseSync): Html {
       <p class="small">The reference has not been fetched yet: <a href="/sources">Sources</a> → NASA Cybersecurity Policy Reference → Fetch now.</p>
     </section>`;
   }
-  const families = new Map<string, { ref: string; label: string; title: string; statement: string | null; guidance: string | null }[]>();
+  interface Row {
+    ref: string;
+    label: string;
+    title: string;
+    statement: string | null;
+    guidance: string | null;
+    url: string | null;
+  }
+  const families = new Map<string, Row[]>();
   for (const r of loadRequirements(db, doc.id)) {
     const list = families.get(r.family ?? "Other") ?? [];
-    list.push({ ref: r.ref, label: r.label, title: r.title, statement: r.statement, guidance: r.guidance });
+    list.push({ ref: r.ref, label: r.label, title: r.title, statement: r.statement, guidance: r.guidance, url: typeof r.extra.url === "string" ? r.extra.url : null });
     families.set(r.family ?? "Other", list);
   }
-  const table = (rows: { ref: string; label: string; title: string; statement: string | null; guidance: string | null }[]): Html =>
+  // The id leads to the document itself, where NASA's reference links it (CSET and NTSS pages
+  // need a NASA sign-in; the row says nothing extra, the destination does). The title stays on
+  // this instance's page for the row, with its history once editions diff.
+  const table = (rows: Row[]): Html =>
     html`<div class="table-wrap"><table>
       <thead><tr><th>Document</th><th>Title</th><th>Dates</th><th>Status note</th></tr></thead>
       <tbody>${rows.map(
         (r) => html`<tr>
-          <td><a href="/standards/nasa-cyber-ref/${doc.id}/${encodeURIComponent(r.ref)}">${r.label}</a></td>
-          <td>${r.title}</td>
+          <td>${r.url ? html`<a href="${r.url}" ${newTab}>${r.label}</a>` : html`<a href="/standards/nasa-cyber-ref/${doc.id}/${encodeURIComponent(r.ref)}">${r.label}</a>`}</td>
+          <td><a href="/standards/nasa-cyber-ref/${doc.id}/${encodeURIComponent(r.ref)}">${r.title}</a></td>
           <td class="small">${r.statement?.replace(/^Listed as .*?(?=\b(?:From|Dated|Expires|Expiry)\b)/, "").trim() ?? ""}</td>
           <td class="small">${r.guidance ? html`<span class="chip na">${r.guidance}</span>` : ""}</td>
         </tr>`,

@@ -45,7 +45,8 @@ describe("the all-standards catalog", () => {
     expect(text).toMatch(/<h3 id="nasa-standards">Standards \(\d+\)<\/h3>/);
     expect(text).toMatch(/<details><summary>FIPS Documents \(\d+\)/);
     expect(text).toMatch(/<details><summary>NIST Documents \(\d+\)/);
-    // A row links into the Register's requirement page for the reference document.
+    // The id leads to NASA's own page for the document; the title to the Register's row.
+    expect(text).toMatch(/<a href="https:\/\/cset\.nasa\.gov\/ascs\/[^"]*" target="_blank" rel="noopener">NASA-SPEC-2600 Version 6\.0<\/a>/);
     expect(text).toContain(`/standards/nasa-cyber-ref/${outcome.documentId}/${encodeURIComponent("standard:nasa-spec-2600")}`);
   });
 });
