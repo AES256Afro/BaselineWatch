@@ -384,7 +384,7 @@ describe("the lists on the pages", () => {
     expect(sources).toContain("Ad canaries (EasyList)");
     expect(sources).toContain("GPLv3 or CC BY-SA 3.0");
     expect(sources).toContain("CC0 1.0");
-    expect(sources).toMatch(/<tr class="off">\s*<td><a href="https:\/\/openphish\.com\/feed\.txt"/);
+    expect(sources).toMatch(/<tr id="src-[a-z0-9-]+" class="off">\s*<td><a href="https:\/\/openphish\.com\/feed\.txt"/);
     expect(sources).toContain("OpenPhish Community Feed terms");
 
     const standard = await (await fetch(`${app.base}/standards/adfection-dns`)).text();

@@ -263,6 +263,14 @@ describe("Register pages", () => {
     expect(release).toContain("in the publisher's words");
     expect(release).toContain("NIST issued a minor release");
     expect(release).toContain("Controls added, removed or revised");
+    // The Atlas map leads here one family at a time.
+    const saOnly = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}?family=SA`)).text();
+    expect(saOnly).toContain("<b>SA-24</b>");
+    expect(saOnly).not.toContain("<b>SI-07(12)</b>");
+    expect(saOnly).toContain("Controls added, removed or revised in SA");
+    expect(saOnly).toContain(`class="on" href="/standards/nist-sp-800-53/${latest.id}?family=SA"`);
+    const acOnly = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}?family=AC`)).text();
+    expect(acOnly).toContain("No control in AC changed in this release");
 
     const control = await (await fetch(`${app.base}/standards/nist-sp-800-53/${latest.id}/si-7.12`)).text();
     expect(control).toContain("Integrity Verification");

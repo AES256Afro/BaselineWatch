@@ -528,7 +528,13 @@ export interface VulnFilters {
   watch?: boolean;
   kev?: boolean;
   minCvss?: number | undefined;
+  /** One CVSS severity as NVD words it, or "unscored" for a CVE without one, the way the Today page bands them. */
+  severity?: "critical" | "high" | "medium" | "low" | "unscored" | undefined;
   minEpss?: number | undefined;
+  /** An exclusive upper bound, so EPSS bands tile the range without overlapping. */
+  maxEpss?: number | undefined;
+  /** Only CVEs that have no EPSS score yet. */
+  noEpss?: boolean;
   changedSince?: string | undefined;
   q?: string | undefined;
   sort?: "modified" | "published" | "cvss" | "epss";
@@ -545,10 +551,20 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
     clauses.push("v.cvss_score >= ?");
     params.push(filters.minCvss);
   }
+  if (filters.severity === "unscored") clauses.push("(v.cvss_severity IS NULL OR LOWER(v.cvss_severity) NOT IN ('critical', 'high', 'medium', 'low'))");
+  else if (filters.severity) {
+    clauses.push("LOWER(v.cvss_severity) = ?");
+    params.push(filters.severity);
+  }
   if (filters.minEpss !== undefined) {
     clauses.push("v.epss >= ?");
     params.push(filters.minEpss);
   }
+  if (filters.maxEpss !== undefined) {
+    clauses.push("v.epss < ?");
+    params.push(filters.maxEpss);
+  }
+  if (filters.noEpss) clauses.push("v.epss IS NULL");
   if (filters.changedSince) {
     clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)");
     params.push(filters.changedSince);

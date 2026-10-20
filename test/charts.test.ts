@@ -64,6 +64,20 @@ describe("charts", () => {
   });
 });
 
+describe("charts that lead somewhere", () => {
+  it("link a slice, a bar, a series and its legend entry to where the figures come from", () => {
+    const ring = donut([{ label: "Ahsay", value: 3, tone: "cyan", href: "/?kind=kev&q=Ahsay" }], { label: "x" }).value;
+    expect(ring).toContain('<a href="/?kind=kev&amp;q=Ahsay"><circle class="arc');
+    expect(ring).toContain('<li><a href="/?kind=kev&amp;q=Ahsay"><i class="t-cyan"></i>Ahsay <b>3</b></a></li>');
+    const rows = bars([{ label: "Critical", value: 6, tone: "red", href: "/vulnerabilities?severity=critical" }], { label: "x" }).value;
+    expect(rows).toContain('<li class="link"><a href="/vulnerabilities?severity=critical"><span>Critical</span>');
+    const chart = lines([{ label: "News", tone: "cyan", values: [1, 2], href: "/?group=news" }], { label: "x", ticks: ["10-01", "10-02"] }).value;
+    expect(chart).toContain('<a href="/?group=news"><polyline class="t-cyan"');
+    expect(chart).toContain('<a href="/?group=news"><i class="t-cyan"></i>News <b>3</b></a>');
+    expect(stacked([{ label: "New", value: 1, tone: "cyan", href: "/triage#new" }], { label: "x" }).value).toContain('<a href="/triage#new"><rect class="t-cyan"');
+  });
+});
+
 describe("the stylesheet's palettes", () => {
   const css = readFileSync(path.join(import.meta.dirname, "..", "public", "app.css"), "utf8");
   const blocks = [...css.matchAll(/(:root[^{]*)\{([^}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), names: new Set([...m[2]!.matchAll(/--([a-z0-9-]+)\s*:/g)].map((x) => x[1]!)) }));
