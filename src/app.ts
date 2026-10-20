@@ -9,7 +9,7 @@ import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
-import { getSource, ingestSource, storeUploadedDocument, type IngestResult } from "./ingest.ts";
+import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
@@ -668,9 +668,22 @@ export function createApp(ctx: AppContext): Express {
 
   app.get("/sources", (req, res) => {
     const q = req.query as Record<string, unknown>;
-    const notice = typeof q.fetched === "string" && typeof q.status === "string" ? { sourceId: q.fetched, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
+    // The notice after a fetch (`fetched`) or after a source was turned on or off (`changed`).
+    const sourceId = str(q.fetched, 60) ?? str(q.changed, 60);
+    const notice = sourceId && typeof q.status === "string" ? { sourceId, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
     res.type("html").send(renderSources({ db, ...who(req, res), notice }));
   });
+  // Turning a source on or off: the scheduler reads the flag on its next pass; what was loaded stays.
+  const setEnabled = (enabled: boolean) => (req: Request, res: Response) => {
+    const source = getSource(db, String(req.params.id));
+    if (!source) return res.status(404).type("text").send("No such source.");
+    setSourceEnabled(db, source.id, enabled);
+    const detail = enabled ? `checked ${source.schedule} from the scheduler's next pass; Fetch now runs it at once` : "no longer fetched; what was loaded stays on the Register";
+    const params = new URLSearchParams({ changed: source.id, status: enabled ? "enabled" : "disabled", detail });
+    res.redirect(303, `/sources?${params.toString()}`);
+  };
+  app.post("/sources/:id/enable", requireOwner, setEnabled(true));
+  app.post("/sources/:id/disable", requireOwner, setEnabled(false));
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
     const source = getSource(db, String(req.params.id));
     if (!source) return res.status(404).type("text").send("No such source.");

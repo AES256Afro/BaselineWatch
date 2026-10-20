@@ -108,8 +108,8 @@ Read-only JSON, same read gating as the pages, for BoxPilot's agents and your ow
 | `/api/v1/items?kind=&source=&q=&since=&limit=` | Timeline items with their signals. |
 | `/api/v1/vulns?watch=1&kev=1&min_cvss=&min_epss=&since=&q=&sort=&limit=&offset=` | CVEs with CVSS, EPSS, KEV, SSVC, vendors and watchlist hits. |
 | `/api/v1/vulns/<CVE>` | One CVE with CPEs, references and its change history. |
-| `/api/v1/standards` | Every tracked standard and its loaded versions. |
-| `/api/v1/changes?source=&since=&limit=` | Control-level changes with before/after text and the publisher's note. |
+| `/api/v1/standards` | Every tracked standard and its loaded versions; one flagged `restricted` yields versions and counts only. |
+| `/api/v1/changes?source=&since=&limit=` | Control-level changes with before/after text and the publisher's note; a restricted source's are left out. |
 | `/api/v1/triage?state=` | The board. |
 | `/api/v1/digest` | The latest digest. |
 
@@ -117,7 +117,9 @@ The same reads are an MCP server at `/mcp` (Streamable HTTP, stateless, no sessi
 tools `list_standards`, `release`, `requirement`, `standard_changes`, `search_wire`,
 `vulnerabilities`, `vulnerability`, `triage` and `digest`, every one marked read-only. From
 Claude Code: `claude mcp add --transport http baselinewatch https://cybercard.net/mcp`. Nothing
-on it writes, uploads or fetches.
+on it writes, uploads or fetches, and neither the API nor the tools return the entries of a
+licence-restricted source (`sources.restricted`): those are shown to the signed-in owner on the
+pages alone, while everyone else sees the versions and counts.
 
 Every loaded version can also be read whole: each release page links to a browsable, searchable
 list of all its requirements, filtered by family, with the ones that changed in that release

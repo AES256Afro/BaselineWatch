@@ -52,7 +52,7 @@ function card(c: TriageCard, owner: boolean, now: Date): Html {
 export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; notice?: string | undefined; look: LookState }): string {
   const { db, owner, open, now, notice, look } = options;
   const counts = triageCounts(db);
-  const cards = listTriage(db, { limit: 300 });
+  const cards = listTriage(db, { limit: 300, owner });
   const byState = new Map<TriageState, TriageCard[]>();
   for (const c of cards) byState.set(c.state, [...(byState.get(c.state) ?? []), c]);
   const inbox = triageInbox(db, 30);

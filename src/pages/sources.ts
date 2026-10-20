@@ -69,8 +69,12 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
             <td>${s.last_fetch_at
               ? html`${shortStamp(s.last_fetch_at)} <span class="status ${s.last_status ?? ""}">${s.last_status ?? ""}</span>${s.last_duration_ms !== null ? html` <span class="small">${s.last_duration_ms} ms</span>` : ""}`
               : html`<span class="state wait">never</span>`}${s.last_error ? html`<div class="note err">${s.last_error}</div>` : ""}${hintFor(s, adapter)}</td>
-            <td>${s.licence ?? "—"}</td>
-            ${owner ? html`<td>${fetchable(adapter) ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : s.format === "pdf-upload" ? html`<a href="/standards/${s.id}">Upload</a>` : ""}</td>` : ""}
+            <td>${s.licence ?? "—"}${s.restricted ? html`<div class="note">Restricted: the entries are shown to the signed-in owner only; visitors see versions and counts, and the API and MCP tools return neither names nor text.</div>` : ""}</td>
+            ${owner
+              ? html`<td><div class="acts">${fetchable(adapter) ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : s.format === "pdf-upload" ? html`<a href="/standards/${s.id}">Upload</a>` : ""}${
+                  s.format === "pdf-upload" ? "" : html`<form method="post" action="/sources/${s.id}/${s.enabled ? "disable" : "enable"}" class="inline"><button type="submit">${s.enabled ? "Turn off" : "Turn on"}</button></form>`
+                }</div></td>`
+              : ""}
           </tr>`;
         })}</tbody>
       </table></div>
@@ -79,7 +83,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
 
   const content = html`
     <h1>Sources</h1>
-    <p class="lede">Everything BaselineWatch reads, with how often and under what terms. Sources are fetched on their schedule; ${owner ? "Fetch now runs one immediately." : "the owner can fetch one immediately."}</p>
+    <p class="lede">Everything BaselineWatch reads, with how often and under what terms. Sources are fetched on their schedule; ${owner ? "Fetch now runs one immediately, and Turn off or Turn on takes a source out of or back into the schedule." : "the owner can fetch one immediately, or turn one off or on."}</p>
     ${notice ? html`<div class="notice ${notice.status}"><b>${notice.sourceId}</b>: ${notice.status}${notice.detail ? html` · ${notice.detail}` : ""}</div>` : ""}
     ${tables}`;
 

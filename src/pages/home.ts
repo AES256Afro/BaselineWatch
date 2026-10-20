@@ -15,6 +15,7 @@ interface StandardRow {
   format: string;
   schedule: string;
   enabled: number;
+  restricted: number;
   notes: string | null;
   snapshot_count: number;
   change_count: number;
@@ -63,7 +64,7 @@ export interface HomeOptions {
 export function renderHome({ config, db, migrations, owner, now, look }: HomeOptions): string {
   const standards = db
     .prepare(
-      `SELECT s.id, s.name, s.format, s.schedule, s.enabled, s.notes,
+      `SELECT s.id, s.name, s.format, s.schedule, s.enabled, s.restricted, s.notes,
               (SELECT COUNT(*) FROM snapshots sn WHERE sn.source_id = s.id) AS snapshot_count,
               (SELECT COUNT(*) FROM changes c WHERE c.source_id = s.id) AS change_count,
               (SELECT d.version_label FROM documents d WHERE d.source_id = s.id ORDER BY d.published_at DESC, d.id DESC LIMIT 1) AS latest_version,
@@ -104,7 +105,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
         : html`<span class="state ok">${s.latest_version ?? "latest"}${s.latest_published ? html` · ${s.latest_published.slice(0, 10)}` : ""}</span>`;
     return html`<li class="std">
       <div class="std-head"><b><a href="/standards/${s.id}">${s.name}</a></b>${state}</div>
-      <div class="std-meta"><span>${formatLabel[s.format] ?? s.format}</span><span>${s.schedule === "manual" ? "manual" : `checked ${s.schedule}`}</span><span class="n">${s.snapshot_count} snapshots · ${s.change_count} changes</span></div>
+      <div class="std-meta"><span>${formatLabel[s.format] ?? s.format}</span><span>${s.schedule === "manual" ? "manual" : `checked ${s.schedule}`}</span><span class="n">${s.snapshot_count} snapshots · ${s.change_count} changes</span>${s.restricted ? html`<span>entries shown to the owner only (licence)</span>` : ""}</div>
       ${s.notes ? html`<p class="std-note">${s.notes}</p>` : ""}
     </li>`;
   });
