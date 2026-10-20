@@ -10,6 +10,7 @@ import { buildDigest, digestDue, localClock, writeDigest } from "../src/digest.t
 import { HttpError, type HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { notify, parseNotifyUrl, recentAlerts, send } from "../src/notify.ts";
+import { linkified } from "../src/pages/digest.ts";
 import { startScheduler } from "../src/scheduler.ts";
 import { clearTriage, listTriage, setTriage, triageCounts, triageCsv, triageInbox } from "../src/triage.ts";
 import { cookieFrom, fakeHttp, fixture, formPost, startTestApp, type TestApp } from "./helpers.ts";
@@ -182,6 +183,17 @@ describe("alerts from the pipeline", () => {
   });
 });
 
+describe("digest links on the page", () => {
+  it("turns the stored text's URLs into links, this instance's and localhost's as paths", () => {
+    expect(linkified("Triage: 2 open https://cybercard.net/triage", "https://cybercard.net").value).toBe('Triage: 2 open <a href="/triage">/triage</a>');
+    expect(linkified("old http://localhost:8080/vulnerabilities/CVE-2026-0001", "https://cybercard.net").value).toBe('old <a href="/vulnerabilities/CVE-2026-0001">/vulnerabilities/CVE-2026-0001</a>');
+    expect(linkified("A story https://example.com/a?b=1 worth reading", "https://cybercard.net").value).toBe(
+      'A story <a href="https://example.com/a?b=1" target="_blank" rel="noopener">https://example.com/a?b=1</a> worth reading',
+    );
+    expect(linkified("no links here", "https://cybercard.net").value).toBe("no links here");
+  });
+});
+
 describe("digest", () => {
   let db: DatabaseSync;
   beforeEach(() => {
@@ -297,6 +309,8 @@ describe("triage and digest pages", () => {
     expect(digestAfter).toContain("Known exploited (CISA KEV): 3 added");
     expect(digestAfter).toContain("digest · unconfigured");
     expect(digestAfter).toContain('<h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">1</a></span></h2>');
+    // The digest's own URLs are links on the page, this instance's as paths.
+    expect(digestAfter).toContain('<a href="/triage">/triage</a>');
     const home = await (await fetch(`${app.base}/register`)).text();
     expect(home).toContain("Needs you");
     expect(home).toMatch(/<dt>Inbox<\/dt><dd><a href="\/triage#new">\d+ not yet placed<\/a><\/dd>/);

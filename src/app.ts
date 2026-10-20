@@ -12,6 +12,7 @@ import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
 import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
+import { renderCatalog } from "./pages/catalog.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
@@ -483,7 +484,9 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/"));
   });
 
-  app.get("/standards", (_req, res) => res.redirect(302, "/register"));
+  app.get("/standards", (req, res) => {
+    res.type("html").send(renderCatalog({ db, ...who(req, res), now: now() }));
+  });
   app.get("/standards/:source", (req, res, next) => {
     const html = renderStandard({ db, sourceId: String(req.params.source), ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) });
     if (!html) return next();
@@ -754,7 +757,7 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/digest", (req, res) => {
-    res.type("html").send(renderDigest({ db, ...who(req, res), now: now(), period: config.digest, hour: config.digestHour, timeZone: config.timeZone, notifyConfigured: parseNotifyUrl(config.notifyUrl) !== null }));
+    res.type("html").send(renderDigest({ db, ...who(req, res), now: now(), period: config.digest, hour: config.digestHour, timeZone: config.timeZone, notifyConfigured: parseNotifyUrl(config.notifyUrl) !== null, baseUrl: config.baseUrl }));
   });
   app.post("/digest/run", requireOwner, async (_req, res) => {
     const period = config.digest === "off" ? "daily" : config.digest;

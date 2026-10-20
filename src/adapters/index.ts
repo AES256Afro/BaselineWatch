@@ -13,6 +13,7 @@ import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
 import { mscpAdapter } from "./mscp.ts";
+import { nasaPolicyAdapter } from "./nasa-policy.ts";
 import { nvdAdapter } from "./nvd.ts";
 import { nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { osvAdapter } from "./osv.ts";
@@ -34,6 +35,7 @@ const byId: Record<string, Adapter> = {
   "nist-piv": csrcPubsAdapter,
   "nist-platform": csrcPubsAdapter,
   "fedramp-rules": fedrampRulesAdapter,
+  "nasa-cyber-ref": nasaPolicyAdapter,
   "microsoft-sct": sctAdapter,
   "disa-stigs": disaAdapter,
   "disa-cci": cciAdapter,
@@ -73,4 +75,4 @@ export function adapterFor(source: Pick<SourceRow, "id" | "format">): Adapter | 
   return byId[source.id] ?? byFormat[source.format] ?? null;
 }
 
-export { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapter, canaryAdsAdapter, canaryMalwareAdapter, canaryPhishingAdapter, canaryTrackersAdapter, cciAdapter, cisAdapter, cisaDirectivesAdapter, csrcPubsAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };
+export { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapter, canaryAdsAdapter, canaryMalwareAdapter, canaryPhishingAdapter, canaryTrackersAdapter, cciAdapter, cisAdapter, cisaDirectivesAdapter, csrcPubsAdapter, cvelistAdapter, disaAdapter, disaGpoAdapter, disaIntuneAdapter, epssAdapter, fedrampRulesAdapter, feedAdapter, hnAdapter, kevAdapter, mscpAdapter, nasaPolicyAdapter, nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter, nvdAdapter, osvAdapter, redditAdapter, sansNewsbitesAdapter, sctAdapter };
