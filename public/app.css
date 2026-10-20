@@ -678,3 +678,23 @@ h1 .arrow { color: var(--mute); font-weight: 400; }
 [data-look="console"] .state.bad { color: var(--red); border-color: var(--red); }
 [data-look="console"] .state.na { color: var(--mute); border-color: var(--rule-2); }
 [data-look="console"] .state.run { color: var(--acc); border-color: var(--acc); }
+
+/* Scan (M12.2): the manual guide's numbered steps, the script box and the sums beside the links. */
+.scan-guide .guide-section { margin-bottom: 14px; }
+.scan-guide .guide-section > h2 { font-size: 17px; margin-bottom: 6px; }
+.scan-guide .guide-section > p.small { margin: 0 0 8px; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; border-top: 1px solid var(--rule); padding: 10px 0 10px 36px; position: relative; font-size: 13.5px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--rule-2); text-align: center; font: 600 12px/26px var(--mono); color: var(--mute); }
+.steps li:first-child { border-top: 0; padding-top: 4px; }
+.steps li:first-child::before { top: 4px; }
+.steps p { margin: 0 0 4px; line-height: 1.5; }
+.steps p.small { margin-bottom: 3px; }
+.steps p.src { margin-top: 6px; }
+.steps code { font-size: 12px; overflow-wrap: anywhere; }
+.kv.script { margin: 10px 0 0; }
+.kv.script code.sum { font-size: 11px; overflow-wrap: anywhere; }
+.scan-guide ol.plan { padding-left: 18px; }
+.scan-guide .check .t a { color: var(--ink); text-decoration: none; }
+.scan-guide .check .t a:hover { text-decoration: underline; }
+[data-look="console"] .steps li::before { border-radius: 4px; }
