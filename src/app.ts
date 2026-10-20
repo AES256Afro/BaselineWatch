@@ -10,7 +10,7 @@ import { flashHeader, flashText, takeFlash } from "./flash.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
-import { getSource, ingestSource, storeUploadedDocument, type IngestResult } from "./ingest.ts";
+import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
@@ -735,7 +735,7 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/sources", (req, res) => {
-    // The outcome of a Fetch now rides over in the flash cookie, never in the query string, so no link can forge one.
+    // The outcome of a Fetch now, or of a Turn on or Turn off, rides over in the flash cookie, never in the query string, so no link can forge one.
     const flash = takeFlash(req, res, secureCookies(req)) as { sourceId?: unknown; status?: unknown; detail?: unknown } | undefined;
     const notice =
       flash && typeof flash.sourceId === "string" && typeof flash.status === "string"
@@ -743,6 +743,17 @@ export function createApp(ctx: AppContext): Express {
         : null;
     res.type("html").send(renderSources({ db, ...who(req, res), notice }));
   });
+  // Turning a source on or off: the scheduler reads the flag on its next pass; what was loaded stays.
+  const setEnabled = (enabled: boolean) => (req: Request, res: Response) => {
+    const source = getSource(db, String(req.params.id));
+    if (!source) return res.status(404).type("text").send("No such source.");
+    setSourceEnabled(db, source.id, enabled);
+    const detail = enabled ? `checked ${source.schedule} from the scheduler's next pass; Fetch now runs it at once` : "no longer fetched; what was loaded stays on the Register";
+    res.append("Set-Cookie", flashHeader({ sourceId: source.id, status: enabled ? "enabled" : "disabled", detail }, secureCookies(req)));
+    res.redirect(303, `/sources#src-${source.id}`);
+  };
+  app.post("/sources/:id/enable", requireOwner, setEnabled(true));
+  app.post("/sources/:id/disable", requireOwner, setEnabled(false));
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
     const source = getSource(db, String(req.params.id));
     if (!source) return res.status(404).type("text").send("No such source.");

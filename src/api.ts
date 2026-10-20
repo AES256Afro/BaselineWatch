@@ -8,7 +8,10 @@ import { listWire, type WireFilters } from "./wire.ts";
 
 /**
  * The read-only JSON API, for BoxPilot's agents, dashboards and scripts. Same read gating as
- * the pages. Every list takes `limit` (max 200) and most take `since` (ISO 8601).
+ * the pages. Every list takes `limit` (max 200) and most take `since` (ISO 8601). A
+ * licence-restricted source (`sources.restricted`) is listed with its versions and counts and
+ * flagged `restricted`; its entries' names and text are never returned, to anyone, so its
+ * changes are left out of the change list.
  */
 export interface ApiQuery {
   [key: string]: unknown;
@@ -135,11 +138,12 @@ export function apiVuln(db: DatabaseSync, cveId: string) {
 }
 
 export function apiStandards(db: DatabaseSync, baseUrl: string) {
-  const sources = db.prepare("SELECT id, name, url, licence, last_fetch_at, last_status FROM sources WHERE group_name = 'standards' AND kind <> 'article' ORDER BY name").all() as {
+  const sources = db.prepare("SELECT id, name, url, licence, restricted, last_fetch_at, last_status FROM sources WHERE group_name = 'standards' AND kind <> 'article' ORDER BY name").all() as {
     id: string;
     name: string;
     url: string;
     licence: string | null;
+    restricted: number;
     last_fetch_at: string | null;
     last_status: string | null;
   }[];
@@ -148,6 +152,8 @@ export function apiStandards(db: DatabaseSync, baseUrl: string) {
     name: s.name,
     publisherUrl: s.url,
     licence: s.licence,
+    // Versions and counts only: the entries of a restricted source are shown to the instance's owner on its pages and nowhere else.
+    restricted: s.restricted === 1,
     lastFetch: s.last_fetch_at,
     lastStatus: s.last_status,
     versions: listDocuments(db, s.id).map((d) => ({
@@ -165,7 +171,8 @@ export function apiStandards(db: DatabaseSync, baseUrl: string) {
 export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const since = sinceOf(q.since);
   const source = str(q.source);
-  const clauses: string[] = [`c.source_id NOT IN (${licensedSources.map(() => "?").join(", ")})`];
+  // A change row is a ref with its text: nothing of a restricted source's, nor of the owner's licensed copies, leaves through here.
+  const clauses: string[] = ["s.restricted = 0", `c.source_id NOT IN (${licensedSources.map(() => "?").join(", ")})`];
   const params: (string | number)[] = [...licensedSources];
   if (since) {
     clauses.push("d.published_at >= ?");
@@ -180,10 +187,10 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
       `SELECT c.id, c.source_id, c.document_key, c.to_document_id, c.ref, c.kind, c.field, c.before_text, c.after_text, d.version_label, d.published_at,
               COALESCE(r.label, p.label) AS label, COALESCE(r.title, p.title) AS title,
               (SELECT e.text FROM explanations e WHERE e.change_id = c.id AND e.kind = 'publisher' LIMIT 1) AS note
-       FROM changes c JOIN documents d ON d.id = c.to_document_id
+       FROM changes c JOIN documents d ON d.id = c.to_document_id JOIN sources s ON s.id = c.source_id
        LEFT JOIN requirements r ON r.document_id = c.to_document_id AND r.ref = c.ref
        LEFT JOIN requirements p ON p.document_id = c.from_document_id AND p.ref = c.ref
-       ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+       WHERE ${clauses.join(" AND ")}
        ORDER BY d.published_at DESC, c.ref, c.field LIMIT ?`,
     )
     .all(...params, limitOf(q.limit, 100)) as {
@@ -223,7 +230,8 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
 export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const state = str(q.state);
   const valid: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
-  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200) }).map((c) => {
+  // Never as the owner: a restricted source's requirement on the board is named on the page only.
+  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200), owner: false }).map((c) => {
     // A triaged control of a licensed standard is named by its label alone; its title is the publisher's text.
     const row = c as unknown as Record<string, unknown>;
     const licensed = c.subject_kind === "control" && isLicensedSource(String(row.doc_source ?? ""));

@@ -12,6 +12,8 @@ export interface SourceRow {
   format: string;
   schedule: "hourly" | "daily" | "weekly" | "manual";
   enabled: number;
+  /** 1 when the licence forbids showing the entries to third parties: owner-only on the pages, never in the API. */
+  restricted: number;
   licence: string | null;
   attribution: string | null;
   notes: string | null;

@@ -5,7 +5,22 @@ import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { getSource } from "../ingest.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
-import { baselinesFor, changeSummaryFor, changeSummaryText, explanationsFor, getDocument, listDocuments, loadRequirements, notedChangeCount, notesFor, releaseChanges, type DocumentRow } from "../register.ts";
+import {
+  baselinesFor,
+  changeSummaryFor,
+  changeSummaryText,
+  explanationsFor,
+  getDocument,
+  licenceOf,
+  listDocuments,
+  loadRequirements,
+  notedChangeCount,
+  notesFor,
+  releaseChanges,
+  withheldFrom,
+  withheldLabel,
+  type DocumentRow,
+} from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
@@ -21,6 +36,18 @@ interface Who {
 }
 
 const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.startsWith("profile:") ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline` : key);
+
+/**
+ * What a visitor sees in place of a licence-restricted source's entries: the rule, the licence
+ * that imposes it, and where the owner signs in. Versions, counts and change counts stay on the
+ * page around it; names and text do not.
+ */
+function withheldBox(source: SourceRow, open: boolean): Html {
+  return html`<div class="empty withheld" id="withheld">
+    <b>Entries shown to the owner only.</b>
+    <p>${source.name} is tracked under terms that do not allow its entries to be shown to third parties: ${licenceOf(source)}. Its versions, how many entries each holds and how many came, went or changed are public; the names and text are drawn for the signed-in owner alone, and the API and MCP tools return neither.${open ? "" : html` <a href="/login">Owner sign-in</a>.`}</p>
+  </div>`;
+}
 
 export function renderStandard(options: { db: DatabaseSync; sourceId: string; now: Date; notice?: string | undefined } & Who): string | null {
   const { db, sourceId, now, owner, open, notice, look } = options;
@@ -78,6 +105,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
     <p class="lede">${source.notes ?? ""} <a href="${source.url}" ${newTabIf(source.url)}>Source</a>${source.licence ? html` · ${source.licence}` : ""}.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     ${upload}
+    ${withheldFrom(source, owner) ? withheldBox(source, open) : ""}
     ${documents.length === 0
       ? html`<div class="empty"><b>No version loaded yet.</b><p>${source.format === "pdf-upload" ? "Nothing uploaded so far." : owner ? html`Fetch it from the <a href="/sources">Sources</a> page, or run <code>npm run backfill -- ${sourceId}</code> to load the published history first.` : "The owner can fetch it from the Sources page."}</p></div>`
       : sections}`;
@@ -112,6 +140,17 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
+  if (withheldFrom(source, owner)) {
+    // The version is public knowledge; what it lists is not, so nothing of it is read, searched or drawn,
+    // and the look switch leads back to the bare page rather than echoing a search for a name.
+    const content = html`
+      <div class="rel">
+        <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
+        <div class="when">${doc.requirement_count} entries · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
+      </div>
+      ${withheldBox(source, open)}`;
+    return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${doc.requirement_count} entries`, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}/browse` } });
+  }
   const all = loadRequirements(db, documentId);
   const families = [...new Set(all.map((r) => r.family).filter((f): f is string => f !== null))].sort();
   const needle = q?.toLowerCase();
@@ -153,17 +192,26 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
 
 /** One release and its changes, narrowed to one family when `family` is given: the Atlas map leads here cell by cell. */
 export function renderRelease(options: { db: DatabaseSync; sourceId: string; documentId: number; now: Date; family?: string | undefined } & Who): string | null {
-  const { db, sourceId, documentId, family, owner, open, look } = options;
+  const { db, sourceId, documentId, owner, open, look } = options;
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
   const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
+  const withheld = withheldFrom(source, owner);
+  // A withheld release has no families to narrow to and nothing to say about one named in the address.
+  const family = withheld ? undefined : options.family;
   const changes = releaseChanges(db, documentId);
   const summary = summarizeChanges(changes.map((c) => ({ ref: c.ref, kind: c.kind, field: c.field as RequirementChange["field"], before: c.before_text, after: c.after_text })));
-  const explanations = explanationsFor(db, documentId);
+  // A generated summary of a restricted release would quote its entries (none is made; an old one is not shown either).
+  const explanations = explanationsFor(db, documentId).filter((e) => !withheld || e.kind !== "generated");
   const labels = new Map<string, { label: string; title: string; family: string | null }>();
-  for (const r of loadRequirements(db, documentId)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
-  if (previous) for (const r of loadRequirements(db, previous.id)) if (!labels.has(r.ref)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+  if (!withheld) {
+    for (const r of loadRequirements(db, documentId)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+    if (previous) for (const r of loadRequirements(db, previous.id)) if (!labels.has(r.ref)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+  }
+  // The pills name the first few refs of each kind and lead to the table below; for a withheld release they count them and lead to the box that stands in for the tables.
+  const named = (refs: string[]): Html => (withheld ? html`` : html`: ${refs.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${refs.length > 10 ? "…" : ""}`);
+  const tables = withheld ? { substantive: "#withheld", editorial: "#withheld" } : { substantive: "#substantive", editorial: "#editorial" };
 
   const byRef = new Map<string, typeof changes>();
   for (const c of changes) byRef.set(c.ref, [...(byRef.get(c.ref) ?? []), c]);
@@ -201,13 +249,13 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
       <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key)} source</a></div>
     </div>
     <div class="pills">
-      ${summary.added.length ? html`<a class="pill ins" href="#substantive">+ ${summary.added.length} added: ${summary.added.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.added.length > 10 ? "…" : ""}</a>` : ""}
-      ${summary.removed.length ? html`<a class="pill del" href="#substantive">− ${summary.removed.length} removed: ${summary.removed.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.removed.length > 10 ? "…" : ""}</a>` : ""}
-      ${summary.substantive.length ? html`<a class="pill mod" href="#substantive">~ ${summary.substantive.length} revised: ${summary.substantive.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${summary.substantive.length > 10 ? "…" : ""}</a>` : ""}
-      ${summary.editorial.length ? html`<a class="pill" href="#editorial">${summary.editorial.length} with discussion, related-control or assessment updates</a>` : ""}
+      ${summary.added.length ? html`<a class="pill ins" href="${tables.substantive}">+ ${summary.added.length} added${named(summary.added)}</a>` : ""}
+      ${summary.removed.length ? html`<a class="pill del" href="${tables.substantive}">− ${summary.removed.length} removed${named(summary.removed)}</a>` : ""}
+      ${summary.substantive.length ? html`<a class="pill mod" href="${tables.substantive}">~ ${summary.substantive.length} revised${named(summary.substantive)}</a>` : ""}
+      ${summary.editorial.length ? html`<a class="pill" href="${tables.editorial}">${summary.editorial.length} with discussion, related-control or assessment updates</a>` : ""}
       ${!previous ? html`<a class="pill none" href="/standards/${sourceId}/${documentId}/browse">First version loaded: ${doc.requirement_count} requirements, nothing to compare yet</a>` : ""}
       ${previous && changes.length === 0 ? html`<a class="pill none" href="/standards/${sourceId}/${previous.id}">No control-level changes against ${previous.version_label ?? "the previous version"}</a>` : ""}
-      ${changes.length ? (() => { const noted = notedChangeCount(db, documentId); return noted ? html`<a class="pill" href="#substantive">${noted} of ${byRef.size} changed requirements carry the publisher's note</a>` : ""; })() : ""}
+      ${changes.length ? (() => { const noted = notedChangeCount(db, documentId); return noted ? html`<a class="pill" href="${tables.substantive}">${noted} of ${byRef.size} changed requirements carry the publisher's note</a>` : ""; })() : ""}
     </div>
     ${explanations.map((e) =>
       e.kind === "publisher"
@@ -216,21 +264,32 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
           ? html`<div class="why gen"><small>Summary <span class="badge">Generated</span></small><p>${e.text}</p></div>`
           : html`<div class="why none"><small>Why this release</small><p>${e.text}</p></div>`,
     )}
-    ${familyStrip}
-    ${family && !substantive.length && !editorial.length
-      ? html`<p class="small">No control in ${family} changed in this release. <a href="/standards/${sourceId}/${documentId}/browse?family=${encodeURIComponent(family)}">Read the family's controls in this version</a>.</p>`
-      : ""}
-    ${substantive.length
-      ? html`<section class="box" id="substantive"><h2><a href="#substantive">Controls added, removed or revised${inWords}</a> <span class="count"><a href="#substantive">${substantive.length}</a></span></h2>
-          <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
-      : ""}
-    ${editorial.length
-      ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
-          <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
-      : ""}
-    <p class="small"><a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · <a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
+    ${withheld
+      ? withheldBox(source, open)
+      : html`${familyStrip}
+        ${family && !substantive.length && !editorial.length
+          ? html`<p class="small">No control in ${family} changed in this release. <a href="/standards/${sourceId}/${documentId}/browse?family=${encodeURIComponent(family)}">Read the family's controls in this version</a>.</p>`
+          : ""}
+        ${substantive.length
+          ? html`<section class="box" id="substantive"><h2><a href="#substantive">Controls added, removed or revised${inWords}</a> <span class="count"><a href="#substantive">${substantive.length}</a></span></h2>
+              <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
+          : ""}
+        ${editorial.length
+          ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
+              <div class="table-wrap"><table><thead><tr><th>Control</th><th>Title</th><th>What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
+          : ""}`}
+    <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 
-  return page({ title: `${source.name} ${doc.version_label ?? ""}${family ? ` · ${family}` : ""}`.trim(), active: "register", content, meta: html`${changes.length} changes`, owner, open, look });
+  // The look switch on a withheld release leads back to the bare page, not to a family someone typed into the address.
+  return page({
+    title: `${source.name} ${doc.version_label ?? ""}${family ? ` · ${family}` : ""}`.trim(),
+    active: "register",
+    content,
+    meta: html`${changes.length} changes`,
+    owner,
+    open,
+    look: withheld ? { ...look, back: `/standards/${sourceId}/${documentId}` } : look,
+  });
 }
 
 function paramsText(r: NormalizedRequirement): string | null {
@@ -243,6 +302,17 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   const source = getSource(db, sourceId);
   const doc = getDocument(db, documentId);
   if (!source || !doc || doc.source_id !== sourceId) return null;
+  if (withheldFrom(source, owner)) {
+    // The same page for every ref, looked up or not, so the answer says nothing about whether a name is on the
+    // list; the look switch leads back to the release, since the page's own address is the name.
+    const content = html`
+      <div class="rel">
+        <h1><code class="ref">${withheldLabel}</code> Entry shown to the owner only</h1>
+        <div class="when">${source.name} ${doc.version_label ?? ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
+      </div>
+      ${withheldBox(source, open)}`;
+    return page({ title: `${withheldLabel} · ${source.name}`, active: "register", content, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}` } });
+  }
   const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
   const after = loadRequirements(db, documentId).find((r) => r.ref === ref) ?? null;
   const before = previous ? (loadRequirements(db, previous.id).find((r) => r.ref === ref) ?? null) : null;

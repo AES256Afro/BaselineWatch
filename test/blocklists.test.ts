@@ -211,7 +211,13 @@ describe("canary sets", () => {
     }
     const names = doc.requirements.map((r) => r.ref);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-    const lowest = [...new Set(candidates.map((c) => c.name))].sort((a, b) => sha256(a).localeCompare(sha256(b))).slice(0, canaryCount).sort((a, b) => a.localeCompare(b));
+    // Hash each of the ~50,000 names once, not inside the comparator: a sort that hashes as it compares ran past CI's five-second limit.
+    const hashed = [...new Set(candidates.map((c) => c.name))].map((name) => ({ name, hash: sha256(name) }));
+    const lowest = hashed
+      .sort((a, b) => a.hash.localeCompare(b.hash))
+      .slice(0, canaryCount)
+      .map((x) => x.name)
+      .sort((a, b) => a.localeCompare(b));
     expect(names).toEqual(lowest);
     expect(canaryDocument(list("canary-ads"), easylist).requirements).toEqual(doc.requirements);
   });
