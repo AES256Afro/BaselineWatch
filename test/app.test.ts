@@ -79,6 +79,26 @@ describe("pages", () => {
     expect(await response.text()).not.toMatch(/<script/i);
   });
 
+  it("lets the Scan page alone run its one script, under its own policy", async () => {
+    const scan = await fetch(`${app.base}/scan`);
+    expect(scan.status).toBe(200);
+    const policy = scan.headers.get("content-security-policy") ?? "";
+    expect(policy).toContain("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self';");
+    expect(policy).toContain("connect-src 'self' https://*.adguard-dns.com https://test.nextdns.io https://*.test.nextdns.io;");
+    expect(policy).toContain("frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    expect(policy).not.toContain("unsafe-inline");
+    expect(policy).not.toContain("script-src 'none'");
+    expect(scan.headers.get("x-content-type-options")).toBe("nosniff");
+    const text = await scan.text();
+    expect(text.match(/<script/g)).toHaveLength(1);
+    expect(text).toMatch(/<script type="module" src="\/assets\/scan\.js\?v=[^"]+"><\/script>/);
+    for (const path of ["/", "/scan/why", "/scan/probe/control.gif", "/assets/scan.js", "/vulnerabilities"]) {
+      const other = await fetch(`${app.base}${path}`);
+      expect(other.headers.get("content-security-policy"), path).toContain("script-src 'none'");
+      expect(other.headers.get("content-security-policy"), path).not.toContain("adguard");
+    }
+  });
+
   it("serves the stylesheet and a 404 page", async () => {
     const css = await fetch(`${app.base}/assets/app.css`);
     expect(css.status).toBe(200);

@@ -88,6 +88,10 @@ env:
     description: Light, dark, or whatever each device says. Each browser can pick its own from the masthead.
     default: system
     options: ["system", "light", "dark"]
+  - name: BW_PROBE_ORIGIN
+    label: Scan probe origin (optional)
+    description: "A second origin that serves the Scan page's probe images, such as another BaselineWatch instance or this one on a different hostname (https://probe.example.net, an origin only). Lets the ad-request check test a cross-site load beside the same-site one. Unset tests same-site only."
+    default: ""
 signIn:
   path: /login
   port: web

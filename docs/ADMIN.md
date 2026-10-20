@@ -209,6 +209,28 @@ itself: two cookies, `bw_look` and `bw_scheme`, a year long, holding one of a fe
 and nothing else. No script is involved; the stylesheet reads `data-look` and `data-scheme` on
 the page, so the content security policy stays as strict as before.
 
+## The Scan page: the one page with a script
+
+Every page is served with `Content-Security-Policy: script-src 'none'`, except `/scan`. The
+browser check there (ad hiding, ad requests, filtering DNS) cannot exist without a script in the
+tab, so that one route carries its own policy: `script-src 'self'` for the single self-hosted
+module `/assets/scan.js`, `img-src` adding `BW_PROBE_ORIGIN` when it is set, and `connect-src`
+adding the two resolvers' self-check hosts (`*.adguard-dns.com` and `*.test.nextdns.io`, each asked
+at a fresh random name). Nothing is inline, there and anywhere else;
+`/scan/why` and the probe images stay under the strict policy. The script runs only when the
+visitor presses Run, draws its results into the page, and uploads nothing. What leaves the
+browser: the probe images from this instance (and the probe origin), and one request each to
+AdGuard's and NextDNS's self-check endpoints, which learn what any site learns, the visitor's
+address. No advertising domain is contacted.
+
+The probe images are one transparent GIF at four paths under `/scan/probe/`: a control and three
+on paths that EasyList's request rules match (`/ad_images/`, `/adsbanner-`, `/ad_skyscraper.gif`),
+served with `Cache-Control: no-store` and `Access-Control-Allow-Origin: *`. The same-site set is
+always tested. To test the cross-site case as well, set `BW_PROBE_ORIGIN` to the origin of a
+second BaselineWatch instance, or of this one under another hostname (`https://probe.example.net`;
+scheme, host and optional port, nothing else, or the app refuses to start). That origin serves
+the same four paths, so any instance 0.33 or later will do, including the public one.
+
 ## Access
 
 Reading is open when `BW_PUBLIC_READ` is true (the default; the public site holds no private
