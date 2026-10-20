@@ -58,7 +58,9 @@ env:
     default: ""
   - name: BW_NOTIFY_URL
     label: Notification URL (optional)
-    description: "ntfy://<this server>:8093/baselinewatch, gotify://<this server>:8080/<token>, or an https:// webhook. Receives KEV additions, changes to CVEs in your watchlist, standard releases and the digest."
+    type: password
+    secret: true
+    description: "ntfy://<this server>:8093/baselinewatch, gotify://<this server>:8080/<token>, or an https:// webhook. Receives KEV additions, changes to CVEs in your watchlist, standard releases and the digest. Kept secret: a webhook URL or an ntfy topic is the credential."
     default: ""
   - name: BW_DIGEST
     label: Digest

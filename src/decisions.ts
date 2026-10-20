@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { BuilderPlatform, Profile, ProfileItem } from "./baselines.ts";
+import { csvLine } from "./csv.ts";
 
 /**
  * The owner's decisions on a platform's baseline: for each item, beside what the publisher
@@ -102,14 +103,10 @@ export function ourDecision(i: ProfileItem): string {
 
 /** Every item of the profile with its recommendation and the decision on it, as CSV for a ticket system or a spreadsheet. */
 export function decisionsCsv(profile: Profile, baseUrl: string): string {
-  const cell = (v: unknown) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const rows = ["item,kind,severity,title,publisher recommends,decision,our value,reason,owner,decided,reference"];
   for (const i of profile.items) {
     const d = i.decision;
-    rows.push([i.label, i.kind, i.severity ?? "", i.title, recommends(i), decisionLabel(d?.decision ?? "apply"), d?.value ?? "", d?.reason ?? "", d?.owner ?? "", d?.decidedAt.slice(0, 10) ?? "", i.url.startsWith("/") ? `${baseUrl}${i.url}` : i.url].map(cell).join(","));
+    rows.push(csvLine([i.label, i.kind, i.severity ?? "", i.title, recommends(i), decisionLabel(d?.decision ?? "apply"), d?.value ?? "", d?.reason ?? "", d?.owner ?? "", d?.decidedAt.slice(0, 10) ?? "", i.url.startsWith("/") ? `${baseUrl}${i.url}` : i.url]));
   }
   return `${rows.join("\r\n")}\r\n`;
 }

@@ -1,7 +1,24 @@
 import { escapeHtml } from "./html.ts";
 import type { Profile, ProfileItem } from "./baselines.ts";
+import { csvCell } from "./csv.ts";
 import { controlLabel } from "./stigs.ts";
 import { productName } from "./version.ts";
+
+/**
+ * The profile as a reader who is not the owner may carry it away. Microsoft's baseline values
+ * are the owner's own copy, quoted on screen only (AGENTS.md), so a public export leaves out the
+ * settings Microsoft adds and the value it names on each STIG rule.
+ */
+export function publicProfile(profile: Profile): Profile {
+  if (!profile.components.sct && !profile.items.some((i) => i.kind === "sct" || i.sctValue !== null)) return profile;
+  const items = profile.items.filter((i) => i.kind !== "sct").map((i) => (i.sctValue === null ? i : { ...i, sctValue: null }));
+  return {
+    ...profile,
+    components: { ...profile.components, sct: null },
+    items,
+    counts: { ...profile.counts, included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length },
+  };
+}
 
 /**
  * The profile as a guide: printable HTML, Markdown, CSV or JSON, in an "apply with" flavour.
@@ -177,11 +194,6 @@ function toJson(profile: Profile, flavour: Flavour, meta: ExportMeta): string {
     1,
   )}\n`;
 }
-
-const csvCell = (v: unknown): string => {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 function toCsv(profile: Profile, flavour: Flavour): string {
   const withText = flavour === "plain" || flavour === "linux";

@@ -46,7 +46,7 @@ if (config.scheduler) {
     console.log("[notify] BW_NOTIFY_URL is not an ntfy://, gotify:// or http(s):// address; alerts will be logged as unconfigured");
   }
   setTimeout(() => {
-    void scheduler?.runOnce();
+    void scheduler?.runOnce().catch((error: unknown) => console.log(`[scheduler] first run failed: ${error instanceof Error ? error.message : String(error)}`));
   }, 10_000).unref();
 } else {
   console.log("[scheduler] off (BW_SCHEDULER=false); run `npm run fetch -- due` from cron instead");

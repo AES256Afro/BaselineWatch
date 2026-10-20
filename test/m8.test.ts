@@ -115,27 +115,34 @@ describe("uploads and the API over HTTP", () => {
     const v1 = simplePdf(benchmarkV1);
     expect((await upload(app.base, undefined, v1, "cis-v1.pdf")).status).toBe(403);
     const cookie = cookieFrom(await formPost(app.base, "/login", { password: "hunter2hunter2", next: "/" }));
+    // The outcome rides in a one-shot cookie to the benchmark page, never in the redirect's query string.
+    const noticeOf = (r: Response) => decodeURIComponent(cookieFrom(r));
     const first = await upload(app.base, cookie, v1, "cis-v1.pdf", { published: "2024-08-30" });
     expect(first.status).toBe(303);
-    expect(decodeURIComponent(first.headers.get("location") ?? "")).toContain("loaded as cis:ubuntu-linux-24-04-lts 1.0.0: first version, 2 requirements");
+    expect(first.headers.get("location")).toBe("/standards/cis-benchmarks");
+    expect(noticeOf(first)).toContain("loaded as cis:ubuntu-linux-24-04-lts 1.0.0: first version, 2 requirements");
     const doc = latestDocument(app.db, "cis-benchmarks", "cis:ubuntu-linux-24-04-lts")!;
     expect(doc).toMatchObject({ version_label: "1.0.0", requirement_count: 2, published_at: "2024-08-30T00:00:00.000Z" });
 
     const again = await upload(app.base, cookie, v1, "cis-v1.pdf");
-    expect(decodeURIComponent(again.headers.get("location") ?? "")).toContain("was already loaded");
+    expect(noticeOf(again)).toContain("was already loaded");
 
     const v2Text = benchmarkV1.map((l) => l.replace("v1.0.0 - 08-30-2024", "v1.1.0 - 03-01-2025").replace("Run the following script to disable cramfs.", "Run the following script to disable and blacklist cramfs."));
     v2Text.push("1.1.3 (L2) Ensure nodev option set on /tmp partition (Automated)", "Description:", "The nodev mount option specifies that the filesystem cannot contain special devices.", "Remediation:", "Edit /etc/fstab.");
     const second = await upload(app.base, cookie, simplePdf(v2Text), "cis-v2.pdf");
-    expect(decodeURIComponent(second.headers.get("location") ?? "")).toContain("1.1.0: 1 added, 1 revised");
+    expect(noticeOf(second)).toContain("1.1.0: 1 added, 1 revised");
     const latest = latestDocument(app.db, "cis-benchmarks", "cis:ubuntu-linux-24-04-lts")!;
     expect(releaseChanges(app.db, latest.id).map((c) => [c.ref, c.kind, c.field])).toEqual(expect.arrayContaining([["1.1.3", "added", null], ["1.1.1", "modified", "statement"]]));
     const page = await (await fetch(`${app.base}/standards/cis-benchmarks/${latest.id}/1.1.1`)).text();
     expect(page).toContain("<ins>");
     expect(page).toContain("blacklist");
-    const standard = await (await fetch(`${app.base}${second.headers.get("location")}`, { headers: { cookie } })).text();
+    const standard = await (await fetch(`${app.base}${second.headers.get("location")}`, { headers: { cookie: `${cookie}; ${cookieFrom(second)}` } })).text();
     expect(standard).toContain("Upload a benchmark PDF");
     expect(standard).toContain("cis-v2.pdf loaded");
+    // Read once: the next visit carries no notice, and a crafted ?notice= never did.
+    const quiet = await (await fetch(`${app.base}/standards/cis-benchmarks?notice=Your+licence+has+expired`, { headers: { cookie } })).text();
+    expect(quiet).not.toContain("cis-v2.pdf loaded");
+    expect(quiet).not.toContain("licence has expired");
     expect(standard).toContain("1.1.0");
 
     const bad = await upload(app.base, cookie, simplePdf(["Not a benchmark at all."]), "x.pdf");
@@ -145,6 +152,11 @@ describe("uploads and the API over HTTP", () => {
     expect(sources).toContain('href="/standards/cis-benchmarks">Upload</a>');
     const fetched = await ingestSource(app.db, app.dataDir, getSource(app.db, "cis-benchmarks")!, { http: fakeHttp({}), now: () => at });
     expect(fetched.status).toBe("skipped");
+    // The benchmark's text is the owner's licensed copy: the page quotes it, the API never carries it.
+    const api = (await (await fetch(`${app.base}/api/v1/changes`, { headers: { cookie } })).json()) as { changes: { source: string }[] };
+    expect(api.changes.some((c) => c.source === "cis-benchmarks")).toBe(false);
+    const narrowed = (await (await fetch(`${app.base}/api/v1/changes?source=cis-benchmarks`, { headers: { cookie } })).json()) as { changes: unknown[] };
+    expect(narrowed.changes).toEqual([]);
   });
 
   it("serves the read-only API with the same shapes the pages use", async () => {

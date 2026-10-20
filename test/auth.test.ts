@@ -68,8 +68,10 @@ describe("owner session over HTTP", () => {
 
     const fetched = await formPost(app.base, "/sources/cisa-kev/fetch", {}, cookie);
     expect(fetched.status).toBe(303);
-    expect(fetched.headers.get("location")).toMatch(/^\/sources\?fetched=cisa-kev&status=ok/);
-    const sources = await (await fetch(`${app.base}${fetched.headers.get("location")}`, { headers: { cookie } })).text();
+    expect(fetched.headers.get("location")).toBe("/sources#src-cisa-kev");
+    const flash = (fetched.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+    expect(decodeURIComponent(flash)).toContain('"status":"ok"');
+    const sources = await (await fetch(`${app.base}/sources`, { headers: { cookie: `${cookie}; ${flash}` } })).text();
     expect(sources).toContain("3 items, 3 new");
     expect(sources).toContain("Fetch now");
 

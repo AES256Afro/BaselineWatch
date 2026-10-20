@@ -15,11 +15,11 @@ const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70,
 
 describe("image type and og:image extraction", () => {
   it("sniffs magic bytes and trusts only image content types", () => {
-    expect(imageType(null, pngBytes)).toBe("image/png");
-    expect(imageType(null, jpegBytes)).toBe("image/jpeg");
-    expect(imageType("image/webp; charset=binary", new TextEncoder().encode("RIFF....WEBPVP8 "))).toBe("image/webp");
-    expect(imageType("text/html", new TextEncoder().encode("<html>not an image</html>"))).toBe(null);
-    expect(imageType("image/svg+xml", new TextEncoder().encode("<svg xmlns='x'/>"))).toBe(null);
+    expect(imageType(pngBytes)).toBe("image/png");
+    expect(imageType(jpegBytes)).toBe("image/jpeg");
+    expect(imageType(new TextEncoder().encode("RIFF....WEBPVP8 "))).toBe("image/webp");
+    expect(imageType(new TextEncoder().encode("<html>not an image</html>"))).toBe(null);
+    expect(imageType(new TextEncoder().encode("<svg xmlns='x'/>"))).toBe(null);
   });
 
   it("reads og:image whatever the attribute order, and twitter:image as a fallback", () => {

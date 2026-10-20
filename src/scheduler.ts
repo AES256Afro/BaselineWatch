@@ -143,7 +143,10 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
   };
 
   const timer = setInterval(() => {
-    void runOnce().then(() => runDigest());
+    // A full disk or a busy database throws from the sqlite calls; logged, never an unhandled rejection that ends the process.
+    void runOnce()
+      .then(() => runDigest())
+      .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`));
   }, options.tickMs ?? 60_000);
   timer.unref();
 

@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { isIP } from "node:net";
 import type { NextFunction, Request, Response } from "express";
 import type { Config } from "./config.ts";
 
@@ -40,9 +41,30 @@ export function parseCookies(header: string | undefined): Record<string, string>
   for (const part of header.split(";")) {
     const eq = part.indexOf("=");
     if (eq <= 0) continue;
-    out[part.slice(0, eq).trim()] = decodeURIComponent(part.slice(eq + 1).trim());
+    const value = part.slice(eq + 1).trim();
+    // A sibling site on the same domain may set a cookie with a bare %; it is not ours to fail on.
+    try {
+      out[part.slice(0, eq).trim()] = decodeURIComponent(value);
+    } catch {
+      out[part.slice(0, eq).trim()] = value;
+    }
   }
   return out;
+}
+
+/** The address a sign-in attempt counts against: an IPv6 client is its whole /64, since one host holds the prefix. */
+export function throttleKey(ip: string | undefined): string {
+  if (!ip) return "unknown";
+  const bare = ip.replace(/^::ffff:/i, "").replace(/%.*$/, "");
+  if (isIP(bare) !== 6) return bare;
+  const [head = "", tail = ""] = bare.split("::");
+  const groups = head ? head.split(":") : [];
+  const tailGroups = tail ? tail.split(":") : [];
+  while (groups.length + tailGroups.length < 8) groups.push("0");
+  return `${[...groups, ...tailGroups]
+    .slice(0, 4)
+    .map((g) => g.padStart(4, "0"))
+    .join(":")}::/64`;
 }
 
 export function newSessionSecret(): string {
@@ -107,6 +129,8 @@ export class LoginThrottle {
     return entry.count >= this.limit;
   }
   fail(key: string, nowMs: number): void {
+    // Expired entries are swept once the map is large, so many distinct addresses cannot grow it without bound.
+    if (this.failures.size >= 10_000) for (const [k, e] of this.failures) if (e.until < nowMs) this.failures.delete(k);
     const entry = this.failures.get(key);
     if (!entry || entry.until < nowMs) this.failures.set(key, { count: 1, until: nowMs + this.windowMs });
     else entry.count += 1;
