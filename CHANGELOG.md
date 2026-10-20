@@ -16,6 +16,15 @@ Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`
   sources. `/scan` is the one page served with `script-src 'self'` (plus the probe origin in
   `img-src` and the two self-check hosts in `connect-src`); every other page keeps `script-src
   'none'`, and nothing is ever inline.
+- **Support ending, in view.** Today gets a fifth tile counting the releases whose vendor support
+  ends within ninety days and naming the nearest; the Platforms page carries the same list as a
+  notice and marks each such release's Support cell with an "ends in N days" chip beside the clause
+  that ends. The dates are the vendors', read from `supportEnds` in `data/platforms.yaml` against
+  the app's clock (`endingSupport` in `src/fleet.ts`).
+- **A plan has a URL.** The test plan's export panel links the plan as drawn (release, hardware,
+  the areas chosen and whether templates are in), so a plan can be bookmarked or sent and reopened
+  the same.
+- `npm run check` no longer runs the copies of the suite under `.claude/worktrees`.
 
 ## 0.32.0 — 2026-10-19
 

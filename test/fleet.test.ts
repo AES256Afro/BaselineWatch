@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applicability, findHardware, findRelease, fleetFile, hardwareOf, loadFleet, parseApplies, parseVersionRule, releasesOf, runsOn, versionMatches } from "../src/fleet.ts";
+import { applicability, endingSupport, findHardware, findRelease, fleetFile, hardwareOf, loadFleet, parseApplies, parseVersionRule, releasesOf, runsOn, supportDates, versionMatches } from "../src/fleet.ts";
 import { loadTemplates, templatesDir } from "../src/testplans.ts";
 
 describe("the fleet file", () => {
@@ -45,6 +45,21 @@ describe("the fleet file", () => {
     // Windows 11 runs on any TPM 2.0 PC; a release that names no hardware runs on every family of its platform.
     expect(runsOn(findRelease(fleet, "windows", "10-22H2")!, findHardware(fleet, "tpm-2")!)).toBe(true);
     expect(runsOn(findRelease(fleet, "windows", "10-22H2")!, findHardware(fleet, "apple-silicon")!)).toBe(false);
+  });
+
+  it("says which releases stop getting fixes within ninety days, nearest first", () => {
+    const w25 = findRelease(fleet, "windows", "25H2")!;
+    expect(supportDates(w25)).toEqual(["2027-10-12", "2028-10-10"]);
+    expect(supportDates(findRelease(fleet, "macos", "27")!)).toEqual([]);
+    const soon = endingSupport(fleet, new Date("2026-10-19T12:00:00Z"), 90);
+    // Windows 11 23H2's Enterprise and Education servicing ends 2026-11-10; 24H2's Home and Pro ended 2026-10-13 and is not "ending".
+    expect(soon.map((e) => `${e.release.id} ${e.date} ${e.days}`)).toEqual(["23H2 2026-11-10 22"]);
+    expect(soon[0]!.clause).toBe("Enterprise and Education 2026-11-10");
+    expect(endingSupport(fleet, new Date("2026-11-10T23:00:00Z"), 90)[0]!.days).toBe(0);
+    expect(endingSupport(fleet, new Date("2026-11-11T00:00:00Z"), 90).some((e) => e.release.id === "23H2")).toBe(false);
+    // A wider window reaches the next ones; a narrow one reaches none.
+    expect(endingSupport(fleet, new Date("2026-10-19T12:00:00Z"), 400).length).toBeGreaterThan(1);
+    expect(endingSupport(fleet, new Date("2026-10-19T12:00:00Z"), 7)).toEqual([]);
   });
 
   it("judges version rules by the platform's release order, newest first", () => {

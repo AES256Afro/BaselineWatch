@@ -475,7 +475,7 @@ export function createApp(ctx: AppContext): Express {
     res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), area: isArea(area) ? area : undefined, ...who(req, res) }));
   };
   app.get("/platforms", (req, res) => {
-    res.type("html").send(renderPlatforms({ db, ...who(req, res) }));
+    res.type("html").send(renderPlatforms({ db, now: now(), ...who(req, res) }));
   });
   app.get("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, req.query as Record<string, unknown>));
   app.post("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, (req.body ?? {}) as Record<string, unknown>));

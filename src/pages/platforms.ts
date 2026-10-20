@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isBuilderPlatform } from "../baselines.ts";
-import { fleetPlatforms, hardwareOf, loadFleet, releasesOf, type Fleet, type Release } from "../fleet.ts";
+import { endingSupport, fleetPlatforms, hardwareOf, loadFleet, releasesOf, type Fleet, type Release } from "../fleet.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { latestDocument } from "../register.ts";
@@ -30,10 +30,15 @@ function held(db: DatabaseSync, r: Release): Html[] {
 
 const statusLabel: Record<Release["status"], string> = { current: "current", supported: "supported", ended: "support ended", upcoming: "upcoming" };
 
-export function renderPlatforms(options: { db: DatabaseSync; fleet?: Fleet; templates?: Template[] } & Who): string {
+export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?: Fleet; templates?: Template[] } & Who): string {
   const { db, owner, open, look } = options;
   const fleet = options.fleet ?? loadFleet();
   const templates = options.templates ?? loadTemplates().templates;
+  const ending = endingSupport(fleet, options.now ?? new Date(), 90);
+  const soon = (r: Release): Html => {
+    const hits = ending.filter((e) => e.release === r);
+    return hits.length ? html`${hits.map((e) => html`<div><span class="chip na">${e.days === 0 ? "ends today" : `ends in ${e.days} day${e.days === 1 ? "" : "s"}`}</span> <span class="small">${e.clause}</span></div>`)}` : html``;
+  };
   const sections = fleetPlatforms.map((p) => {
     const releases = releasesOf(fleet, p.id);
     const hardware = hardwareOf(fleet, p.id);
@@ -50,7 +55,7 @@ export function renderPlatforms(options: { db: DatabaseSync; fleet?: Fleet; temp
                 <td><b>${r.label}</b>${r.models ? html`<div class="note">${r.models}</div>` : ""}${r.notes.length ? html`<ul class="note">${r.notes.map((n) => html`<li>${n}</li>`)}</ul>` : ""}</td>
                 <td><span class="state ${r.status === "current" || r.status === "supported" ? "ok" : r.status === "ended" ? "err" : "wait"}">${statusLabel[r.status]}</span></td>
                 <td>${r.released ?? "—"}</td>
-                <td class="small">${r.supportEnds ?? "—"}</td>
+                <td class="small">${soon(r)}${r.supportEnds ?? "—"}</td>
                 <td class="small">${r.hardware.length ? r.hardware.map((h) => hardware.find((x) => x.id === h)?.label ?? h).join("; ") : "every family"}</td>
                 <td class="small">${held(db, r).map((h, i) => html`${i ? " · " : ""}${h}`)}${r.baselines.length ? html`<details><summary>Published baselines</summary><ul class="note">${r.baselines.map((b) => html`<li>${b}</li>`)}</ul></details>` : ""}</td>
                 <td><a href="/baselines/${p.id}/tests?version=${encodeURIComponent(r.id)}">Plan</a>${r.sources.length ? html`<div class="note">${r.sources.map((s, i) => html`${i ? " · " : ""}<a href="${s.url}" ${newTabIf(s.url)}>source</a>`)}</div>` : ""}</td>
@@ -70,6 +75,7 @@ export function renderPlatforms(options: { db: DatabaseSync; fleet?: Fleet; temp
         <h1>Platforms</h1>
         <p class="lede">Platform engineering, one place: each operating system the team runs, each release of it with the vendor's support dates, the hardware each release runs on, the baselines published for it, and what the Register already holds. Every row leads to a test plan for that release; the builder platforms lead to their baseline too. The facts are the vendors', kept in <code>data/platforms.yaml</code> with the page each came from.</p>
         ${fleet.errors.length ? html`<div class="notice error">data/platforms.yaml: ${fleet.errors.join("; ")}</div>` : ""}
+        ${ending.length ? html`<div class="notice warn"><b>Support ending within 90 days:</b> ${ending.map((e, i) => html`${i ? " · " : ""}<a href="#${e.release.platform}">${e.release.label}</a> (${e.clause}, ${e.days === 0 ? "today" : `in ${e.days} day${e.days === 1 ? "" : "s"}`})`)}</div>` : ""}
         <ul class="stds">${sections}</ul>
       </section>
       <aside class="side">
