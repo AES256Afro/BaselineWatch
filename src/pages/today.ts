@@ -97,11 +97,14 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
     )
     .all(since) as { sev: string; n: number }[];
   const known = new Set(severityOrder.map((s) => s.key));
+  // The bars count the window asked for, so their links carry it: 24 h is the "1" the links always had.
+  const windowHours = Math.round((now.getTime() - new Date(since).getTime()) / (60 * 60 * 1000));
+  const changed = windowHours === 24 ? "1" : String(windowHours);
   const severity: Slice[] = severityOrder.map((s) => ({
     label: s.label,
     tone: s.tone,
     value: severityRows.filter((r) => (known.has(r.sev) ? r.sev === s.key : s.key === "unscored")).reduce((n, r) => n + r.n, 0),
-    href: `/vulnerabilities?watch=1&changed=1&severity=${s.key}`,
+    href: `/vulnerabilities?watch=1&changed=${changed}&severity=${s.key}`,
   }));
 
   const epssRow = db
@@ -180,7 +183,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
     </div>
     <div class="stats today">
       <a class="tile ${kev ? "bad" : ""}" href="/?kind=kev"><small>KEV additions</small><b>${kev}</b><span>${kevMine} match your stack</span></a>
-      <a class="tile" href="/vulnerabilities?watch=1&changed=1"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
+      <a class="tile" href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
       <a class="tile ${ending.length ? "warn" : ""}" href="/platforms"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
@@ -188,7 +191,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
     <div class="glance" aria-label="At a glance">
       <section class="box"><h2><a href="/?kind=kev">Known exploited</a> <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>
       <section class="box"><h2><a href="/">Wire</a> <span class="count">items a day, 14 days</span></h2>${lines(glance.days.series, { label: "Wire items a day, 14 days", ticks: glance.days.ticks })}</section>
-      <section class="box"><h2><a href="/vulnerabilities?watch=1&changed=1">Watched CVEs</a> <span class="count">changed, ${windowWord}, by CVSS</span></h2>${bars(glance.severity, { label: `Watched CVEs changed in ${windowWord}, by CVSS severity` })}<p class="small"><a href="/vulnerabilities?watch=1&changed=1">In the table</a></p></section>
+      <section class="box"><h2><a href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}">Watched CVEs</a> <span class="count">changed, ${windowWord}, by CVSS</span></h2>${bars(glance.severity, { label: `Watched CVEs changed in ${windowWord}, by CVSS severity` })}<p class="small"><a href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}">In the table</a></p></section>
       <section class="box"><h2><a href="/vulnerabilities?sort=epss">Vulnerabilities</a> <span class="count">by EPSS band</span></h2>${donut(glance.epss, { label: "Vulnerabilities by EPSS band" })}</section>
       <section class="box"><h2><a href="/triage">Triage</a> <span class="count">by state</span></h2>${stacked(glance.triage, { label: "Triage by state" })}<p class="small"><a href="/triage">The board</a></p></section>
       <section class="box"><h2><a href="/sources">Sources</a> <span class="count">last fetch</span></h2>

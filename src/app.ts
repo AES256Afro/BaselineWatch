@@ -5,7 +5,8 @@ import { cisAdapter, cisKey } from "./adapters/cis.ts";
 import type { ItemKind, PullSettings } from "./adapters/types.ts";
 import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
 import { boundaryOf, parseMultipart } from "./multipart.ts";
-import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader } from "./auth.ts";
+import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
+import { flashHeader, flashText, takeFlash } from "./flash.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
@@ -24,7 +25,7 @@ import { renderTestPlan } from "./pages/testplans.ts";
 import { renderPlatforms } from "./pages/platforms.ts";
 import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, type PlanOptions } from "./testplans.ts";
 import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "./baselines.ts";
-import { exportProfile, isExportFormat, isFlavour, type Flavour } from "./exports.ts";
+import { exportProfile, isExportFormat, isFlavour, publicProfile, type Flavour } from "./exports.ts";
 import { isPlatformId, type Cat } from "./stigs.ts";
 import { renderAtlas } from "./pages/atlas.ts";
 import { renderDigest } from "./pages/digest.ts";
@@ -119,7 +120,12 @@ export function scanPolicy(probeOrigin: string | null): string {
 
 export { safeBack } from "./paths.ts";
 
-const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
+// Control characters other than tab and line breaks are stripped: a NUL in a search term would be an FTS5 syntax error.
+const str = (v: unknown, max = 200): string | undefined => {
+  if (typeof v !== "string") return undefined;
+  const clean = v.replace(/(?![\t\n\r])\p{Cc}/gu, "").trim();
+  return clean === "" ? undefined : clean.slice(0, max);
+};
 
 function wireFilters(query: Record<string, unknown>): WireFilters {
   const kind = str(query.kind);
@@ -143,6 +149,17 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
   const sort = str(query.sort);
   const offset = num(query.offset);
   const severity = str(query.severity)?.toLowerCase();
+  // A window in hours: "1" is the 24 h the links have always carried; the Today page sends its own (72, 168).
+  const hours = (v: unknown): number | undefined => {
+    const s = str(v);
+    if (!s) return undefined;
+    if (s === "1") return 24;
+    const n = Number(s);
+    return Number.isInteger(n) && n >= 1 && n <= 24 * 90 ? n : undefined;
+  };
+  const sinceHours = (h: number | undefined): string | undefined => (h === undefined ? undefined : new Date(now.getTime() - h * 60 * 60 * 1000).toISOString());
+  const changedHours = hours(query.changed);
+  const newHours = hours(query.new);
   return {
     watch: str(query.watch) === "1",
     kev: str(query.kev) === "1",
@@ -151,11 +168,15 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
     minEpss: num(query.min_epss),
     maxEpss: num(query.max_epss),
     noEpss: str(query.epss) === "none",
-    changedSince: str(query.changed) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
-    newSince: str(query.new) === "1" ? new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
+    changedSince: sinceHours(changedHours),
+    changedHours,
+    newSince: sinceHours(newHours),
+    newHours,
+    label: str(query.label, 60),
     q: str(query.q),
     sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
-    offset: offset !== undefined && offset >= 0 ? Math.floor(offset) : 0,
+    // A whole number SQLite can bind, capped: 1e300 or 1.5 would be a datatype mismatch and a 500.
+    offset: offset !== undefined && offset >= 0 && Number.isSafeInteger(Math.floor(offset)) ? Math.min(Math.floor(offset), 1_000_000) : 0,
   };
 }
 
@@ -229,9 +250,12 @@ export function createApp(ctx: AppContext): Express {
   app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl) })));
   app.get("/api/v1/digest", apiRead((_req, res) => json(res, { digest: apiDigest(db) })));
 
-  const health = (_req: Request, res: Response): void => {
+  // The health answer is public so a monitor can poll it; on an instance closed to readers it says only that the app is up.
+  const health = (req: Request, res: Response): void => {
     res.setHeader("Cache-Control", "no-store");
-    res.json(healthReport(ctx));
+    const report = healthReport(ctx);
+    const full = config.publicRead || authState(req, config, now().getTime()).owner;
+    res.json(full ? report : { ok: report.ok, name: report.name, version: report.version });
   };
   app.get("/health", health);
   app.get("/api/v1/health", health);
@@ -245,13 +269,13 @@ export function createApp(ctx: AppContext): Express {
   });
   app.post("/login", (req, res) => {
     const state = authState(req, config, now().getTime());
-    const next = safeBack((req.body as Record<string, unknown>).next, "/");
+    const next = safeBack(((req.body ?? {}) as Record<string, unknown>).next, "/");
     if (state.open) return res.redirect(303, next);
-    const key = req.ip ?? "unknown";
+    const key = throttleKey(req.ip);
     if (throttle.blocked(key, now().getTime())) {
       return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookState(req, config) }));
     }
-    const given = (req.body as Record<string, unknown>).password;
+    const given = ((req.body ?? {}) as Record<string, unknown>).password;
     if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given)) {
       throttle.fail(key, now().getTime());
       return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookState(req, config) }));
@@ -269,7 +293,7 @@ export function createApp(ctx: AppContext): Express {
   // the read gate (a closed instance still shows its sign-in page the way the browser asked). One
   // button's name and value is the whole request; the other setting keeps its current value.
   app.post("/look", (req, res) => {
-    const body = req.body as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const current = lookState(req, config);
     const look = body.look === undefined ? current.look : body.look;
     const scheme = body.scheme === undefined ? current.scheme : body.scheme;
@@ -373,7 +397,7 @@ export function createApp(ctx: AppContext): Express {
 
   const itemAction = (action: "read" | "unread" | "star" | "unstar") => (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const back = safeBack((req.body as Record<string, unknown>).back, "/");
+    const back = safeBack(((req.body ?? {}) as Record<string, unknown>).back, "/");
     if (!Number.isInteger(id) || id <= 0) return res.status(404).type("text").send("No such item.");
     const ok = action === "read" || action === "unread" ? setRead(db, id, action === "read") : setStarred(db, id, action === "star");
     if (!ok) return res.status(404).type("text").send("No such item.");
@@ -384,14 +408,14 @@ export function createApp(ctx: AppContext): Express {
   app.post("/items/:id/star", requireOwner, itemAction("star"));
   app.post("/items/:id/unstar", requireOwner, itemAction("unstar"));
   app.post("/wire/read-all", requireOwner, (req, res) => {
-    const body = req.body as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     markAllRead(db, wireFilters(body));
     res.redirect(303, safeBack(body.back, "/"));
   });
 
   app.get("/standards", (_req, res) => res.redirect(302, "/register"));
   app.get("/standards/:source", (req, res, next) => {
-    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(req, res), now: now(), notice: str(req.query.notice, 300) });
+    const html = renderStandard({ db, sourceId: String(req.params.source), ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) });
     if (!html) return next();
     res.type("html").send(html);
   });
@@ -469,7 +493,8 @@ export function createApp(ctx: AppContext): Express {
     if (!isBuilderPlatform(platform)) return next();
     const format = isExportFormat(fields.format) ? fields.format : "json";
     const profile = buildProfile(db, profileOptions(platform, fields));
-    const out = exportProfile(profile, format, flavourOf(fields), { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
+    // A reader who is not the owner takes the profile without Microsoft's values: on screen only, never in bulk.
+    const out = exportProfile(who(req, res).owner ? profile : publicProfile(profile), format, flavourOf(fields), { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
     res.setHeader("Content-Disposition", `attachment; filename="${out.filename}"`);
     res.setHeader("Cache-Control", "no-store");
     res.type(out.contentType).send(out.body);
@@ -588,10 +613,10 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/watchlist", (req, res) => {
-    res.type("html").send(renderWatchlist({ db, ...who(req, res), notice: str(req.query.notice, 300) }));
+    res.type("html").send(renderWatchlist({ db, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
   });
   app.post("/watchlist", requireOwner, (req, res) => {
-    const body = req.body as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const kind = str(body.kind);
     const value = str(body.value);
     const label = str(body.label, 60) ?? null;
@@ -606,7 +631,8 @@ export function createApp(ctx: AppContext): Express {
     }
     db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, kind === "platform" ? value.toLowerCase() : value, label, now().toISOString());
     const changed = recomputeWatchHits(db);
-    res.redirect(303, `/watchlist?notice=${encodeURIComponent(`Added ${value}; ${changed} CVE(s) re-marked.`)}`);
+    res.append("Set-Cookie", flashHeader(`Added ${value}; ${changed} CVE(s) re-marked.`, secureCookies(req)));
+    res.redirect(303, "/watchlist");
   });
   app.post("/watchlist/:id/delete", requireOwner, (req, res) => {
     const id = Number(req.params.id);
@@ -618,7 +644,7 @@ export function createApp(ctx: AppContext): Express {
   });
 
   app.get("/triage", (req, res) => {
-    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: str(req.query.notice, 300), dismissed: str(req.query.dismissed) === "1" }));
+    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)), dismissed: str(req.query.dismissed) === "1" }));
   });
   app.get("/triage.csv", requireOwner, (_req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="baselinewatch-triage.csv"');
@@ -631,7 +657,7 @@ export function createApp(ctx: AppContext): Express {
     return { kind, id, key: str(body.key, 200) ?? "" };
   };
   app.post("/triage", requireOwner, (req, res) => {
-    const body = req.body as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const subject = triageSubject(body);
     const state = str(body.state);
     if (!subject || !isTriageState(state)) return res.status(400).type("text").send("A subject and a state are needed.");
@@ -642,7 +668,7 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/triage"));
   });
   app.post("/triage/clear", requireOwner, (req, res) => {
-    const body = req.body as Record<string, unknown>;
+    const body = (req.body ?? {}) as Record<string, unknown>;
     const subject = triageSubject(body);
     if (subject) clearTriage(db, subject);
     res.redirect(303, safeBack(body.back, "/triage"));
@@ -693,12 +719,17 @@ export function createApp(ctx: AppContext): Express {
     });
     if (outcome.status === "error") return res.status(422).type("text").send(`Could not read that benchmark: ${outcome.error}`);
     const notice = outcome.status === "unchanged" ? `${file.filename} was already loaded.` : `${file.filename} loaded as ${outcome.key} ${outcome.versionLabel ?? ""}: ${outcome.summary}`;
-    res.redirect(303, `/standards/cis-benchmarks?notice=${encodeURIComponent(notice)}`);
+    res.append("Set-Cookie", flashHeader(notice, secureCookies(req)));
+    res.redirect(303, "/standards/cis-benchmarks");
   });
 
   app.get("/sources", (req, res) => {
-    const q = req.query as Record<string, unknown>;
-    const notice = typeof q.fetched === "string" && typeof q.status === "string" ? { sourceId: q.fetched, status: q.status, detail: typeof q.detail === "string" ? q.detail : "" } : null;
+    // The outcome of a Fetch now rides over in the flash cookie, never in the query string, so no link can forge one.
+    const flash = takeFlash(req, res, secureCookies(req)) as { sourceId?: unknown; status?: unknown; detail?: unknown } | undefined;
+    const notice =
+      flash && typeof flash.sourceId === "string" && typeof flash.status === "string"
+        ? { sourceId: flash.sourceId.slice(0, 80), status: flash.status.slice(0, 20), detail: typeof flash.detail === "string" ? flash.detail.slice(0, 1200) : "" }
+        : null;
     res.type("html").send(renderSources({ db, ...who(req, res), notice }));
   });
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
@@ -713,8 +744,8 @@ export function createApp(ctx: AppContext): Express {
       ...(ctx.http ? { http: ctx.http } : {}),
     });
     const detail = result.status === "ok" ? (result.detail ?? `${result.items} items, ${result.inserted} new, ${result.updated} changed`) : (result.error ?? result.status);
-    const params = new URLSearchParams({ fetched: source.id, status: result.status, detail });
-    res.redirect(303, `/sources?${params.toString()}`);
+    res.append("Set-Cookie", flashHeader({ sourceId: source.id, status: result.status, detail }, secureCookies(req)));
+    res.redirect(303, `/sources#src-${source.id}`);
   });
 
   app.use((req, res) => {

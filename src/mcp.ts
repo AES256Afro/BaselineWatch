@@ -9,7 +9,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns } from "./api.ts";
+import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, isLicensedSource } from "./api.ts";
 import { changeSummaryFor, changeSummaryText, explanationsFor, getDocument, latestDocument, notesFor, releaseChanges, requirementIn } from "./register.ts";
 import { productName, productVersion } from "./version.ts";
 
@@ -22,6 +22,9 @@ function asText(value: unknown): { content: { type: "text"; text: string }[] } {
 function failure(message: string): { content: { type: "text"; text: string }[]; isError: true } {
   return { content: [{ type: "text", text: message }], isError: true };
 }
+
+/** CIS and Microsoft text is the owner's own licensed copy: on screen only, never through a tool. */
+const licensed = (source: string) => failure(`${source} is the owner's own licensed copy; it is quoted on the pages and not served through the API or this tool.`);
 
 const since = z.string().max(40).optional().describe("ISO 8601 date or timestamp; only things at or after it");
 const limit = z.number().int().min(1).max(200).optional().describe("How many rows at most (default 50, max 200)");
@@ -67,6 +70,7 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
       annotations: readOnly,
     },
     async (args) => {
+      if (isLicensedSource(args.source)) return licensed(args.source);
       let doc = args.document_id !== undefined ? getDocument(db, args.document_id) : null;
       if (!doc) {
         const first = db.prepare("SELECT document_key FROM documents WHERE source_id = ? ORDER BY document_key LIMIT 1").get(args.source) as { document_key: string } | undefined;
@@ -103,6 +107,7 @@ export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
       annotations: readOnly,
     },
     async (args) => {
+      if (isLicensedSource(args.source)) return licensed(args.source);
       const ref = args.ref.trim().toLowerCase();
       const rows = db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = ? ORDER BY document_key").all(args.source) as { document_key: string }[];
       for (const { document_key } of rows) {

@@ -14,6 +14,14 @@ export interface ApiQuery {
   [key: string]: unknown;
 }
 
+/**
+ * Sources whose text is the owner's own licensed copy (AGENTS.md: CIS and Microsoft content is
+ * quoted on screen and never redistributed or exposed through the API). The API and the MCP
+ * tools list their versions but never their requirement text or diffs.
+ */
+export const licensedSources: readonly string[] = ["cis-benchmarks", "microsoft-sct"];
+export const isLicensedSource = (sourceId: string): boolean => licensedSources.includes(sourceId);
+
 const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
 const limitOf = (v: unknown, fallback = 50): number => {
   const n = Number(str(v));
@@ -24,6 +32,11 @@ const sinceOf = (v: unknown): string | undefined => {
   if (!s) return undefined;
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+};
+/** A page offset SQLite can bind: a whole number, capped; anything else starts at the top. */
+const offsetOf = (v: unknown): number => {
+  const n = Number(str(v));
+  return Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 1_000_000) : 0;
 };
 
 function parseJson<T>(text: string | null, fallback: T): T {
@@ -42,12 +55,10 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? kind : undefined,
     q: str(q.q),
     unread: str(q.unread) === "1",
+    since: sinceOf(q.since),
     limit: limitOf(q.limit),
   };
-  const since = sinceOf(q.since);
-  return listWire(db, filters)
-    .filter((i) => !since || (i.published_at ?? i.fetched_at) >= since)
-    .map((i) => ({
+  return listWire(db, filters).map((i) => ({
       id: i.id,
       source: i.source_id,
       sourceName: i.source_name,
@@ -77,7 +88,7 @@ export function apiVulns(db: DatabaseSync, q: ApiQuery) {
     q: str(q.q),
     sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
     limit: limitOf(q.limit),
-    offset: Math.max(0, Number(str(q.offset)) || 0),
+    offset: offsetOf(q.offset),
   };
   const { rows, total } = listVulns(db, filters);
   return { total, vulns: rows.map(vulnJson) };
@@ -154,8 +165,8 @@ export function apiStandards(db: DatabaseSync, baseUrl: string) {
 export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const since = sinceOf(q.since);
   const source = str(q.source);
-  const clauses: string[] = [];
-  const params: (string | number)[] = [];
+  const clauses: string[] = [`c.source_id NOT IN (${licensedSources.map(() => "?").join(", ")})`];
+  const params: (string | number)[] = [...licensedSources];
   if (since) {
     clauses.push("d.published_at >= ?");
     params.push(since);
@@ -212,17 +223,22 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
 export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const state = str(q.state);
   const valid: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
-  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200) }).map((c) => ({
+  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200) }).map((c) => {
+    // A triaged control of a licensed standard is named by its label alone; its title is the publisher's text.
+    const row = c as unknown as Record<string, unknown>;
+    const licensed = c.subject_kind === "control" && isLicensedSource(String(row.doc_source ?? ""));
+    return {
     kind: c.subject_kind,
     id: c.subject_id,
     key: c.subject_key || null,
     state: c.state,
-    title: c.title,
+    title: licensed ? `${String(row.req_label ?? c.subject_key.toUpperCase())} (${String(row.doc_standard ?? row.doc_source)}; the text is on the page)` : c.title,
     url: c.url.startsWith("/") ? `${baseUrl}${c.url}` : c.url,
     note: c.note,
     due: c.due_at,
     updated: c.updated_at,
-  }));
+    };
+  });
 }
 
 export function apiDigest(db: DatabaseSync) {

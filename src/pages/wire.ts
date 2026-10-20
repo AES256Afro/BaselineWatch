@@ -197,6 +197,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
                 ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
+                ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
                 ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
                 ${filters.q ? html`<input type="hidden" name="q" value="${filters.q}">` : ""}
                 <input type="hidden" name="back" value="${current}">

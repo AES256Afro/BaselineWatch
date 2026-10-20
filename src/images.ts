@@ -13,20 +13,12 @@ import type { HttpGet } from "./http.ts";
 
 export type ImageOrigin = "enclosure" | "body" | "og";
 
-/** Image types worth caching; anything else (svg included, as it can script) is left behind. */
-const imageTypes = new Map<string, string>([
-  ["jpg", "image/jpeg"],
-  ["jpeg", "image/jpeg"],
-  ["png", "image/png"],
-  ["gif", "image/gif"],
-  ["webp", "image/webp"],
-  ["avif", "image/avif"],
-]);
-
-/** The served content type: the response's when it is a known image type, else sniffed magic bytes. */
-export function imageType(contentType: string | null, bytes: Uint8Array): string | null {
-  const declared = contentType?.split(";")[0]?.trim().toLowerCase();
-  if (declared && [...imageTypes.values()].includes(declared)) return declared;
+/**
+ * The served content type, from the bytes alone: JPEG, PNG, GIF, WebP or AVIF by their magic
+ * numbers. A declared Content-Type is not trusted, so a page that calls arbitrary bytes an image
+ * cannot have them hosted here, and SVG (which can script) never qualifies.
+ */
+export function imageType(bytes: Uint8Array): string | null {
   if (bytes.length < 12) return null;
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
@@ -65,8 +57,10 @@ const maxOgFetchesPerRun = 20;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function cacheImage(db: DatabaseSync, dataDir: string, deps: ImageDeps, itemId: number, url: string, origin: ImageOrigin): Promise<boolean> {
-  const response = await deps.http(url, { timeoutMs: 20_000, maxBytes: maxImageBytes, headers: { accept: "image/*" } });
-  const type = imageType(response.contentType, response.bytes);
+  // The URL came from a feed or a page: http(s) to a public host only, checked again on every redirect.
+  if (!/^https?:\/\//i.test(url)) return false;
+  const response = await deps.http(url, { timeoutMs: 20_000, maxBytes: maxImageBytes, headers: { accept: "image/*" }, publicOnly: true });
+  const type = imageType(response.bytes);
   if (!type || response.bytes.length === 0) return false;
   const blob = putBlob(dataDir, response.bytes);
   db.prepare("UPDATE items SET image_blob = ?, image_type = ?, image_origin = ? WHERE id = ?").run(blob.sha256, type, origin, itemId);
@@ -94,7 +88,7 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
         else miss.run(new Date().toISOString(), row.id);
       } else if (item.url && ogFetches < maxOgFetchesPerRun) {
         ogFetches += 1;
-        const page = await deps.http(item.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
+        const page = await deps.http(item.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" }, publicOnly: true });
         const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
         if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
         else miss.run(new Date().toISOString(), row.id);
@@ -135,7 +129,7 @@ export async function backfillImages(
   for (const [index, row] of rows.entries()) {
     if (index > 0 && delayMs > 0) await sleep(delayMs);
     try {
-      const page = await deps.http(row.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" } });
+      const page = await deps.http(row.url, { timeoutMs: 20_000, maxBytes: maxPageBytes, headers: { accept: "text/html" }, publicOnly: true });
       const url = extractOgImage(new TextDecoder("utf-8", { fatal: false }).decode(page.bytes));
       if (url && (await cacheImage(db, dataDir, deps, row.id, url, "og"))) stored += 1;
       else miss.run(new Date().toISOString(), row.id);
