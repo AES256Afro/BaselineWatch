@@ -5,9 +5,21 @@ export interface ZipEntry {
   bytes: Uint8Array;
 }
 
+/** What one entry, and one archive, may inflate to: a publisher's zip is a few hundred megabytes of XML at most, a bomb is not. */
+const maxEntryBytes = 256 * 1024 * 1024;
+const maxArchiveBytes = 1024 * 1024 * 1024;
+
 /** Every file in a zip (directories skipped), in archive order. */
 export function unzipAll(bytes: Uint8Array): ZipEntry[] {
-  const files = unzipSync(bytes);
+  let total = 0;
+  const files = unzipSync(bytes, {
+    filter: (file) => {
+      if (file.originalSize > maxEntryBytes) throw new Error(`zip entry ${file.name} would inflate to ${file.originalSize} bytes, over the ${maxEntryBytes} limit`);
+      total += file.originalSize;
+      if (total > maxArchiveBytes) throw new Error(`zip would inflate to over ${maxArchiveBytes} bytes`);
+      return true;
+    },
+  });
   return Object.entries(files)
     .filter(([name, data]) => !name.endsWith("/") && data.byteLength > 0)
     .map(([name, data]) => ({ name, bytes: data }));

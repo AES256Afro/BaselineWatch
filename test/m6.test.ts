@@ -7,7 +7,7 @@ import { nistCatalogAdapter } from "../src/adapters/oscal-nist.ts";
 import { storeNvdRecords, type NvdResponse } from "../src/adapters/nvd.ts";
 import { migrate, openDatabase } from "../src/db.ts";
 import { buildDigest, digestDue, localClock, writeDigest } from "../src/digest.ts";
-import type { HttpGet } from "../src/http.ts";
+import { HttpError, type HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { notify, parseNotifyUrl, recentAlerts, send } from "../src/notify.ts";
 import { startScheduler } from "../src/scheduler.ts";
@@ -17,10 +17,10 @@ import { cookieFrom, fakeHttp, fixture, formPost, startTestApp, type TestApp } f
 const at = new Date("2026-10-15T06:00:00Z");
 
 /** Records every request as a notifier would see it. */
-function recorder(): HttpGet & { calls: { url: string; body: string; headers: Record<string, string> }[] } {
-  const calls: { url: string; body: string; headers: Record<string, string> }[] = [];
+function recorder(): HttpGet & { calls: { url: string; body: string; headers: Record<string, string>; redirect: string | undefined }[] } {
+  const calls: { url: string; body: string; headers: Record<string, string>; redirect: string | undefined }[] = [];
   const get: HttpGet = async (url, options = {}) => {
-    calls.push({ url, body: options.body ?? "", headers: options.headers ?? {} });
+    calls.push({ url, body: options.body ?? "", headers: options.headers ?? {}, redirect: options.redirect });
     return { url, status: 200, notModified: false, bytes: new Uint8Array(0), etag: null, lastModified: null, contentType: null };
   };
   return Object.assign(get, { calls });
@@ -52,7 +52,16 @@ describe("notifier", () => {
     const broken: HttpGet = async () => {
       throw new Error("refused");
     };
-    expect(await send(parseNotifyUrl("ntfy://h/t"), n, broken)).toEqual({ status: "failed", error: "refused" });
+    // The log keeps the kind of failure, never the message: an HTTP error's message names the endpoint, which is the credential.
+    expect(await send(parseNotifyUrl("ntfy://h/t"), n, broken)).toEqual({ status: "failed", error: "send failed (Error)" });
+    const unauthorized: HttpGet = async (url) => {
+      throw new HttpError(url, 401);
+    };
+    expect(await send(parseNotifyUrl("https://hooks.example/services/SECRET"), n, unauthorized)).toEqual({ status: "failed", error: "HTTP 401" });
+    // Non-ASCII in an ntfy header is RFC 2047-encoded rather than refused by fetch.
+    await send(parseNotifyUrl("ntfy://h/t"), { ...n, title: "Windows — update" }, http);
+    expect(http.calls[3]?.headers.title).toBe(`=?UTF-8?B?${Buffer.from("Windows — update", "utf8").toString("base64")}?=`);
+    expect(http.calls[3]?.redirect).toBe("manual");
 
     const db = openDatabase(":memory:");
     migrate(db);
@@ -106,7 +115,7 @@ describe("triage", () => {
     expect(triageCounts(db)).toMatchObject({ affects: 1, reviewing: 1, done: 1 });
     const csv = triageCsv(db);
     expect(csv.split("\n")[0]).toBe("state,kind,title,url,note,due,updated");
-    expect(csv).toContain('"affects","item","Vendor Thing: RCE","https://nvd/1","Checked edge firewalls.","2026-10-20"');
+    expect(csv).toContain("affects,item,Vendor Thing: RCE,https://nvd/1,Checked edge firewalls.,2026-10-20");
     expect(clearTriage(db, { kind: "vuln", id: vulnId })).toBe(true);
     expect(clearTriage(db, { kind: "vuln", id: vulnId })).toBe(false);
   });

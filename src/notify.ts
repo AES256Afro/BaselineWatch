@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { httpGet, type HttpGet } from "./http.ts";
+import { HttpError, httpGet, type HttpGet } from "./http.ts";
 
 /**
  * One notification URL, Apprise-style, three transports:
@@ -46,23 +46,41 @@ export function parseNotifyUrl(value: string | null): Transport | null {
   return { scheme: "webhook", endpoint: value.trim() };
 }
 
+/** An HTTP header value: ASCII as is, anything else RFC 2047-encoded, which ntfy decodes (a raw em dash would make fetch refuse the header). */
+export function headerValue(value: string): string {
+  return /^[\x20-\x7e]*$/.test(value) ? value : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+}
+
+/**
+ * What the alerts log keeps of a failure: the status or the kind of error, never the message,
+ * because an HttpError's message names the endpoint and the endpoint is the credential (a
+ * webhook URL, an ntfy topic) and the log is shown on the Digest page.
+ */
+export function failureText(error: unknown): string {
+  if (error instanceof HttpError) return `HTTP ${error.status}`;
+  if (error instanceof Error) return error.name === "TimeoutError" || error.name === "AbortError" ? "timed out" : `send failed (${error.name})`;
+  return "send failed";
+}
+
 /** Sends one notification; never throws. Returns what happened for the alerts log. */
 export async function send(transport: Transport | null, n: Notification, http: HttpGet = httpGet): Promise<{ status: "sent" | "failed" | "unconfigured"; error: string | null }> {
   if (!transport) return { status: "unconfigured", error: null };
+  // A redirect is refused: the token or the body must not be re-sent to wherever a 3xx points.
+  const post = { method: "POST" as const, timeoutMs: 20_000, redirect: "manual" as const };
   try {
     if (transport.scheme === "ntfy") {
-      const headers: Record<string, string> = { title: n.title, tags: n.kind === "kev" ? "rotating_light" : n.kind === "directive" ? "warning" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
-      if (n.url) headers.click = n.url;
-      await http(transport.endpoint, { method: "POST", body: n.body, headers, timeoutMs: 20_000 });
+      const headers: Record<string, string> = { title: headerValue(n.title), tags: n.kind === "kev" ? "rotating_light" : n.kind === "directive" ? "warning" : n.kind === "release" ? "page_facing_up" : "bell", "content-type": "text/plain; charset=utf-8" };
+      if (n.url) headers.click = headerValue(n.url);
+      await http(transport.endpoint, { ...post, body: n.body, headers });
     } else if (transport.scheme === "gotify") {
       const body = JSON.stringify({ title: n.title, message: n.url ? `${n.body}\n${n.url}` : n.body, priority: n.kind === "kev" || n.kind === "directive" ? 7 : 4 });
-      await http(transport.endpoint, { method: "POST", body, headers: { "content-type": "application/json", "x-gotify-key": transport.token ?? "" }, timeoutMs: 20_000 });
+      await http(transport.endpoint, { ...post, body, headers: { "content-type": "application/json", "x-gotify-key": transport.token ?? "" } });
     } else {
-      await http(transport.endpoint, { method: "POST", body: JSON.stringify({ kind: n.kind, title: n.title, body: n.body, url: n.url ?? null }), headers: { "content-type": "application/json" }, timeoutMs: 20_000 });
+      await http(transport.endpoint, { ...post, body: JSON.stringify({ kind: n.kind, title: n.title, body: n.body, url: n.url ?? null }), headers: { "content-type": "application/json" } });
     }
     return { status: "sent", error: null };
   } catch (error) {
-    return { status: "failed", error: error instanceof Error ? error.message : String(error) };
+    return { status: "failed", error: failureText(error) };
   }
 }
 

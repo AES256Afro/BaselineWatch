@@ -19,6 +19,9 @@ const feed = new TextDecoder().decode(fixture("blocklists/openphish-feed.txt"));
 const password = "hunter2hunter2";
 const at = new Date("2026-10-19T12:00:00Z");
 
+/** The one-shot notice cookie a POST sets for the page it redirects to. */
+const flashOf = (response: Response): string => (response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+
 /** The feed without every URL on one host, so the set loses that name and gains the next lowest hash. */
 function without(text: string, name: string): string {
   return text
@@ -66,7 +69,8 @@ async function loadTwoVersions(): Promise<Loaded> {
   expect((await formPost(app.base, `/sources/${sourceId}/enable`, {}, cookie)).status).toBe(303);
 
   const first = await formPost(app.base, `/sources/${sourceId}/fetch`, {}, cookie);
-  expect(first.headers.get("location")).toMatch(new RegExp(`^/sources\\?fetched=${sourceId}&status=ok`));
+  expect(first.headers.get("location")).toBe(`/sources#src-${sourceId}`);
+  expect(decodeURIComponent(flashOf(first))).toContain('"status":"ok"');
   const v1 = latestDocument(app.db, sourceId, "canaries")!;
   const before = loadRequirements(app.db, v1.id).map((r) => r.ref);
   expect(before).toHaveLength(canaryCount);
@@ -74,7 +78,7 @@ async function loadTwoVersions(): Promise<Loaded> {
   served.text = without(feed, before[0]!);
   clock = new Date("2026-10-20T12:00:00Z");
   const second = await formPost(app.base, `/sources/${sourceId}/fetch`, {}, cookie);
-  expect(second.headers.get("location")).toMatch(new RegExp(`^/sources\\?fetched=${sourceId}&status=ok`));
+  expect(decodeURIComponent(flashOf(second))).toContain('"status":"ok"');
   const v2 = latestDocument(app.db, sourceId, "canaries")!;
   expect(v2.id).not.toBe(v1.id);
   expect(v2.previous_document_id).toBe(v1.id);
@@ -138,18 +142,24 @@ describe("a licence-restricted source", () => {
     expect(crossSite.status).toBe(403);
     expect(getSource(app.db, sourceId)!.enabled).toBe(0);
 
+    // The outcome rides to the Sources page in the one-shot notice cookie, like a fetch's, and the redirect lands on the row.
     const on = await formPost(app.base, `/sources/${sourceId}/enable`, {}, cookie);
     expect(on.status).toBe(303);
-    expect(on.headers.get("location")).toMatch(new RegExp(`^/sources\\?changed=${sourceId}&status=enabled`));
+    expect(on.headers.get("location")).toBe(`/sources#src-${sourceId}`);
+    expect(decodeURIComponent(flashOf(on))).toContain('"status":"enabled"');
     expect(getSource(app.db, sourceId)!.enabled).toBe(1);
-    const afterOn = await (await fetch(`${app.base}${on.headers.get("location")}`, { headers: { cookie } })).text();
+    const afterOn = await (await fetch(`${app.base}/sources`, { headers: { cookie: `${cookie}; ${flashOf(on)}` } })).text();
     expect(afterOn).toContain(`<b>${sourceId}</b>: enabled · checked daily`);
     expect(afterOn).toContain(`action="/sources/${sourceId}/disable"`);
-    expect(afterOn).not.toMatch(new RegExp(`<tr class="off">\\s*<td><a href="${feedUrl}"`));
+    expect(afterOn).toContain(`<tr id="src-${sourceId}" class="">`);
 
     const off = await formPost(app.base, `/sources/${sourceId}/disable`, {}, cookie);
-    expect(off.headers.get("location")).toMatch(new RegExp(`^/sources\\?changed=${sourceId}&status=disabled`));
+    expect(off.headers.get("location")).toBe(`/sources#src-${sourceId}`);
+    expect(decodeURIComponent(flashOf(off))).toContain('"status":"disabled"');
     expect(getSource(app.db, sourceId)!.enabled).toBe(0);
+    const afterOff = await (await fetch(`${app.base}/sources`, { headers: { cookie: `${cookie}; ${flashOf(off)}` } })).text();
+    expect(afterOff).toContain(`<b>${sourceId}</b>: disabled · no longer fetched`);
+    expect(afterOff).toContain(`<tr id="src-${sourceId}" class="off">`);
     expect((await formPost(app.base, "/sources/no-such-source/enable", {}, cookie)).status).toBe(404);
   });
 

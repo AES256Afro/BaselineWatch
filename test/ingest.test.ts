@@ -129,20 +129,27 @@ describe("the Wire", () => {
     expect(listWire(db, { q: "cve-2026-31417" })).toHaveLength(1);
     expect(listWire(db, { q: '"unbalanced' })).toHaveLength(0);
 
-    expect(markAllRead(db, { source: "reddit-netsec" })).toBe(1);
+    // Mark all read covers the hidden copy too, so the source's unread count (which counts every row) reaches zero.
+    expect(markAllRead(db, { source: "reddit-netsec" })).toBe(2);
     expect(listWire(db, { unread: true })).toHaveLength(2);
     const counts = sourceCounts(db);
-    expect(counts.find((c) => c.source_id === "reddit-netsec")).toMatchObject({ total: 2, unread: 1 });
+    expect(counts.find((c) => c.source_id === "reddit-netsec")).toMatchObject({ total: 2, unread: 0 });
   });
 
-  it("pages by id cursor", async () => {
+  it("pages by a cursor in the list's own order, not by id", async () => {
     const kev = source("cisa-kev");
     await ingestSource(db, dataDir, kev, { http: fakeHttp({ [kev.url]: { bytes: fixture("kev.json") } }), now });
+    // The oldest entry gets the highest id, as a CVE published years ago and fetched today would: an id cursor would skip or repeat it.
+    const all = listWire(db, { limit: 3 });
+    expect(all).toHaveLength(3);
+    db.prepare("UPDATE items SET published_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(all[0]!.id);
+    const ordered = listWire(db, { limit: 3 });
+    expect(ordered[2]!.id).toBe(all[0]!.id);
     const firstPage = listWire(db, { limit: 2 });
-    expect(firstPage).toHaveLength(2);
     const next = listWire(db, { limit: 2, before: firstPage[1]!.id });
     expect(next).toHaveLength(1);
-    expect(next[0]!.id).toBeLessThan(firstPage[1]!.id);
+    expect(next[0]!.id).toBe(ordered[2]!.id);
+    expect(firstPage.map((i) => i.id)).not.toContain(next[0]!.id);
   });
 });
 

@@ -167,7 +167,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
             <dt>Writes</dt><dd>${config.adminPassword ? (owner ? "you are signed in as the owner" : html`<a href="/login">owner sign-in required</a>`) : "open (no owner password set)"}</dd>
             <dt>Last fetch</dt><dd>${lastFetch ? html`<a href="/sources">${relativeTime(lastFetch, now)}</a>` : html`<a href="/sources">never</a>`}</dd>
             <dt>Time zone</dt><dd>${config.timeZone}</dd>
-            <dt>Data</dt><dd>${config.dataDir}</dd>
+            <dt>Data</dt><dd>${owner ? config.dataDir : "set"}</dd>
             <dt>NVD API key</dt><dd>${config.nvdApiKey ? "set" : "not set (5 requests per 30 s)"}</dd>
             <dt>Notifications</dt><dd>${config.notifyUrl ? "set" : "not set"}</dd>
             <dt>Local model</dt><dd>${config.llmUrl ? "set, summaries badged as generated" : "off"}</dd>

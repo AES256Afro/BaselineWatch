@@ -8,8 +8,10 @@ export interface WireFilters {
   kind?: ItemKind | undefined;
   q?: string | undefined;
   unread?: boolean;
-  /** Cursor: items with an id below this. */
+  /** Cursor: the id of the last item shown; the page continues below it in the list's own order (date, then id). */
   before?: number | undefined;
+  /** Only items published (or, undated, fetched) at or after this instant. */
+  since?: string | undefined;
   limit?: number;
 }
 
@@ -34,9 +36,10 @@ export interface WireItem {
 
 /** Turns free text into an FTS5 query that cannot be mistaken for FTS syntax: every word quoted, all required. */
 export function ftsQuery(text: string): string | null {
+  // Quotes would end a phrase early and a control character (a NUL from a crafted query) is an FTS5 syntax error.
   const words = text
     .split(/\s+/)
-    .map((w) => w.replace(/"/g, "").trim())
+    .map((w) => w.replace(/["\p{Cc}]/gu, "").trim())
     .filter((w) => w.length > 0);
   if (words.length === 0) return null;
   return words.map((w) => `"${w}"`).join(" ");
@@ -47,11 +50,11 @@ interface Built {
   params: (string | number)[];
 }
 
-function build(filters: WireFilters): Built {
+function build(filters: WireFilters, options: { copies?: boolean } = {}): Built {
   const clauses: string[] = [];
   const params: (string | number)[] = [];
-  // Hide later copies of the same link (the same story from two feeds).
-  clauses.push("(i.canonical_url IS NULL OR i.id = (SELECT MIN(d.id) FROM items d WHERE d.canonical_url = i.canonical_url))");
+  // Hide later copies of the same link (the same story from two feeds), unless every copy is wanted.
+  if (!options.copies) clauses.push("(i.canonical_url IS NULL OR i.id = (SELECT MIN(d.id) FROM items d WHERE d.canonical_url = i.canonical_url))");
   if (filters.source) {
     clauses.push("i.source_id = ?");
     params.push(filters.source);
@@ -72,8 +75,14 @@ function build(filters: WireFilters): Built {
       params.push(query);
     }
   }
+  if (filters.since) {
+    clauses.push("COALESCE(i.published_at, i.fetched_at) >= ?");
+    params.push(filters.since);
+  }
   if (filters.before) {
-    clauses.push("i.id < ?");
+    // The list is ordered by date then id, so the cursor compares on both: an older item with a
+    // higher id (a CVE whose published date is years back) is neither repeated nor skipped.
+    clauses.push("(COALESCE(i.published_at, i.fetched_at), i.id) < (SELECT COALESCE(b.published_at, b.fetched_at), b.id FROM items b WHERE b.id = ?)");
     params.push(filters.before);
   }
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
@@ -93,7 +102,8 @@ export function listWire(db: DatabaseSync, filters: WireFilters = {}): WireItem[
 }
 
 export function markAllRead(db: DatabaseSync, filters: WireFilters = {}): number {
-  const { where, params } = build({ ...filters, before: undefined });
+  // Every copy of a story is marked, so the unread count (which counts them all) can reach zero.
+  const { where, params } = build({ ...filters, before: undefined }, { copies: true });
   const result = db.prepare(`UPDATE items SET read = 1 WHERE id IN (SELECT i.id FROM items i ${where})`).run(...params);
   return Number(result.changes);
 }

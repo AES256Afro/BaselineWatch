@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { csvLine } from "./csv.ts";
 import { withheldLabel } from "./register.ts";
 
 export type TriageKind = "item" | "vuln" | "control";
@@ -161,8 +162,7 @@ export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: 
 /** The owner's download, so every card is named. */
 export function triageCsv(db: DatabaseSync): string {
   const cards = listTriage(db, { limit: 500, owner: true });
-  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = ["state,kind,title,url,note,due,updated"];
-  for (const c of cards) lines.push([c.state, c.subject_kind, c.title, c.url, c.note ?? "", c.due_at ?? "", c.updated_at].map(esc).join(","));
+  for (const c of cards) lines.push(csvLine([c.state, c.subject_kind, c.title, c.url, c.note ?? "", c.due_at ?? "", c.updated_at]));
   return `${lines.join("\n")}\n`;
 }

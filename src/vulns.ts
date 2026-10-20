@@ -538,6 +538,11 @@ export interface VulnFilters {
   changedSince?: string | undefined;
   /** Only CVEs first seen since this instant: the list the "New, 24 h" figure is counted from. */
   newSince?: string | undefined;
+  /** The windows above in hours, for the links and chips that carry them (24 when unset). */
+  changedHours?: number | undefined;
+  newHours?: number | undefined;
+  /** Only CVEs the watchlist marked with this label: the figure beside a watchlist entry is counted this way. */
+  label?: string | undefined;
   q?: string | undefined;
   sort?: "modified" | "published" | "cvss" | "epss";
   offset?: number;
@@ -575,10 +580,14 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
     clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field = 'new')");
     params.push(filters.newSince);
   }
+  if (filters.label) {
+    clauses.push("v.watch_labels_json IS NOT NULL AND EXISTS (SELECT 1 FROM json_each(v.watch_labels_json) WHERE json_each.value = ?)");
+    params.push(filters.label);
+  }
   if (filters.q) {
     const words = filters.q
       .split(/\s+/)
-      .map((w) => w.replace(/"/g, "").trim())
+      .map((w) => w.replace(/["\p{Cc}]/gu, "").trim())
       .filter(Boolean);
     if (words.length) {
       clauses.push("v.id IN (SELECT rowid FROM vulns_fts WHERE vulns_fts MATCH ?)");
@@ -630,7 +639,8 @@ export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; 
     total: n("SELECT COUNT(*) AS n FROM vulns"),
     kev: n("SELECT COUNT(*) AS n FROM vulns WHERE kev = 1"),
     watch: n("SELECT COUNT(*) AS n FROM vulns WHERE watch_hit = 1"),
-    changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ? AND field <> 'new'", sinceIso),
+    // Any change observed in the window, first sightings included: the same set ?changed=1 lists and the Today tile counts.
+    changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ?", sinceIso),
     newSince: n("SELECT COUNT(*) AS n FROM vuln_changes WHERE observed_at >= ? AND field = 'new'", sinceIso),
   };
 }

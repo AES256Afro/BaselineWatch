@@ -778,7 +778,7 @@ a name that hashes lower. Each requirement's text is the line as published (Open
 origin, never a path), so a changed rule is a revision and a dropped name a removal. OpenPhish's
 Community Feed terms forbid showing any part of the feed to third parties, so that source is
 registered off; a private instance's owner may turn the row on. *Restricted sources* (migration
-0028, `sources.restricted`): the OpenPhish set is marked restricted, so once the owner turns it on
+0029, `sources.restricted`): the OpenPhish set is marked restricted, so once the owner turns it on
 from the Sources page a visitor sees its versions and counts with the names withheld under the
 quoted licence, the owner sees the names, and the API and MCP tools return neither names nor text
 to anyone, which lets the set run on the public instance. Fixtures are the real responses

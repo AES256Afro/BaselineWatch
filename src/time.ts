@@ -7,10 +7,11 @@ export function relativeTime(iso: string | null, now: Date): string {
   const then = new Date(iso);
   if (Number.isNaN(then.getTime())) return "";
   const seconds = Math.round((now.getTime() - then.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
-  if (seconds < 24 * 3600) return `${Math.round(seconds / 3600)} h ago`;
-  if (seconds < 7 * 24 * 3600) return `${dayNames[then.getUTCDay()]} ${then.getUTCDate()} ${monthNames[then.getUTCMonth()]}`;
+  if (Math.abs(seconds) < 60) return "just now";
+  // A stamp in the future (a publisher's typo, a pre-dated post) reads as its date, not as "just now".
+  if (seconds >= 60 && seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
+  if (seconds >= 3600 && seconds < 24 * 3600) return `${Math.round(seconds / 3600)} h ago`;
+  if (Math.abs(seconds) < 7 * 24 * 3600) return `${dayNames[then.getUTCDay()]} ${then.getUTCDate()} ${monthNames[then.getUTCMonth()]}`;
   if (then.getUTCFullYear() === now.getUTCFullYear()) return `${then.getUTCDate()} ${monthNames[then.getUTCMonth()]}`;
   return `${then.getUTCDate()} ${monthNames[then.getUTCMonth()]} ${then.getUTCFullYear()}`;
 }

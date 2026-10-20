@@ -6,7 +6,7 @@ Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`
 
 - **Licence-restricted sources: entries for the owner, counts for everyone else.** A source whose
   licence forbids showing its content to third parties can now run on a public instance. A new
-  column, `sources.restricted` (migration 0028), marks it; nothing in the code names a source. On
+  column, `sources.restricted` (migration 0029), marks it; nothing in the code names a source. On
   the Register a visitor sees a restricted source's versions, how many entries each holds and how
   many came, went or changed, with the names and text withheld and the licence quoted in their
   place (the entry page draws the same thing for every address, so a URL says nothing about what

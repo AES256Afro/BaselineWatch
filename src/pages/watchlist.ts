@@ -8,10 +8,11 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
   const { db, owner, open, notice, look } = options;
   const entries = loadWatchlist(db);
   const counts = new Map<number, number>();
+  // The label as the match recorded it, exactly: a LIKE would let "SQL" count "MySQL" and treat _ and % as wildcards.
+  const count = db.prepare("SELECT COUNT(*) AS n FROM vulns WHERE watch_labels_json IS NOT NULL AND EXISTS (SELECT 1 FROM json_each(vulns.watch_labels_json) WHERE json_each.value = ?)");
   for (const e of entries) {
     const label = e.label?.trim() || e.value;
-    const n = (db.prepare("SELECT COUNT(*) AS n FROM vulns WHERE watch_labels_json LIKE ?").get(`%${JSON.stringify(label).slice(1, -1)}%`) as { n: number }).n;
-    counts.set(e.id, n);
+    counts.set(e.id, (count.get(label) as { n: number }).n);
   }
 
   const kindLabel: Record<string, string> = { product: "Product", keyword: "Keyword", baseline: "Baseline", family: "Control family", package: "Package", platform: "Platform" };
@@ -31,7 +32,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
                   <td>${kindLabel[e.kind] ?? e.kind}</td>
                   <td><code>${e.value}</code></td>
                   <td>${e.label ?? ""}</td>
-                  <td class="n"><a href="/vulnerabilities?watch=1&q=${encodeURIComponent(e.label?.trim() || e.value)}">${counts.get(e.id) ?? 0}</a></td>
+                  <td class="n"><a href="/vulnerabilities?watch=1&label=${encodeURIComponent(e.label?.trim() || e.value)}">${counts.get(e.id) ?? 0}</a></td>
                   ${owner ? html`<td><form method="post" action="/watchlist/${e.id}/delete" class="inline"><button type="submit">Remove</button></form></td>` : ""}
                 </tr>`,
               )}</tbody>

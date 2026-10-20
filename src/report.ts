@@ -208,9 +208,20 @@ const texEscape = (s: string): string =>
     .replace(/([&%$#_{}])/g, "\\$1")
     .replace(/~/g, "\\textasciitilde{}")
     .replace(/\^/g, "\\textasciicircum{}")
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/☐/g, "$\\square$");
+    .replace(/[“”„]/g, '"')
+    .replace(/[‘’‚]/g, "'")
+    .replace(/☐/g, "$\\square$")
+    .replace(/→/g, "$\\rightarrow$")
+    .replace(/←/g, "$\\leftarrow$")
+    .replace(/≥/g, "$\\geq$")
+    .replace(/≤/g, "$\\leq$")
+    .replace(/≠/g, "$\\neq$")
+    .replace(/…/g, "\\ldots{}")
+    .replace(/–/g, "--")
+    .replace(/—/g, "---")
+    .replace(/[•·]/g, "\\textbullet{}")
+    // inputenc with T1 carries Latin-1; anything beyond it (CJK, emoji) would stop the compile, so it folds to ?.
+    .replace(/[Ā-￿]/g, "?");
 
 const texRuns = (runs: Inline[]): string =>
   runs
@@ -240,6 +251,7 @@ export function renderLatex(input: Block[], style: ReportStyle = plainStyle): st
     "\\usepackage{enumitem}",
     "\\usepackage{hyperref}",
     "\\usepackage{fancyvrb}",
+    "\\usepackage{fvextra}",
     "\\setlength{\\parskip}{4pt}",
     "\\setlength{\\parindent}{0pt}",
   ];
@@ -294,7 +306,9 @@ export function renderLatex(input: Block[], style: ReportStyle = plainStyle): st
         out.push(`  \\item ${texRuns(b.runs)}`);
         break;
       case "code":
-        out.push("\\begin{Verbatim}[fontsize=\\small,breaklines=true]", b.text.replace(/\r/g, ""), "\\end{Verbatim}");
+        // A check procedure is quoted verbatim; an \end{Verbatim} inside it would close the block early
+        // and hand the rest of the text to LaTeX, so that one token is kept from matching.
+        out.push("\\begin{Verbatim}[fontsize=\\small,breaklines=true]", b.text.replace(/\r/g, "").replace(/\\end\s*\{\s*Verbatim\s*\}/g, "\\end {Verbatim}"), "\\end{Verbatim}");
         break;
       case "table": {
         const cols = b.header.length;
@@ -442,6 +456,8 @@ const helvetica: Record<string, number> = {
 /** Text as WinAnsi can carry it: the typographic characters folded to their plain forms. */
 function winAnsi(s: string): string {
   return s
+    .replace(/\r\n?/g, "\n")
+    .replace(/\t/g, "  ")
     .replace(/[“”„]/g, '"')
     .replace(/[‘’‚]/g, "'")
     .replace(/[–—]/g, "-")
@@ -449,7 +465,7 @@ function winAnsi(s: string): string {
     .replace(/☐/g, "[ ]")
     .replace(/[•·]/g, "-")
     .replace(/→/g, "->")
-    .replace(/[^\x20-\x7e\xa0-\xff]/g, "?");
+    .replace(/[^\x20-\x7e\xa0-\xff\n]/g, "?");
 }
 
 /**

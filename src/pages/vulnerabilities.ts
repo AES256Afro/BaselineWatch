@@ -45,8 +45,10 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   if (f.minEpss !== undefined) p.set("min_epss", String(f.minEpss));
   if (f.maxEpss !== undefined) p.set("max_epss", String(f.maxEpss));
   if (f.noEpss) p.set("epss", "none");
-  if (f.changedSince) p.set("changed", "1");
-  if (f.newSince) p.set("new", "1");
+  // A 24 h window is the "1" the links have always carried; a wider one (the Today page's 3 or 7 days) names its hours.
+  if (f.changedSince) p.set("changed", f.changedHours && f.changedHours !== 24 ? String(f.changedHours) : "1");
+  if (f.newSince) p.set("new", f.newHours && f.newHours !== 24 ? String(f.newHours) : "1");
+  if (f.label) p.set("label", f.label);
   if (f.q) p.set("q", f.q);
   if (f.sort && f.sort !== "modified") p.set("sort", f.sort);
   if (f.offset) p.set("offset", String(f.offset));
@@ -71,10 +73,12 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince;
+  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.label;
   // A band the Today page sent us into, shown as a chip that takes it off again.
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
+  // The window a chip names: the Today page's 3 or 7 days read as such, so the figure clicked and the list shown agree.
+  const windowWord = (h: number | undefined): string => (h === undefined || h === 24 ? "24 h" : h % 24 === 0 ? `${h / 24} days` : `${h} h`);
 
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
@@ -112,13 +116,14 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       </form>
     </div>
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, offset: 0 })}">All</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, label: undefined, offset: 0 })}">All</a>
       <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
       <a class="${filters.minCvss === 9 ? "on" : ""}" href="${query(filters, { minCvss: filters.minCvss === 9 ? undefined : 9, offset: 0 })}">Critical (9+)</a>
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
-      <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, offset: 0 })}">Changed, 24 h</a>
-      <a class="${filters.newSince ? "on" : ""}" href="${query(filters, { newSince: filters.newSince ? undefined : since, offset: 0 })}">New, 24 h</a>
+      <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, changedHours: undefined, offset: 0 })}">Changed, ${windowWord(filters.changedSince ? filters.changedHours : undefined)}</a>
+      <a class="${filters.newSince ? "on" : ""}" href="${query(filters, { newSince: filters.newSince ? undefined : since, newHours: undefined, offset: 0 })}">New, ${windowWord(filters.newSince ? filters.newHours : undefined)}</a>
+      ${filters.label ? html`<a class="on" href="${query(filters, { label: undefined, offset: 0 })}">Watch: ${filters.label} ×</a>` : ""}
       ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
       ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
       <span class="sort">Sort:
@@ -152,7 +157,7 @@ export function fixPanel(fix: Fix): Html {
       : ""}
     ${fix.references.length
       ? html`<h3 class="small">Patch, vendor advisory and mitigation references on NVD <span class="count">${fix.references.length}</span></h3>
-          <ul class="refs">${fix.references.slice(0, 20).map((r) => html`<li><a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a> <span class="small">${r.tags.join(", ")}</span></li>`)}</ul>`
+          <ul class="refs">${fix.references.slice(0, 20).map((r) => html`<li>${/^https?:\/\//i.test(r.url) ? html`<a href="${r.url}" ${newTabIf(r.url)}>${r.url}</a>` : r.url} <span class="small">${r.tags.join(", ")}</span></li>`)}</ul>`
       : ""}
     ${fix.advisories.length
       ? html`<h3 class="small">Vendor advisories in the News <span class="count">${fix.advisories.length}</span></h3>
@@ -188,7 +193,8 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   const osvId = [row.cve_id, ...aliases].find((id) => !/^CVE-/.test(id));
   const cpes = parseJson<string[]>(row.cpes_json, []);
   const cwes = parseJson<string[]>(row.cwes_json, []);
-  const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []);
+  // Only web links are drawn as links; a reference that is not http(s) is not one to follow.
+  const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []).filter((r) => /^https?:\/\//i.test(r.url));
   const ssvc = parseJson<Record<string, string>>(row.ssvc_json, {});
   const watch = parseJson<string[]>(row.watch_labels_json, []);
   const changes = vulnChanges(db, row.cve_id);
