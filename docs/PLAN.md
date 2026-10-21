@@ -970,10 +970,45 @@ changelog entry is missing, still the draft or for another version, and a tag th
 version this tree is not; CI runs `npm run check` whole, so the manifest check runs there too.
 `docs/DEPLOY.md` carries the restore rehearsal as five steps that touch nothing live,
 `scripts/health-diff.ts` gives the verdict, and `npm run rehearsal -- today "…"` records it, with
-the digest asking until one is recorded and again ninety days later. **Still open in M13**: the
-pipeline tile on Today, `/metrics`, the alert when a source has failed for a day, the nightly
-feed and template probes in CI, dropping the `nvd-cve-history` row — and the rehearsal itself,
-which is a person's job on BigBox.
+the digest asking until one is recorded and again ninety days later. Of the rest, only the
+rehearsal itself is still open, and it is a person's job on BigBox; the reporting half is
+M13.2 below.
+
+#### M13.2: The platform reports itself — shipped 2026-10-21
+
+The half of M10 that was never built. The digest had named a failing source since M13, but a
+digest line is read once a day if it is read at all, and nothing knew *how long* a source had
+been failing: the status column says a source is failing now, never since when, so a feed that
+403s for an hour looked exactly like an API key that died on Tuesday — the NVD stall, exactly.
+
+What landed: `sources.failing_since` and `failing_alerted_at` (migration 0033), set when a source
+first fails after a success and cleared the moment one answers, which makes a *failure episode* a
+thing the code can reason about. From them, a sixth tile on Today — green while every source
+answers, amber while something is failing, red once a failure passes a day or the CVE stream
+passes 36 hours, saying the worst thing true in the fewest words — and **one notification per
+episode** through the existing notifier, after a day, never once a tick. `/metrics` serves the
+same figures in Prometheus's text format (rows, bytes, CVE age, the housekeeping pass's last
+result, the pipeline's own verdict), gated like `/health` so a closed instance gives a monitor
+the running version and nothing else; the tile, the digest and `/metrics` read the same rows and
+cannot disagree. A nightly workflow asks every seeded feed and every page a test-plan step cites
+whether it still answers, keeping one issue open rather than opening one a night. Migration 0034
+retires `nvd-cve-history`: seeded in 0002, off since 0005, adapterless ever since, because the
+history computed between sightings costs no extra request and says more.
+
+**The decision this milestone turned on**: "the running version against the newest tag" cannot be
+a background check, because this instance promises no outbound call except to its declared
+sources and the configured notifier, and this product's own releases are neither. So nothing
+polls: the Sources page carries an owner-only **Check now**, the answer is kept until the next
+press, and a check that gets no answer forgets the old version rather than showing a stale one.
+
+*Found on the way*: the template probe's first run named three cited pages that no longer answer,
+which is the whole point of having it. The mSCP FileVault citation was repointed at the branch its
+siblings already use; Microsoft's brokered-auth page became "How to enable cross-app SSO on
+Android using MSAL", which was read to confirm it still covers the broker apps the step's failure
+text names; and Ubuntu's Secure Boot wiki page became the security documentation's UEFI Secure
+Boot page, which carries the shim and MOK enrolment the step checks. Each replacement was read
+before it was written down — a step citing a page that does not say the same thing is worse than
+one whose citation is known to be stale — and the probe now reports every cited page answering.
 
 ### M14: The scan's other eyes (close M12.4 to M12.7)
 
