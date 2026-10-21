@@ -9,6 +9,7 @@ import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
+import { scanTile } from "../scanhistory.ts";
 import { trendingCves } from "../trending.ts";
 import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { triageButtons } from "./triage.ts";
@@ -114,6 +115,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const failing = db.prepare("SELECT id, name, last_error FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { id: string; name: string; last_error: string | null }[];
   const alerts = recentAlerts(db, 5);
   const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
+  const scan = scanTile(db);
   const digest = latestDigest(db);
   const glance = glanceData(db, now);
   // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
@@ -167,6 +169,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
       <a class="tile ${ending.length ? "warn" : ""}" href="/fleet"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
+      <a class="tile${scan.state === "warn" ? " warn" : ""}" href="${scan.href}"><small>Network check</small><b>${scan.figure}</b><span>${scan.text}</span></a>
       <a class="tile${pipeline.state === "ok" ? "" : ` ${pipeline.state}`}" href="/sources"><small>Pipeline</small><b>${pipeline.failing.length === 0 ? "ok" : pipeline.failing.length}</b><span>${pipelineSummary(pipeline)}</span></a>
     </div>
     <div class="glance two" aria-label="At a glance">
