@@ -3,6 +3,7 @@ import path from "node:path";
 import { createApp, pullSettings } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
+import { maybeRunHousekeeping } from "./housekeeping.ts";
 import { listSources } from "./ingest.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
@@ -44,6 +45,9 @@ if (config.scheduler) {
     digest: { period: config.digest, hour: config.digestHour, timeZone: config.timeZone },
     // The LAN scan (M12.3) runs itself daily once the owner has turned it on at /scan/network.
     network: () => maybeRunNetworkScan(db, { timeZone: config.timeZone, baseUrl: config.baseUrl, transport: parseNotifyUrl(config.notifyUrl), log: (line) => console.log(line) }),
+    // The weekly pass (M13): what is past its keep window goes, the store loses the blobs nothing
+    // points at any more, and the file is rewritten when it has gone loose.
+    housekeeping: () => maybeRunHousekeeping(db, config.dataDir, { log: (line) => console.log(line) }),
   });
   if (config.notifyUrl && !parseNotifyUrl(config.notifyUrl)) {
     console.log("[notify] BW_NOTIFY_URL is not an ntfy://, gotify:// or http(s):// address; alerts will be logged as unconfigured");

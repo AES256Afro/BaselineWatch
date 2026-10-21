@@ -53,6 +53,7 @@ import { isPlatformKey, platformKeys } from "./platforms.ts";
 import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
+import { storageReport } from "./housekeeping.ts";
 import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
@@ -83,9 +84,12 @@ export interface HealthReport {
   version: string;
   uptimeSeconds: number;
   database: { migrations: number; bytes: number; sources: number; snapshots: number; changes: number; items: number; vulns: number };
+  /** What the instance is holding and when it last let anything go (M13), so growth is watchable from outside. */
+  storage: { snapshotBytes: number; keptSnapshots: number; imageBlobs: number; oldestSnapshotAt: string | null; lastHousekeepingAt: string | null };
 }
 
 export function healthReport(ctx: AppContext): HealthReport {
+  const storage = storageReport(ctx.db);
   return {
     ok: true,
     name: productName,
@@ -99,6 +103,13 @@ export function healthReport(ctx: AppContext): HealthReport {
       changes: countRows(ctx.db, "changes"),
       items: countRows(ctx.db, "items"),
       vulns: countRows(ctx.db, "vulns"),
+    },
+    storage: {
+      snapshotBytes: storage.snapshotBytes,
+      keptSnapshots: storage.keptSnapshots,
+      imageBlobs: storage.imageBlobs,
+      oldestSnapshotAt: storage.oldestSnapshotAt,
+      lastHousekeepingAt: storage.lastRun?.ranAt ?? null,
     },
   };
 }
