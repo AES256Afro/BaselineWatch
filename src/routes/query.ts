@@ -52,6 +52,7 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
   return {
     watch: str(query.watch) === "1",
     kev: str(query.kev) === "1",
+    exploit: str(query.exploit) === "1",
     platform: isPlatformKey(platform) ? platform : undefined,
     minCvss: num(query.min_cvss),
     severity: severity === "critical" || severity === "high" || severity === "medium" || severity === "low" || severity === "unscored" ? severity : undefined,
