@@ -8,6 +8,7 @@ import { cvelistAdapter } from "./cvelist.ts";
 import { disaAdapter } from "./disa.ts";
 import { disaGpoAdapter } from "./disa-gpo.ts";
 import { disaIntuneAdapter } from "./disa-intune.ts";
+import { endoflifeAdapter } from "./endoflife.ts";
 import { epssAdapter } from "./epss.ts";
 import { exploitDbAdapter } from "./exploitdb.ts";
 import { fedrampRulesAdapter } from "./fedramp-rules.ts";
@@ -46,6 +47,7 @@ const byId: Record<string, Adapter> = {
   "apple-security": appleSecurityAdapter,
   "mozilla-mfsa": mozillaMfsaAdapter,
   "tor-exits": torExitsAdapter,
+  endoflife: endoflifeAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,

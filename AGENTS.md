@@ -89,6 +89,7 @@ src/netscan.ts       the network check: canaries through the LAN resolver, daily
 src/domaincheck.ts   check a domain: DNS, mail and web posture by lookups alone, each record quoted (Scan 2.0)
 src/seen.ts          what this page learned about you: the request's facts, Tor exits, an InternetDB lookup on request
 src/exposure.ts      router and exposure: the public address, what Shodan sees of it, the router's admin page and firmware, daily, owner-only
+src/eol.ts           endoflife.date's cycles, and which of them a fleet release is
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation
