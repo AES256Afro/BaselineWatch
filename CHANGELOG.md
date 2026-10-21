@@ -2,6 +2,24 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.43.0 — 2026-10-21
+
+- **Mail as a notifier transport.** `BW_NOTIFY_URL` takes
+  `mailto://user:pass@host:587/you@example.org` (`mailtos://` for TLS from the first byte,
+  `?from=` to set the sender): the digest, KEV additions, watched-CVE changes, standard releases
+  and the network and exposure alerts reach an inbox at any ordinary provider without ntfy or a
+  webhook. A small SMTP client of the product's own — STARTTLS when offered, AUTH PLAIN when a
+  password is given and never without STARTTLS, a failure logged as its step and code, never the
+  credentials.
+- **Scan history** (`/scan/history`): every network run newest first with the resolver it used,
+  canaries sinkholed over total and what moved since the run before; for the owner the last two
+  exposure runs side by side. Today gets a **Network check** tile; the Scan menu a History entry.
+- **The guide teaches the night's areas**: public exploits and Microsoft's own word, what the
+  News is talking about, feeds and the calendar and search, the Scan area and what each check can
+  prove, the watchlist and an SBOM.
+- Three empty states — the Register, the watchlist, the CVE table — now say what fills them and
+  where to start it, in today's words.
+
 ## 0.42.0 — 2026-10-21
 
 - **Router and exposure** (Scan 2.0, S4), on the network page, owner-only and opt-in: once a day,

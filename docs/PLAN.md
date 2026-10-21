@@ -1553,13 +1553,16 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | Fix | #23: the sweep's header-scope pass had broken every `<thead>` (shipped in 0.41.0); put back, the test now insists on a real one | merged |
 | N5 endoflife.date | #24: the vendor's end beside the owner's date on the Fleet page, one Wire item per release near its end (migration 0038) | merged |
 | N7 S3 CT watch | #25: crt.sh for the owner's domains, one Wire item per new certificate (migration 0039), the newest on the domain page | merged |
-| 0.42.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
+| 0.42.0 | tagged, image published; BoxPilot catalog #555 refreshed to it, memcached re-pinned on the way | superseded by 0.43.0 |
+| N7 S6 history | #26: every network run over time with what changed, the owner's exposure runs, a Today tile | merged |
+| Guide, empty states | #27: five guide sections for the night's areas; three stale empty states rewritten | merged |
+| N6 mail | #28: `mailto://` as a notifier transport, a small SMTP client with STARTTLS and AUTH PLAIN | merged |
+| 0.43.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
 night's change. S6 beyond what S4 and the network check already store (two runs kept, alerts on
-change): a page of runs over time. Dependency majors (decision 8) untouched. The SMTP digest
-needs a mail client the product does not carry.
+change): a page of runs over time. Dependency majors (decision 8) untouched.
 
 **Found on the way.** The MSRC monthly document is large (October 2026: 2,574 rows, 1,457 of
 them Microsoft's own, every one first published that month); the page states its figures as
