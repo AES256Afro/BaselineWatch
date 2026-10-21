@@ -423,10 +423,37 @@ fixtures under `test/fixtures/exploits/` are the real files as served on 2026-10
 Not added: VulnCheck XDB (needs a key; the plan keeps it behind an optional one), GitHub's
 search API (rate-limited, and PoC-in-GitHub already does the search).
 
+### Microsoft Security Update Guide (added 2026-10-21, N5)
+`https://api.msrc.microsoft.com/cvrf/v3.0/updates` (JSON, daily, no key). The index lists every
+monthly release with the date it was last revised; each release is one CVRF document
+(`/cvrf/2026-Oct`, about 25 MB) of every CVE Microsoft published that month: title, product
+tag, severity, exploit status ("Publicly Disclosed:No;Exploited:Yes;…"), CVSS, and the KB that
+fixes it on each product. A pull reads the index, fetches the documents of the last forty days
+whose revision date moved, and keeps one row per CVE in `msrc_vulns` (migration 0036); the
+documents are a stream, not snapshots. The Wire gets **one item per monthly release** ("Microsoft
+October 2026 Security Updates: 172 CVEs, 1 exploited, 12 critical"), with the Chromium CVEs
+republished for Edge and the Azure Linux (Mariner) ones counted apart. The CVE page's Fix panel
+shows "Microsoft's update": KB, products, build, restart; the table marks what Microsoft says is
+exploited. Adapter `src/adapters/msrc.ts`; storage `src/msrc.ts`; fixtures `test/fixtures/msrc/`.
+
+### Vendor pages and feeds (added 2026-10-21, N5)
+| Source | What is read | Group |
+| --- | --- | --- |
+| Apple security releases, `https://support.apple.com/en-us/100100` (HTML, daily) | the table of every update with security content: name, devices, date; linked rows keyed by article number, unlinked ("no published CVE entries") by name and date; the newest 80 | vulnerabilities |
+| Mozilla Foundation Security Advisories, `https://www.mozilla.org/en-US/security/advisories/` (HTML, daily) | each dated heading's advisories with impact and the product fixed; the newest 80 | vulnerabilities |
+| Zero Day Initiative published, `https://www.zerodayinitiative.com/rss/published/` (RSS, daily) | advisories as published, each naming its CVE | vulnerabilities |
+| Zero Day Initiative upcoming, `https://www.zerodayinitiative.com/rss/upcoming/` (RSS, daily) | flaws reported to a vendor and not yet published: the vendor, not the details | vulnerabilities |
+| HashiCorp security bulletins, `https://discuss.hashicorp.com/c/security/52.rss` (RSS, daily) | HCSEC bulletins | vulnerabilities |
+| AWS Security Bulletins, `https://aws.amazon.com/security/security-bulletins/rss/feed/` (RSS, daily) | bulletins, each naming its CVEs | vulnerabilities |
+| Cisco Talos blog, `https://blog.talosintelligence.com/rss/` (RSS, hourly) | threat research | news |
+Adapters `src/adapters/apple-security.ts` and `mozilla-mfsa.ts`; the feeds go through the feed
+adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes, Adobe and the
+MSRC blog (HTML or bot walls at the documented feed paths), Oracle (refuses non-browser clients),
+the Azure blog (marketing), Google Cloud (404 at the security feed path).
+
 ### Also planned
-- OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); MSRC
-  CVRF `https://api.msrc.microsoft.com/cvrf/v3.0/updates`; Cisco openVuln; Red Hat CSAF/VEX;
-  CERT/CC VINCE Atom `https://kb.cert.org/vuls/atomfeed/`.
+- OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); Cisco
+  openVuln; Red Hat CSAF/VEX; CERT/CC VINCE Atom `https://kb.cert.org/vuls/atomfeed/`.
 
 ---
 

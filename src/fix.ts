@@ -3,6 +3,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { parse as parseYaml } from "yaml";
 import { exploitsFor, type ExploitRow } from "./exploits.ts";
+import { msrcFor, type MsrcVuln } from "./msrc.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
 import { loadRequirements } from "./register.ts";
 import { followedStigs, type StigSummary } from "./stigs.ts";
@@ -46,6 +47,8 @@ export interface Fix {
   mitigations: Mitigation[];
   /** What the public exploit indexes hold for this CVE (src/exploits.ts): not a fix, but the reason to want one today. */
   exploits: ExploitRow[];
+  /** Microsoft's Security Update Guide row (src/msrc.ts): the KB per product, and Microsoft's word on exploitation. */
+  microsoft: MsrcVuln | null;
   /** True when none of the above holds anything. */
   empty: boolean;
 }
@@ -155,13 +158,18 @@ export function fixesFor(db: DatabaseSync, ctx: FixContext, row: VulnRow): Fix {
   }
   // The panel is still "empty" of fixes when only exploits are known: that is the honest, and worse, state.
   const exploits = exploitsFor(db, row.cve_id);
-  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, exploits, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 };
+  const microsoft = msrcFor(db, row.cve_id);
+  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, exploits, microsoft, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 && !microsoft?.fixes.length };
 }
 
 /** A one-line account of the fix for a list, from the same facts. */
 export function fixSummary(fix: Fix): string {
   const parts: string[] = [];
   if (fix.exploits.length) parts.push(`${fix.exploits.length} public exploit${fix.exploits.length === 1 ? "" : "s"}${fix.exploits.some((e) => e.verified === 1) ? " (verified)" : ""}`);
+  if (fix.microsoft?.fixes.length) {
+    const named = fix.microsoft.fixes.slice(0, 3).map((f) => `${f.kb ? `KB${f.kb}` : (f.label ?? "update")}${f.products.length ? ` (${f.products.slice(0, 2).join(", ")}${f.products.length > 2 ? ", …" : ""})` : ""}`);
+    parts.push(`Microsoft: ${named.join("; ")}${fix.microsoft.fixes.length > 3 ? "; …" : ""}`);
+  }
   if (fix.kev?.requiredAction) parts.push(`CISA: ${fix.kev.requiredAction.length > 120 ? `${fix.kev.requiredAction.slice(0, 119)}…` : fix.kev.requiredAction}${fix.kev.dueDate ? ` (due ${fix.kev.dueDate})` : ""}`);
   if (fix.references.length) parts.push(`${fix.references.length} patch or advisory reference${fix.references.length === 1 ? "" : "s"} on NVD`);
   if (fix.advisories.length) parts.push(`vendor advisory: ${fix.advisories[0]!.source}`);
