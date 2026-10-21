@@ -324,3 +324,43 @@ export function storageLine(report: StorageReport, baseUrl: string): string {
   }
   return `Storage: ${parts.join(", ")} ${baseUrl}/sources#storage`;
 }
+
+// ---------------------------------------------------------------------------------------------
+// The restore rehearsal. A backup nobody has restored is a hope, not a backup, so the date of the
+// last one is kept here and the digest asks for another every quarter. The rehearsal itself is a
+// person's job on the box (docs/DEPLOY.md); this is only the record of it.
+
+const rehearsalKey = "restore.last_rehearsal";
+const rehearsalNoteKey = "restore.last_note";
+
+/** Days between rehearsals before the digest starts asking. */
+export const rehearsalEveryDays = 90;
+
+export interface Rehearsal {
+  at: string;
+  note: string | null;
+}
+
+export function lastRehearsal(db: DatabaseSync): Rehearsal | null {
+  const at = getSetting(db, rehearsalKey);
+  return at ? { at, note: getSetting(db, rehearsalNoteKey) } : null;
+}
+
+/** Records that the backup was restored and checked, with whatever the person wants to remember about it. */
+export function recordRehearsal(db: DatabaseSync, at: string, note: string | null = null): Rehearsal {
+  const stamp = new Date(at).toISOString();
+  setSetting(db, rehearsalKey, stamp, stamp);
+  if (note) setSetting(db, rehearsalNoteKey, note, stamp);
+  else db.prepare("DELETE FROM app_settings WHERE key = ?").run(rehearsalNoteKey);
+  return { at: stamp, note };
+}
+
+/** The digest's line, when one is wanted: never rehearsed, or not this quarter. Null while it is current. */
+export function rehearsalLine(db: DatabaseSync, now: Date, baseUrl: string): string | null {
+  const last = lastRehearsal(db);
+  const where = `${baseUrl}/sources#storage`;
+  if (!last) return `Restore: no rehearsal recorded yet — restore the backup into a throwaway instance and check it (docs/DEPLOY.md) ${where}`;
+  const days = Math.floor((now.getTime() - Date.parse(last.at)) / 86_400_000);
+  if (days < rehearsalEveryDays) return null;
+  return `Restore: the last rehearsal was ${days} days ago (${last.at.slice(0, 10)}); a quarterly one is due ${where}`;
+}
