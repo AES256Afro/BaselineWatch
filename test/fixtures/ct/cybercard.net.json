@@ -1,0 +1,156 @@
+[
+ {
+  "issuer_ca_id": 413869,
+  "issuer_name": "C=US, O=SSL Corporation, CN=Cloudflare TLS Issuing ECC CA 4",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 29944619056,
+  "not_before": "2026-09-29T19:33:02",
+  "not_after": "2026-12-28T01:42:46",
+  "serial_number": "2408a1a7a83b7330cc511b611b7e1e50",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 413869,
+  "issuer_name": "C=US, O=SSL Corporation, CN=Cloudflare TLS Issuing ECC CA 4",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 28419824811,
+  "not_before": "2026-07-31T22:20:59",
+  "not_after": "2026-10-29T22:29:14",
+  "serial_number": "04faff220d1082bfc19414c34cef2f95",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 286236,
+  "issuer_name": "C=US, O=Google Trust Services, CN=WE1",
+  "common_name": "www.cybercard.net",
+  "name_value": "www.cybercard.net",
+  "id": 28130578097,
+  "not_before": "2026-07-21T16:57:01",
+  "not_after": "2026-10-19T17:56:54",
+  "serial_number": "1a0570d9fd39a317134dac8eefb2ff6f",
+  "result_count": 2
+ },
+ {
+  "issuer_ca_id": 286242,
+  "issuer_name": "C=US, O=Google Trust Services, CN=WR1",
+  "common_name": "www.cybercard.net",
+  "name_value": "www.cybercard.net",
+  "id": 28130550361,
+  "not_before": "2026-07-21T16:56:48",
+  "not_after": "2026-10-19T17:54:06",
+  "serial_number": "4f945b638114c1980e3afd46516558a4",
+  "result_count": 2
+ },
+ {
+  "issuer_ca_id": 286236,
+  "issuer_name": "C=US, O=Google Trust Services, CN=WE1",
+  "common_name": "cybercard.net",
+  "name_value": "cybercard.net",
+  "id": 28125926384,
+  "not_before": "2026-07-21T13:26:21",
+  "not_after": "2026-10-19T14:26:09",
+  "serial_number": "1a9a13e93ebd4e9b13fb429f1b5f40af",
+  "result_count": 2
+ },
+ {
+  "issuer_ca_id": 286242,
+  "issuer_name": "C=US, O=Google Trust Services, CN=WR1",
+  "common_name": "cybercard.net",
+  "name_value": "cybercard.net",
+  "id": 28125923948,
+  "not_before": "2026-07-21T13:26:03",
+  "not_after": "2026-10-19T14:24:32",
+  "serial_number": "31a2dd6e65ff848a0e588d5b91f18a03",
+  "result_count": 2
+ },
+ {
+  "issuer_ca_id": 432952,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=YE1",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 28052519095,
+  "not_before": "2026-07-19T01:06:23",
+  "not_after": "2026-10-17T01:06:22",
+  "serial_number": "0544f2a7b15ee93fee748a757f1aee27a29b",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 432952,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=YE1",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 28052514573,
+  "not_before": "2026-07-19T01:06:23",
+  "not_after": "2026-10-17T01:06:22",
+  "serial_number": "0544f2a7b15ee93fee748a757f1aee27a29b",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 431054,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=YE2",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 28051338634,
+  "not_before": "2026-07-18T23:47:05",
+  "not_after": "2026-10-16T23:47:04",
+  "serial_number": "0532915895b1cd477effda4ef76f3b54908e",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 431054,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=YE2",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 28051336289,
+  "not_before": "2026-07-18T23:47:05",
+  "not_after": "2026-10-16T23:47:04",
+  "serial_number": "0532915895b1cd477effda4ef76f3b54908e",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 204407,
+  "issuer_name": "C=GB, O=Sectigo Limited, CN=Sectigo Public Server Authentication CA DV E36",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 26889532039,
+  "not_before": "2026-06-04T00:00:00",
+  "not_after": "2026-08-31T21:30:10",
+  "serial_number": "450402780e138f225a3e5688c5eb91b6",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 204407,
+  "issuer_name": "C=GB, O=Sectigo Limited, CN=Sectigo Public Server Authentication CA DV E36",
+  "common_name": "cybercard.net",
+  "name_value": "*.cybercard.net\ncybercard.net",
+  "id": 26889530982,
+  "not_before": "2026-06-04T00:00:00",
+  "not_after": "2026-08-31T21:30:10",
+  "serial_number": "450402780e138f225a3e5688c5eb91b6",
+  "result_count": 3
+ },
+ {
+  "issuer_ca_id": 295816,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=R12",
+  "common_name": "cybercard.net",
+  "name_value": "cybercard.net",
+  "id": 26556080370,
+  "not_before": "2026-05-22T17:09:09",
+  "not_after": "2026-08-20T17:09:08",
+  "serial_number": "05d2e73877e5bff2cae8c789fdc86a2d29ee",
+  "result_count": 2
+ },
+ {
+  "issuer_ca_id": 295816,
+  "issuer_name": "C=US, O=Let's Encrypt, CN=R12",
+  "common_name": "cybercard.net",
+  "name_value": "cybercard.net",
+  "id": 26556081244,
+  "not_before": "2026-05-22T17:09:09",
+  "not_after": "2026-08-20T17:09:08",
+  "serial_number": "05d2e73877e5bff2cae8c789fdc86a2d29ee",
+  "result_count": 2
+ }
+]
