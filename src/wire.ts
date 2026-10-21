@@ -1,6 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ItemKind } from "./adapters/types.ts";
 
+/**
+ * The News timeline's queries: the filters a reader can set, the page of items they select with
+ * cursor paging and FTS5 search, and the read and star marks.
+ */
 export interface WireFilters {
   source?: string | undefined;
   /** A source group: news, vulnerabilities or standards. */

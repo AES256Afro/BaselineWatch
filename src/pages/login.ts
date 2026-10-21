@@ -2,6 +2,9 @@ import { html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The sign-in page, reachable even when reading is closed, drawn in the look the browser chose.
+ */
 export function renderLogin(options: { error?: string | undefined; next: string; open: boolean; look: LookState }): string {
   const content = html`
     <section class="login">

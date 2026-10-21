@@ -1,5 +1,8 @@
 import { cveIdsIn, isoDate, plainText, type Adapter, type ParsedItem } from "./types.ts";
 
+/**
+ * Hacker News through Algolia's search API: the stories matching the security terms, as items.
+ */
 interface Hit {
   objectID: string;
   title: string | null;

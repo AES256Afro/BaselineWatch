@@ -4,6 +4,10 @@ import type { LookState } from "../look.ts";
 import { productName } from "../version.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Branding page on the Desk: the marks in the repository to pick from, the upload form for an
+ * own logo or favicon, and what each currently is.
+ */
 const copy: Record<BrandKind, { title: string; where: string; formats: string }> = {
   logo: { title: "Logo", where: "Drawn in the masthead beside the site's name on every page.", formats: "PNG, JPEG, GIF, WebP or AVIF" },
   favicon: { title: "Favicon", where: "The browser-tab icon, linked from every page and answered at /favicon.ico. Safari ignores SVG favicons, so beside a mark an uploaded ICO or PNG covers it.", formats: "ICO, PNG, JPEG, GIF, WebP or AVIF" },

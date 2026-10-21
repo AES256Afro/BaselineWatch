@@ -9,6 +9,10 @@ import type { LookState } from "../look.ts";
 import { page, registerStrip } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
 
+/**
+ * The News page: the home timeline with its featured cards and strip, the source and kind filters,
+ * search, and the read and star controls for the owner.
+ */
 interface Signals {
   kev?: boolean;
   cves?: string[];

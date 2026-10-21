@@ -1,5 +1,9 @@
 import { html, type Html } from "./html.ts";
 
+/**
+ * The redline: a word-level diff of a requirement's text before and after, as the operations the
+ * control page draws — same, deleted, inserted — so a changed clause is seen rather than hunted for.
+ */
 export type Op = { kind: "same" | "del" | "ins"; text: string };
 
 /** Words, runs of whitespace, and single punctuation marks, so "software." and "software" share a word. */

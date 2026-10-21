@@ -1,6 +1,10 @@
 import { XMLParser } from "fast-xml-parser";
 import { cveIdsIn, isoDate, plainText, type Adapter, type ParsedItem, type SourceRow } from "./types.ts";
 
+/**
+ * The RSS and Atom adapter every feed source shares: entries to timeline items, with the feed's own
+ * media or the first image in the body kept as the item's picture.
+ */
 type Node = Record<string, unknown>;
 
 const parser = new XMLParser({

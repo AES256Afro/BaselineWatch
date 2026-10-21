@@ -9,6 +9,10 @@ import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
 import { parseJson } from "../json.ts";
 
+/**
+ * The Vulnerabilities pages: the table with its filters and search, and one CVE with its scores,
+ * history, affected platforms, the watchlist's marks and the Fix panel.
+ */
 function severityChip(row: VulnRow): Html {
   if (row.cvss_score === null) return html`<span class="chip">unscored</span>`;
   const level = (row.cvss_severity ?? "").toLowerCase() || (row.cvss_score >= 9 ? "critical" : row.cvss_score >= 7 ? "high" : row.cvss_score >= 4 ? "medium" : "low");
