@@ -105,3 +105,50 @@ export function msrcFlags(db: DatabaseSync, cveIds: string[]): Map<string, { exp
   for (const r of rows) out.set(r.cve_id, { exploited: r.exploited === 1, disclosed: r.disclosed === 1 });
   return out;
 }
+
+/** The Chromium CVEs republished for Edge and the Azure Linux ones: Microsoft's documents carry them, Microsoft's count does not. */
+const republishedSql = "((family = 'Microsoft Edge (Chromium-based)' AND COALESCE(vendor, '') <> 'Microsoft') OR family = 'Mariner')";
+
+export function isRepublished(row: Pick<MsrcVulnRow, "family" | "vendor">): boolean {
+  return (row.family === "Microsoft Edge (Chromium-based)" && row.vendor !== "Microsoft") || row.family === "Mariner";
+}
+
+export interface MsrcReleaseSummary {
+  release_id: string;
+  released_at: string | null;
+  revised_at: string | null;
+  total: number;
+  microsoft: number;
+  critical: number;
+  exploited: number;
+  disclosed: number;
+}
+
+/** The monthly releases this instance holds, newest first, each counted the way Microsoft's own release note counts. */
+export function msrcReleases(db: DatabaseSync, limit = 12): MsrcReleaseSummary[] {
+  return db
+    .prepare(
+      `SELECT release_id, MIN(released_at) AS released_at, MAX(revised_at) AS revised_at, COUNT(*) AS total,
+         SUM(CASE WHEN NOT ${republishedSql} THEN 1 ELSE 0 END) AS microsoft,
+         SUM(CASE WHEN severity = 'Critical' AND NOT ${republishedSql} THEN 1 ELSE 0 END) AS critical,
+         SUM(CASE WHEN exploited = 1 AND NOT ${republishedSql} THEN 1 ELSE 0 END) AS exploited,
+         SUM(CASE WHEN disclosed = 1 AND NOT ${republishedSql} THEN 1 ELSE 0 END) AS disclosed
+       FROM msrc_vulns GROUP BY release_id ORDER BY released_at DESC LIMIT ?`,
+    )
+    .all(limit) as unknown as MsrcReleaseSummary[];
+}
+
+const severityOrder = "CASE severity WHEN 'Critical' THEN 4 WHEN 'Important' THEN 3 WHEN 'Moderate' THEN 2 WHEN 'Low' THEN 1 ELSE 0 END";
+
+/** One release's rows: exploited first, then disclosed, then by Microsoft's severity and CVSS. */
+export function msrcRows(db: DatabaseSync, releaseId: string): MsrcVuln[] {
+  const rows = db.prepare(`SELECT * FROM msrc_vulns WHERE release_id = ? ORDER BY exploited DESC, disclosed DESC, ${severityOrder} DESC, cvss_score DESC, cve_id`).all(releaseId) as unknown as MsrcVulnRow[];
+  return rows.map((row) => ({ ...row, fixes: parseJson<MsrcFix[]>(row.fixes_json, []) }));
+}
+
+/** "2026-Oct" as a person says it: October 2026. */
+export function releaseName(releaseId: string): string {
+  const names: Record<string, string> = { Jan: "January", Feb: "February", Mar: "March", Apr: "April", May: "May", Jun: "June", Jul: "July", Aug: "August", Sep: "September", Oct: "October", Nov: "November", Dec: "December" };
+  const match = /^(\d{4})-([A-Z][a-z]{2})$/.exec(releaseId);
+  return match ? `${names[match[2]!] ?? match[2]} ${match[1]}` : releaseId;
+}
