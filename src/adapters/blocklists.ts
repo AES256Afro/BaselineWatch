@@ -372,11 +372,3 @@ export const canaryAdsAdapter = canaryAdapters["canary-ads"]!;
 export const canaryTrackersAdapter = canaryAdapters["canary-trackers"]!;
 export const canaryMalwareAdapter = canaryAdapters["canary-malware"]!;
 export const canaryPhishingAdapter = canaryAdapters["canary-phishing"]!;
-
-/** Every list adapter by its source id, for the registry. */
-const blocklistAdapters: Record<string, Adapter> = {
-  "adfection-indicators": adfectionIndicatorsAdapter,
-  "adfection-dns": adfectionDnsAdapter,
-  "adfection-adblock": adfectionAdblockAdapter,
-  ...canaryAdapters,
-};
