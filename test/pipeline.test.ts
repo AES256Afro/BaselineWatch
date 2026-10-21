@@ -2,8 +2,8 @@ import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { migrate, openDatabase } from "../src/db.ts";
 import { getSource, ingestSource } from "../src/ingest.ts";
-import { alertAfterHours, failingSources, markAlerted, pipelineHealth, pipelineSummary, sourcesToAlert, staleCveHours } from "../src/pipeline.ts";
-import { fakeHttp, startTestApp } from "./helpers.ts";
+import { alertAfterHours, checkLatestRelease, compareVersions, failingSources, knownRelease, markAlerted, pipelineHealth, pipelineSummary, sourcesToAlert, staleCveHours } from "../src/pipeline.ts";
+import { fakeHttp, formPost, startTestApp } from "./helpers.ts";
 
 /**
  * M13.2: the pipeline says when it has stopped. The NVD stall is the case these numbers are
@@ -158,6 +158,57 @@ describe("/metrics", () => {
       expect(text).toContain("baselinewatch_build_info{version=");
       expect(text).not.toContain("baselinewatch_rows");
       expect(text).not.toContain("baselinewatch_source_failing_seconds");
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe("is a newer version published", () => {
+  const api = "https://api.github.com/repos/AES256Afro/BaselineWatch/releases/latest";
+
+  it("is unknown until the owner asks, because nothing polls for it", () => {
+    expect(knownRelease(db)).toEqual({ version: null, checkedAt: null, newer: false });
+  });
+
+  it("keeps what the check saw, and says whether it is ahead of what runs", async () => {
+    const http = fakeHttp({ [api]: { text: JSON.stringify({ tag_name: "v99.0.0" }) } });
+    const result = await checkLatestRelease(db, http, now);
+    expect(result).toEqual({ version: "99.0.0", checkedAt: now.toISOString(), newer: true });
+    expect(knownRelease(db).newer).toBe(true);
+    // One request, to one address, and only this one.
+    expect(http.calls.map((c) => c.url)).toEqual([api]);
+  });
+
+  it("is not newer when it is the version running", async () => {
+    const http = fakeHttp({ [api]: { text: JSON.stringify({ tag_name: `v${pipelineHealth(db, now).version}` }) } });
+    expect((await checkLatestRelease(db, http, now)).newer).toBe(false);
+  });
+
+  it("forgets the old answer when a check gets none, rather than showing yesterday's", async () => {
+    await checkLatestRelease(db, fakeHttp({ [api]: { text: JSON.stringify({ tag_name: "v99.0.0" }) } }), now);
+    const later = new Date(now.getTime() + 86_400_000);
+    const result = await checkLatestRelease(db, fakeHttp({ [api]: { status: 503 } }), later);
+    expect(result).toEqual({ version: null, checkedAt: later.toISOString(), newer: false });
+  });
+
+  it("orders versions, and treats nonsense as not newer", () => {
+    expect(compareVersions("0.39.0", "0.38.0")).toBe(1);
+    expect(compareVersions("0.9.1", "0.10.0")).toBe(-1);
+    expect(compareVersions("1.0.0", "1.0.0")).toBe(0);
+    expect(compareVersions("not-a-version", "1.0.0")).toBe(0);
+  });
+
+  it("is on the Sources page, with the button for the owner alone", async () => {
+    const app = await startTestApp({ env: { BW_ADMIN_PASSWORD: "x" }, now: () => now, http: fakeHttp({ [api]: { text: JSON.stringify({ tag_name: "v99.0.0" }) } }) });
+    try {
+      const anonymous = await (await fetch(`${app.base}/sources`)).text();
+      expect(anonymous).toContain("running");
+      expect(anonymous).toContain("never checked");
+      expect(anonymous).not.toContain('action="/sources/check-version"');
+      // A visitor cannot make this instance call out.
+      const refused = await formPost(app.base, "/sources/check-version", {});
+      expect(refused.status).toBe(403);
     } finally {
       await app.close();
     }
