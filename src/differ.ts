@@ -11,7 +11,7 @@ export interface RequirementChange {
 }
 
 /** Whitespace is never a change. */
-export function normalizeText(text: string | null | undefined): string | null {
+function normalizeText(text: string | null | undefined): string | null {
   if (text === null || text === undefined) return null;
   const t = text.replace(/\s+/g, " ").trim();
   return t === "" ? null : t;

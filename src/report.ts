@@ -184,7 +184,7 @@ export const reportStyles: ReportStyle[] = [
   },
 ];
 
-export const plainStyle: ReportStyle = reportStyles[0]!;
+const plainStyle: ReportStyle = reportStyles[0]!;
 
 export function reportStyle(id: unknown): ReportStyle {
   return reportStyles.find((s) => s.id === id) ?? plainStyle;

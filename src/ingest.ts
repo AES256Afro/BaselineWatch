@@ -208,7 +208,7 @@ async function sendAlerts(db: DatabaseSync, deps: IngestDeps, drafts: AlertDraft
   }
 }
 
-export const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
+const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
 
 export function getSource(db: DatabaseSync, id: string): SourceRow | null {
   return (db.prepare("SELECT * FROM sources WHERE id = ?").get(id) as unknown as SourceRow | undefined) ?? null;

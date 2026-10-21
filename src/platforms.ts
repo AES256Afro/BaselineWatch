@@ -8,7 +8,7 @@
 
 export type PlatformKey = "windows" | "apple" | "linux" | "android" | "chrome" | "firefox" | "edge" | "network";
 
-export const platformList: { id: PlatformKey; label: string; blurb: string }[] = [
+const platformList: { id: PlatformKey; label: string; blurb: string }[] = [
   { id: "windows", label: "Windows", blurb: "Windows 10 and 11, Windows Server and the Windows components (kernel, SMB, Print Spooler, Defender)." },
   { id: "apple", label: "Apple", blurb: "macOS, iOS, iPadOS, watchOS, tvOS, visionOS and Safari." },
   { id: "linux", label: "Linux", blurb: "The Linux kernel and the distributions (Red Hat, Ubuntu, Debian, SUSE, Oracle Linux, Fedora)." },

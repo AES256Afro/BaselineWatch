@@ -5,6 +5,7 @@ import { listDocuments } from "./register.ts";
 import { listTriage, type TriageState } from "./triage.ts";
 import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
 import { listWire, type WireFilters } from "./wire.ts";
+import { parseJson } from "./json.ts";
 
 /**
  * The read-only JSON API, for BoxPilot's agents, dashboards and scripts. Same read gating as
@@ -22,7 +23,7 @@ export interface ApiQuery {
  * quoted on screen and never redistributed or exposed through the API). The API and the MCP
  * tools list their versions but never their requirement text or diffs.
  */
-export const licensedSources: readonly string[] = ["cis-benchmarks", "microsoft-sct"];
+const licensedSources: readonly string[] = ["cis-benchmarks", "microsoft-sct"];
 export const isLicensedSource = (sourceId: string): boolean => licensedSources.includes(sourceId);
 
 const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
@@ -41,15 +42,6 @@ const offsetOf = (v: unknown): number => {
   const n = Number(str(v));
   return Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 1_000_000) : 0;
 };
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const kind = str(q.kind);

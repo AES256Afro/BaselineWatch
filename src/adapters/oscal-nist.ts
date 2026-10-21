@@ -5,7 +5,7 @@ import type { Adapter, DocumentTarget, ParsedDocument, SourceRow } from "./types
 import { isoDate } from "./types.ts";
 
 /** Where NIST explains a release of SP 800-53: the publication page's Planning Note. */
-export const publicationPage = "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final";
+const publicationPage = "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final";
 
 const repo = "https://raw.githubusercontent.com/usnistgov/oscal-content";
 const dir = "nist.gov/SP800-53/rev5/json";

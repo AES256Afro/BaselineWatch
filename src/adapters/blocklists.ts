@@ -24,7 +24,7 @@ import type { NormalizedRequirement } from "../oscal.ts";
 import type { Adapter, DocumentTarget, ParsedDocument, SourceRow } from "./types.ts";
 import { isoDate } from "./types.ts";
 
-export const zeroBreachRepository = "https://github.com/interplains/zero-breach";
+const zeroBreachRepository = "https://github.com/interplains/zero-breach";
 const zeroBreachRaw = "https://raw.githubusercontent.com/interplains/zero-breach";
 const zeroBreachApi = "https://api.github.com/repos/interplains/zero-breach";
 
@@ -178,7 +178,7 @@ const zeroBreachHistory: readonly ZeroBreachCommit[] = [
 ];
 
 /** The newest commit that touched a file, from the GitHub commits API. */
-export async function zeroBreachHead(http: HttpGet, path: string): Promise<ZeroBreachCommit> {
+async function zeroBreachHead(http: HttpGet, path: string): Promise<ZeroBreachCommit> {
   const response = await http(`${zeroBreachApi}/commits?path=${path}&per_page=1`, { headers: { accept: "application/vnd.github+json" } });
   const commits = JSON.parse(decode(response.bytes)) as unknown;
   const head = Array.isArray(commits) ? (commits[0] as Record<string, unknown> | undefined) : undefined;
@@ -307,7 +307,7 @@ interface ListVersion {
 const months: Record<string, string> = { jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06", jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12" };
 
 /** `! Version: 202610200112` and `! Last modified: 20 Oct 2026 01:12 UTC` from an EasyList header. */
-export function filterListVersion(text: string): ListVersion {
+function filterListVersion(text: string): ListVersion {
   const head = text.slice(0, 4000);
   const label = /^! Version:\s*(\S+)/m.exec(head)?.[1] ?? null;
   const m = /^! Last modified:\s*(\d{1,2}) ([A-Za-z]{3}) (\d{4}) (\d{2}):(\d{2}) UTC/m.exec(head);
@@ -317,14 +317,14 @@ export function filterListVersion(text: string): ListVersion {
 }
 
 /** `# Last updated: 2026-10-20 01:17:09 (UTC)` from the URLhaus host file. */
-export function hostfileVersion(text: string): ListVersion {
+function hostfileVersion(text: string): ListVersion {
   const m = /^#\s*Last updated:\s*(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2}) \(UTC\)/m.exec(text.slice(0, 2000));
   if (!m) return { label: null, publishedAt: null };
   return { label: `${m[1]} ${m[2]}:${m[3]} UTC`, publishedAt: `${m[1]}T${m[2]}:${m[3]}:${m[4]}.000Z` };
 }
 
 /** A feed with no version line is labelled by the hash of its bytes; the fetch time dates it. */
-export function contentVersion(text: string): ListVersion {
+function contentVersion(text: string): ListVersion {
   return { label: `feed ${sha256(text).slice(0, 7)}`, publishedAt: null };
 }
 
@@ -374,7 +374,7 @@ export const canaryMalwareAdapter = canaryAdapters["canary-malware"]!;
 export const canaryPhishingAdapter = canaryAdapters["canary-phishing"]!;
 
 /** Every list adapter by its source id, for the registry. */
-export const blocklistAdapters: Record<string, Adapter> = {
+const blocklistAdapters: Record<string, Adapter> = {
   "adfection-indicators": adfectionIndicatorsAdapter,
   "adfection-dns": adfectionDnsAdapter,
   "adfection-adblock": adfectionAdblockAdapter,

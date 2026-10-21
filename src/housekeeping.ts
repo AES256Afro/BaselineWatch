@@ -241,7 +241,7 @@ export function sweepBlobs(
 }
 
 /** Statistics and the FTS indexes, so the planner and the search stay fast as the tables grow. */
-export function optimize(db: DatabaseSync): void {
+function optimize(db: DatabaseSync): void {
   db.exec("ANALYZE");
   db.exec("PRAGMA optimize");
   db.exec("INSERT INTO items_fts (items_fts) VALUES ('optimize')");
@@ -334,7 +334,7 @@ const rehearsalKey = "restore.last_rehearsal";
 const rehearsalNoteKey = "restore.last_note";
 
 /** Days between rehearsals before the digest starts asking. */
-export const rehearsalEveryDays = 90;
+const rehearsalEveryDays = 90;
 
 export interface Rehearsal {
   at: string;

@@ -75,7 +75,7 @@ export interface AppContext {
   readFile?: ReadText;
 }
 
-export const publicDir = path.join(import.meta.dirname, "..", "public");
+const publicDir = path.join(import.meta.dirname, "..", "public");
 
 export function pullSettings(config: Config): PullSettings {
   return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages, llmUrl: config.llmUrl, llmModel: config.llmModel };
@@ -135,7 +135,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction): void
  * the two resolvers' self-check hosts. Still no inline script or style anywhere; every other route
  * keeps the policy above.
  */
-export function scanPolicy(probeOrigin: string | null): string {
+function scanPolicy(probeOrigin: string | null): string {
   const img = probeOrigin ? `'self' data: ${probeOrigin}` : "'self' data:";
   return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src 'self' ${resolverCheckSources.join(" ")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 }

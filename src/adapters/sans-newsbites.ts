@@ -11,7 +11,7 @@ import { cveIdsIn, plainText, type Adapter, type ParsedItem, type PullContext, t
  * stories are already stored are never fetched again.
  */
 
-export const newsbitesBase = "https://www.sans.org";
+const newsbitesBase = "https://www.sans.org";
 
 /** One issue as the index lists it. */
 export interface NewsbitesIssue {

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const migrationsDir = path.join(import.meta.dirname, "migrations");
+const migrationsDir = path.join(import.meta.dirname, "migrations");
 
 /** Opens (or creates) the database with the pragmas every connection needs. */
 export function openDatabase(file: string): DatabaseSync {

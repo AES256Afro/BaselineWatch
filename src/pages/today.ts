@@ -11,15 +11,7 @@ import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { triageButtons } from "./triage.ts";
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
+import { parseJson } from "../json.ts";
 
 const dayMs = 24 * 60 * 60 * 1000;
 /** The day, as YYYY-MM-DD in UTC, `days` days before `now`. */
@@ -42,7 +34,7 @@ export interface GlanceData {
   days: { ticks: string[]; series: Series[] };
 }
 
-export function glanceData(db: DatabaseSync, now: Date): GlanceData {
+function glanceData(db: DatabaseSync, now: Date): GlanceData {
   const since30 = new Date(now.getTime() - 30 * dayMs).toISOString();
   const vendorRows = db
     .prepare(
