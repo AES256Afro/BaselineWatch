@@ -3,6 +3,7 @@ import { exploitSourceLabel, exploitTallies, exploitWording, type ExploitTally }
 import { fixContext, fixesFor, type Fix } from "../fix.ts";
 import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import { cveMentions, newsFor } from "../trending.ts";
 import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type VulnFilters, type VulnRow } from "../vulns.ts";
 import type { LookState } from "../look.ts";
@@ -87,6 +88,8 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 
   const exploits = exploitTallies(db, rows.map((r) => r.cve_id));
   const microsoft = msrcFlags(db, rows.map((r) => r.cve_id));
+  // Named by two or more sources this week: being talked about, whatever the score.
+  const mentions = cveMentions(db, rows.map((r) => r.cve_id), new Date(now.getTime() - 7 * 86_400_000).toISOString());
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
     const products = parseJson<string[]>(r.products_json, []);
@@ -94,7 +97,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ") || packages.slice(0, 3).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
     const watch = parseJson<string[]>(r.watch_labels_json, []);
     return html`<tr class="${r.watch_hit ? "hit" : ""}">
-      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${microsoft.get(r.cve_id)?.exploited ? html`<span class="chip kev" title="Microsoft reports this CVE exploited">exploited</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
+      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${microsoft.get(r.cve_id)?.exploited ? html`<span class="chip kev" title="Microsoft reports this CVE exploited">exploited</span>` : ""}${(mentions.get(r.cve_id)?.sources ?? 0) >= 2 ? html`<span class="chip news" title="Named by ${mentions.get(r.cve_id)?.sources} sources in the last 7 days">news ×${mentions.get(r.cve_id)?.sources}</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
       <td>${severityChip(r)}</td>
       <td class="n" title="EPSS ${r.epss ?? ""} · percentile ${r.epss_percentile ?? ""}">${epssText(r)}</td>
       <td class="who">${who || html`<span class="small">no CPE yet</span>`}</td>
@@ -152,7 +155,9 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
     <p class="small">NVD cursor: ${cursor ? html`<a href="/sources#src-nvd-cves">${shortStamp(cursor)}</a>` : html`no pull yet — <a href="/sources#src-nvd-cves">Sources</a> shows each feed's state and what to do when one fails`}. The <a href="/?kind=vulnerability">News page</a> shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
-  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look });
+  const feedQuery = query(filters, { offset: 0 });
+  const feed = { href: `/vulnerabilities/feed.xml${feedQuery.slice("/vulnerabilities".length)}`, title: "Vulnerabilities" };
+  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look, feed });
 }
 
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
@@ -221,6 +226,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   const ssvc = parseJson<Record<string, string>>(row.ssvc_json, {});
   const watch = parseJson<string[]>(row.watch_labels_json, []);
   const msrc = msrcFlags(db, [row.cve_id]).get(row.cve_id);
+  const news = newsFor(db, row.cve_id, 10);
   const changes = vulnChanges(db, row.cve_id);
   const fix = fixesFor(db, fixContext(db), row);
 
@@ -245,6 +251,11 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
       <section class="main">
         <p class="lede">${row.description ?? "No description."}</p>
         ${fixPanel(fix)}
+        ${news.length
+          ? html`<section class="box" id="news"><h2>In the news <span class="count">${news.length}</span></h2>
+              <ul class="refs">${news.map((n) => html`<li>${n.url ? html`<a href="${n.url}" ${newTabIf(n.url)}>${n.title}</a>` : n.title} <span class="small"><a href="/?source=${n.source_id}">${n.source_name}</a>${n.published_at ? html` · ${n.published_at.slice(0, 10)}` : ""}</span></li>`)}</ul>
+            </section>`
+          : ""}
         <section class="box" id="history">
           <h2><a href="#history">Change history</a> <span class="count"><a href="#history">${changes.length}</a></span></h2>
           ${changes.length

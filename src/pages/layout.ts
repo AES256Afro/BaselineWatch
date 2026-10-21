@@ -18,6 +18,8 @@ export type Area =
   | "fleet"
   | "wire"
   | "vulnerabilities"
+  | "patch-tuesday"
+  | "feeds"
   | "triage"
   | "atlas"
   | "watchlist"
@@ -47,7 +49,9 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   atlas: { label: "Atlas", path: "/atlas", blurb: "the rhythm of releases, and what is due" },
   register: { label: "Change register", path: "/register", blurb: "every release, control by control" },
   fleet: { label: "Fleet", path: "/fleet", blurb: "your releases and the hardware they run on" },
-  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities" },
+  vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", blurb: "every CVE, scored and marked: KEV, EPSS, exploits" },
+  "patch-tuesday": { label: "Patch Tuesday", path: "/vulnerabilities/microsoft", blurb: "Microsoft's monthly release, by update and product" },
+  feeds: { label: "Feeds", path: "/feeds", blurb: "RSS, OPML and a KEV calendar for your reader" },
   scan: { label: "Scan", path: "/scan" },
   triage: { label: "Triage", path: "/triage", blurb: "what needs a decision" },
   watchlist: { label: "Watchlist", path: "/watchlist", blurb: "the products and platforms you run" },
@@ -62,6 +66,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
 const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
 const standardsTools: Area[] = ["stigs", "register", "atlas"];
 /** The owner's own work, then the instance, then how it is drawn. */
+const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
@@ -78,6 +83,8 @@ export interface PageOptions {
   strip?: Html;
   /** The look and scheme this browser chose, and where its switch leads back to. */
   look: LookState;
+  /** The RSS address that carries this page's list, for a reader's autodiscovery. */
+  feed?: { href: string; title: string } | undefined;
   /**
    * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
    * page passes one, under its own policy; every other page is served with script-src 'none'.
@@ -111,7 +118,7 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   return html`<div class="strip"><div class="strip-inner"><a class="lab" href="/register">Register</a> ${entries}</div></div>`;
 }
 
-export function page({ title, active, content, meta, owner, open, strip, look, script }: PageOptions): string {
+export function page({ title, active, content, meta, owner, open, strip, look, script, feed }: PageOptions): string {
   const link = (area: Area, cls?: string): Html => {
     const item = areas[area];
     return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
@@ -138,7 +145,8 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 <title>${title === productName ? title : `${title} · ${productName}`}</title>
 ${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
 <link rel="stylesheet" href="/assets/app.css?v=${productVersion}">
-<meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
+${feed ? html`<link rel="alternate" type="application/rss+xml" title="${feed.title}" href="${feed.href}">
+` : ""}<meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
 ${script ? html`<script type="module" src="${script}?v=${productVersion}"></script>` : ""}
 </head>
 <body>
@@ -154,7 +162,12 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
           <hr>
           ${standardsTools.map((a) => entry(a))}
         </div>
-      </details>${link("vulnerabilities")}${link("scan")}
+      </details><details class="group${vulnGroup.includes(active) ? " on" : ""}">
+        <summary>Vulnerabilities</summary>
+        <div class="menu wide">
+          ${vulnGroup.map((a) => entry(a))}
+        </div>
+      </details>${link("scan")}
     </nav>
     <div class="meta">${meta ?? ""}</div>
     <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
