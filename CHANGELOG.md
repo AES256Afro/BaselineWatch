@@ -2,6 +2,43 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.40.0 — 2026-10-21
+
+- **"Is there a public exploit?"** — answered on every CVE from three keyless indexes read whole
+  once a day: Exploit-DB's CSV, Metasploit's module list, nomi-sec's PoC-in-GitHub (migration
+  0035). Nothing from an exploit itself is stored or linked; each line under **Fix** names the
+  index entry, whether it is verified (Exploit-DB's flag, a Metasploit rank of good or better)
+  or a repository's claim. The table carries an `exploit` chip per row, a **Public exploit**
+  figure and filter (`?exploit=1`), and the one-line fix summary leads with the count.
+- **Microsoft's Security Update Guide**, through its CVRF API (no key): the monthly documents of
+  the last forty days whose revision date moved, one row per CVE (migration 0036) with Microsoft's
+  severity and exploit status, CVSS, and the KB per product. The Wire gets **one item per monthly
+  release**, Microsoft's own CVEs counted apart from the Chromium and Azure Linux ones it
+  republishes; the CVE page's Fix panel shows **Microsoft's update** (KB, products, build,
+  restart); the table marks what Microsoft says is exploited. **Patch Tuesday**
+  (`/vulnerabilities/microsoft`) lays the month out by update and product, the owner's own Windows
+  releases from the fleet first, then CVE by CVE with component filters and search.
+- **Apple and Mozilla**, which publish no feeds, read from their pages: Apple's security releases
+  table and the MFSA index. Five feeds by row: ZDI published and *upcoming* (what is coming, which
+  no other source has), HashiCorp, AWS Security Bulletins, Cisco Talos.
+- **Feeds out.** The News and the table as RSS under the same filters their pages take
+  (`/feed.xml`, `/vulnerabilities/feed.xml`), every feed source as OPML, CISA's KEV due dates as a
+  calendar (`/vulnerabilities/kev.ics`, `?watch=1` for your stack), a sitemap, and a `robots.txt`
+  that answers ahead of the reading gate so a closed instance tells a crawler the truth. A
+  **Feeds** page writes every address out in full; **Vulnerabilities** is now a menu.
+- **What the News is talking about.** The CVE ids the articles name, counted by distinct source
+  over seven days: a `news ×3` chip in the table, **In the news** on the CVE page, **Talked
+  about** on Today — whatever the score.
+- **One search from the masthead** across CVEs, the News, the controls of every standard you may
+  read, Microsoft's rows and the sources; a CVE id typed whole opens its page. **One card per
+  story** on the News, the other sources named on it. An **SBOM** (CycloneDX or SPDX JSON) into
+  the watchlist: each component's package URL becomes the `ecosystem:name` entry the advisories
+  match; versions are not kept, nothing else from the file is stored.
+- **Sweeps.** Publisher-derived URLs are fetched from public hosts only; a request that is the
+  client's fault answers with its own status (413 for a body too large, not a 500); one JSON
+  reader; `app.ts` split into route modules by area and the scan guide by platform; every module
+  carries the header that says what it is and why; exports pruned to what another module reads.
+
 ## 0.39.0 — 2026-10-21
 
 - **The pipeline says when it has stopped.** The digest has named a failing source since 0.38.0,
