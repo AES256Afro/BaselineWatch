@@ -465,6 +465,12 @@ the Azure blog (marketing), Google Cloud (404 at the security feed path).
   (`https://internetdb.shodan.io/<ip>`, JSON, no key) looked up only when the visitor presses the
   button for their own public address — ports, hostnames, CPEs, CVEs as Shodan last saw them — six
   lookups in ten minutes per address, nothing stored.
+- **Router and exposure** (`/scan/network#exposure`, S4, owner-only, opt-in, daily): the
+  public address from Cloudflare's trace (`https://cloudflare-dns.com/cdn-cgi/trace`, the same
+  host as the DNSSEC question), InternetDB for that address, the router's front page over plain
+  HTTP and TLS (title and Server header only), and the vendor and model the owner typed matched
+  against the CVE table and the KEV. Stored as the last two runs in `app_settings`; a new port, a
+  new KEV match or a changed address is one notification.
 - crt.sh, for a certificate-transparency watch on the owner's domains, was probed on 2026-10-21
   and answered 502 three times; the watch waits for a captured response.
 
