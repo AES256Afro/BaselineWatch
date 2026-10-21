@@ -1,3 +1,4 @@
+import { setSiteBase } from "./pages/layout.ts";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
@@ -121,6 +122,7 @@ export function createApp(ctx: AppContext): Express {
   const brandMarks = readBrandMarks(path.join(import.meta.dirname, "..", "docs", "mockups", "logo"));
   const throttle = new LoginThrottle();
   const app = express();
+  setSiteBase(config.baseUrl);
   app.disable("x-powered-by");
   app.set("etag", "weak");
   app.set("trust proxy", "loopback, linklocal, uniquelocal");

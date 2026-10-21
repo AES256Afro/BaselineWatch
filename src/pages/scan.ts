@@ -307,7 +307,7 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
     </aside>
   </div>
 </section>`;
-  return page({ title: "Scan", active: "scan", content, owner, open, look, script: "/assets/scan.js" });
+  return page({ title: "Scan", active: "scan", content, owner, open, look, script: "/assets/scan.js", canonical: "/scan", description: "What this browser blocks and what it gives away: ad hiding, ad requests, filtering DNS, privacy signals, WebRTC, the fingerprint surface, the referrer. Runs in this tab; nothing uploaded." });
 }
 
 /**

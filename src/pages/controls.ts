@@ -95,8 +95,8 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
         <h2>${hits.length === 0 ? html`Nothing matches “${query}”` : html`${hits.length}${hits.length === 200 ? "+" : ""} control(s) matching “${query}”`}</h2>
         ${hits.length === 0
           ? html`<p class="small">Try a label (<code>AC-2</code>, <code>SV-254238</code>, <code>3.1.1</code>), a word from the title, or a phrase from the control's text. Only the current version of each standard is searched; older versions are on the standard's own page.</p>`
-          : html`<div class="table-wrap"><table class="browse">
-              <thead><tr><th>Control</th><th>Standard</th><th>Title</th><th>Text</th></tr></thead>
+          : html`<div class="table-wrap"><table class="browse"><caption class="visually-hidden">Controls matching the search</caption>
+              <th scope="col"ead><tr><th scope="col">Control</th><th scope="col">Standard</th><th scope="col">Title</th><th scope="col">Text</th></tr></thead>
               <tbody>${hits.map(
                 (h) => html`<tr>
                   <td class="id"><a href="/standards/${h.sourceId}/${h.documentId}/${h.ref}"><b>${(h.ref ?? "").toUpperCase()}</b></a>${h.severity ? html`<div class="note">${h.severity}</div>` : ""}</td>
@@ -123,8 +123,8 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
       <section class="main">
         <section class="box wide" id="standards">
           <h2>Open a standard's controls <span class="count">${readable.length} current version(s)</span></h2>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Standard</th><th>Version</th><th class="n">Controls</th><th>Published</th></tr></thead>
+          <div class="table-wrap"><table><caption class="visually-hidden">Standards and their current versions</caption>
+            <th scope="col"ead><tr><th scope="col">Standard</th><th scope="col">Version</th><th scope="col" class="n">Controls</th><th scope="col">Published</th></tr></thead>
             <tbody>${readable.map(
               (v) => html`<tr>
                 <td><a href="/standards/${v.sourceId}">${v.name}</a>${v.documentKey && readable.filter((o) => o.sourceId === v.sourceId).length > 1 ? html`<div class="note">${v.documentKey}</div>` : ""}</td>

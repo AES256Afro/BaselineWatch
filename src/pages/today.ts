@@ -218,5 +218,5 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       </aside>
     </div>`;
 
-  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${realReleases.length} releases`, owner, open, strip: registerStrip(db, now), look });
+  return page({ title: "Today", active: "today", content, meta: html`${kev} KEV · ${watched} watched · ${realReleases.length} releases`, owner, open, strip: registerStrip(db, now), look , canonical: "/today", description: "What changed in the things you watch: what to do next, CVEs by platform, KEV additions, standard releases, and the pipeline's own health." });
 }
