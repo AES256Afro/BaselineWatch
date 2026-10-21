@@ -20,6 +20,7 @@ import {
   type NetScanRow,
 } from "../netscan.ts";
 import { relativeTime } from "../time.ts";
+import { exposureEnabled, exposureKeys, latestExposure, type ExposureFinding } from "../exposure.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -98,6 +99,54 @@ function ownerForms(db: DatabaseSync, enabled: boolean): Html {
   </div>`;
 }
 
+const exposureWord: Record<ExposureFinding["state"], string> = { ok: "Good", warn: "Finding", bad: "Finding", na: "Not read" };
+
+/**
+ * Router and exposure (S4): the owner's own address and ports, so the owner alone sees it. The
+ * findings of the last daily run, and the switches: on or off, the router's address, its vendor
+ * and model for the firmware match.
+ */
+function exposureSection(db: DatabaseSync, owner: boolean, now: Date): Html {
+  if (!owner) {
+    return html`<section class="box" id="exposure"><h2>Router and exposure</h2><p class="small">What the internet sees of this network's public address and what the router gives away on the LAN, read once a day from this server. It names the owner's own address and ports, so the owner alone sees it.</p></section>`;
+  }
+  const on = exposureEnabled(db);
+  const run = latestExposure(db);
+  const value = (key: string): string => (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value ?? "";
+  const rows = run
+    ? html`<div class="checks">${run.findings.map(
+        (f, i) => html`<article class="check" id="exposure-${f.id}">
+          <span class="n">${String(i + 1).padStart(2, "0")}</span>
+          <div>
+            <div class="t">${f.title}</div>
+            <p class="d">${f.text}</p>
+            ${f.quoted.length ? html`<ul class="ev">${f.quoted.map((q) => html`<li><code>${q}</code></li>`)}</ul>` : ""}
+          </div>
+          <span class="state ${f.state}">${exposureWord[f.state]}</span>
+        </article>`,
+      )}</div>
+      <p class="small">Run ${relativeTime(run.at, now)}. The public address is Cloudflare's trace's word, the ports and CVEs Shodan's InternetDB's as it last scanned the address — not a scan from here. A new open port, a new KEV match for the firmware or a changed address is sent through the notifier the day it is seen.</p>`
+    : html`<p class="small">${on ? "On; the first run happens on the scheduler's next pass, or press Run now." : "Off. Turning it on asks Cloudflare for this network's public address, Shodan's InternetDB what it sees of that address, and the router (if named) for its front page, once a day."}</p>`;
+  return html`<section class="box" id="exposure">
+    <h2>Router and exposure</h2>
+    ${rows}
+    <form method="post" action="/scan/exposure/settings" class="kv-form">
+      <input type="hidden" name="on" value="${on ? "1" : "0"}">
+      <label>Router address <input name="router_url" value="${value(exposureKeys.routerUrl)}" placeholder="http://192.168.1.1" autocomplete="off"></label>
+      <label>Router vendor <input name="vendor" value="${value(exposureKeys.vendor)}" placeholder="netgear, tp-link, ubiquiti…" autocomplete="off"></label>
+      <label>Model (optional) <input name="model" value="${value(exposureKeys.model)}" placeholder="RAX50" autocomplete="off"></label>
+      <button type="submit">Save</button>
+    </form>
+    <form method="post" action="/scan/exposure/settings" class="row">
+      <input type="hidden" name="on" value="${on ? "0" : "1"}">
+      <input type="hidden" name="keep" value="1">
+      <button type="submit">${on ? "Turn the daily exposure check off" : "Turn the daily exposure check on"}</button>
+    </form>
+    ${on ? html`<form method="post" action="/scan/exposure/run" class="row"><button type="submit">Run now</button></form>` : ""}
+    <p class="small">The vendor is matched against the CVE table's vendor names (the CPE spelling: <code>netgear</code>, <code>tp-link</code>, <code>ubiquiti</code>, <code>asus</code>); a model narrows it to CVEs that name it. Nothing is sent to the router beyond a request for its front page.</p>
+  </section>`;
+}
+
 function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, owner: boolean, enabled: boolean): Html {
   const clients =
     scan?.clients_seen !== null && scan?.clients_seen !== undefined
@@ -172,7 +221,8 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
       ${changesBox}
       ${asideBoxes(db, scan, owner, enabled)}
     </aside>
-  </div>`
+  </div>
+  ${exposureSection(db, owner, now)}`
     : html`<div class="cols">
     <div class="main">
       <article class="check off">
@@ -185,7 +235,8 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
       </article>
     </div>
     <aside class="side">${asideBoxes(db, null, owner, enabled)}</aside>
-  </div>`;
+  </div>
+  ${exposureSection(db, owner, now)}`;
 
   const content = html`<section class="scan-network">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>This network</b></p>
