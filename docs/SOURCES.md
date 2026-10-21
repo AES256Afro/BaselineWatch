@@ -423,6 +423,15 @@ fixtures under `test/fixtures/exploits/` are the real files as served on 2026-10
 Not added: VulnCheck XDB (needs a key; the plan keeps it behind an optional one), GitHub's
 search API (rate-limited, and PoC-in-GitHub already does the search).
 
+### Certificate transparency, crt.sh (added 2026-10-21, Scan 2.0 S3)
+`https://crt.sh/?q=<domain>&output=json` (JSON, daily, no key) for each domain the owner listed
+on `/scan/domain` (`scan.domains`): every certificate the CT logs hold whose names include the
+domain, kept in `ct_certs` (migration 0039). A certificate issued since the last read is one Wire
+item — a lookalike's, or one the owner did not expect — and the domain page lists the newest
+eight. The first read of a domain is silent except for a certificate issued in the last week.
+crt.sh is slow and answers 502 at times; a domain that fails is read again tomorrow. Fixture
+`test/fixtures/ct/cybercard.net.json`, the fourteen newest entries as served 2026-10-21.
+
 ### Microsoft Security Update Guide (added 2026-10-21, N5)
 `https://api.msrc.microsoft.com/cvrf/v3.0/updates` (JSON, daily, no key). The index lists every
 monthly release with the date it was last revised; each release is one CVRF document
@@ -479,8 +488,6 @@ ninety days of its end, or past it within the month, is one Wire item. Adapter
   HTTP and TLS (title and Server header only), and the vendor and model the owner typed matched
   against the CVE table and the KEV. Stored as the last two runs in `app_settings`; a new port, a
   new KEV match or a changed address is one notification.
-- crt.sh, for a certificate-transparency watch on the owner's domains, was probed on 2026-10-21
-  and answered 502 three times; the watch waits for a captured response.
 
 ### Also planned
 - OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); Cisco
