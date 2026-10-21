@@ -31,6 +31,13 @@ instance (Sources, Digest), then how it is drawn (Appearance, which the masthead
 moved into, and Branding). Use those words in that sense everywhere; do not reintroduce
 "Platforms" for the fleet, and do not put a bare label in a menu without its line.
 
+The forward plan (2026-10-21) is the last part of `docs/PLAN.md`: a ledger that re-homes every
+open item of M10 to M12, then M13 to M19 ending at 1.0. Take M13 first — retention and a weekly
+housekeeping pass, a restore that has been done and dated, one release command that refuses a
+version the CHANGELOG does not carry, the pipeline on Today and in `/metrics` — because two of
+its items are losses, not gaps. A milestone is done when its "Done when" can be shown on
+cybercard.net, not when its dates are up.
+
 ## Conventions
 
 - **Stack**: Node ≥ 24 running TypeScript directly (type stripping, so `erasableSyntaxOnly`: no
