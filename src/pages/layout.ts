@@ -25,6 +25,7 @@ export type Area =
   | "scan-network"
   | "scan-guide"
   | "scan-history"
+  | "saved"
   | "triage"
   | "atlas"
   | "watchlist"
@@ -54,6 +55,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   atlas: { label: "Atlas", path: "/atlas", blurb: "the rhythm of releases, and what is due" },
   register: { label: "Change register", path: "/register", blurb: "every release, control by control" },
   fleet: { label: "Fleet", path: "/fleet", blurb: "your releases and the hardware they run on" },
+  saved: { label: "Saved searches", path: "/saved", blurb: "the lists you come back to" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", blurb: "every CVE, scored and marked: KEV, EPSS, exploits" },
   "patch-tuesday": { label: "Patch Tuesday", path: "/vulnerabilities/microsoft", blurb: "Microsoft's monthly release, by update and product" },
   feeds: { label: "Feeds", path: "/feeds", blurb: "RSS, OPML and a KEV calendar for your reader" },
@@ -78,7 +80,7 @@ const standardsTools: Area[] = ["stigs", "register", "atlas"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
 const scanGroup: Area[] = ["scan", "scan-domain", "scan-network", "scan-history", "scan-guide"];
-const deskGroup: Area[] = ["fleet", "triage", "watchlist"];
+const deskGroup: Area[] = ["fleet", "triage", "watchlist", "saved"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
 

@@ -19,6 +19,8 @@ import { renderDigest } from "../pages/digest.ts";
 import { renderTriage } from "../pages/triage.ts";
 
 import { renderWatchlist } from "../pages/watchlist.ts";
+import { renderSaved } from "../pages/saved.ts";
+import { addSaved, deleteSaved, savablePath } from "../saved.ts";
 
 import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand, saveBrandImage } from "../branding.ts";
 import { renderBranding } from "../pages/branding.ts";
@@ -72,6 +74,24 @@ export function mountDesk(r: RouteContext): void {
     res.redirect(303, "/watchlist");
   });
   // An SBOM's components as package entries, by file: the one upload the watchlist takes.
+  // Saved searches: a named path with its query, kept on the desk.
+  app.get("/saved", (req, res) => {
+    res.type("html").send(renderSaved({ db, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
+  });
+  app.post("/saved", requireOwner, (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const path = savablePath(body.path);
+    const name = str(body.name, 60);
+    if (!path || !name) return res.status(400).type("text").send("A saved search is a name and a list page with its filters.");
+    const added = addSaved(db, name, path, now().toISOString());
+    res.append("Set-Cookie", flashHeader(added ? `Saved “${name}”.` : "That list was already saved.", secureCookies(req)));
+    res.redirect(303, path);
+  });
+  app.post("/saved/:id/delete", requireOwner, (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || !deleteSaved(db, id)) return res.status(404).type("text").send("No such saved search.");
+    res.redirect(303, "/saved");
+  });
   app.post("/watchlist/sbom", requireOwner, async (req, res) => {
     const boundary = boundaryOf(req.headers["content-type"]);
     if (!boundary) return res.status(400).type("text").send("Send the SBOM as multipart/form-data.");

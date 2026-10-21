@@ -7,6 +7,7 @@ import { triageCounts, type TriageState } from "../triage.ts";
 import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
 import type { LookState } from "../look.ts";
 import { page, registerStrip } from "./layout.ts";
+import { saveSearchForm } from "./saved.ts";
 import { triageButtons } from "./triage.ts";
 
 /**
@@ -204,6 +205,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
   const content = html`
     <div class="wire-top">
       <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : plain ? html` <small class="motto">A change register for the security standards themselves</small>` : ""}</h1>
+      ${saveSearchForm(db, query(filters, { before: undefined }), owner)}
       <form method="get" action="/" class="search" role="search">
         ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
         ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}

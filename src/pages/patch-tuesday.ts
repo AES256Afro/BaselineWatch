@@ -4,6 +4,7 @@ import { figure, html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { isRepublished, msrcReleases, msrcRows, releaseName, releaseNoteUrl, type MsrcFix, type MsrcVuln } from "../msrc.ts";
 import { page } from "./layout.ts";
+import { saveSearchForm } from "./saved.ts";
 
 /**
  * Patch Tuesday: Microsoft's monthly release as the Security Update Guide states it, turned the
@@ -127,6 +128,7 @@ export function renderPatchTuesday(options: PatchTuesdayOptions): string | null 
         <a class="${family ? "" : "on"}" href="${href({ family: undefined })}">All components</a>
         ${topFamilies.map(([f, n]) => html`<a class="${family === f ? "on" : ""}" href="${href({ family: family === f ? undefined : f })}">${f} <span class="small">${n}</span></a>`)}
       </div>
+      ${saveSearchForm(db, href({}), owner)}
       <form method="get" action="/vulnerabilities/microsoft" class="search" role="search">
         ${current.release_id !== releases[0]?.release_id ? html`<input type="hidden" name="release" value="${current.release_id}">` : ""}
         ${family ? html`<input type="hidden" name="family" value="${family}">` : ""}

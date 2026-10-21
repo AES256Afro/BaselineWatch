@@ -9,6 +9,7 @@ import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
+import { listSaved } from "../saved.ts";
 import { scanTile } from "../scanhistory.ts";
 import { trendingCves } from "../trending.ts";
 import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
@@ -116,6 +117,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const alerts = recentAlerts(db, 5);
   const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
   const scan = scanTile(db);
+  const saved = owner ? listSaved(db) : [];
   const digest = latestDigest(db);
   const glance = glanceData(db, now);
   // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
@@ -203,6 +205,9 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         </section>
       </section>
       <aside class="side">
+        ${saved.length
+          ? html`<section class="box"><h2><a href="/saved">Saved searches</a></h2><ul class="talked">${saved.map((s) => html`<li><a href="${s.path}">${s.name}</a></li>`)}</ul></section>`
+          : ""}
         <section class="box">
           <h2><a href="/vulnerabilities">Talked about</a> <span class="count">7 days, by sources</span></h2>
           ${talked.length
