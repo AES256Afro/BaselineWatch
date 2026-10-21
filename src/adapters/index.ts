@@ -3,6 +3,7 @@ import { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapte
 import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
 import { cisaDirectivesAdapter } from "./cisa-directives.ts";
+import { crtshAdapter } from "./crtsh.ts";
 import { csrcPubsAdapter } from "./csrc-pubs.ts";
 import { cvelistAdapter } from "./cvelist.ts";
 import { disaAdapter } from "./disa.ts";
@@ -48,6 +49,7 @@ const byId: Record<string, Adapter> = {
   "mozilla-mfsa": mozillaMfsaAdapter,
   "tor-exits": torExitsAdapter,
   endoflife: endoflifeAdapter,
+  crtsh: crtshAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
