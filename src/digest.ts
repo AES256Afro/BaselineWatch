@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { storageLine, storageReport } from "./housekeeping.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 
 /**
@@ -98,6 +99,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   lines.push(`Triage: ${open}${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`);
   const failing = db.prepare("SELECT name FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { name: string }[];
   if (failing.length) lines.push(`Sources failing: ${failing.map((f) => f.name).join(", ")} ${baseUrl}/sources`);
+  lines.push(storageLine(storageReport(db), baseUrl));
   // The lesson of the three-day NVD stall: staleness is a headline, not something to go look for.
   const newestVuln = (db.prepare("SELECT MAX(last_modified_at) AS m FROM vulns").get() as { m: string | null }).m;
   if (newestVuln) {

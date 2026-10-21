@@ -67,6 +67,7 @@ src/netscan.ts       the network check: canaries through the LAN resolver, daily
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation
+src/housekeeping.ts  what is kept, what goes, and the weekly pass that does it (M13)
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1

@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "./adapters/index.ts";
 import type { SourceRow } from "./adapters/types.ts";
 import { digestDue, writeDigest } from "./digest.ts";
+import { formatBytes, type HousekeepingResult } from "./housekeeping.ts";
 import { httpGet } from "./http.ts";
 import { ingestSource, listSources, type IngestDeps, type IngestResult } from "./ingest.ts";
 import { notify } from "./notify.ts";
@@ -41,6 +42,8 @@ export interface SchedulerOptions extends IngestDeps {
   digest?: { period: "daily" | "weekly" | "off"; hour: number; timeZone: string };
   /** When set, called every tick: the network scan (M12.3) runs itself when due. True when one ran. */
   network?: () => Promise<boolean>;
+  /** When set, called every tick: the weekly housekeeping pass (M13) runs itself when due. The pass's own numbers when one ran. */
+  housekeeping?: () => HousekeepingResult | null;
 }
 
 function hostOf(url: string): string {
@@ -76,6 +79,8 @@ export interface Scheduler {
   runDigest(): Promise<boolean>;
   /** Runs the network scan if one is due; true when one ran. */
   runNetwork(): Promise<boolean>;
+  /** Runs the housekeeping pass if one is due; true when one ran. */
+  runHousekeeping(): boolean;
   stop(): void;
 }
 
@@ -163,11 +168,21 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     return ran;
   };
 
+  const runHousekeeping = (): boolean => {
+    if (!options.housekeeping) return false;
+    const result = options.housekeeping();
+    if (!result) return false;
+    log(`[housekeeping] weekly pass: database ${formatBytes(result.bytesAfter)} after letting ${result.snapshotsDeleted} snapshot(s) and ${result.blobsDeleted} blob(s) go`);
+    return true;
+  };
+
   const timer = setInterval(() => {
     // A full disk or a busy database throws from the sqlite calls; logged, never an unhandled rejection that ends the process.
     void runOnce()
       .then(() => runDigest())
       .then(() => runNetwork())
+      // Last on the tick: the pass takes the write lock for a moment, so it waits for the fetches.
+      .then(() => runHousekeeping())
       .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`));
   }, options.tickMs ?? 60_000);
   timer.unref();
@@ -176,6 +191,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     runOnce,
     runDigest,
     runNetwork,
+    runHousekeeping,
     stop: () => clearInterval(timer),
   };
 }
