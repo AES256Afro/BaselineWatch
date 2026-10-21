@@ -233,6 +233,13 @@ function recordOutcome(
     `UPDATE sources SET last_fetch_at = ?, last_status = ?, last_error = ?, etag = COALESCE(?, etag), last_modified = COALESCE(?, last_modified),
        last_duration_ms = ?, fetch_count = fetch_count + 1 WHERE id = ?`,
   ).run(outcome.fetchedAt, outcome.status, outcome.error ? outcome.error.slice(0, 500) : null, outcome.etag ?? null, outcome.lastModified ?? null, outcome.durationMs, source.id);
+  // The failure episode (M13.2): when it started, and whether it has been reported. A source that
+  // answers clears both, so the next failure is a new episode and gets its own one notification.
+  if (outcome.status === "error") {
+    db.prepare("UPDATE sources SET failing_since = COALESCE(failing_since, ?) WHERE id = ?").run(outcome.fetchedAt, source.id);
+  } else {
+    db.prepare("UPDATE sources SET failing_since = NULL, failing_alerted_at = NULL WHERE id = ?").run(source.id);
+  }
 }
 
 /**
