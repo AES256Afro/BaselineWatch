@@ -143,7 +143,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
         ${stats.changes === 0
           ? html`<div class="empty">
               <b>The Register has no diffs yet.</b>
-              <p>The Wire (news, advisories, KEV) and the Vulnerabilities table (NVD, EPSS, your watchlist) are live. The first standards diff, NIST SP 800-53 Release 5.1.1 to 5.2.0 from the OSCAL catalogs, arrives with M3.</p>
+              <p>No standard has been read yet. The Register fills as the standards sources are fetched — on the scheduler's next pass, or now from the <a href="/sources">Sources</a> page — and the first diff appears once a standard has two versions here. The <a href="/">News</a> and the <a href="/vulnerabilities">Vulnerabilities</a> table are live meanwhile.</p>
             </div>`
           : ""}
         <ul class="stds">${standardCards}</ul>
