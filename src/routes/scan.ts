@@ -1,6 +1,10 @@
 import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type DomainReport } from "../domaincheck.ts";
 import { httpGet } from "../http.ts";
 import { renderScanDomain } from "../pages/scan-domain.ts";
+import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
+import { privateAddress } from "../http.ts";
+import { isIP } from "node:net";
+import type { TLSSocket } from "node:tls";
 import type { Request, Response } from "express";
 import path from "node:path";
 
@@ -27,10 +31,33 @@ export function mountScan(r: RouteContext): void {
   // The Scan area (M12.1): the one page with a script, under its own policy; the why page and the
   // probe images stay under the strict one. The probes are one GIF at four names, never cached and
   // readable cross-site, so a second instance named by BW_PROBE_ORIGIN can serve the cross-site set.
-  app.get("/scan", (req, res) => {
+  // The request as this server saw it (S2): the address Express resolved through the trusted
+  // proxies, the headers, and the TLS protocol only when this process ended TLS itself.
+  const facts = (req: Request): RequestFacts => {
+    const socket = req.socket as Partial<TLSSocket>;
+    return { ip: req.ip ?? null, headers: req.headers, protocol: req.protocol, httpVersion: req.httpVersion, tlsProtocol: typeof socket.getProtocol === "function" && socket.encrypted ? (socket.getProtocol() ?? null) : null };
+  };
+  const scanPage = (req: Request, res: Response, extra: { exposure?: Awaited<ReturnType<typeof lookUpExposure>> | null; exposureError?: string | null } = {}): void => {
     res.setHeader("Content-Security-Policy", scanPolicy(config.probeOrigin));
     res.setHeader("Cache-Control", "no-store");
-    res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin, network: networkSummary(db) }));
+    res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin, network: networkSummary(db), seen: whatWasSeen(db, facts(req)), ...extra }));
+  };
+  app.get("/scan", (req, res) => scanPage(req, res));
+  // One InternetDB lookup, of a public address, when the visitor asks; a visitor may ask about
+  // their own address a few times, not about the internet.
+  const lookedUp = new Map<string, number[]>();
+  app.post("/scan/exposure", async (req, res) => {
+    const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
+    if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
+    const t = now().getTime();
+    const recent = (lookedUp.get(req.ip ?? "?") ?? []).filter((at) => t - at < 10 * 60_000);
+    if (recent.length >= 6) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
+    lookedUp.set(req.ip ?? "?", [...recent, t]);
+    try {
+      scanPage(req, res, { exposure: await lookUpExposure(ctx.http ?? httpGet, ip) });
+    } catch (error) {
+      scanPage(req, res, { exposureError: error instanceof Error ? error.message : String(error) });
+    }
   });
   // Check a domain (S3): lookups only, from this server. A visitor may ask about any public name,
   // so each answer is kept ten minutes and each address gets a dozen checks in that time.

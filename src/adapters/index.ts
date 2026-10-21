@@ -26,6 +26,7 @@ import { pocInGithubAdapter } from "./poc-in-github.ts";
 import { redditAdapter } from "./reddit.ts";
 import { sansNewsbitesAdapter } from "./sans-newsbites.ts";
 import { sctAdapter } from "./sct.ts";
+import { torExitsAdapter } from "./tor-exits.ts";
 import type { Adapter, SourceRow } from "./types.ts";
 
 /**
@@ -44,6 +45,7 @@ const byId: Record<string, Adapter> = {
   msrc: msrcAdapter,
   "apple-security": appleSecurityAdapter,
   "mozilla-mfsa": mozillaMfsaAdapter,
+  "tor-exits": torExitsAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
