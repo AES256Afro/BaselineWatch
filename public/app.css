@@ -303,6 +303,14 @@ td.n { font-variant-numeric: tabular-nums; text-align: right; }
 .chip.mine { color: var(--ins); background: var(--ins-bg); border-color: transparent; }
 .chip.exploit { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
 .chip.exploit.verified { color: var(--del); background: var(--del-bg); }
+.chip.news { color: var(--acc); border-color: var(--acc); background: transparent; }
+.feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.feeds li { display: grid; gap: 2px; }
+.feeds code { font-size: 12px; overflow-wrap: anywhere; }
+.feeds code a { color: inherit; }
+.talked { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: 13px; }
+.talked li a:first-child { font-family: var(--mono); }
+.stats b.date { font-size: 18px; }
 table.vulns td.id { white-space: nowrap; }
 table.vulns td.id a { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--ink); }
 table.vulns td.id .chip { margin-left: 6px; }
@@ -554,7 +562,7 @@ table.browse tr.changed td.id a { color: var(--acc); }
 [data-look="console"] .chip.kev, [data-look="console"] .chip.exploit.verified, [data-look="console"] .chip.sev.critical, [data-look="console"] .chip.del, [data-look="console"] .pill.del { color: var(--red); border-color: var(--red); }
 [data-look="console"] .chip.sev.high, [data-look="console"] .chip.exploit, [data-look="console"] .chip.epss, [data-look="console"] .chip.star, [data-look="console"] .chip.mod, [data-look="console"] .pill.mod, [data-look="console"] .state.wait { color: var(--amber); border-color: var(--amber); }
 [data-look="console"] .chip.mine, [data-look="console"] .chip.ins, [data-look="console"] .pill.ins, [data-look="console"] .state.ok { color: var(--green); border-color: var(--green); }
-[data-look="console"] .chip.sev.medium { color: var(--cyan); border-color: var(--cyan); }
+[data-look="console"] .chip.sev.medium, [data-look="console"] .chip.news { color: var(--cyan); border-color: var(--cyan); }
 [data-look="console"] .badge { color: var(--purple); border-color: var(--purple); border-style: dashed; }
 [data-look="console"] .chip.sev::before, [data-look="console"] .chip.kev::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: -1px; background: currentColor; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); }
 [data-look="console"] button, [data-look="console"] .btn { background: transparent; border-color: var(--rule-2); border-radius: 5px; font-weight: 500; }

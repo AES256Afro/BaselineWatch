@@ -23,9 +23,11 @@ import { readBrand, readBrandMarks, type BrandKind } from "./branding.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
+import { robotsText } from "./feeds.ts";
 import { mountBaselines } from "./routes/baselines.ts";
 import { publicDir, type RouteContext } from "./routes/context.ts";
 import { mountDesk } from "./routes/desk.ts";
+import { mountFeeds } from "./routes/feeds.ts";
 import { mountNews } from "./routes/news.ts";
 
 import { mountScan } from "./routes/scan.ts";
@@ -281,6 +283,10 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/"));
   });
 
+  // A crawler is told the truth ahead of the gate: a closed instance has nothing to index.
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send(robotsText(config.publicRead, config.baseUrl));
+  });
   // Reading may be closed to everyone but the owner.
   app.use((req, res, next) => {
     const state = authState(req, config, now().getTime());
@@ -303,6 +309,7 @@ export function createApp(ctx: AppContext): Express {
   mountScan(routeContext);
   mountBaselines(routeContext);
   mountVulnerabilities(routeContext);
+  mountFeeds(routeContext);
   mountDesk(routeContext);
 
   app.use((req, res) => {
