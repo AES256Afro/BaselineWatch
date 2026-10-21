@@ -23,7 +23,8 @@ describe("the Scan page", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     const text = await response.text();
     for (const id of ["hiding", "requests", "dns", "apps", "network"]) expect(text).toContain(`data-check="${id}"`);
-    expect(text.match(/<span class="state na">Not run<\/span>/g)).toHaveLength(3);
+    // Three protections and five privacy rows wait for the script.
+    expect(text.match(/<span class="state na">Not run<\/span>/g)).toHaveLength(8);
     expect(text.match(/Not a page's to test/g)).toHaveLength(1);
     expect(text).toContain("Not run from this server");
     expect(text).toContain('<a href="/scan/network">network check</a>');
@@ -32,7 +33,7 @@ describe("the Scan page", () => {
     expect(text).toContain("Privacy of the test");
     expect(text).toContain("The one page with a script");
     for (const id of ["hiding", "requests", "dns"]) expect(text).toContain(`href="/scan/why#${id}"`);
-    expect(text).toContain('<a href="/scan" aria-current="page">Scan</a>');
+    expect(text).toContain('<a class="entry" href="/scan" aria-current="page"><b>This browser</b>');
     expect(text).toContain('data-probe-origin=""');
     expect(text).toContain("3 test images, 2 controls");
     expect(text).toContain('<section class="scan" id="scan"');

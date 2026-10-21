@@ -23,7 +23,7 @@ describe("the manual guide", () => {
     expect(text).toContain('href="/scan/scripts/bw-check.sh" download');
     expect(text).toContain('href="/scan/scripts/SHA256SUMS"');
     expect(text.match(/<code class="sum">[0-9a-f]{64}<\/code>/g)).toHaveLength(2);
-    expect(text).toContain('<a href="/scan" aria-current="page">Scan</a>');
+    expect(text).toContain('<a class="entry" href="/scan/guide" aria-current="page"><b>By hand</b>');
     expect(text).toContain('href="/scan/why"');
     expect(text).not.toMatch(/<script/);
     expect(text).not.toMatch(/ style="/);
@@ -52,7 +52,7 @@ describe("the manual guide", () => {
       ]) {
         expect(text, `${platform.id} ${href}`).toContain(`href="${href}`);
       }
-      expect(text, platform.id).toContain('<a href="/scan" aria-current="page">Scan</a>');
+      expect(text, platform.id).toContain('<a class="entry" href="/scan/guide" aria-current="page"><b>By hand</b>');
       expect(text, platform.id).toContain("<b>Clean:</b>");
       expect(text, platform.id).toContain("<b>A finding:</b>");
       expect(text, platform.id).not.toMatch(/<script/);
