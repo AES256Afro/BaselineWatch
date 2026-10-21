@@ -12,7 +12,9 @@ import { countRows, databaseBytes } from "./db.ts";
 import type { HttpGet } from "./http.ts";
 import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
+import { renderAppearance } from "./pages/appearance.ts";
 import { renderCatalog } from "./pages/catalog.ts";
+import { renderControls } from "./pages/controls.ts";
 import { renderHome } from "./pages/home.ts";
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
@@ -53,6 +55,7 @@ import { isPlatformKey, platformKeys } from "./platforms.ts";
 import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns.ts";
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
+import { storageReport } from "./housekeeping.ts";
 import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
@@ -83,9 +86,12 @@ export interface HealthReport {
   version: string;
   uptimeSeconds: number;
   database: { migrations: number; bytes: number; sources: number; snapshots: number; changes: number; items: number; vulns: number };
+  /** What the instance is holding and when it last let anything go (M13), so growth is watchable from outside. */
+  storage: { snapshotBytes: number; keptSnapshots: number; imageBlobs: number; oldestSnapshotAt: string | null; lastHousekeepingAt: string | null };
 }
 
 export function healthReport(ctx: AppContext): HealthReport {
+  const storage = storageReport(ctx.db);
   return {
     ok: true,
     name: productName,
@@ -99,6 +105,13 @@ export function healthReport(ctx: AppContext): HealthReport {
       changes: countRows(ctx.db, "changes"),
       items: countRows(ctx.db, "items"),
       vulns: countRows(ctx.db, "vulns"),
+    },
+    storage: {
+      snapshotBytes: storage.snapshotBytes,
+      keptSnapshots: storage.keptSnapshots,
+      imageBlobs: storage.imageBlobs,
+      oldestSnapshotAt: storage.oldestSnapshotAt,
+      lastHousekeepingAt: storage.lastRun?.ranAt ?? null,
     },
   };
 }
@@ -168,9 +181,11 @@ function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
   const sinceHours = (h: number | undefined): string | undefined => (h === undefined ? undefined : new Date(now.getTime() - h * 60 * 60 * 1000).toISOString());
   const changedHours = hours(query.changed);
   const newHours = hours(query.new);
+  const platform = str(query.platform);
   return {
     watch: str(query.watch) === "1",
     kev: str(query.kev) === "1",
+    platform: isPlatformKey(platform) ? platform : undefined,
     minCvss: num(query.min_cvss),
     severity: severity === "critical" || severity === "high" || severity === "medium" || severity === "low" || severity === "unscored" ? severity : undefined,
     minEpss: num(query.min_epss),
@@ -504,6 +519,18 @@ export function createApp(ctx: AppContext): Express {
     res.redirect(303, safeBack(body.back, "/"));
   });
 
+  // The ladder's third rung (/guide#ladder): one rule at a time, across every standard's current version.
+  app.get("/controls", (req, res) => {
+    const state = authState(req, config, now().getTime());
+    const q = typeof req.query.q === "string" ? req.query.q.slice(0, 200) : undefined;
+    res.type("html").send(renderControls({ db, q, now: now(), owner: state.owner, open: state.open, look: lookOf(req) }));
+  });
+
+  app.get("/appearance", (req, res) => {
+    const state = authState(req, config, now().getTime());
+    res.type("html").send(renderAppearance({ owner: state.owner, open: state.open, look: lookOf(req) }));
+  });
+
   app.get("/standards", (req, res) => {
     res.type("html").send(renderCatalog({ db, ...who(req, res), now: now() }));
   });
@@ -687,7 +714,12 @@ export function createApp(ctx: AppContext): Express {
     const area = str(fields.section, 20) ?? str(fields.shown, 20);
     res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), area: isArea(area) ? area : undefined, ...who(req, res) }));
   };
-  app.get("/platforms", (req, res) => {
+  // Renamed from Platforms to Fleet (it is the owner's own inventory, and src/fleet.ts always
+  // called it that); the old address keeps working the way /wire does.
+  app.get("/platforms", (_req, res) => {
+    res.redirect(301, "/fleet");
+  });
+  app.get("/fleet", (req, res) => {
     res.type("html").send(renderPlatforms({ db, now: now(), ...who(req, res) }));
   });
   app.get("/baselines/:platform/tests", (req, res, next) => drawPlan(req, res, next, req.query as Record<string, unknown>));

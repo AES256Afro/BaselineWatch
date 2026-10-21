@@ -18,6 +18,19 @@ owner's sign-in (M7); installable from the BoxPilot catalog on BigBox. Article i
 passively at ingest (feed media, else og:image once per new item), live in the blob store and
 are served from `/img/<hash>`; nothing is ever hot-linked.
 
+**The ladder** (2026-10-21) is the vocabulary the whole interface is built from, and `/guide#ladder`
+teaches it: a **standard** is the rulebook (NIST SP 800-53, a STIG, a CIS Benchmark); a **baseline**
+is the set of its rules chosen for a kind of system (800-53 High, a platform's STIG baseline,
+Microsoft's for a Windows release); a **control** is one rule in that set (AC-2, IA-2); a
+**configuration setting** is how the control is enforced on a device (a registry value, a payload
+key, an Intune definition). The Standards menu is those three words in that order, each with the
+line that says what it is, and STIGs, the change register and the Atlas sit under a rule as the
+tools that cut across them. The owner's Desk holds their own fleet and work (**Fleet** — the page
+formerly called Platforms, now at `/fleet`, `/platforms` a 301 — Triage, Watchlist), then the
+instance (Sources, Digest), then how it is drawn (Appearance, which the masthead's look switch
+moved into, and Branding). Use those words in that sense everywhere; do not reintroduce
+"Platforms" for the fleet, and do not put a bare label in a menu without its line.
+
 The forward plan (2026-10-21) is the last part of `docs/PLAN.md`: a ledger that re-homes every
 open item of M10 to M12, then M13 to M19 ending at 1.0. Take M13 first — retention and a weekly
 housekeeping pass, a restore that has been done and dated, one release command that refuses a
@@ -74,6 +87,8 @@ src/netscan.ts       the network check: canaries through the LAN resolver, daily
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation
+src/housekeeping.ts  what is kept, what goes, and the weekly pass that does it (M13)
+src/agenda.ts        what to do next, and the window's CVEs by the platform they affect
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1

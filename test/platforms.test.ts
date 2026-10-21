@@ -80,7 +80,7 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(index).toContain('<a href="/baselines/android">Android</a></b><a class="state wait" href="/stigs/mobile">No STIG loaded</a>');
     expect(index).toContain('<a href="/watchlist">follow a STIG first</a>');
     expect(index).toMatch(/<a class="n" href="\/standards\/microsoft-sct">\d+ Microsoft baselines?<\/a>/);
-    expect(index).toContain('<h2><a href="/platforms">Test plans</a></h2>');
+    expect(index).toContain('<h2><a href="/fleet">Test plans</a></h2>');
     const builder = await (await fetch(`${app.base}/baselines/ios`)).text();
     expect(builder).toContain("Apple iOS/iPadOS 26 V1R2");
     expect(builder).toContain("AIOS-26-006500");
@@ -185,7 +185,7 @@ describe("platform engineering: the release and hardware under test", () => {
   it("says what ends support soon on Today and the Platforms page, and links a plan as a URL", async () => {
     // The app's clock is 2026-10-19 in these tests: Windows 11 23H2 Enterprise ends 2026-11-10, 22 days out.
     const today = await (await fetch(`${app.base}/today`)).text();
-    expect(today).toContain('<a class="tile warn" href="/platforms"><small>Support ending</small><b>1</b><span>Windows 11, version 23H2: Enterprise and Education 2026-11-10</span></a>');
+    expect(today).toContain('<a class="tile warn" href="/fleet"><small>Support ending</small><b>1</b><span>Windows 11, version 23H2: Enterprise and Education 2026-11-10</span></a>');
     const platforms = await (await fetch(`${app.base}/platforms`)).text();
     expect(platforms).toContain("<b>Support ending within 90 days:</b>");
     expect(platforms).toContain('<span class="chip na">ends in 22 days</span> <span class="small">Enterprise and Education 2026-11-10</span>');
@@ -195,9 +195,13 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(whole).toContain('<a href="/baselines/macos/tests">Link to this plan</a>');
   });
 
-  it("lists every platform, release and hardware family on the Platforms page", async () => {
-    const html = await (await fetch(`${app.base}/platforms`)).text();
-    expect(html).toContain("<h1>Platforms</h1>");
+  it("lists every platform, release and hardware family on the Fleet page", async () => {
+    // Renamed from Platforms in M17; the old address still leads there.
+    const moved = await fetch(`${app.base}/platforms`, { redirect: "manual" });
+    expect(moved.status).toBe(301);
+    expect(moved.headers.get("location")).toBe("/fleet");
+    const html = await (await fetch(`${app.base}/fleet`)).text();
+    expect(html).toContain("<h1>Fleet</h1>");
     // A platform's name and counts are permalinks to its section; the template count opens its test plan.
     expect(html).toMatch(/<b><a href="#macos">macOS<\/a><\/b><span class="small"><a href="#macos">\d+ releases<\/a> · <a href="#macos-hardware">\d+ hardware families<\/a> · <a href="\/baselines\/macos\/tests">\d+ templates<\/a><\/span>/);
     expect(html).toContain('<ul class="hw" id="macos-hardware">');
@@ -212,7 +216,6 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(html).toMatch(/STIG V1R4<\/a>/);
     expect(html).toContain("mSCP ");
     expect(html).toContain("STIG not loaded");
-    expect(html).toContain('<a href="/platforms"');
-    expect(html).toContain(">Platforms</a>");
+    expect(html).toContain('<a class="entry" href="/fleet" aria-current="page"><b>Fleet</b>');
   });
 });
