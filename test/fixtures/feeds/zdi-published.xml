@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+  <channel>
+    <atom:link href="https://www.zerodayinitiative.com/rss/published/" rel="self" type="application/xml" />
+    <title><![CDATA[ZDI: Published Advisories]]></title>
+    <link>http://www.zerodayinitiative.com/advisories/published/</link>
+    <description><![CDATA[The following is a list of publicly disclosed vulnerabilities discovered by
+                   Zero Day Initiative researchers. While the affected vendor is working on a patch for these
+                   vulnerabilities, TrendAI customers are protected from exploitation by security filters
+                   delivered ahead of public disclosure. All security vulnerabilities that are acquired by the
+                   Zero Day Initiative are handled according to the ZDI Disclosure Policy.
+        ]]></description>
+    <pubDate>Wed, 21 Oct 2026 17:01:51 -0500</pubDate>
+    <copyright>Trend Micro, all rights reserved</copyright>
+    <language>en</language>
+    
+    <item>
+      <title><![CDATA[ZDI-26-785: FreeBSD Kernel Shared Memory Time-Of-Check Time-Of-Use Local Privilege Escalation Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-32356</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-785/</link>
+      <description><![CDATA[This vulnerability allows local attackers to escalate privileges on affected installations of FreeBSD Kernel. An attacker must first obtain the ability to execute low-privileged code on the target system in order to exploit this vulnerability. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-58094.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-784: FreeBSD Kernel kqueue Use-After-Free Local Privilege Escalation Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-31968</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-784/</link>
+      <description><![CDATA[This vulnerability allows local attackers to escalate privileges on affected installations of FreeBSD Kernel. An attacker must first obtain the ability to execute low-privileged code on the target system in order to exploit this vulnerability. The ZDI has assigned a CVSS rating of 8.8. The following CVEs are assigned: CVE-2026-58093.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-783: LibreOffice PDF File Parsing Out-Of-Bounds Write Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-31095</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-783/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to execute arbitrary code on affected installations of LibreOffice. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-63273.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-782: LibreOffice PDF File Parsing Heap-based Buffer Overflow Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-31075</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-782/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to execute arbitrary code on affected installations of LibreOffice. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-63274.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-781: LibreOffice EMF+ Brush Integer Overflow Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-29452</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-781/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to execute arbitrary code on affected installations of LibreOffice. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-6045.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-780: X.Org Server GestureBuildSprite Use-After-Free Information Disclosure Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-32753</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-780/</link>
+      <description><![CDATA[This vulnerability allows local attackers to disclose sensitive information on affected installations of X.Org Server. An attacker must first obtain the ability to execute low-privileged code on the target system in order to exploit this vulnerability. The ZDI has assigned a CVSS rating of 4.4. The following CVEs are assigned: CVE-2026-93536.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-779: (0Day) Sparx Systems Enterprise Architect XSLT Debugger XML External Entity Processing Information Disclosure Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-32287</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-779/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to disclose sensitive information on affected installations of Sparx Systems Enterprise Architect. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 5.5. The following CVEs are assigned: CVE-2026-88794.]]></description>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-778: Adobe Photoshop DCM Pixel Data Parsing Integer Overflow Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-32599</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-778/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to execute arbitrary code on affected installations of Adobe Photoshop. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-95636.]]></description>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-777: Adobe Photoshop AdobePDFL PDF JPEG Parsing Integer Overflow Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-31140</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-777/</link>
+      <description><![CDATA[This vulnerability allows remote attackers to execute arbitrary code on affected installations of Adobe Photoshop. User interaction is required to exploit this vulnerability in that the target must visit a malicious page or open a malicious file. The ZDI has assigned a CVSS rating of 7.8. The following CVEs are assigned: CVE-2026-83661.]]></description>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-26-776: QNAP TS-453E syslog log_message Format String Remote Code Execution Vulnerability]]></title>
+      <guid isPermaLink="false">ZDI-CAN-28486</guid>
+      <link>http://www.zerodayinitiative.com/advisories/ZDI-26-776/</link>
+      <description><![CDATA[This vulnerability allows network-adjacent attackers to execute arbitrary code on affected installations of QNAP TS-453E devices. Authentication is not required to exploit this vulnerability. The ZDI has assigned a CVSS rating of 7.5. The following CVEs are assigned: CVE-2018-10388, CVE-2018-10389.]]></description>
+      <pubDate>Thu, 15 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+</channel></rss>
