@@ -1,10 +1,10 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createApp, pullSettings } from "./app.ts";
+import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { maybeRunHousekeeping } from "./housekeeping.ts";
-import { listSources } from "./ingest.ts";
+import { listSources, pullSettings } from "./ingest.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
@@ -12,6 +12,10 @@ import { recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 
+/**
+ * Start: read the config, open and migrate the database, put every standard's versions in
+ * publication order, fill what a migration left empty, listen, and run the scheduler unless told not to.
+ */
 const config = loadConfig();
 mkdirSync(config.dataDir, { recursive: true });
 

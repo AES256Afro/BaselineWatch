@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { rehearsalLine, storageLine, storageReport } from "./housekeeping.ts";
 import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
+import { parseJson } from "./json.ts";
 
 /**
  * The digest: what moved since the last one, as plain text a notifier can carry and the
@@ -14,15 +15,6 @@ export interface DigestRow {
   covers_to: string;
   generated_at: string;
   text: string;
-}
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 export function buildDigest(db: DatabaseSync, options: { from: string; to: string; baseUrl: string; period: "daily" | "weekly" }): string {

@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "./adapters/index.ts";
 import type { Adapter, AlertDraft, DocumentTarget, ParsedDocument, PullSettings, SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
+import type { Config } from "./config.ts";
 import { httpGet, type HttpGet } from "./http.ts";
 import { fetchNewItemImages } from "./images.ts";
 import { upsertItems } from "./items.ts";
@@ -11,6 +12,11 @@ import { adoptRationale, changeSummaryText, getDocument, storeDocument, type Sto
 
 export { upsertItems } from "./items.ts";
 
+/**
+ * The one pipeline every source goes through: fetch, snapshot the exact bytes, normalise, store, diff
+ * against the version before, explain, and post what matters to the timeline. A parsing adapter gets
+ * all of that done for it here; a pulling adapter runs its own requests and reports back.
+ */
 export interface DocumentOutcome {
   key: string;
   status: "ok" | "unchanged" | "error";
@@ -210,7 +216,7 @@ async function sendAlerts(db: DatabaseSync, deps: IngestDeps, drafts: AlertDraft
   }
 }
 
-export const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
+const defaultPullSettings: PullSettings = { nvdApiKey: null, nvdBackfillDays: 7 };
 
 export function getSource(db: DatabaseSync, id: string): SourceRow | null {
   return (db.prepare("SELECT * FROM sources WHERE id = ?").get(id) as unknown as SourceRow | undefined) ?? null;
@@ -366,4 +372,9 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     }
     return result;
   }
+}
+
+/** The pull settings an instance's config gives every adapter that runs its own requests. */
+export function pullSettings(config: Config): PullSettings {
+  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages, llmUrl: config.llmUrl, llmModel: config.llmModel };
 }

@@ -17,7 +17,7 @@ import { plainText, type Adapter, type DocumentTarget, type ParsedDocument, type
 export const gpoPackageKey = "gpo:checklists";
 const packageName = /^Group Policy Objects \(GPOs\) - (.+)$/i;
 
-export const statusLabels: Record<string, string> = {
+const statusLabels: Record<string, string> = {
   NotAFinding: "Covered by DISA's policy",
   Not_Applicable: "Not applicable to the policy",
   Open: "Open",

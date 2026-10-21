@@ -47,7 +47,7 @@ export function parseNotifyUrl(value: string | null): Transport | null {
 }
 
 /** An HTTP header value: ASCII as is, anything else RFC 2047-encoded, which ntfy decodes (a raw em dash would make fetch refuse the header). */
-export function headerValue(value: string): string {
+function headerValue(value: string): string {
   return /^[\x20-\x7e]*$/.test(value) ? value : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
@@ -56,7 +56,7 @@ export function headerValue(value: string): string {
  * because an HttpError's message names the endpoint and the endpoint is the credential (a
  * webhook URL, an ntfy topic) and the log is shown on the Digest page.
  */
-export function failureText(error: unknown): string {
+function failureText(error: unknown): string {
   if (error instanceof HttpError) return `HTTP ${error.status}`;
   if (error instanceof Error) return error.name === "TimeoutError" || error.name === "AbortError" ? "timed out" : `send failed (${error.name})`;
   return "send failed";

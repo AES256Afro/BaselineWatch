@@ -6,6 +6,11 @@ import { lines } from "../redline.ts";
 import { changeSummaryFor, changeSummaryText, loadRequirements, notesFor, releaseChanges } from "../register.ts";
 import { relativeTime } from "../time.ts";
 import {
+
+/**
+ * The STIG pages: the index of followed STIGs by platform with counts by CAT, and one STIG's rules
+ * with check, fix and the SP 800-53 controls each reaches through its CCIs, beside CISA's advice.
+ */
   cats,
   cciMap,
   controlLabel,

@@ -6,6 +6,10 @@ import { lines } from "../redline.ts";
 import { controlLabel } from "../stigs.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The decisions pages: the board of every item's decision per platform in three columns, and the
+ * decide page that puts one item's recommendation beside the owner's answer to it.
+ */
 interface Who {
   owner: boolean;
   open: boolean;

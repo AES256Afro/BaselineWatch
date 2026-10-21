@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
+import { parseJson } from "./json.ts";
 
 /** A CVE in the shape BaselineWatch keeps, whatever it came from. */
 export interface NormalizedVuln {
@@ -123,15 +124,6 @@ function packageMatches(entry: { ecosystem: string; name: string }, pkg: { ecosy
 
 export function loadWatchlist(db: DatabaseSync): WatchEntry[] {
   return db.prepare("SELECT id, kind, value, label FROM watchlist ORDER BY kind, value").all() as unknown as WatchEntry[];
-}
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 /**

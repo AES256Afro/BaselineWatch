@@ -1,5 +1,9 @@
 import { unzipSync } from "fflate";
 
+/**
+ * A zip reader for the archives the standards come in — STIG, GPO and Intune packages, Microsoft's
+ * baselines, the mSCP branch — using fflate, so no archive is ever written to disk to be read.
+ */
 export interface ZipEntry {
   name: string;
   bytes: Uint8Array;

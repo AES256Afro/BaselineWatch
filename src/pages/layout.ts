@@ -4,6 +4,10 @@ import { lookAttributes, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
+/**
+ * The page frame every page is drawn in: the masthead and its two menus built from the ladder, the
+ * Register ribbon, the footer with the attributions, and the look attributes the stylesheet reads.
+ */
 export type Area =
   | "today"
   | "register"
@@ -53,10 +57,6 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   branding: { label: "Branding", path: "/branding", blurb: "the mark this instance wears" },
   guide: { label: "Guide", path: "/guide" },
 };
-
-export function areaPath(area: Area): string {
-  return areas[area].path;
-}
 
 /** The ladder, in order, then the tools that cut across it. */
 const standardsGroup: Area[] = ["catalog", "baselines", "controls"];

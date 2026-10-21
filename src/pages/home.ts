@@ -10,6 +10,10 @@ import type { LookState } from "../look.ts";
 import { repositoryUrl } from "../version.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Register's home at /register: every standard tracked, its latest version, and the newest
+ * changes, which is where the product began before News became the front page.
+ */
 interface StandardRow {
   id: string;
   name: string;

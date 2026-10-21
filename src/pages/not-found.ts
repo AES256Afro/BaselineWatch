@@ -2,6 +2,9 @@ import { html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The 404 page, which shows the path it was asked for, escaped.
+ */
 export function renderNotFound(path: string, look: LookState): string {
   return page({
     title: "Not found",

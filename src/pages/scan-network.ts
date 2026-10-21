@@ -2,6 +2,11 @@ import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import {
+
+/**
+ * The network check's page: the latest run's resolver, upstream, DoH answer and canary tallies by
+ * category, the owner's switches and dashboard tokens, and the day-over-day changes.
+ */
   categoryTallies,
   getSetting,
   latestNetScan,

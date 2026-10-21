@@ -2,7 +2,13 @@ import type { DatabaseSync } from "node:sqlite";
 import type { DocumentTarget, ParsedDocument, SourceRow } from "./adapters/types.ts";
 import { diffRequirements, summarizeChanges, type ChangeSummary, type RequirementChange } from "./differ.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
+import { parseJson } from "./json.ts";
 
+/**
+ * The Register's data layer: documents and their requirements, storing a parsed version and linking
+ * it to the one before, the changes and explanations of a release, and what is withheld from whom
+ * when a source's licence restricts its entries.
+ */
 export interface DocumentRow {
   id: number;
   source_id: string;
@@ -41,15 +47,6 @@ export interface ExplanationRow {
   created_at: string;
 }
 
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 /**
  * A licence-restricted source (`sources.restricted`): its entries are shown to the signed-in
  * owner only, a visitor sees versions and counts, and the API and MCP tools return neither
@@ -86,7 +83,7 @@ export function latestDocument(db: DatabaseSync, sourceId: string, key: string):
  * release loaded after the current one slots into its place in time instead of hanging off the
  * end. A version with no date is taken to follow the newest of all.
  */
-export function previousFor(db: DatabaseSync, sourceId: string, key: string, publishedAt: string | null): DocumentRow | null {
+function previousFor(db: DatabaseSync, sourceId: string, key: string, publishedAt: string | null): DocumentRow | null {
   if (!publishedAt) return latestDocument(db, sourceId, key);
   return (
     (db
@@ -395,7 +392,7 @@ function writeReleaseItem(db: DatabaseSync, source: SourceRow, doc: ReleaseDoc, 
  * any generated summary follow the new diff, and the Wire entry is rewritten. Runs inside the
  * caller's transaction.
  */
-export function relinkDocument(db: DatabaseSync, source: SourceRow, doc: DocumentRow, previous: DocumentRow | null, at: string): ChangeSummary {
+function relinkDocument(db: DatabaseSync, source: SourceRow, doc: DocumentRow, previous: DocumentRow | null, at: string): ChangeSummary {
   const notes = db
     .prepare("SELECT c.ref, e.kind, e.text, e.source_url FROM explanations e JOIN changes c ON c.id = e.change_id WHERE c.to_document_id = ? ORDER BY e.id")
     .all(doc.id) as { ref: string; kind: string; text: string; source_url: string | null }[];

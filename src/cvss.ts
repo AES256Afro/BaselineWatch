@@ -17,7 +17,7 @@ function roundup(value: number): number {
   return scaled % 10_000 === 0 ? scaled / 100_000 : (Math.floor(scaled / 10_000) + 1) / 10;
 }
 
-export function cvssSeverity(score: number): "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
+function cvssSeverity(score: number): "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
   if (score <= 0) return "NONE";
   if (score < 4) return "LOW";
   if (score < 7) return "MEDIUM";

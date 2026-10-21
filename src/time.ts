@@ -1,3 +1,9 @@
+
+
+/**
+ * Times the way a person reads them in a list: relative when recent, a date when not, and the short
+ * UTC stamp the tables use.
+ */
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

@@ -6,6 +6,10 @@ import { relativeTime, shortStamp } from "../time.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Digest page: the digests written so far, each with its links drawn as links, and the alert log
+ * beneath them.
+ */
 const urlPattern = /https?:\/\/\S+/g;
 
 /**

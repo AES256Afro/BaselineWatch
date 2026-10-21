@@ -76,12 +76,14 @@ cybercard.net, not when its dates are up.
 
 ```
 src/server.ts        start: config, data dir, migrations, listen
-src/app.ts           Express app, routes, security headers, /health
+src/app.ts           Express app: headers, body limits, the MCP endpoint, assets, API, health, sign-in, the read gate; then the mounts
+src/routes/          one module per area (news, today, standards, scan, baselines, vulnerabilities, desk), each a mount function taking RouteContext
+src/json.ts          the one reader for a column that should hold JSON
 src/config.ts        BW_* environment variables
 src/db.ts            open, migrate, counts
 src/blobs.ts         content-addressed snapshot store
 src/html.ts          html`` template with escaping
-src/pages/           server-rendered pages (layout, home, sources, not-found)
+src/pages/           server-rendered pages (layout, home, sources, not-found); pages/scan-guide/ holds the manual guide's prose, one module per platform
 src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
 src/netscan.ts       the network check: canaries through the LAN resolver, daily, opt-in (M12.3)
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml

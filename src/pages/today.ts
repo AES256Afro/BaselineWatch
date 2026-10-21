@@ -11,16 +11,12 @@ import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { triageButtons } from "./triage.ts";
+import { parseJson } from "../json.ts";
 
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
-
+/**
+ * The Today page: what to do next, the window's CVEs by the platform they affect, the figures that
+ * matter, two charts, and what needs a person, built for a phone first.
+ */
 const dayMs = 24 * 60 * 60 * 1000;
 /** The day, as YYYY-MM-DD in UTC, `days` days before `now`. */
 const dayOf = (now: Date, days: number): string => new Date(now.getTime() - days * dayMs).toISOString().slice(0, 10);
@@ -42,7 +38,7 @@ export interface GlanceData {
   days: { ticks: string[]; series: Series[] };
 }
 
-export function glanceData(db: DatabaseSync, now: Date): GlanceData {
+function glanceData(db: DatabaseSync, now: Date): GlanceData {
   const since30 = new Date(now.getTime() - 30 * dayMs).toISOString();
   const vendorRows = db
     .prepare(

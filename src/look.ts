@@ -24,8 +24,8 @@ export type Look = (typeof looks)[number];
 export const schemes = ["system", "light", "dark"] as const;
 export type Scheme = (typeof schemes)[number];
 
-export const lookCookie = "bw_look";
-export const schemeCookie = "bw_scheme";
+const lookCookie = "bw_look";
+const schemeCookie = "bw_scheme";
 /** A preference, kept for a year. */
 const cookieSeconds = 365 * 24 * 60 * 60;
 

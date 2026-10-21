@@ -22,7 +22,7 @@ export interface DisaListingItem {
 }
 
 /** The body of the Apex call the library page itself makes. */
-export const listingRequest = JSON.stringify({
+const listingRequest = JSON.stringify({
   namespace: "",
   classname: "@udd/01pRw0000002mOj",
   method: "getCyberDocumentCatalogByDocumentLibrary",
