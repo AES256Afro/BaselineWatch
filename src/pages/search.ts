@@ -7,6 +7,7 @@ import { listVulns } from "../vulns.ts";
 import { listWire } from "../wire.ts";
 import { latestVersions, searchControls } from "./controls.ts";
 import { page } from "./layout.ts";
+import { saveSearchForm } from "./saved.ts";
 
 /**
  * One search from the masthead across everything this instance holds: CVEs, the News, the
@@ -43,6 +44,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
     <div class="wire-top">
       <h1>Search<small>${total ? `${total} hit(s) for “${query}”` : `Nothing for “${query}”`}</small></h1>
       <form method="get" action="/search" class="search" role="search"><label class="visually-hidden" for="q">Search</label><input type="search" id="q" name="q" value="${query}"><button type="submit">Search</button></form>
+      ${saveSearchForm(db, `/search?q=${encodeURIComponent(query)}`, owner)}
     </div>
     <div class="cols">
       <section class="main">

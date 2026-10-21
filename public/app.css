@@ -304,6 +304,9 @@ td.n { font-variant-numeric: tabular-nums; text-align: right; }
 .chip.exploit { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
 .chip.exploit.verified { color: var(--del); background: var(--del-bg); }
 .chip.news { color: var(--acc); border-color: var(--acc); background: transparent; }
+form.save-search { display: flex; gap: 6px; margin: 0 0 10px; }
+form.save-search input { font: inherit; font-size: 13px; padding: 5px 9px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); }
+.saved-note { margin: 0 0 10px; }
 .skip { position: absolute; left: 8px; top: -60px; z-index: 50; background: var(--acc); color: var(--acc-ink); padding: 8px 14px; border-radius: 6px; font-weight: 600; text-decoration: none; }
 .skip:focus { top: 8px; outline: 2px solid var(--ink); outline-offset: 2px; }
 main:focus { outline: none; }

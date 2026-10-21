@@ -8,6 +8,7 @@ import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type VulnFilters, type VulnRow } from "../vulns.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
+import { saveSearchForm } from "./saved.ts";
 import { triageForm } from "./triage.ts";
 import { parseJson } from "../json.ts";
 import { msrcFlags, releaseNoteUrl } from "../msrc.ts";
@@ -118,6 +119,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     </div>
     <div class="wire-top">
       <h1>Vulnerabilities</h1>
+      ${saveSearchForm(db, query(filters, { offset: 0 }), owner)}
       <form method="get" action="/vulnerabilities" class="search" role="search">
         ${filters.watch ? html`<input type="hidden" name="watch" value="1">` : ""}
         ${filters.kev ? html`<input type="hidden" name="kev" value="1">` : ""}
