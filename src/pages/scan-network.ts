@@ -199,5 +199,5 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
   </p>
   ${body}
 </section>`;
-  return page({ title: "This network", active: "scan", content, owner, open, look });
+  return page({ title: "This network", active: "scan-network", content, owner, open, look });
 }

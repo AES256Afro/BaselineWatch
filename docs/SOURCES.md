@@ -451,6 +451,23 @@ adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes, A
 MSRC blog (HTML or bot walls at the documented feed paths), Oracle (refuses non-browser clients),
 the Azure blog (marketing), Google Cloud (404 at the security feed path).
 
+### Lookups on request (not pulled)
+- **Check a domain** (`/scan/domain`, Scan 2.0 S3) asks this server's resolver about the name a
+  visitor typed, asks Cloudflare's resolver over DoH (`cloudflare-dns.com`, already the network
+  check's probe host) for the DNSSEC AD flag, and GETs the domain's own front page, its
+  `/.well-known/security.txt` and `mta-sts.<domain>/.well-known/mta-sts.txt`, plus one TLS
+  handshake on 443 and one plain-HTTP GET to see whether it redirects. Nothing is stored; answers
+  are kept in memory ten minutes; an address gets a dozen checks in that time.
+- **What this page learned about you** (`/scan`, S2) is computed from the request and kept
+  nowhere. Two declared sources serve it: the **Tor exit list**
+  (`https://check.torproject.org/torbulkexitlist`, text, daily, swapped whole into `tor_exits`,
+  migration 0037) so the panel can say a visitor came through Tor; and **Shodan InternetDB**
+  (`https://internetdb.shodan.io/<ip>`, JSON, no key) looked up only when the visitor presses the
+  button for their own public address — ports, hostnames, CPEs, CVEs as Shodan last saw them — six
+  lookups in ten minutes per address, nothing stored.
+- crt.sh, for a certificate-transparency watch on the owner's domains, was probed on 2026-10-21
+  and answered 502 three times; the watch waits for a captured response.
+
 ### Also planned
 - OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); Cisco
   openVuln; Red Hat CSAF/VEX; CERT/CC VINCE Atom `https://kb.cert.org/vuls/atomfeed/`.

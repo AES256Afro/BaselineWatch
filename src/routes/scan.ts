@@ -1,3 +1,10 @@
+import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type DomainReport } from "../domaincheck.ts";
+import { httpGet } from "../http.ts";
+import { renderScanDomain } from "../pages/scan-domain.ts";
+import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
+import { privateAddress } from "../http.ts";
+import { isIP } from "node:net";
+import type { TLSSocket } from "node:tls";
 import type { Request, Response } from "express";
 import path from "node:path";
 
@@ -24,10 +31,79 @@ export function mountScan(r: RouteContext): void {
   // The Scan area (M12.1): the one page with a script, under its own policy; the why page and the
   // probe images stay under the strict one. The probes are one GIF at four names, never cached and
   // readable cross-site, so a second instance named by BW_PROBE_ORIGIN can serve the cross-site set.
-  app.get("/scan", (req, res) => {
+  // The request as this server saw it (S2): the address Express resolved through the trusted
+  // proxies, the headers, and the TLS protocol only when this process ended TLS itself.
+  const facts = (req: Request): RequestFacts => {
+    const socket = req.socket as Partial<TLSSocket>;
+    return { ip: req.ip ?? null, headers: req.headers, protocol: req.protocol, httpVersion: req.httpVersion, tlsProtocol: typeof socket.getProtocol === "function" && socket.encrypted ? (socket.getProtocol() ?? null) : null };
+  };
+  const scanPage = (req: Request, res: Response, extra: { exposure?: Awaited<ReturnType<typeof lookUpExposure>> | null; exposureError?: string | null } = {}): void => {
     res.setHeader("Content-Security-Policy", scanPolicy(config.probeOrigin));
     res.setHeader("Cache-Control", "no-store");
-    res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin, network: networkSummary(db) }));
+    res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin, network: networkSummary(db), seen: whatWasSeen(db, facts(req)), ...extra }));
+  };
+  app.get("/scan", (req, res) => scanPage(req, res));
+  // What this server received from a request the page's script made (S1): the Referer as it
+  // arrived, and the transport. Readable cross-origin so a second origin can answer the same.
+  app.get("/scan/echo", (req, res) => {
+    const f = facts(req);
+    const ip = (f.ip ?? "").replace(/^::ffff:/, "");
+    const one = (v: string | string[] | undefined): string | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Vary", "Origin");
+    res.json({ referer: one(req.headers.referer), origin: one(req.headers.origin), secFetchSite: one(req.headers["sec-fetch-site"]), family: isIP(ip) === 6 ? "IPv6" : isIP(ip) === 4 ? "IPv4" : null, httpVersion: f.httpVersion, protocol: f.protocol, tls: f.tlsProtocol });
+  });
+  // One InternetDB lookup, of a public address, when the visitor asks; a visitor may ask about
+  // their own address a few times, not about the internet.
+  const lookedUp = new Map<string, number[]>();
+  app.post("/scan/exposure", async (req, res) => {
+    const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
+    if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
+    const t = now().getTime();
+    const recent = (lookedUp.get(req.ip ?? "?") ?? []).filter((at) => t - at < 10 * 60_000);
+    if (recent.length >= 6) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
+    lookedUp.set(req.ip ?? "?", [...recent, t]);
+    try {
+      scanPage(req, res, { exposure: await lookUpExposure(ctx.http ?? httpGet, ip) });
+    } catch (error) {
+      scanPage(req, res, { exposureError: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  // Check a domain (S3): lookups only, from this server. A visitor may ask about any public name,
+  // so each answer is kept ten minutes and each address gets a dozen checks in that time.
+  const domainDeps = { dns: ctx.dns ?? nodeDns(), tls: ctx.tls ?? nodeTls(), http: ctx.http ?? httpGet, now };
+  const reports = new Map<string, { at: number; report: DomainReport }>();
+  const asked = new Map<string, number[]>();
+  const tenMinutes = 10 * 60_000;
+  const ownDomains = (): string[] => ((db.prepare("SELECT value FROM app_settings WHERE key = 'scan.domains'").get() as { value: string } | undefined)?.value ?? "").split(",").map((d) => d.trim()).filter((d) => d);
+  app.get("/scan/domain", async (req, res) => {
+    const query = req.query as Record<string, unknown>;
+    const typed = str(query.name, 260);
+    const selectorText = str(query.selectors, 200) ?? "";
+    const base = { ...who(req, res), selectors: selectorText, own: ownDomains() };
+    res.setHeader("Cache-Control", "no-store");
+    if (!typed) return res.type("html").send(renderScanDomain({ ...base, domain: null, report: null, problem: null }));
+    const domain = validDomain(typed);
+    if (!domain) return res.status(400).type("html").send(renderScanDomain({ ...base, domain: typed.slice(0, 80), report: null, problem: `“${typed.slice(0, 80)}” is not a public domain name this check can read.` }));
+    const selectors = parseSelectors(selectorText);
+    const key = `${domain}|${selectors.join(",")}`;
+    const t = now().getTime();
+    const cached = reports.get(key);
+    if (cached && t - cached.at < tenMinutes) return res.type("html").send(renderScanDomain({ ...base, domain, report: cached.report, problem: null }));
+    const recent = (asked.get(req.ip ?? "?") ?? []).filter((at) => t - at < tenMinutes);
+    if (recent.length >= 12) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
+    asked.set(req.ip ?? "?", [...recent, t]);
+    const report = await checkDomain(domain, domainDeps, { selectors });
+    if (reports.size >= 200) reports.delete(reports.keys().next().value as string);
+    reports.set(key, { at: t, report });
+    res.type("html").send(renderScanDomain({ ...base, domain, report, problem: null }));
+  });
+  app.post("/scan/domain/own", requireOwner, (req, res) => {
+    const typed = str(((req.body ?? {}) as Record<string, unknown>).domains, 500) ?? "";
+    const domains = [...new Set(typed.split(",").map((d) => validDomain(d)).filter((d): d is string => d !== null))].slice(0, 20);
+    setSetting(db, "scan.domains", domains.length ? domains.join(",") : null, now().toISOString());
+    res.redirect(303, "/scan/domain");
   });
   app.get("/scan/why", (req, res) => {
     res.type("html").send(renderScanWhy(who(req, res)));
@@ -136,5 +212,6 @@ export function mountScan(r: RouteContext): void {
  */
 function scanPolicy(probeOrigin: string | null): string {
   const img = probeOrigin ? `'self' data: ${probeOrigin}` : "'self' data:";
-  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src 'self' ${resolverCheckSources.join(" ")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
+  const connect = probeOrigin ? `'self' ${probeOrigin} ${resolverCheckSources.join(" ")}` : `'self' ${resolverCheckSources.join(" ")}`;
+  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src ${connect}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 }

@@ -1,6 +1,7 @@
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import type { NetworkSummary } from "../netscan.ts";
+import type { Exposure, Seen } from "../seen.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -18,6 +19,50 @@ export interface ScanPageOptions {
   probeOrigin: string | null;
   /** The network check's latest run (M12.3), for row 05; null when none has run. */
   network: NetworkSummary | null;
+  /** The server's side of the check: what this request told it (S2). */
+  seen: Seen;
+  /** The InternetDB answer for the address the visitor asked about, when they asked; an error text when the lookup failed. */
+  exposure?: Exposure | null;
+  exposureError?: string | null;
+}
+
+/** What this page learned about you: the request's facts on one honest panel, each with what it means. */
+function seenPanel(seen: Seen, exposure: Exposure | null | undefined, exposureError: string | null | undefined): Html {
+  const where = seen.kind === "public" ? "a public address: the one your network shows the internet" : seen.kind === "private" ? "a private address: this server is on your LAN with you, so the internet-facing address is not visible here" : seen.kind === "loopback" ? "this machine itself" : "unknown";
+  const exposureBox = exposure
+    ? html`<div class="exposure">
+        <h3 class="small">What Shodan last saw of ${exposure.ip}</h3>
+        ${exposure.nothing
+          ? html`<p class="small">Nothing: no open port and no known flaw on record for this address. That is the good answer.</p>`
+          : html`<dl class="kv">
+              <dt>Open ports</dt><dd>${exposure.ports.length ? exposure.ports.join(", ") : "none on record"}</dd>
+              <dt>Hostnames</dt><dd>${exposure.hostnames.length ? exposure.hostnames.slice(0, 6).join(", ") : "none"}</dd>
+              <dt>Software (CPE)</dt><dd>${exposure.cpes.length ? exposure.cpes.slice(0, 6).join(", ") : "none"}</dd>
+              <dt>CVEs</dt><dd>${exposure.vulns.length ? exposure.vulns.slice(0, 12).map((v, i) => html`${i ? ", " : ""}<a href="/vulnerabilities/${v}">${v}</a>`) : "none"}${exposure.vulns.length > 12 ? html` and ${exposure.vulns.length - 12} more` : ""}</dd>
+              ${exposure.tags.length ? html`<dt>Tags</dt><dd>${exposure.tags.join(", ")}</dd>` : ""}
+            </dl>`}
+        <p class="small">From Shodan's InternetDB, as it last scanned the address — not a scan from here. An open port here is a service your router or ISP exposes; see <a href="/scan/why#exposure">what the internet sees</a>.</p>
+      </div>`
+    : exposureError
+      ? html`<p class="small">The lookup did not answer: ${exposureError}.</p>`
+      : "";
+  return html`<section class="box seen" id="seen">
+    <h2>What this page learned about you</h2>
+    <p class="small">The server's side of the check: what this request carried, drawn here and kept nowhere.</p>
+    <dl class="kv">
+      <dt>Address</dt><dd><code>${seen.ip ?? "?"}</code> — ${where}${seen.family ? html` (${seen.family})` : ""}${seen.torExit ? html` · <b>a Tor exit</b>: this request came through Tor` : ""}</dd>
+      <dt>Transport</dt><dd>${seen.protocol.toUpperCase()}, HTTP/${seen.httpVersion}${seen.tlsProtocol ? html`, ${seen.tlsProtocol}` : seen.protocol === "https" ? html`, TLS ended at the edge in front of this server` : ""}</dd>
+      <dt>Privacy signals</dt><dd>${seen.gpc ? "Global Privacy Control sent" : "no Global Privacy Control"}${seen.dnt ? " · Do Not Track sent" : " · no Do Not Track"}</dd>
+      <dt>Referrer</dt><dd>${seen.referer ? html`<code>${seen.referer}</code>` : "none sent: this browser told the page nothing about where you came from"}</dd>
+    </dl>
+    <details class="how"><summary>Every header the browser volunteered (${seen.headers.length})</summary>
+      <dl class="kv">${seen.headers.map((h) => html`<dt>${h.name}</dt><dd><code>${h.value}</code></dd>`)}</dl>
+    </details>
+    ${seen.kind === "public"
+      ? html`<form method="post" action="/scan/exposure" class="inline"><input type="hidden" name="ip" value="${seen.ip ?? ""}"><button type="submit">What does the internet see of ${seen.ip}?</button> <span class="small">one lookup of Shodan's InternetDB, on your say-so</span></form>`
+      : html`<p class="small">The internet-facing lookup needs a public address; from the LAN this page sees only your private one.</p>`}
+    ${exposureBox}
+  </section>`;
 }
 
 interface CheckRow {
@@ -102,6 +147,52 @@ function checkRows(probeOrigin: string | null): CheckRow[] {
   ];
 }
 
+/** The rows of what this browser gives away (S1): read in the same run, nothing uploaded, each with its why. */
+function privacyRows(): CheckRow[] {
+  return [
+    {
+      id: "signals",
+      n: "06",
+      title: "Privacy signals",
+      chip: "GPC, DNT",
+      what: html`Reads <code>navigator.globalPrivacyControl</code> and <code>navigator.doNotTrack</code>: whether this browser tells sites not to sell or share, in a form the law in several US states obliges them to honour.`,
+      why: html`Global Privacy Control is the one browser signal with legal weight; a browser that sends it opts you out of sale and sharing on every site that must listen.`,
+    },
+    {
+      id: "webrtc",
+      n: "07",
+      title: "WebRTC addresses",
+      chip: "no STUN",
+      what: html`Opens a peer connection with no servers at all and reads the candidates it offers. Nothing is sent anywhere; the question is what the browser would hand a site that asked.`,
+      why: html`WebRTC can reveal the LAN address and, with a VPN on, the real public one. Current browsers hide the LAN address behind an mDNS name; an old or oddly configured one does not.`,
+    },
+    {
+      id: "fingerprint",
+      n: "08",
+      title: "Fingerprint surface",
+      chip: "canvas, fonts, screen",
+      what: html`Draws a canvas twice and hashes it, measures a dozen common fonts, and reads the screen, time zone, languages, cores and touch points: the surface a tracker reads to recognise a browser without a cookie.`,
+      why: html`A stable, wide surface is an identifier that no cookie setting clears. Brave randomises the canvas; Firefox and the Tor Browser blur the rest; this row says which case this browser is.`,
+    },
+    {
+      id: "referrer",
+      n: "09",
+      title: "Referrer",
+      chip: "as received",
+      what: html`Asks this server (and the second origin, when one is configured) what <code>Referer</code> it received from this page, and compares it with this page's policy.`,
+      why: html`The referrer tells the next site where you came from, sometimes down to the page. The modern default sends the origin only across sites; a page can ask for more or less, and this row shows what actually arrived.`,
+    },
+    {
+      id: "transport",
+      n: "10",
+      title: "Transport",
+      chip: "IPv4/6, HTTP, TLS",
+      what: html`What the server saw of this connection: the address family, the HTTP version, and the TLS version when this server ended TLS itself.`,
+      why: html`Whether a connection arrives over IPv6, and over which HTTP and TLS versions, says what the path between this browser and the site is capable of; it is also what every site you visit can see.`,
+    },
+  ];
+}
+
 function row(check: CheckRow): Html {
   return html`<article class="check" data-check="${check.id}" id="check-${check.id}">
   <span class="n">${check.n}</span>
@@ -116,8 +207,9 @@ function row(check: CheckRow): Html {
 </article>`;
 }
 
-export function renderScan({ owner, open, look, probeOrigin, network }: ScanPageOptions): string {
+export function renderScan({ owner, open, look, probeOrigin, network, seen, exposure, exposureError }: ScanPageOptions): string {
   const rows = checkRows(probeOrigin).map(row);
+  const privacy = privacyRows().map(row);
   const content = html`<section class="scan" id="scan" data-probe-origin="${probeOrigin ?? ""}">
   <p class="crumbs"><a href="/">Home</a><span>›</span><b>Scan</b></p>
   <h1>Scan <span class="arrow">this browser: ads and filtering DNS</span></h1>
@@ -132,6 +224,7 @@ export function renderScan({ owner, open, look, probeOrigin, network }: ScanPage
     <p class="tally"><b id="scan-verdict-count">0</b><span>of 3 protections seen</span></p>
     <h2 id="scan-verdict-title"></h2>
     <p id="scan-verdict-text"></p>
+    <p class="small" id="scan-privacy" hidden></p>
   </div>
   <div class="cols">
     <div class="main">
@@ -158,18 +251,27 @@ export function renderScan({ owner, open, look, probeOrigin, network }: ScanPage
             : html`<span class="state na">Not run from this server</span>`}
         </article>
       </div>
+      <h2 class="rows-head">What this browser gives away <span class="count">read in the same run; nothing uploaded</span></h2>
+      <div class="checks" id="privacy-rows">
+        ${privacy}
+      </div>
       <div class="scan-run">
         <button type="button" class="primary" id="scan-run" disabled>Run the check</button>
         <span class="small" id="scan-status" role="status" aria-live="polite">Waiting for the script.</span>
         <span class="small open-count" id="scan-open" hidden></span>
         <noscript><span class="small">The check is a script in this tab; with scripts off it cannot run. Nothing else on this site needs one.</span></noscript>
       </div>
+      ${seenPanel(seen, exposure, exposureError)}
       <p class="small">After changing a blocker's settings, reload first. In-app browsers (Instagram, Facebook, TikTok) have no blockers and cannot install a DNS profile; open this page in Safari, Chrome or Firefox instead.</p>
     </div>
     <aside class="side">
       <div class="box">
         <h2>Why scan for ads at all</h2>
         <p class="small">Advertising networks deliver code to a device the way any other content arrives, and that path has been used to deliver spyware: Citizen Lab documented an ad-tech pipeline that placed Candiru's spyware through targeted ads. Blocking ad delivery closes one road in; it is not proof of safety, and ads served from the same domain as the content are not blocked by any of this. <a href="/scan/why">The whole argument, with the sources</a>.</p>
+      </div>
+      <div class="box">
+        <h2>Check a domain</h2>
+        <p class="small">Your own domain's mail, DNS and web posture — SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA, HSTS, the certificate, <code>security.txt</code> — read by lookups from this server, each record quoted: <a href="/scan/domain">check a domain</a>.</p>
       </div>
       <div class="box">
         <h2>Do it by hand</h2>
@@ -226,6 +328,11 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     ["bypass", "DNS bypass and interception"],
     ["device", "Reading the device itself"],
     ["harden", "Hardening, in order"],
+    ["signals", "Privacy signals"],
+    ["webrtc", "WebRTC addresses"],
+    ["fingerprint", "The fingerprint surface"],
+    ["referrer", "The referrer"],
+    ["transport", "Transport"],
   ];
   const content = html`<section class="scan-why">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>Why these checks</b></p>
@@ -336,6 +443,45 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     <section class="box">
       <h2>How this page is written</h2>
       <p class="small">Each section rests on a primary document and links to it. Where a sentence is this product's reading rather than the source's words, it says "the check" or "this product". Nothing here is generated by a model. The router, exposure and bypass checks this server will run itself arrive later; the <a href="/scan/guide">guide</a> does them by hand today.</p>
+    </section>
+    <section class="box" id="signals">
+      <h2>Privacy signals</h2>
+      <p>Global Privacy Control is a header and a script property that says "do not sell or share my data". Unlike Do Not Track before it, several US privacy laws oblige a site to treat it as a valid opt-out, and regulators have fined sites that ignored it. The row reads whether this browser sends it; a browser that cannot yet (Chrome, Safari) gets no mark against it, only the fact.</p>
+      <ul class="sources">
+        ${source("https://globalprivacycontrol.org/", "Global Privacy Control", "the specification and the browsers that send it")}
+        ${source("https://oag.ca.gov/privacy/ccpa", "California Attorney General, CCPA", "the opt-out preference signal rules")}
+      </ul>
+    </section>
+    <section class="box" id="webrtc">
+      <h2>WebRTC addresses</h2>
+      <p>To set up a call, a browser gathers the addresses it can be reached at and offers them to the other side. A script can start that gathering without a call and read what is offered: historically the LAN address, and through a VPN the real public one. Every current browser now hides local addresses behind an mDNS name unless the user has granted camera or microphone access. This row gathers with no STUN server at all, so nothing leaves this tab, and reports which case this browser is.</p>
+      <ul class="sources">
+        ${source("https://www.rfc-editor.org/rfc/rfc8828", "RFC 8828, WebRTC IP address handling requirements")}
+        ${source("https://datatracker.ietf.org/doc/draft-ietf-mmusic-mdns-ice-candidates/", "mDNS ICE candidates", "the mechanism that hides the LAN address")}
+      </ul>
+    </section>
+    <section class="box" id="fingerprint">
+      <h2>The fingerprint surface</h2>
+      <p>A tracker that cannot set a cookie reads what the browser reveals about itself — the exact rendering of a canvas, which fonts are installed, the screen, the time zone, the languages, the cores — and from enough of these recognises the same browser again. The surface is not a leak of any one fact; it is the stability and width of all of them together. Brave adds noise to the canvas on every draw; Firefox's resistFingerprinting and the Tor Browser round the rest to common values. The row draws the canvas twice: two different hashes mean the browser is randomising, which is the good answer.</p>
+      <ul class="sources">
+        ${source("https://coveryourtracks.eff.org/", "EFF, Cover Your Tracks", "the test this row is a small version of")}
+        ${source("https://brave.com/privacy-updates/4-fingerprinting-defenses-2.0/", "Brave, fingerprinting defenses", "the farbling the canvas row detects")}
+      </ul>
+    </section>
+    <section class="box" id="referrer">
+      <h2>The referrer</h2>
+      <p>The Referer header tells the next site where you came from. Under the default every current browser now uses, strict-origin-when-cross-origin, another site learns the origin only and a plain-HTTP site learns nothing; a page can ask for more with a policy of its own. This row asks this server what it received, and the second origin when one is configured, so the answer is what arrived rather than what the policy says.</p>
+      <ul class="sources">
+        ${source("https://www.w3.org/TR/referrer-policy/", "W3C, Referrer Policy")}
+        ${source("https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy", "MDN, Referrer-Policy", "the defaults by browser")}
+      </ul>
+    </section>
+    <section class="box" id="transport">
+      <h2>Transport</h2>
+      <p>Whether this connection arrived over IPv6, and over which HTTP and TLS versions, is what the path between this browser and the site can do. None of it is a flaw in itself; it is what every site you visit can see, and the IPv6 answer in particular is one most people have never been shown.</p>
+      <ul class="sources">
+        ${source("https://test-ipv6.com/", "test-ipv6.com", "the fuller IPv6 test, which needs its own dual-stack hosts")}
+      </ul>
     </section>
   </div>
 </section>`;

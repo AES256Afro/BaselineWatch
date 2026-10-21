@@ -117,7 +117,7 @@ export function renderScanGuide(platform: GuidePlatform, { owner, open, look, sc
     </aside>
   </div>
 </section>`;
-  return page({ title: `Do it by hand: ${info.label}`, active: "scan", content, owner, open, look });
+  return page({ title: `Do it by hand: ${info.label}`, active: "scan-guide", content, owner, open, look });
 }
 
 function otherPlatformNote(platform: GuidePlatform): Html {
@@ -183,5 +183,5 @@ export function renderScanGuideIndex({ owner, open, look, scripts }: GuidePageOp
     </aside>
   </div>
 </section>`;
-  return page({ title: "Do it by hand", active: "scan", content, owner, open, look });
+  return page({ title: "Do it by hand", active: "scan-guide", content, owner, open, look });
 }

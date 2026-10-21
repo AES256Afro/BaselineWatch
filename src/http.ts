@@ -36,16 +36,30 @@ export interface HttpResponse {
   etag: string | null;
   lastModified: string | null;
   contentType: string | null;
+  /** Every response header, names lowercased; the security headers a domain check reads come from here. Absent from a hand-made fake. */
+  headers?: Record<string, string>;
 }
 
 export type HttpGet = (url: string, options?: HttpOptions) => Promise<HttpResponse>;
 
 export class HttpError extends Error {
   readonly status: number;
-  constructor(url: string, status: number) {
+  /** The refused response's headers, so a 3xx's Location or a 403's HSTS can still be read. */
+  readonly headers: Record<string, string>;
+  constructor(url: string, status: number, headers: Record<string, string> = {}) {
     super(`HTTP ${status} from ${url}`);
     this.status = status;
+    this.headers = headers;
   }
+}
+
+/** A response's headers as a plain object, names lowercased. */
+export function headersOf(response: Response): Record<string, string> {
+  const out: Record<string, string> = {};
+  response.headers.forEach((value, name) => {
+    out[name.toLowerCase()] = value;
+  });
+  return out;
 }
 
 const maxRedirects = 5;
@@ -177,7 +191,7 @@ export const httpGet: HttpGet = async (url, options = {}) => {
     if (byHand && redirectStatus.has(response.status)) {
       const location = response.headers.get("location");
       await response.body?.cancel().catch(() => {});
-      if (options.redirect === "manual" || !location || hop >= maxRedirects) throw new HttpError(target, response.status);
+      if (options.redirect === "manual" || !location || hop >= maxRedirects) throw new HttpError(target, response.status, headersOf(response));
       target = new URL(location, target).toString();
       // A 303, or a 301/302 answered to a POST, continues as a GET without the body, as browsers do.
       if (response.status === 303 || (method === "POST" && response.status !== 307 && response.status !== 308)) {
@@ -193,11 +207,11 @@ export const httpGet: HttpGet = async (url, options = {}) => {
 
     if (response.status === 304) {
       await response.body?.cancel().catch(() => {});
-      return { url, status: 304, notModified: true, bytes: new Uint8Array(0), etag, lastModified, contentType };
+      return { url, status: 304, notModified: true, bytes: new Uint8Array(0), etag, lastModified, contentType, headers: headersOf(response) };
     }
     if (!response.ok) {
       await response.body?.cancel().catch(() => {});
-      throw new HttpError(target, response.status);
+      throw new HttpError(target, response.status, headersOf(response));
     }
     const declared = Number(response.headers.get("content-length") ?? 0);
     if (declared > maxBytes) {
@@ -205,6 +219,6 @@ export const httpGet: HttpGet = async (url, options = {}) => {
       throw new Error(`response from ${target} declares ${declared} bytes, over the ${maxBytes} limit`);
     }
     const bytes = await readCapped(response, maxBytes, target);
-    return { url, status: response.status, notModified: false, bytes, etag, lastModified, contentType };
+    return { url, status: response.status, notModified: false, bytes, etag, lastModified, contentType, headers: headersOf(response) };
   }
 };

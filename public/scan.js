@@ -402,6 +402,188 @@ export function describeDns(results) {
   return { state: "na", text: "Unknown", lines };
 }
 
+// ------------------------------------------------- what this browser gives away (S1)
+
+/** Global Privacy Control and Do Not Track as this browser sends them. */
+export function describeSignals(nav) {
+  const gpc = nav.globalPrivacyControl === true;
+  const dnt = nav.doNotTrack === "1" || nav.doNotTrack === "yes";
+  const lines = [
+    gpc ? "Sec-GPC: 1 is sent: a legal opt-out of sale and sharing where the law reads it (California, Colorado, Connecticut and more)." : "No Global Privacy Control: sites get no opt-out signal. Firefox, Brave and DuckDuckGo can send it; Chrome and Safari cannot yet.",
+    dnt ? "DNT: 1 is sent. Almost no site honours it, but it is harmless." : "Do Not Track is off, which is the default everywhere now.",
+  ];
+  return { state: gpc ? "ok" : "na", text: gpc ? "GPC sent" : "No GPC", lines };
+}
+
+/** ICE candidates gathered with no STUN server at all: what WebRTC gives away without asking anyone outside. */
+export async function gatherCandidates(view, ms = 1500) {
+  if (typeof view.RTCPeerConnection !== "function") return { supported: false, candidates: [] };
+  const candidates = [];
+  const pc = new view.RTCPeerConnection({ iceServers: [] });
+  try {
+    pc.createDataChannel("probe");
+    pc.onicecandidate = (event) => {
+      if (event.candidate && event.candidate.candidate) candidates.push(String(event.candidate.candidate));
+    };
+    await pc.setLocalDescription(await pc.createOffer());
+    await sleep(view, ms);
+  } catch (error) {
+    return { supported: true, candidates, error: error && error.message ? error.message : String(error) };
+  } finally {
+    pc.close();
+  }
+  return { supported: true, candidates };
+}
+
+const privateIp = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|fe80:|fd[0-9a-f]{2}:|fc[0-9a-f]{2}:)/i;
+
+/** The addresses in the candidate lines, sorted into mDNS names (hidden), private and public. */
+export function judgeWebRtc(result) {
+  if (!result.supported) return { state: "ok", text: "No WebRTC", lines: ["This browser has no RTCPeerConnection, or it is disabled: nothing to give away."] };
+  const addresses = [...new Set(result.candidates.map((c) => c.split(" ")[4]).filter(Boolean))];
+  const mdns = addresses.filter((a) => /\.local$/i.test(a));
+  const ips = addresses.filter((a) => !/\.local$/i.test(a) && !/^(127\.|::1$)/.test(a));
+  const priv = ips.filter((a) => privateIp.test(a));
+  const pub = ips.filter((a) => !privateIp.test(a));
+  if (pub.length) return { state: "bad", text: "Public address exposed", lines: [`A public address is in the candidates: ${pub.join(", ")}. With a VPN on, this is the address the VPN was meant to hide.`] };
+  if (priv.length) return { state: "warn", text: "LAN address exposed", lines: [`A private address is in the candidates: ${priv.join(", ")}. Any site can read it; current browsers hide it behind an mDNS name.`] };
+  if (mdns.length) return { state: "ok", text: "Hidden (mDNS)", lines: [`${mdns.length} candidate(s), each an mDNS name rather than an address: the modern default, and the right one.`] };
+  return { state: "ok", text: "Nothing exposed", lines: [`No host candidate was offered${result.error ? ` (${result.error})` : ""}.`] };
+}
+
+const sampleFonts = ["Arial", "Helvetica Neue", "Times New Roman", "Courier New", "Georgia", "Verdana", "Segoe UI", "Roboto", "Ubuntu", "SF Pro Text", "Calibri", "Noto Sans"];
+
+async function hashOf(view, text) {
+  const digest = await view.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].slice(0, 6).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** A canvas drawn the way fingerprinters draw one, hashed; two draws that differ mean the browser randomises it. */
+async function canvasHash(doc, view) {
+  const canvas = doc.createElement("canvas");
+  canvas.width = 220;
+  canvas.height = 40;
+  const ctx = canvas.getContext("2d");
+  if (!ctx || typeof canvas.toDataURL !== "function") return null;
+  ctx.textBaseline = "top";
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#f60";
+  ctx.fillRect(10, 5, 80, 20);
+  ctx.fillStyle = "#069";
+  ctx.fillText("BaselineWatch ✓ 2026", 2, 15);
+  ctx.strokeStyle = "rgba(102,204,0,0.7)";
+  ctx.beginPath();
+  ctx.arc(150, 20, 15, 0, Math.PI * 2);
+  ctx.stroke();
+  return hashOf(view, canvas.toDataURL());
+}
+
+/** Which of a dozen common fonts are installed, by whether a line of text changes width against the generic family. */
+function fontSurface(doc) {
+  const span = doc.createElement("span");
+  span.textContent = "mmmmmmmmmmlli";
+  span.style.cssText = "position:absolute;left:-9999px;top:0;font-size:48px;white-space:nowrap";
+  doc.body.appendChild(span);
+  const generic = ["monospace", "serif", "sans-serif"];
+  const base = {};
+  for (const g of generic) {
+    span.style.fontFamily = g;
+    base[g] = span.offsetWidth;
+  }
+  const present = sampleFonts.filter((f) =>
+    generic.some((g) => {
+      span.style.fontFamily = `'${f}',${g}`;
+      return span.offsetWidth !== base[g];
+    }),
+  );
+  span.remove();
+  return present;
+}
+
+/** The surface a fingerprinter reads, as this page can read it, each part named. */
+export async function fingerprintSurface(doc, view) {
+  const nav = view.navigator;
+  const screen = view.screen || {};
+  let timezone = null;
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    timezone = null;
+  }
+  return {
+    screen: `${screen.width || "?"}×${screen.height || "?"}×${screen.colorDepth || "?"}`,
+    dpr: view.devicePixelRatio || 1,
+    timezone,
+    languages: (nav.languages || []).join(","),
+    cores: nav.hardwareConcurrency || null,
+    memory: nav.deviceMemory || null,
+    touch: Number(nav.maxTouchPoints || 0),
+    canvas: await canvasHash(doc, view),
+    canvasAgain: await canvasHash(doc, view),
+    fonts: fontSurface(doc),
+  };
+}
+
+export function describeFingerprint(s) {
+  const randomised = Boolean(s.canvas && s.canvasAgain && s.canvas !== s.canvasAgain);
+  const lines = [
+    `Screen ${s.screen} at ${s.dpr}×; ${s.timezone || "no time zone read"}; languages ${s.languages || "?"}; ${s.cores || "?"} cores${s.memory ? `, ${s.memory} GB` : ""}; ${s.touch} touch points.`,
+    randomised ? "Canvas randomised: two draws gave two hashes (Brave's farbling, or a resist-fingerprinting setting)." : s.canvas ? `Canvas stable: the same drawing hashes to ${s.canvas} every time.` : "Canvas unavailable.",
+    `${s.fonts.length} of ${sampleFonts.length} common fonts detectable${s.fonts.length ? `: ${s.fonts.join(", ")}` : ""}.`,
+  ];
+  if (randomised) return { state: "ok", text: "Randomised", lines };
+  lines.push("A surface this stable and this wide lets a site recognise this browser again without a cookie. Brave, Firefox with resistFingerprinting, and the Tor Browser blur it.");
+  return { state: "warn", text: "Stable surface", lines };
+}
+
+/** What the server at `origin` saw of a request from this page: the Referer, and the transport. */
+export async function echoFrom(fetchFn, origin) {
+  const response = await fetchFn(`${origin}/scan/echo`, { credentials: "omit", cache: "no-store", mode: origin ? "cors" : "same-origin" });
+  if (!response.ok) throw new Error(`echo answered ${response.status}`);
+  return response.json();
+}
+
+/** The Referer as this site and (when there is one) another site received it, against this page's policy. */
+export function describeReferrer(same, cross, policy, pageUrl) {
+  let origin = "";
+  try {
+    origin = new URL(pageUrl).origin;
+  } catch {
+    origin = "";
+  }
+  const word = (ref) => (!ref ? "nothing" : ref === pageUrl ? "the full address of this page" : ref.replace(/\/$/, "") === origin ? "the origin only" : ref);
+  const lines = [`To this site: ${word(same ? same.referer : null)}.`];
+  if (cross) lines.push(`To another site: ${word(cross.referer)}.`);
+  else lines.push("No second origin is configured for a cross-site read; the policy line below says what would be sent.");
+  lines.push(`This page's policy: ${policy || "the browser's default"}. Every current browser defaults to strict-origin-when-cross-origin: the origin only across sites, nothing to plain HTTP.`);
+  const crossLeak = Boolean(cross && cross.referer && cross.referer.replace(/\/$/, "") !== origin);
+  if (crossLeak) return { state: "warn", text: "Full URL cross-site", lines };
+  if (!same) return { state: "na", text: "Unreadable", lines };
+  return { state: "ok", text: cross ? (cross.referer ? "Origin only" : "Nothing cross-site") : "Policy as set", lines };
+}
+
+/** How this page reached the site, from the server's echo and the browser's own connection object. */
+export function describeTransport(echo, nav) {
+  if (!echo) return { state: "na", text: "Unreadable", lines: ["The echo did not answer, so nothing is known about the transport."] };
+  const lines = [`Reached this site over ${echo.family || "an unknown family"}, HTTP/${echo.httpVersion || "?"}${echo.tls ? ` on ${echo.tls}` : echo.protocol === "https" ? " (TLS ended at the edge in front of the server)" : ""}.`];
+  if (echo.family === "IPv4") lines.push("No IPv6 on this path: either the network has none or the browser preferred IPv4.");
+  const conn = nav.connection;
+  if (conn && conn.effectiveType) lines.push(`The browser rates the connection ${conn.effectiveType}${conn.saveData ? ", with Save-Data on" : ""}.`);
+  return { state: echo.protocol === "https" ? "ok" : "warn", text: `${echo.family || "?"} · HTTP/${echo.httpVersion || "?"}`, lines };
+}
+
+/** The privacy tally: GPC, WebRTC hidden, fingerprint randomised, referrer trimmed. */
+export function privacyLine(sig, rtc, fp, ref) {
+  const marks = [
+    [sig.state === "ok", "GPC sent"],
+    [rtc.state === "ok", "WebRTC hidden"],
+    [fp.state === "ok", "fingerprint randomised"],
+    [ref.state === "ok", "referrer trimmed"],
+  ];
+  const seen = marks.filter(([on]) => on).length;
+  return { seen, text: `Privacy: ${seen} of ${marks.length} — ${marks.map(([on, name]) => `${name} ${on ? "✓" : "✗"}`).join(", ")}.` };
+}
+
 // ------------------------------------------------------- verdict and fixes
 
 /**
@@ -511,7 +693,7 @@ export function wire(doc, view) {
   async function run() {
     button.disabled = true;
     const started = view.performance.now();
-    for (const id of ["hiding", "requests", "dns"]) setRow(doc, root, id, "run", "Running", []);
+    for (const id of ["hiding", "requests", "dns", "signals", "webrtc", "fingerprint", "referrer", "transport"]) setRow(doc, root, id, "run", "Running", []);
 
     const env = environment(nav);
     const brave = await isBrave(nav);
@@ -537,6 +719,45 @@ export function wire(doc, view) {
     const results = await Promise.all([checkAdGuard(fetchFn, randomLabel(view.crypto)), checkNextDns(fetchFn, randomLabel(view.crypto))]);
     const d = describeDns(results);
     setRow(doc, root, "dns", d.state, d.text, d.lines);
+
+    status.textContent = "Running: privacy signals…";
+    const sig = describeSignals(nav);
+    setRow(doc, root, "signals", sig.state, sig.text, sig.lines);
+    status.textContent = "Running: WebRTC…";
+    const rtc = judgeWebRtc(await gatherCandidates(view));
+    setRow(doc, root, "webrtc", rtc.state, rtc.text, rtc.lines);
+    status.textContent = "Running: fingerprint surface…";
+    let fp;
+    try {
+      fp = describeFingerprint(await fingerprintSurface(doc, view));
+    } catch (error) {
+      fp = { state: "na", text: "Unreadable", lines: [`The surface could not be read: ${error && error.message ? error.message : String(error)}`] };
+    }
+    setRow(doc, root, "fingerprint", fp.state, fp.text, fp.lines);
+    status.textContent = "Running: referrer and transport…";
+    let echoSame = null;
+    let echoCross = null;
+    try {
+      echoSame = await echoFrom(fetchFn, "");
+    } catch {
+      echoSame = null;
+    }
+    if (crossOrigin) {
+      try {
+        echoCross = await echoFrom(fetchFn, crossOrigin);
+      } catch {
+        echoCross = null;
+      }
+    }
+    const ref = describeReferrer(echoSame, echoCross, doc.referrerPolicy, view.location.href);
+    setRow(doc, root, "referrer", ref.state, ref.text, ref.lines);
+    const tr = describeTransport(echoSame, nav);
+    setRow(doc, root, "transport", tr.state, tr.text, tr.lines);
+    const privacy = doc.getElementById("scan-privacy");
+    if (privacy) {
+      privacy.textContent = privacyLine(sig, rtc, fp, ref).text;
+      privacy.hidden = false;
+    }
 
     const v = verdictOf(h, r, d);
     const banner = doc.getElementById("scan-verdict");
