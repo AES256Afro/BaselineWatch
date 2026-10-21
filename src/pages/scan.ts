@@ -1,6 +1,7 @@
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import type { NetworkSummary } from "../netscan.ts";
+import type { Exposure, Seen } from "../seen.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -18,6 +19,50 @@ export interface ScanPageOptions {
   probeOrigin: string | null;
   /** The network check's latest run (M12.3), for row 05; null when none has run. */
   network: NetworkSummary | null;
+  /** The server's side of the check: what this request told it (S2). */
+  seen: Seen;
+  /** The InternetDB answer for the address the visitor asked about, when they asked; an error text when the lookup failed. */
+  exposure?: Exposure | null;
+  exposureError?: string | null;
+}
+
+/** What this page learned about you: the request's facts on one honest panel, each with what it means. */
+function seenPanel(seen: Seen, exposure: Exposure | null | undefined, exposureError: string | null | undefined): Html {
+  const where = seen.kind === "public" ? "a public address: the one your network shows the internet" : seen.kind === "private" ? "a private address: this server is on your LAN with you, so the internet-facing address is not visible here" : seen.kind === "loopback" ? "this machine itself" : "unknown";
+  const exposureBox = exposure
+    ? html`<div class="exposure">
+        <h3 class="small">What Shodan last saw of ${exposure.ip}</h3>
+        ${exposure.nothing
+          ? html`<p class="small">Nothing: no open port and no known flaw on record for this address. That is the good answer.</p>`
+          : html`<dl class="kv">
+              <dt>Open ports</dt><dd>${exposure.ports.length ? exposure.ports.join(", ") : "none on record"}</dd>
+              <dt>Hostnames</dt><dd>${exposure.hostnames.length ? exposure.hostnames.slice(0, 6).join(", ") : "none"}</dd>
+              <dt>Software (CPE)</dt><dd>${exposure.cpes.length ? exposure.cpes.slice(0, 6).join(", ") : "none"}</dd>
+              <dt>CVEs</dt><dd>${exposure.vulns.length ? exposure.vulns.slice(0, 12).map((v, i) => html`${i ? ", " : ""}<a href="/vulnerabilities/${v}">${v}</a>`) : "none"}${exposure.vulns.length > 12 ? html` and ${exposure.vulns.length - 12} more` : ""}</dd>
+              ${exposure.tags.length ? html`<dt>Tags</dt><dd>${exposure.tags.join(", ")}</dd>` : ""}
+            </dl>`}
+        <p class="small">From Shodan's InternetDB, as it last scanned the address — not a scan from here. An open port here is a service your router or ISP exposes; see <a href="/scan/why#exposure">what the internet sees</a>.</p>
+      </div>`
+    : exposureError
+      ? html`<p class="small">The lookup did not answer: ${exposureError}.</p>`
+      : "";
+  return html`<section class="box seen" id="seen">
+    <h2>What this page learned about you</h2>
+    <p class="small">The server's side of the check: what this request carried, drawn here and kept nowhere.</p>
+    <dl class="kv">
+      <dt>Address</dt><dd><code>${seen.ip ?? "?"}</code> — ${where}${seen.family ? html` (${seen.family})` : ""}${seen.torExit ? html` · <b>a Tor exit</b>: this request came through Tor` : ""}</dd>
+      <dt>Transport</dt><dd>${seen.protocol.toUpperCase()}, HTTP/${seen.httpVersion}${seen.tlsProtocol ? html`, ${seen.tlsProtocol}` : seen.protocol === "https" ? html`, TLS ended at the edge in front of this server` : ""}</dd>
+      <dt>Privacy signals</dt><dd>${seen.gpc ? "Global Privacy Control sent" : "no Global Privacy Control"}${seen.dnt ? " · Do Not Track sent" : " · no Do Not Track"}</dd>
+      <dt>Referrer</dt><dd>${seen.referer ? html`<code>${seen.referer}</code>` : "none sent: this browser told the page nothing about where you came from"}</dd>
+    </dl>
+    <details class="how"><summary>Every header the browser volunteered (${seen.headers.length})</summary>
+      <dl class="kv">${seen.headers.map((h) => html`<dt>${h.name}</dt><dd><code>${h.value}</code></dd>`)}</dl>
+    </details>
+    ${seen.kind === "public"
+      ? html`<form method="post" action="/scan/exposure" class="inline"><input type="hidden" name="ip" value="${seen.ip ?? ""}"><button type="submit">What does the internet see of ${seen.ip}?</button> <span class="small">one lookup of Shodan's InternetDB, on your say-so</span></form>`
+      : html`<p class="small">The internet-facing lookup needs a public address; from the LAN this page sees only your private one.</p>`}
+    ${exposureBox}
+  </section>`;
 }
 
 interface CheckRow {
@@ -116,7 +161,7 @@ function row(check: CheckRow): Html {
 </article>`;
 }
 
-export function renderScan({ owner, open, look, probeOrigin, network }: ScanPageOptions): string {
+export function renderScan({ owner, open, look, probeOrigin, network, seen, exposure, exposureError }: ScanPageOptions): string {
   const rows = checkRows(probeOrigin).map(row);
   const content = html`<section class="scan" id="scan" data-probe-origin="${probeOrigin ?? ""}">
   <p class="crumbs"><a href="/">Home</a><span>›</span><b>Scan</b></p>
@@ -164,6 +209,7 @@ export function renderScan({ owner, open, look, probeOrigin, network }: ScanPage
         <span class="small open-count" id="scan-open" hidden></span>
         <noscript><span class="small">The check is a script in this tab; with scripts off it cannot run. Nothing else on this site needs one.</span></noscript>
       </div>
+      ${seenPanel(seen, exposure, exposureError)}
       <p class="small">After changing a blocker's settings, reload first. In-app browsers (Instagram, Facebook, TikTok) have no blockers and cannot install a DNS profile; open this page in Safari, Chrome or Firefox instead.</p>
     </div>
     <aside class="side">

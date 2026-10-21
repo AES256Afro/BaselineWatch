@@ -458,6 +458,13 @@ the Azure blog (marketing), Google Cloud (404 at the security feed path).
   `/.well-known/security.txt` and `mta-sts.<domain>/.well-known/mta-sts.txt`, plus one TLS
   handshake on 443 and one plain-HTTP GET to see whether it redirects. Nothing is stored; answers
   are kept in memory ten minutes; an address gets a dozen checks in that time.
+- **What this page learned about you** (`/scan`, S2) is computed from the request and kept
+  nowhere. Two declared sources serve it: the **Tor exit list**
+  (`https://check.torproject.org/torbulkexitlist`, text, daily, swapped whole into `tor_exits`,
+  migration 0037) so the panel can say a visitor came through Tor; and **Shodan InternetDB**
+  (`https://internetdb.shodan.io/<ip>`, JSON, no key) looked up only when the visitor presses the
+  button for their own public address — ports, hostnames, CPEs, CVEs as Shodan last saw them — six
+  lookups in ten minutes per address, nothing stored.
 - crt.sh, for a certificate-transparency watch on the owner's domains, was probed on 2026-10-21
   and answered 502 three times; the watch waits for a captured response.
 
