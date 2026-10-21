@@ -196,7 +196,8 @@ describe("a licence-restricted source", () => {
     expect(browse).toContain(`${canaryCount} entries`);
     expect(browse).toContain("Entries shown to the owner only.");
     expect(browse).not.toContain('class="browse"');
-    expect(browse).not.toContain('type="search"');
+    // The browse page's own search box is withheld; the masthead's box, which searches nothing restricted, stays.
+    expect(browse).not.toContain('class="search"');
     none(browse, "the browse page");
 
     // An entry page draws the same thing for every ref, looked up or not: the URL is no oracle for what is on the list.

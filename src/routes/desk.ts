@@ -24,6 +24,7 @@ import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand,
 import { renderBranding } from "../pages/branding.ts";
 
 import { safeBack } from "../paths.ts";
+import { readSbom } from "../sbom.ts";
 import { productVersion } from "../version.ts";
 import { pullSettings } from "../ingest.ts";
 import { isPlatformKey, platformKeys } from "../platforms.ts";
@@ -68,6 +69,43 @@ export function mountDesk(r: RouteContext): void {
     db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, kind === "platform" ? value.toLowerCase() : value, label, now().toISOString());
     const changed = recomputeWatchHits(db);
     res.append("Set-Cookie", flashHeader(`Added ${value}; ${changed} CVE(s) re-marked.`, secureCookies(req)));
+    res.redirect(303, "/watchlist");
+  });
+  // An SBOM's components as package entries, by file: the one upload the watchlist takes.
+  app.post("/watchlist/sbom", requireOwner, async (req, res) => {
+    const boundary = boundaryOf(req.headers["content-type"]);
+    if (!boundary) return res.status(400).type("text").send("Send the SBOM as multipart/form-data.");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const limit = 16 * 1024 * 1024;
+    try {
+      for await (const chunk of req.iterator({ destroyOnReturn: false })) {
+        size += (chunk as Buffer).length;
+        if (size > limit) {
+          res.status(413).type("text").send("That file is larger than 16 MB.");
+          return;
+        }
+        chunks.push(chunk as Buffer);
+      }
+    } catch {
+      return res.status(400).type("text").send("The upload did not complete.");
+    }
+    const form = parseMultipart(Buffer.concat(chunks), boundary);
+    const file = form.files.find((f) => f.field === "sbom") ?? form.files[0];
+    if (!file || file.bytes.length === 0) return res.status(400).type("text").send("No SBOM was attached.");
+    let reading;
+    try {
+      reading = readSbom(new TextDecoder("utf-8").decode(file.bytes));
+    } catch (error) {
+      return res.status(400).type("text").send(error instanceof Error ? error.message : "That file could not be read.");
+    }
+    const label = (reading.name ?? file.filename.replace(/\.[^.]+$/, "")).slice(0, 60) || null;
+    const insert = db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES ('package', ?, ?, ?)");
+    let added = 0;
+    const at = now().toISOString();
+    for (const p of reading.packages) added += Number(insert.run(p.value, label, at).changes);
+    const changed = added ? recomputeWatchHits(db) : 0;
+    res.append("Set-Cookie", flashHeader(`Imported ${added} package(s) from ${label ?? "the SBOM"} (${reading.packages.length - added} already listed, ${reading.skipped} component(s) without a package URL an advisory feed covers); ${changed} CVE(s) re-marked.`, secureCookies(req)));
     res.redirect(303, "/watchlist");
   });
   app.post("/watchlist/:id/delete", requireOwner, (req, res) => {

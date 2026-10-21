@@ -16,7 +16,7 @@ import { latestRegisterChanges, page } from "./layout.ts";
  * the Register treats it.
  */
 
-interface LatestVersion {
+export interface LatestVersion {
   sourceId: string;
   name: string;
   restricted: number;
@@ -29,7 +29,7 @@ interface LatestVersion {
 }
 
 /** The current version of every standard whose entries are controls, newest publication per document key. */
-function latestVersions(db: DatabaseSync): LatestVersion[] {
+export function latestVersions(db: DatabaseSync): LatestVersion[] {
   return db
     .prepare(
       `SELECT s.id AS sourceId, s.name, s.restricted, s.licence, d.id AS documentId, d.document_key AS documentKey,
@@ -62,7 +62,7 @@ export interface ControlHit {
  * FTS5: the requirement tables carry no full-text index, the corpus is tens of thousands of rows
  * rather than millions, and a label search ("ac-2", "SV-2542") is what people actually type.
  */
-function searchControls(db: DatabaseSync, versions: LatestVersion[], q: string, limit = 200): ControlHit[] {
+export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: string, limit = 200): ControlHit[] {
   const ids = versions.map((v) => v.documentId);
   if (ids.length === 0 || q.trim() === "") return [];
   const like = `%${q.trim().toLowerCase()}%`;

@@ -20,6 +20,7 @@ export type Area =
   | "vulnerabilities"
   | "patch-tuesday"
   | "feeds"
+  | "search"
   | "triage"
   | "atlas"
   | "watchlist"
@@ -60,6 +61,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   appearance: { label: "Appearance", path: "/appearance", blurb: "the look and the colour scheme" },
   branding: { label: "Branding", path: "/branding", blurb: "the mark this instance wears" },
   guide: { label: "Guide", path: "/guide" },
+  search: { label: "Search", path: "/search" },
 };
 
 /** The ladder, in order, then the tools that cut across it. */
@@ -169,6 +171,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
         </div>
       </details>${link("scan")}
     </nav>
+    <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"></form>
     <div class="meta">${meta ?? ""}</div>
     <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
       <summary>Desk</summary>
