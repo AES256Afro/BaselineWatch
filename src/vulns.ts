@@ -550,6 +550,8 @@ export function recomputeWatchHits(db: DatabaseSync): number {
 export interface VulnFilters {
   watch?: boolean;
   kev?: boolean;
+  /** Only CVEs with at least one row in the exploits table (src/exploits.ts). */
+  exploit?: boolean;
   /** One of src/platforms.ts' ids: the CVEs whose CPEs, vendors, products or description put them on that platform. */
   platform?: PlatformKey | undefined;
   minCvss?: number | undefined;
@@ -584,6 +586,7 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
     params.push(`%"${filters.platform}"%`);
   }
   if (filters.kev) clauses.push("v.kev = 1");
+  if (filters.exploit) clauses.push("EXISTS (SELECT 1 FROM exploits e WHERE e.cve_id = v.cve_id)");
   if (filters.minCvss !== undefined) {
     clauses.push("v.cvss_score >= ?");
     params.push(filters.minCvss);
@@ -663,11 +666,12 @@ export function vulnChanges(db: DatabaseSync, cveId: string, limit = 50): VulnCh
   return db.prepare("SELECT * FROM vuln_changes WHERE cve_id = ? ORDER BY observed_at DESC, id DESC LIMIT ?").all(cveId, limit) as unknown as VulnChangeRow[];
 }
 
-export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; kev: number; watch: number; changedSince: number; newSince: number } {
+export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; kev: number; exploit: number; watch: number; changedSince: number; newSince: number } {
   const n = (sql: string, ...params: string[]) => (db.prepare(sql).get(...params) as { n: number }).n;
   return {
     total: n("SELECT COUNT(*) AS n FROM vulns"),
     kev: n("SELECT COUNT(*) AS n FROM vulns WHERE kev = 1"),
+    exploit: n("SELECT COUNT(DISTINCT cve_id) AS n FROM exploits WHERE cve_id IN (SELECT cve_id FROM vulns)"),
     watch: n("SELECT COUNT(*) AS n FROM vulns WHERE watch_hit = 1"),
     // Any change observed in the window, first sightings included: the same set ?changed=1 lists and the Today tile counts.
     changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ?", sinceIso),

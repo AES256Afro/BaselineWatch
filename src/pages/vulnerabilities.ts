@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { exploitSourceLabel, exploitTallies, exploitWording, type ExploitTally } from "../exploits.ts";
 import { fixContext, fixesFor, type Fix } from "../fix.ts";
 import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
@@ -26,6 +27,12 @@ function severityHref(row: VulnRow): string {
   return level === "critical" || level === "high" || level === "medium" || level === "low" ? `/vulnerabilities?severity=${level}` : `/vulnerabilities?min_cvss=${row.cvss_score}`;
 }
 
+/** "exploit", or "exploit ×3": a public exploit is known, with the title saying where and whether any is verified. */
+function exploitChip(t: ExploitTally | undefined): Html {
+  if (!t) return html``;
+  return html`<span class="chip exploit${t.verified ? " verified" : ""}" title="${exploitWording(t)}">exploit${t.count > 1 ? ` ×${t.count}` : ""}</span>`;
+}
+
 function epssText(row: VulnRow): string {
   if (row.epss === null) return "—";
   return `${(row.epss * 100).toFixed(row.epss < 0.01 ? 2 : 1)}%`;
@@ -36,6 +43,7 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   const p = new URLSearchParams();
   if (f.watch) p.set("watch", "1");
   if (f.kev) p.set("kev", "1");
+  if (f.exploit) p.set("exploit", "1");
   if (f.minCvss !== undefined) p.set("min_cvss", String(f.minCvss));
   if (f.severity) p.set("severity", f.severity);
   if (f.minEpss !== undefined) p.set("min_epss", String(f.minEpss));
@@ -69,13 +77,14 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.label;
+  const none = !filters.watch && !filters.kev && !filters.exploit && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.label;
   // A band the Today page sent us into, shown as a chip that takes it off again.
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
   // The window a chip names: the Today page's 3 or 7 days read as such, so the figure clicked and the list shown agree.
   const windowWord = (h: number | undefined): string => (h === undefined || h === 24 ? "24 h" : h % 24 === 0 ? `${h / 24} days` : `${h} h`);
 
+  const exploits = exploitTallies(db, rows.map((r) => r.cve_id));
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
     const products = parseJson<string[]>(r.products_json, []);
@@ -83,7 +92,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ") || packages.slice(0, 3).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
     const watch = parseJson<string[]>(r.watch_labels_json, []);
     return html`<tr class="${r.watch_hit ? "hit" : ""}">
-      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
+      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
       <td>${severityChip(r)}</td>
       <td class="n" title="EPSS ${r.epss ?? ""} · percentile ${r.epss_percentile ?? ""}">${epssText(r)}</td>
       <td class="who">${who || html`<span class="small">no CPE yet</span>`}</td>
@@ -98,6 +107,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       <a href="/vulnerabilities?new=1"><small>New, 24 h</small><b>${figure(stats.newSince)}</b></a>
       <a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small><b>${figure(stats.changedSince)}</b></a>
       <a href="/vulnerabilities?kev=1"><small>In KEV</small><b>${figure(stats.kev)}</b></a>
+      <a href="/vulnerabilities?exploit=1"><small>Public exploit</small><b>${figure(stats.exploit)}</b></a>
       <a href="/vulnerabilities?watch=1"><small>Match watchlist</small><b>${figure(stats.watch)}</b></a>
       <a href="/sources#src-first-epss"><small>EPSS scores</small><b>${epssDate ?? "—"}</b></a>
     </div>
@@ -106,15 +116,17 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       <form method="get" action="/vulnerabilities" class="search" role="search">
         ${filters.watch ? html`<input type="hidden" name="watch" value="1">` : ""}
         ${filters.kev ? html`<input type="hidden" name="kev" value="1">` : ""}
+        ${filters.exploit ? html`<input type="hidden" name="exploit" value="1">` : ""}
         <label class="visually-hidden" for="q">Search CVEs</label>
         <input type="search" id="q" name="q" value="${filters.q ?? ""}" placeholder="CVE id, vendor, product or words in the description">
         <button type="submit">Search</button>
       </form>
     </div>
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, label: undefined, offset: 0 })}">All</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, label: undefined, offset: 0 })}">All</a>
       <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
+      <a class="${filters.exploit ? "on" : ""}" href="${query(filters, { exploit: !filters.exploit, offset: 0 })}">Public exploit</a>
       <a class="${filters.minCvss === 9 ? "on" : ""}" href="${query(filters, { minCvss: filters.minCvss === 9 ? undefined : 9, offset: 0 })}">Critical (9+)</a>
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
       <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, changedHours: undefined, offset: 0 })}">Changed, ${windowWord(filters.changedSince ? filters.changedHours : undefined)}</a>
@@ -143,11 +155,17 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
 function fixPanel(fix: Fix): Html {
+  const exploits = fix.exploits.length
+    ? html`<h3 class="small">Public exploits <span class="count">${fix.exploits.length}</span></h3>
+        <ul class="refs">${fix.exploits.slice(0, 20).map((e) => html`<li><a href="${e.url}" ${newTab}>${e.title}</a> <span class="small">${exploitSourceLabel[e.source_id] ?? e.source_id}${e.verified ? " · verified" : ""}${e.published_at ? html` · ${e.published_at.slice(0, 10)}` : ""}</span></li>`)}${fix.exploits.length > 20 ? html`<li class="small">and ${fix.exploits.length - 20} more</li>` : ""}</ul>
+        <p class="small">Each line links to the index that lists it, never to exploit code. Exploit-DB's "verified" and a Metasploit rank of good or better count as verified; a PoC-in-GitHub entry is a repository's claim.</p>`
+    : html``;
   if (fix.empty) {
-    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
+    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p>${exploits}</section>`;
   }
   return html`<section class="box fix">
     <h2>Fix</h2>
+    ${exploits}
     ${fix.kev?.requiredAction
       ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
       : ""}
@@ -204,6 +222,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           ${severityChip(row)}
           ${row.kev ? html`<span class="chip kev">KEV${row.kev_due_date ? html` · due ${row.kev_due_date}` : ""}</span>` : ""}
           ${row.kev_ransomware ? html`<span class="chip kev">ransomware</span>` : ""}
+          ${exploitChip(exploitTallies(db, [row.cve_id]).get(row.cve_id))}
           ${watch.length ? html`<span class="chip mine">your stack: ${watch.join(", ")}</span>` : ""}
           ${ssvc.exploitation ? html`<span class="chip ${ssvc.exploitation === "active" ? "kev" : ""}">SSVC exploitation: ${ssvc.exploitation}</span>` : ""}
           <span class="chip">${row.vuln_status ?? "status unknown"}</span>
