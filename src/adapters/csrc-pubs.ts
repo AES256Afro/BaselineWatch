@@ -162,7 +162,9 @@ export function parsePublicationPage(html: string, url: string): PublicationPage
 }
 
 async function readPage(http: HttpGet, url: string): Promise<PublicationPage> {
-  const response = await http(url, { headers: { accept: "text/html" }, timeoutMs: 60_000 });
+  // The successor and draft pages are named by the page before them, so each is a URL read out
+  // of a document: public hosts only, the way every derived URL is fetched.
+  const response = await http(url, { headers: { accept: "text/html" }, timeoutMs: 60_000, publicOnly: true });
   return parsePublicationPage(new TextDecoder("utf-8").decode(response.bytes), url);
 }
 

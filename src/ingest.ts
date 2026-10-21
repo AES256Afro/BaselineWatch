@@ -70,7 +70,9 @@ export async function ingestDocumentTarget(
         return { ...base, status: "unchanged", documentId: seen.id, versionLabel: seen.version_label };
       }
     }
-    const response = await deps.http(target.url, { ...(adapter.headers ? { headers: adapter.headers } : {}), timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024 });
+    // A target's URL was read out of the publisher's listing or page, not chosen by the owner: a
+    // compromised or mistaken page could name this server's own LAN, so only a public host will do.
+    const response = await deps.http(target.url, { ...(adapter.headers ? { headers: adapter.headers } : {}), timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024, publicOnly: true });
     const fetchedAt = deps.now().toISOString();
     const sha256 = sha256Hex(response.bytes);
     const existing = db.prepare("SELECT id FROM snapshots WHERE source_id = ? AND document_key = ? AND sha256 = ?").get(source.id, target.key, sha256) as { id: number } | undefined;
