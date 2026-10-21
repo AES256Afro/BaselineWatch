@@ -91,6 +91,9 @@ src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation
 src/housekeeping.ts  what is kept, what goes, and the weekly pass that does it (M13)
 src/agenda.ts        what to do next, and the window's CVEs by the platform they affect
+src/feeds.ts         the News and the table as RSS, sources as OPML, KEV due dates as a calendar, robots and sitemap
+src/trending.ts      which CVEs the News is talking about, counted by source
+src/msrc.ts          Microsoft's Security Update Guide per CVE: the KB per product, exploited, disclosed
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1

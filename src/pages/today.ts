@@ -9,6 +9,7 @@ import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
+import { trendingCves } from "../trending.ts";
 import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { triageButtons } from "./triage.ts";
 import { parseJson } from "../json.ts";
@@ -112,6 +113,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
     .all() as { title: string; url: string | null; published_at: string | null; source_id: string; source_name: string }[];
   const failing = db.prepare("SELECT id, name, last_error FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { id: string; name: string; last_error: string | null }[];
   const alerts = recentAlerts(db, 5);
+  const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
   const digest = latestDigest(db);
   const glance = glanceData(db, now);
   // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
@@ -198,6 +200,12 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         </section>
       </section>
       <aside class="side">
+        <section class="box">
+          <h2><a href="/vulnerabilities">Talked about</a> <span class="count">7 days, by sources</span></h2>
+          ${talked.length
+            ? html`<ul class="talked">${talked.map((c) => html`<li>${c.known ? html`<a href="/vulnerabilities/${c.cveId}">${c.cveId}</a>` : html`<span title="Not in this instance's table yet">${c.cveId}</span>`} <span class="small">${c.sources} sources · ${c.url ? html`<a href="${c.url}" ${newTabIf(c.url)}>${c.headline}</a>` : c.headline}</span></li>`)}</ul>`
+            : html`<p class="small">No CVE named by two sources this week.</p>`}
+        </section>
         <section class="box">
           <h2><a href="/sources">Sources</a></h2>
           ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span></li>`)}</ul>` : html`<p class="small">Every enabled source answered on its last fetch.</p>`}
