@@ -31,6 +31,7 @@ import { mountFeeds } from "./routes/feeds.ts";
 import { mountNews } from "./routes/news.ts";
 
 import { mountScan } from "./routes/scan.ts";
+import { mountSearch } from "./routes/search.ts";
 import { mountStandards } from "./routes/standards.ts";
 import { mountReading } from "./routes/today.ts";
 import { mountVulnerabilities } from "./routes/vulnerabilities.ts";
@@ -310,6 +311,7 @@ export function createApp(ctx: AppContext): Express {
   mountBaselines(routeContext);
   mountVulnerabilities(routeContext);
   mountFeeds(routeContext);
+  mountSearch(routeContext);
   mountDesk(routeContext);
 
   app.use((req, res) => {
