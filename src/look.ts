@@ -80,20 +80,21 @@ export function lookAttributes(choice: LookChoice): Html {
   return html` data-look="${choice.look}"${choice.scheme === "system" ? "" : html` data-scheme="${choice.scheme}"`}`;
 }
 
-const schemeLabels: Record<Scheme, { label: string; title: string }> = {
+export const schemeLabels: Record<Scheme, { label: string; title: string }> = {
   system: { label: "Auto", title: "Follow the device's light or dark setting" },
   light: { label: "Light", title: "Always light" },
   dark: { label: "Dark", title: "Always dark" },
 };
-const lookLabels: Record<Look, { label: string; title: string }> = {
+export const lookLabels: Record<Look, { label: string; title: string }> = {
   register: { label: "Paper", title: "The Register look: paper, serif headings, one column" },
   console: { label: "Console", title: "The Console look: dense panels, charts and large figures" },
 };
 
 /**
- * The switch in the masthead: two small forms, one for the scheme and one for the look, each a
- * row of buttons of which the current one is pressed. One click applies, no script involved: the
- * button's own name and value are the whole request, and the page comes back where it was.
+ * The switch, now on the Appearance page under the Desk rather than in the masthead: two small
+ * forms, one for the scheme and one for the look, each a row of buttons of which the current one
+ * is pressed. One click applies, no script involved: the button's own name and value are the
+ * whole request, and the page comes back where it was.
  */
 export function lookSwitch(state: LookState): Html {
   const button = (name: "look" | "scheme", value: string, current: boolean, text: { label: string; title: string }): Html =>

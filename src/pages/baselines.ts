@@ -47,8 +47,8 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
           <p class="small">CIS Benchmark text (your own upload, your own licence) and anything a model wrote. Microsoft's values appear only as the page quotes them. Each export carries the publishers' attributions.</p>
         </section>
         <section class="box">
-          <h2><a href="/platforms">Test plans</a></h2>
-          <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>; from the templates alone: <a href="/baselines/ios/tests">iOS</a>, <a href="/baselines/ipados/tests">iPadOS</a>, <a href="/baselines/android/tests">Android</a>, <a href="/baselines/collaboration/tests">Collaboration</a>. Each release and the hardware it runs on are on the <a href="/platforms">Platforms</a> page.</p>
+          <h2><a href="/fleet">Test plans</a></h2>
+          <p class="small">What to test on a new OS release so the baseline still holds, by area, from the STIG and mSCP checks plus the owner's templates: <a href="/baselines/windows/tests">Windows</a>, <a href="/baselines/macos/tests">macOS</a>, <a href="/baselines/linux/tests">Linux</a>; from the templates alone: <a href="/baselines/ios/tests">iOS</a>, <a href="/baselines/ipados/tests">iPadOS</a>, <a href="/baselines/android/tests">Android</a>, <a href="/baselines/collaboration/tests">Collaboration</a>. Each release and the hardware it runs on are on the <a href="/fleet">Fleet</a> page.</p>
         </section>
       </aside>
     </div>`;

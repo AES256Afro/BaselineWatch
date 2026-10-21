@@ -21,7 +21,7 @@ describe("the all-standards catalog", () => {
     expect(response.status).toBe(200);
     const text = await response.text();
     expect(text).toContain("<h1>All standards</h1>");
-    expect(text).toContain('<a href="/standards" aria-current="page">All standards</a>');
+    expect(text).toContain('<a class="entry" href="/standards" aria-current="page"><b>Standards</b>');
     expect(text).toContain('<a href="#by-os">By operating system</a>');
     expect(text).toContain('<a href="#nist">NIST publications</a>');
     expect(text).toContain('<a href="#nasa">NASA (CSET / OCIO)</a>');

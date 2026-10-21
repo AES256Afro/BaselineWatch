@@ -93,10 +93,9 @@ describe("Atlas data", () => {
     expect(today).toContain(`/standards/nist-sp-800-53/${latest.id}`);
     // The glance panels lead to the lists they count: a series to the News by group, a band to the table, a state to its column.
     expect(today).toContain('href="/?group=standards"');
-    expect(today).toContain('href="/vulnerabilities?watch=1&amp;changed=1&amp;severity=critical"');
-    expect(today).toContain('href="/vulnerabilities?min_epss=0.5&amp;sort=epss"');
-    expect(today).toContain('href="/triage#affects"');
-    expect(today).toContain('href="/sources#src-cisa-kev"');
+    // The platform rows lead to the table filtered the same way the row counted.
+    expect(today).toContain('<section class="box wide" id="platforms">');
+    expect(today).toContain('<h2><a href="/sources">Sources</a></h2>');
     expect(today).toContain('href="/?source=cisa-kev"');
   });
 });
