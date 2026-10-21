@@ -1,6 +1,28 @@
-import { describe, expect, it } from "vitest";
-import { describeFingerprint, describeReferrer, describeSignals, describeTransport, judgeWebRtc, privacyLine } from "../public/scan.js";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { beforeAll, describe, expect, it } from "vitest";
 import { startTestApp } from "./helpers.ts";
+
+type Row = { state: string; text: string; lines: string[] };
+interface PrivacyScript {
+  describeSignals(nav: Record<string, unknown>): Row;
+  judgeWebRtc(result: { supported: boolean; candidates: string[]; error?: string }): Row;
+  describeFingerprint(surface: Record<string, unknown>): Row;
+  describeReferrer(same: { referer: string | null } | null, cross: { referer: string | null } | null, policy: string, pageUrl: string): Row;
+  describeTransport(echo: Record<string, unknown> | null, nav: Record<string, unknown>): Row;
+  privacyLine(sig: { state: string }, rtc: { state: string }, fp: { state: string }, ref: { state: string }): { seen: number; text: string };
+}
+let s: PrivacyScript;
+beforeAll(async () => {
+  // The script is plain JS for the browser; the test loads it the way the other script test does.
+  s = (await import(pathToFileURL(path.join(import.meta.dirname, "..", "public", "scan.js")).href)) as PrivacyScript;
+});
+const describeSignals: PrivacyScript["describeSignals"] = (nav) => s.describeSignals(nav);
+const judgeWebRtc: PrivacyScript["judgeWebRtc"] = (r) => s.judgeWebRtc(r);
+const describeFingerprint: PrivacyScript["describeFingerprint"] = (x) => s.describeFingerprint(x);
+const describeReferrer: PrivacyScript["describeReferrer"] = (a, b, c, d) => s.describeReferrer(a, b, c, d);
+const describeTransport: PrivacyScript["describeTransport"] = (a, b) => s.describeTransport(a, b);
+const privacyLine: PrivacyScript["privacyLine"] = (a, b, c, d) => s.privacyLine(a, b, c, d);
 
 /** What this browser gives away (Scan 2.0, S1): the judges, on what browsers actually hand a page. */
 
