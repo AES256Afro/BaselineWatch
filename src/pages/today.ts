@@ -1,13 +1,14 @@
 import type { DatabaseSync } from "node:sqlite";
-import { bars, donut, lines, stacked, type Series, type Slice, type Tone } from "../charts.ts";
+import { donut, lines, type Series, type Slice, type Tone } from "../charts.ts";
 import { latestDigest } from "../digest.ts";
 import { endingSupport, loadFleet } from "../fleet.ts";
 import { html, newTabIf } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
-import { stateLabel, triageCounts, triageInbox, triageStates, type TriageState } from "../triage.ts";
+import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
+import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { triageButtons } from "./triage.ts";
 
 function parseJson<T>(text: string | null, fallback: T): T {
@@ -24,15 +25,6 @@ const dayMs = 24 * 60 * 60 * 1000;
 const dayOf = (now: Date, days: number): string => new Date(now.getTime() - days * dayMs).toISOString().slice(0, 10);
 
 const vendorTones: Tone[] = ["cyan", "purple", "amber", "green", "acc"];
-const severityOrder: { key: string; label: string; tone: Tone }[] = [
-  { key: "critical", label: "Critical", tone: "red" },
-  { key: "high", label: "High", tone: "amber" },
-  { key: "medium", label: "Medium", tone: "cyan" },
-  { key: "low", label: "Low", tone: "green" },
-  { key: "unscored", label: "Unscored", tone: "mute" },
-];
-const triageTones: Record<TriageState, Tone> = { new: "cyan", reviewing: "purple", affects: "red", done: "green", dismissed: "mute" };
-const statusTones: Record<string, Tone> = { ok: "green", unchanged: "cyan", error: "red" };
 
 export interface SourceGlance {
   id: string;
@@ -45,17 +37,11 @@ export interface SourceGlance {
 export interface GlanceData {
   /** KEV additions in the last 30 days by vendor, the five largest then the rest as one. */
   vendors: Slice[];
-  /** Wire items a day for the last 14 days, by source group. */
+  /** News items a day for the last 14 days, by source group. */
   days: { ticks: string[]; series: Series[] };
-  /** Watched CVEs that changed in the window, by CVSS severity. */
-  severity: Slice[];
-  /** Every CVE known, by EPSS band. */
-  epss: Slice[];
-  triage: Slice[];
-  sources: SourceGlance[];
 }
 
-export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceData {
+export function glanceData(db: DatabaseSync, now: Date): GlanceData {
   const since30 = new Date(now.getTime() - 30 * dayMs).toISOString();
   const vendorRows = db
     .prepare(
@@ -90,60 +76,19 @@ export function glanceData(db: DatabaseSync, now: Date, since: string): GlanceDa
   }));
   const ticks = dayKeys.map((d) => d.slice(5));
 
-  const severityRows = db
-    .prepare(
-      `SELECT COALESCE(LOWER(cvss_severity), 'unscored') AS sev, COUNT(*) AS n FROM vulns
-       WHERE watch_hit = 1 AND cve_id IN (SELECT DISTINCT cve_id FROM vuln_changes WHERE observed_at >= ?) GROUP BY sev`,
-    )
-    .all(since) as { sev: string; n: number }[];
-  const known = new Set(severityOrder.map((s) => s.key));
-  // The bars count the window asked for, so their links carry it: 24 h is the "1" the links always had.
-  const windowHours = Math.round((now.getTime() - new Date(since).getTime()) / (60 * 60 * 1000));
-  const changed = windowHours === 24 ? "1" : String(windowHours);
-  const severity: Slice[] = severityOrder.map((s) => ({
-    label: s.label,
-    tone: s.tone,
-    value: severityRows.filter((r) => (known.has(r.sev) ? r.sev === s.key : s.key === "unscored")).reduce((n, r) => n + r.n, 0),
-    href: `/vulnerabilities?watch=1&changed=${changed}&severity=${s.key}`,
-  }));
-
-  const epssRow = db
-    .prepare(
-      `SELECT SUM(CASE WHEN epss IS NULL THEN 1 ELSE 0 END) AS unscored,
-              SUM(CASE WHEN epss < 0.01 THEN 1 ELSE 0 END) AS low,
-              SUM(CASE WHEN epss >= 0.01 AND epss < 0.1 THEN 1 ELSE 0 END) AS mid,
-              SUM(CASE WHEN epss >= 0.1 AND epss < 0.5 THEN 1 ELSE 0 END) AS high,
-              SUM(CASE WHEN epss >= 0.5 THEN 1 ELSE 0 END) AS top
-       FROM vulns`,
-    )
-    .get() as { unscored: number | null; low: number | null; mid: number | null; high: number | null; top: number | null };
-  const epss: Slice[] = [
-    { label: "Over 50%", value: epssRow.top ?? 0, tone: "red", href: "/vulnerabilities?min_epss=0.5&sort=epss" },
-    { label: "10 to 50%", value: epssRow.high ?? 0, tone: "amber", href: "/vulnerabilities?min_epss=0.1&max_epss=0.5&sort=epss" },
-    { label: "1 to 10%", value: epssRow.mid ?? 0, tone: "cyan", href: "/vulnerabilities?min_epss=0.01&max_epss=0.1&sort=epss" },
-    { label: "Under 1%", value: epssRow.low ?? 0, tone: "green", href: "/vulnerabilities?max_epss=0.01&sort=epss" },
-    { label: "No score", value: epssRow.unscored ?? 0, tone: "mute", href: "/vulnerabilities?epss=none" },
-  ];
-
-  const counts = triageCounts(db);
-  // Dismissed cards have no column of their own; the Done column says how many were set aside.
-  const triage: Slice[] = triageStates.map((state) => ({ label: stateLabel[state], value: counts[state], tone: triageTones[state], href: `/triage#${state === "dismissed" ? "done" : state}` }));
-
-  const sources = db
-    .prepare(
-      `SELECT id, name, last_status AS status, last_fetch_at AS at FROM sources WHERE enabled = 1
-       ORDER BY CASE WHEN last_fetch_at IS NULL THEN 1 ELSE 0 END, last_fetch_at DESC, name LIMIT 8`,
-    )
-    .all() as unknown as SourceGlance[];
-
-  return { vendors, days: { ticks, series }, severity, epss, triage, sources };
+  return { vendors, days: { ticks, series } };
 }
 
 /**
- * The Today page: what changed since you last looked, summary before detail, built for a phone
- * first. The window is a number of hours (?since=24, 72, 168), 24 by default. The tiles say the
- * four figures that matter; the glance panels under them show the shape of the week in charts
- * drawn on the server; then what needs a person, in the order it arrived.
+ * The Today page: what to do, then what changed, built for a phone first. The window is a number
+ * of hours (?since=24, 72, 168), 24 by default.
+ *
+ * It opens on the short ordered list a person can act on (src/agenda.ts) rather than on five
+ * counts, because a count says how much happened and nothing about what to do with it. Under it
+ * the window's CVEs are grouped by the platform they affect, with the platforms this fleet runs
+ * first, so "twelve Windows, three of them exploited" is one line rather than a table to read.
+ * The counts keep their row below that, and two charts rather than six: the rest of the space
+ * belongs to lists that lead somewhere.
  */
 export function renderToday(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; hours: number; look: LookState }): string {
   const { db, owner, open, now, hours, look } = options;
@@ -171,34 +116,60 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const failing = db.prepare("SELECT id, name, last_error FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { id: string; name: string; last_error: string | null }[];
   const alerts = recentAlerts(db, 5);
   const digest = latestDigest(db);
-  const glance = glanceData(db, now, since);
+  const glance = glanceData(db, now);
   // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
-  const ending = endingSupport(loadFleet(), now, 90);
+  const fleet = loadFleet();
+  const ending = endingSupport(fleet, now, 90);
   const windowLink = (h: number) => html`<a class="${hours === h ? "on" : ""}" href="/today?since=${h}">${h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}</a>`;
+  // What to act on, and what the window's CVEs are about: the fleet decides which platforms lead.
+  const actions: Action[] = nextActions(db, { since, now });
+  const breakdown = platformBreakdown(db, since, fleet);
 
   const content = html`
     <div class="wire-top">
       <h1>Since ${sinceLabel}<small>What changed in the things you watch. Everything else is in the <a href="/">News</a>.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
+    ${actions.length
+      ? html`<section class="box wide" id="next">
+          <h2>What to do next <span class="count">${actions.length} thing(s)</span></h2>
+          <ol class="next">${actions.map(
+            (a, i) => html`<li>
+              <span class="rank">${i + 1}</span>
+              <span class="what"><b>${a.href.startsWith("http") ? html`<a href="${a.href}" ${newTabIf(a.href)}>${a.title}</a>` : html`<a href="${a.href}">${a.title}</a>`}</b>
+                <span class="why">${a.why}</span></span>
+              ${owner && a.itemId !== null ? html`<span class="act">${triageButtons({ kind: "item", id: a.itemId }, null, `/today?since=${hours}`, { compact: true })}</span>` : ""}
+            </li>`,
+          )}</ol>
+        </section>`
+      : html`<section class="box wide" id="next"><h2>What to do next</h2><p class="small">Nothing in the last ${windowWord} is waiting on a decision: no overdue triage, no KEV addition, no watched CVE that got worse, no standard release with changes. The window above widens to three or seven days.</p></section>`}
+    <section class="box wide" id="platforms">
+      <h2>Vulnerabilities by platform <span class="count">${breakdown.total} changed in ${windowWord}</span></h2>
+      ${breakdown.rows.length
+        ? html`<ul class="plat-rows">${breakdown.rows.map((row) => {
+            const top = breakdown.rows[0]?.total ?? 1;
+            const width = Math.max(2, Math.min(100, (row.total / Math.max(1, top)) * 100));
+            const kevWidth = Math.min(width, (row.kev / Math.max(1, top)) * 100);
+            return html`<li>
+              <span class="pname"><a href="/vulnerabilities?platform=${row.key}&amp;changed=${hours === 24 ? 1 : hours}">${row.label}</a></span>
+              <span class="pn">${row.total}</span>
+              <svg class="pbar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true"><rect class="t-acc" x="0" y="0" width="${width.toFixed(1)}" height="8" rx="1"></rect><rect class="t-red" x="0" y="0" width="${kevWidth.toFixed(1)}" height="8" rx="1"></rect></svg>
+              <span class="mine">${row.kev ? html`<a class="chip kev" href="/vulnerabilities?platform=${row.key}&kev=1">${row.kev} KEV</a> ` : ""}${row.mine ? html`${row.mine} on your watchlist ` : ""}${row.inFleet ? html`<span class="chip ok">in your fleet</span>` : ""}</span>
+            </li>`;
+          })}</ul>
+          ${breakdown.unplaced ? html`<p class="small">${breakdown.unplaced} of them name no platform this site can read from their CPEs, vendor and product names or description; they are in <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">the table</a> with the rest.</p>` : ""}`
+        : html`<p class="small">No CVE changed in the last ${windowWord}.</p>`}
+    </section>
     <div class="stats today">
       <a class="tile ${kev ? "bad" : ""}" href="/?kind=kev"><small>KEV additions</small><b>${kev}</b><span>${kevMine} match your stack</span></a>
       <a class="tile" href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}"><small>Watched CVEs changed</small><b>${watched}</b><span>in the window</span></a>
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
-      <a class="tile ${ending.length ? "warn" : ""}" href="/platforms"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
+      <a class="tile ${ending.length ? "warn" : ""}" href="/fleet"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
     </div>
-    <div class="glance" aria-label="At a glance">
+    <div class="glance two" aria-label="At a glance">
       <section class="box"><h2><a href="/?kind=kev">Known exploited</a> <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>
-      <section class="box"><h2><a href="/">Wire</a> <span class="count">items a day, 14 days</span></h2>${lines(glance.days.series, { label: "Wire items a day, 14 days", ticks: glance.days.ticks })}</section>
-      <section class="box"><h2><a href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}">Watched CVEs</a> <span class="count">changed, ${windowWord}, by CVSS</span></h2>${bars(glance.severity, { label: `Watched CVEs changed in ${windowWord}, by CVSS severity` })}<p class="small"><a href="/vulnerabilities?watch=1&changed=${hours === 24 ? 1 : hours}">In the table</a></p></section>
-      <section class="box"><h2><a href="/vulnerabilities?sort=epss">Vulnerabilities</a> <span class="count">by EPSS band</span></h2>${donut(glance.epss, { label: "Vulnerabilities by EPSS band" })}</section>
-      <section class="box"><h2><a href="/triage">Triage</a> <span class="count">by state</span></h2>${stacked(glance.triage, { label: "Triage by state" })}<p class="small"><a href="/triage">The board</a></p></section>
-      <section class="box"><h2><a href="/sources">Sources</a> <span class="count">last fetch</span></h2>
-        ${glance.sources.length
-          ? html`<ul class="src-glance">${glance.sources.map((s) => html`<li><span><i class="dot t-${statusTones[s.status ?? ""] ?? "mute"}"></i><a href="/sources#src-${s.id}">${s.name}</a></span><span class="when">${s.at ? relativeTime(s.at, now) : "never"}${s.status && s.status !== "ok" ? html` · ${s.status}` : ""}</span></li>`)}</ul>`
-          : html`<p class="small">No source has been fetched yet.</p>`}
-      </section>
+      <section class="box"><h2><a href="/">News</a> <span class="count">items a day, 14 days</span></h2>${lines(glance.days.series, { label: "News items a day, 14 days", ticks: glance.days.ticks })}</section>
     </div>
     <div class="cols">
       <section class="main">

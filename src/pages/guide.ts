@@ -12,10 +12,84 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
     <h1>How to read this site</h1>
     <p class="lede">
       This site does two jobs: it gathers security news in one timeline, and it keeps a change
-      register for the security standards themselves. The terms below appear all over both; each
-      one links to the page where you can see it in use.
+      register for the security standards themselves. The ladder below is the frame for all of
+      it — standard, baseline, control, setting — and the terms after it appear all over both
+      jobs; each one links to the page where you can see it in use.
     </p>
     <div class="guide">
+      <section class="box wide" id="ladder">
+        <h2>Standard, baseline, control, setting</h2>
+        <p>
+          Four words do most of the work in this field, and they are used loosely nearly
+          everywhere. On this site they mean exactly one thing each, and the menus are built from
+          them: <a href="/standards">Standards</a>, <a href="/baselines">Baselines</a>,
+          <a href="/controls">Controls</a>.
+        </p>
+        <ol class="ladder">
+          <li>
+            <b>Standard</b> <span class="rung">the rulebook</span>
+            <p>
+              A publisher's document saying how things are to be done: NIST SP 800-53, SP 800-171,
+              a DISA STIG, a CIS Benchmark, FedRAMP's rules, NASA's policy set. It is written for
+              everyone, not for your machine. <a href="/standards">Standards</a> lists the ones
+              this instance tracks, and <a href="/register">what changed</a> in each release.
+            </p>
+          </li>
+          <li>
+            <b>Baseline</b> <span class="rung">the set of rules chosen for your kind of system</span>
+            <p>
+              A standard is too large to apply whole, so a baseline selects from it: SP 800-53's
+              Low, Moderate and High sets, the DISA STIG baseline for a platform, Microsoft's
+              security baseline for a Windows release. <a href="/baselines">Baselines</a> builds
+              the strictest published one for a platform and lets you trim it.
+            </p>
+          </li>
+          <li>
+            <b>Control</b> <span class="rung">one specific rule in that set</span>
+            <p>
+              AC-2 Account Management, IA-2 Multi-Factor Authentication, CM-6 Secure
+              Configuration. A control says what must be true, not how to make it true on a Mac.
+              <a href="/controls">Controls</a> is one rule at a time: its text, the rules that
+              implement it, and how it has changed.
+            </p>
+          </li>
+          <li>
+            <b>Configuration setting</b> <span class="rung">how the control is enforced on a device or service</span>
+            <p>
+              The registry value, the mobileconfig payload key, the Intune settings-catalog
+              definition, the shell command in a STIG's fix text. One control usually becomes
+              several settings, and they differ per platform — which is why a
+              <a href="/baselines">baseline export</a> comes in a Jamf, Intune or Linux flavour.
+            </p>
+          </li>
+        </ol>
+        <h3>The same ladder, twice</h3>
+        <div class="ladder-pair">
+          <div>
+            <h4>A house</h4>
+            <p><b>Standard</b>: build houses this way.<br>
+              <b>Baseline</b>: for this kind of house, these requirements.<br>
+              <b>Controls</b>: a lock on the door, a smoke detector, an alarm.<br>
+              <b>Setting</b>: this lock, fitted this way, on this door.</p>
+          </div>
+          <div>
+            <h4>A federal system</h4>
+            <p><b>Standard</b>: NIST SP 800-53, and the agency's own policy above it.<br>
+              <b>Baseline</b>: the Moderate set, plus the agency's tailoring.<br>
+              <b>Control</b>: IA-2, multi-factor authentication.<br>
+              <b>Setting</b>: Intune requires a PIV-derived certificate for every user.</p>
+          </div>
+        </div>
+        <p class="small">
+          An agency's own layer sits between the standard and the baseline: NASA's OCIO
+          Cybersecurity Standards and Engineering Team takes NIST checklists, CIS Benchmarks, DoD
+          STIGs and vendor guidance and issues NASA-approved configuration specifications from
+          them. Those specifications are internal, so this site tracks the public layer instead —
+          the quarterly <a href="/standards/nasa-cyber-ref">NASA Cybersecurity Policy Reference</a>,
+          which lists every NASA cybersecurity document with its dates and status, and diffs like
+          any other standard.
+        </p>
+      </section>
       <section class="box" id="areas">
         <h2>The three reading areas</h2>
         <p>

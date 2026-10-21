@@ -960,6 +960,21 @@ numbers above. This milestone makes growth bounded, the backup proven, and a rel
   restore has been done and dated, a tag that forgets its changelog entry fails CI, and the next
   stuck source is a notification within the day.
 
+*Shipped 2026-10-21, the day this was written.* The three missing changelog entries were written
+from their commits. `src/housekeeping.ts` carries the retention policy by source kind and the
+weekly pass (sweep, free the blobs nothing references, `ANALYZE`, `PRAGMA optimize`, the FTS
+`optimize`, `VACUUM` when a tenth of the file is free), surfaced on `/health`, on the Sources
+page under "What this instance keeps" and as a digest line, with the budget in ADMIN.md. The
+release is `npm run release <version>`, with `npm run check` and CI refusing a tree whose newest
+changelog entry is missing, still the draft or for another version, and a tag that names a
+version this tree is not; CI runs `npm run check` whole, so the manifest check runs there too.
+`docs/DEPLOY.md` carries the restore rehearsal as five steps that touch nothing live,
+`scripts/health-diff.ts` gives the verdict, and `npm run rehearsal -- today "…"` records it, with
+the digest asking until one is recorded and again ninety days later. **Still open in M13**: the
+pipeline tile on Today, `/metrics`, the alert when a source has failed for a day, the nightly
+feed and template probes in CI, dropping the `nvd-cve-history` row — and the rehearsal itself,
+which is a person's job on BigBox.
+
 ### M14: The scan's other eyes (close M12.4 to M12.7)
 
 The browser check, the guides, the lists and the network check shipped in three days. The three
@@ -1053,6 +1068,17 @@ colour schemes is a lot of contrast to leave unchecked.
   release's change list, Vulnerabilities), measured and recorded; the Cloudflare cache rules for
   `/img/<hash>` and `/assets/` written into DEPLOY.md; `robots.txt`, a sitemap and per-page
   canonical and OpenGraph tags, which a public teaching site needs and this one has none of.
+*Shipped 2026-10-21, out of order, because the owner asked for it:* the ladder — standard,
+baseline, control, configuration setting — is taught on `/guide#ladder` with a worked example and
+where an agency's own layer (NASA's CSET) fits, and both menus are built from it: Standards is
+Standards · Baselines · Controls, each with the line that says what it is, with STIGs, the change
+register and the Atlas under a rule; the Desk holds the owner's fleet and work, then the instance,
+then how it is drawn. `/controls` is new (one search across every standard's current version),
+Platforms is renamed Fleet at `/fleet`, and the masthead's look switch moved to an Appearance
+page. Today opens on what to do next and groups the window's CVEs by the platform they affect
+(migration 0032 stores it on the CVE). **Still open here**: the accessibility pass, the masthead
+search, the weight budget, and `robots.txt`, a sitemap and the canonical and OpenGraph tags.
+
 - **Depends on**: nothing, but it is worth taking after M15 so the personalised pages are in the
   pass. **Thin slice**: the accessibility pass and the masthead search.
 - **Done when**: every page is usable by keyboard and by a screen reader in both schemes and all

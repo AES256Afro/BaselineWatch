@@ -73,7 +73,7 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
   const content = html`
     <div class="cols">
       <section class="main">
-        <h1>Platforms</h1>
+        <h1>Fleet</h1>
         <p class="lede">Platform engineering, one place: each operating system the team runs, each release of it with the vendor's support dates, the hardware each release runs on, the baselines published for it, and what the Register already holds. Every row leads to a test plan for that release; the builder platforms lead to their baseline too. The facts are the vendors', kept in <code>data/platforms.yaml</code> with the page each came from.</p>
         ${fleet.errors.length ? html`<div class="notice error">data/platforms.yaml: ${fleet.errors.join("; ")}</div>` : ""}
         ${ending.length ? html`<div class="notice warn"><b>Support ending within 90 days:</b> ${ending.map((e, i) => html`${i ? " · " : ""}<a href="#${e.release.platform}">${e.release.label}</a> (${e.clause}, ${e.days === 0 ? "today" : `in ${e.days} day${e.days === 1 ? "" : "s"}`})`)}</div>` : ""}
@@ -94,5 +94,5 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
         </section>
       </aside>
     </div>`;
-  return page({ title: "Platforms", active: "platforms", content, meta: html`${fleet.releases.length} releases`, owner, open, look });
+  return page({ title: "Fleet", active: "fleet", content, meta: html`${fleet.releases.length} releases`, owner, open, look });
 }

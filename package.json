@@ -13,12 +13,15 @@
     "fetch": "node --disable-warning=ExperimentalWarning src/cli.ts fetch",
     "backfill": "node --disable-warning=ExperimentalWarning src/cli.ts backfill",
     "relink": "node --disable-warning=ExperimentalWarning src/cli.ts relink",
+    "rehearsal": "node --disable-warning=ExperimentalWarning src/cli.ts rehearsal",
+    "release": "node --disable-warning=ExperimentalWarning scripts/release.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test scripts public",
     "check:manifest": "node scripts/validate-manifest.mjs",
+    "check:release": "node --disable-warning=ExperimentalWarning scripts/release.ts --check",
     "check:feeds": "node --disable-warning=ExperimentalWarning scripts/probe-feeds.mjs",
-    "check": "npm run typecheck && npm run test && npm run lint && npm run check:manifest"
+    "check": "npm run typecheck && npm run test && npm run lint && npm run check:manifest && npm run check:release"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",

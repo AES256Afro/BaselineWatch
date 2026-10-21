@@ -3,10 +3,12 @@ import path from "node:path";
 import { createApp, pullSettings } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
+import { maybeRunHousekeeping } from "./housekeeping.ts";
 import { listSources } from "./ingest.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
+import { recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 
@@ -24,6 +26,9 @@ for (const source of listSources(db)) {
   const out = relinkSource(db, source, new Date().toISOString());
   if (out.relinked > 0) console.log(`[register] ${source.id}: ${out.relinked} version(s) relinked into publication order`);
 }
+// Migration 0032 added the platform a CVE affects; rows that predate it are filled once here.
+const platformed = recomputePlatforms(db);
+if (platformed > 0) console.log(`[vulns] read the platform of ${platformed} CVE(s)`);
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");
 }
@@ -44,6 +49,9 @@ if (config.scheduler) {
     digest: { period: config.digest, hour: config.digestHour, timeZone: config.timeZone },
     // The LAN scan (M12.3) runs itself daily once the owner has turned it on at /scan/network.
     network: () => maybeRunNetworkScan(db, { timeZone: config.timeZone, baseUrl: config.baseUrl, transport: parseNotifyUrl(config.notifyUrl), log: (line) => console.log(line) }),
+    // The weekly pass (M13): what is past its keep window goes, the store loses the blobs nothing
+    // points at any more, and the file is rewritten when it has gone loose.
+    housekeeping: () => maybeRunHousekeeping(db, config.dataDir, { log: (line) => console.log(line) }),
   });
   if (config.notifyUrl && !parseNotifyUrl(config.notifyUrl)) {
     console.log("[notify] BW_NOTIFY_URL is not an ntfy://, gotify:// or http(s):// address; alerts will be logged as unconfigured");

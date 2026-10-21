@@ -2,6 +2,47 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.37.0 — 2026-10-20
+
+- **Brand the instance from the Desk.** A page at `/branding` puts any of the marks kept in
+  `docs/mockups/logo` on the masthead or in the browser tab with one click, or takes an uploaded
+  image. The bytes land in the content-addressed blob store the way article images do and
+  `app_settings` carries each image's hash and its served type, so nothing new lands on disk and
+  there is no migration. The type is read from the file's own magic numbers and never from the
+  upload's declared Content-Type, and an SVG qualifies only as one of the repository's own marks,
+  because an SVG can carry a script. The logo and favicon routes sit before the read gate, so a
+  closed instance's sign-in page wears the brand too; the masthead's URLs carry the image's hash
+  and are cached hard, while the fixed `/favicon.ico` is cached for an hour, or a replacement would
+  never reach the tab.
+- The container copies only `src`, `public` and `data`, so the Branding page first deployed with an
+  empty gallery. `docs/mockups/logo` now ships in the image, re-included through the same
+  `.dockerignore` exception pattern `data/test-plans` uses.
+
+## 0.36.1 — 2026-10-20
+
+- **Every catalog row leads to its publisher.** Clicking a document on `/standards` had nowhere to
+  go but this site. The NASA reference now keeps each row's own hyperlink from the quarterly Word
+  document — NODIS for a directive, CSET or NTSS for a NASA standard, CSRC for a FIPS or SP — and
+  the catalog's ids lead there; the per-operating-system and NIST tables gain a Source column
+  linking the file each document was read from (the STIG zip, the mSCP commit, the CSRC PDF); a
+  control page shows "Published at" when its row carries a link; and the drafts list shows up to a
+  hundred, each linked to its CSRC page.
+
+## 0.36.0 — 2026-10-20
+
+- **All the standards in one place.** `/standards` is now the all-standards catalog ("All
+  standards" in the Standards menu, in place of the redirect to `/register`): per operating system
+  the current, new and draft standards already tracked, the NIST publications with CSRC's drafts
+  open for comment, and NASA's cybersecurity document set. Chris's "CSET" is NASA OCIO's
+  Cybersecurity Standards and Engineering Team, and its ASCS standards are NASA-internal, so the
+  public layer joins the Register instead: the quarterly Cybersecurity Policy Reference on nasa.gov,
+  which lists every NASA cybersecurity document with its dates and status notes, is source
+  `nasa-cyber-ref` (migration 0031) and each quarterly edition diffs like any standard. The fixture
+  replays the real 2026 Q3 document, 271 rows.
+- **The digest's links are links.** The Digest page stored its URLs as plain text, so nothing under
+  Digest was clickable and an old digest carried localhost addresses; the body's URLs are now
+  links, and this instance's own (and localhost's) are written as paths.
+
 ## 0.35.0 — 2026-10-20
 
 - **M12.3, the network check.** Once a day, opt-in (`netscan.enabled`; it sends packets on the
