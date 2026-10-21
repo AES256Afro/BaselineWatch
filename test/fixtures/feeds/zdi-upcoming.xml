@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+  <channel>
+    <atom:link href="https://www.zerodayinitiative.com/rss/upcoming/" rel="self" type="application/xml" />
+    <title><![CDATA[ZDI: Upcoming Advisories]]></title>
+    <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+    <description><![CDATA[The following is a list of vulnerabilities discovered by Zero Day Initiative researchers
+                   that are yet to be publicly disclosed. The affected vendor has been contacted on the specified
+                   date and while they work on a patch for these vulnerabilities, TrendAI customers are
+                   protected from exploitation by IPS filters delivered ahead of public disclosure. Once the affected
+                   vendor patches the vulnerability, we publish an accompanying security advisory which
+                   describes the issue, including links to the vendor's fixes.
+        ]]></description>
+    <pubDate>Wed, 21 Oct 2026 17:01:53 -0500</pubDate>
+    <copyright>Trend Micro, all rights reserved</copyright>
+    <language>en</language>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-33882: FreeBSD]]></title>
+      <guid isPermaLink="false">ZDI-CAN-33882</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 8.8 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H">AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H</a> severity vulnerability discovered by 'Anonymous' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-34495: Clam AntiVirus]]></title>
+      <guid isPermaLink="false">ZDI-CAN-34495</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.8 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H">AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'Alex Williams from Pellera Technologies' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-34068: Linux]]></title>
+      <guid isPermaLink="false">ZDI-CAN-34068</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 8.8 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H">AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H</a> severity vulnerability discovered by 'Leonardo Mazzorana, z0v3r1n' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-33759: X.Org]]></title>
+      <guid isPermaLink="false">ZDI-CAN-33759</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.0 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H">AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'Anonymous' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-34825: Clam AntiVirus]]></title>
+      <guid isPermaLink="false">ZDI-CAN-34825</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.0 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H">AV:L/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'Alex Williams from Pellera Technologies' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-33779: X.Org]]></title>
+      <guid isPermaLink="false">ZDI-CAN-33779</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.8 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H">AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'Minse Kim (s3min141)' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-34344: e2fsprogs]]></title>
+      <guid isPermaLink="false">ZDI-CAN-34344</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.8 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H">AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'lucasfutures' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-35179: Netdata]]></title>
+      <guid isPermaLink="false">ZDI-CAN-35179</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 7.0 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H">AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H</a> severity vulnerability discovered by 'welpsigh' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-33757: X.Org]]></title>
+      <guid isPermaLink="false">ZDI-CAN-33757</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 5.5 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N">AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N</a> severity vulnerability discovered by 'Anonymous' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+    
+    <item>
+      <title><![CDATA[ZDI-CAN-34127: X.Org]]></title>
+      <guid isPermaLink="false">ZDI-CAN-34127</guid>
+      <link>http://www.zerodayinitiative.com/advisories/upcoming/</link>
+      <description><![CDATA[A CVSS score 3.3 <a href="https://nvd.nist.gov/cvss.cfm?calculator&version=3.0&vector=AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N">AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N</a> severity vulnerability discovered by 'WONJOON HWANG (@joon1337)' was reported to the affected vendor on: 2026-10-21, 0 days ago. The vendor is given until 2027-02-18 to publish a fix or workaround. Once the vendor has created and tested a patch we will coordinate the release of a public advisory.]]></description>
+      <pubDate>Wed, 21 Oct 2026 00:00:00 -0500</pubDate>
+    </item>
+</channel></rss>

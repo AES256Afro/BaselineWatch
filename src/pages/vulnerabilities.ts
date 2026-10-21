@@ -9,6 +9,7 @@ import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
 import { parseJson } from "../json.ts";
+import { msrcFlags, releaseNoteUrl } from "../msrc.ts";
 
 /**
  * The Vulnerabilities pages: the table with its filters and search, and one CVE with its scores,
@@ -85,6 +86,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const windowWord = (h: number | undefined): string => (h === undefined || h === 24 ? "24 h" : h % 24 === 0 ? `${h / 24} days` : `${h} h`);
 
   const exploits = exploitTallies(db, rows.map((r) => r.cve_id));
+  const microsoft = msrcFlags(db, rows.map((r) => r.cve_id));
   const tableRows = rows.map((r) => {
     const vendors = parseJson<string[]>(r.vendors_json, []);
     const products = parseJson<string[]>(r.products_json, []);
@@ -92,7 +94,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ") || packages.slice(0, 3).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
     const watch = parseJson<string[]>(r.watch_labels_json, []);
     return html`<tr class="${r.watch_hit ? "hit" : ""}">
-      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
+      <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${microsoft.get(r.cve_id)?.exploited ? html`<span class="chip kev" title="Microsoft reports this CVE exploited">exploited</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
       <td>${severityChip(r)}</td>
       <td class="n" title="EPSS ${r.epss ?? ""} · percentile ${r.epss_percentile ?? ""}">${epssText(r)}</td>
       <td class="who">${who || html`<span class="small">no CPE yet</span>`}</td>
@@ -160,11 +162,18 @@ function fixPanel(fix: Fix): Html {
         <ul class="refs">${fix.exploits.slice(0, 20).map((e) => html`<li><a href="${e.url}" ${newTab}>${e.title}</a> <span class="small">${exploitSourceLabel[e.source_id] ?? e.source_id}${e.verified ? " · verified" : ""}${e.published_at ? html` · ${e.published_at.slice(0, 10)}` : ""}</span></li>`)}${fix.exploits.length > 20 ? html`<li class="small">and ${fix.exploits.length - 20} more</li>` : ""}</ul>
         <p class="small">Each line links to the index that lists it, never to exploit code. Exploit-DB's "verified" and a Metasploit rank of good or better count as verified; a PoC-in-GitHub entry is a repository's claim.</p>`
     : html``;
+  const ms = fix.microsoft;
+  const microsoft = ms?.fixes.length
+    ? html`<h3 class="small">Microsoft's update${ms.severity ? html` · ${ms.severity}` : ""}${ms.exploited ? html` · exploited` : ""}${ms.disclosed ? html` · publicly disclosed` : ""}</h3>
+        <ul class="refs">${ms.fixes.map((f) => html`<li>${f.url ? html`<a href="${f.url}" ${newTab}>${f.kb ? `KB${f.kb}` : (f.label ?? f.url)}</a>` : (f.label ?? "")}${f.products.length ? html` — ${f.products.join(", ")}` : ""}${f.fixedBuild ? html` <span class="small">· build ${f.fixedBuild}</span>` : ""}${f.restart ? html` <span class="small">· restart required</span>` : ""}</li>`)}</ul>
+        <p class="small">From the <a href="${releaseNoteUrl(ms.release_id)}" ${newTab}>${ms.release_id} release note</a> of Microsoft's Security Update Guide${ms.revised_at ? html`, revised ${ms.revised_at.slice(0, 10)}` : ""}${ms.exploitability ? html` · ${ms.exploitability}` : ""}.</p>`
+    : html``;
   if (fix.empty) {
     return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p>${exploits}</section>`;
   }
   return html`<section class="box fix">
     <h2>Fix</h2>
+    ${microsoft}
     ${exploits}
     ${fix.kev?.requiredAction
       ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
@@ -190,7 +199,7 @@ function fixPanel(fix: Fix): Html {
             </div>`,
           )}`
       : ""}
-    <p class="small">Every line above is quoted from NVD, CISA, the vendor's own advisory or DISA; nothing is generated.</p>
+    <p class="small">Every line above is quoted from NVD, CISA, Microsoft, the vendor's own advisory or DISA; nothing is generated.</p>
   </section>`;
 }
 
@@ -211,6 +220,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []).filter((r) => /^https?:\/\//i.test(r.url));
   const ssvc = parseJson<Record<string, string>>(row.ssvc_json, {});
   const watch = parseJson<string[]>(row.watch_labels_json, []);
+  const msrc = msrcFlags(db, [row.cve_id]).get(row.cve_id);
   const changes = vulnChanges(db, row.cve_id);
   const fix = fixesFor(db, fixContext(db), row);
 
@@ -223,6 +233,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           ${row.kev ? html`<span class="chip kev">KEV${row.kev_due_date ? html` · due ${row.kev_due_date}` : ""}</span>` : ""}
           ${row.kev_ransomware ? html`<span class="chip kev">ransomware</span>` : ""}
           ${exploitChip(exploitTallies(db, [row.cve_id]).get(row.cve_id))}
+          ${msrc?.exploited ? html`<span class="chip kev">Microsoft: exploited</span>` : ""}${msrc?.disclosed ? html`<span class="chip exploit">publicly disclosed</span>` : ""}
           ${watch.length ? html`<span class="chip mine">your stack: ${watch.join(", ")}</span>` : ""}
           ${ssvc.exploitation ? html`<span class="chip ${ssvc.exploitation === "active" ? "kev" : ""}">SSVC exploitation: ${ssvc.exploitation}</span>` : ""}
           <span class="chip">${row.vuln_status ?? "status unknown"}</span>
