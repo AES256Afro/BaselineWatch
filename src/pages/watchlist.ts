@@ -62,6 +62,13 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
                 <input type="text" id="label" name="label" maxlength="60" placeholder="Edge firewalls">
                 <button type="submit" class="primary">Add</button>
               </form>
+              <h3 class="small" id="sbom">Or import an SBOM</h3>
+              <form method="post" action="/watchlist/sbom" enctype="multipart/form-data" class="stack">
+                <label for="sbom-file">CycloneDX or SPDX, as JSON</label>
+                <input type="file" id="sbom-file" name="sbom" accept=".json,application/json" required>
+                <button type="submit">Import its packages</button>
+              </form>
+              <p class="small">Each component with a package URL becomes a package entry (npm, PyPI, Maven, Go, crates.io, NuGet, RubyGems, Packagist, Debian, Ubuntu, Alpine, Red Hat and more), so the advisories for what the system ships mark your stack. Versions are not kept; the advisory says which. Nothing else from the file is stored.</p>
             </section>`
           : html`<section class="box"><h2><a href="/login">Owner only</a></h2><p class="small"><a href="/login">Sign in</a> to change the watchlist.</p></section>`}
         <section class="box">
