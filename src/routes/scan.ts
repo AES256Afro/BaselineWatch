@@ -14,6 +14,7 @@ import { flashHeader, flashText } from "../flash.ts";
 
 import { renderScan, renderScanWhy } from "../pages/scan.ts";
 import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages/scan-guide.ts";
+import { renderScanHistory } from "../pages/scan-history.ts";
 import { renderScanNetwork } from "../pages/scan-network.ts";
 import { netScanEnabled, netSettingKeys, networkSummary, runNetworkScan, setSetting } from "../netscan.ts";
 import { probeGif, probePaths, resolverCheckSources } from "../scan.ts";
@@ -119,6 +120,10 @@ export function mountScan(r: RouteContext): void {
   app.get("/scan/network", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(renderScanNetwork({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) }));
+  });
+  app.get("/scan/history", (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.type("html").send(renderScanHistory({ db, ...who(req, res), now: now() }));
   });
   app.post("/scan/network/enable", requireOwner, (req, res) => {
     const on = str(((req.body ?? {}) as Record<string, unknown>).on) === "1";
