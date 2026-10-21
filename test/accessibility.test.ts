@@ -9,7 +9,7 @@ import { startTestApp, type TestApp } from "./helpers.ts";
  * before it reaches anyone.
  */
 
-const pages = ["/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/fleet", "/vulnerabilities", "/vulnerabilities/microsoft", "/feeds", "/search?q=x", "/scan", "/scan/why", "/scan/domain", "/scan/network", "/scan/history", "/scan/guide", "/scan/guide/windows", "/triage", "/watchlist", "/digest", "/sources", "/appearance", "/branding", "/guide", "/login"];
+const pages = ["/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/fleet", "/vulnerabilities", "/vulnerabilities/microsoft", "/feeds", "/search?q=x", "/scan", "/scan/why", "/scan/domain", "/scan/network", "/scan/history", "/scan/guide", "/scan/guide/windows", "/triage", "/watchlist", "/saved", "/digest", "/sources", "/appearance", "/branding", "/guide", "/login"];
 
 let app: TestApp;
 beforeAll(async () => {
