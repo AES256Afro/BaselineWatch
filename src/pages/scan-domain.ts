@@ -1,5 +1,6 @@
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
+import type { CtCertRow } from "../ct.ts";
 import type { DomainReport, Finding } from "../domaincheck.ts";
 import { page } from "./layout.ts";
 
@@ -22,6 +23,8 @@ export interface ScanDomainOptions {
   problem: string | null;
   /** The owner's own domains, each a link, so the page opens on them. */
   own: string[];
+  /** The certificates the transparency logs hold for a listed domain, newest first; empty for any other. */
+  certs?: CtCertRow[];
 }
 
 const groups: { id: Finding["group"]; title: string; blurb: string }[] = [
@@ -46,6 +49,7 @@ function row(n: number, f: Finding): Html {
 
 export function renderScanDomain(options: ScanDomainOptions): string {
   const { owner, open, look, domain, selectors, report, problem, own } = options;
+  const certs = options.certs ?? [];
   const form = html`<form method="get" action="/scan/domain" class="search stack-sm" role="search">
     <label for="name">Domain</label>
     <input type="text" id="name" name="name" value="${domain ?? ""}" placeholder="example.com" required maxlength="253" inputmode="url" autocapitalize="none" spellcheck="false">
@@ -83,6 +87,13 @@ export function renderScanDomain(options: ScanDomainOptions): string {
       ${form}
       ${own.length ? html`<p class="small">Your domains: ${own.map((d, i) => html`${i ? " · " : ""}<a href="/scan/domain?name=${encodeURIComponent(d)}">${d}</a>`)}</p>` : ""}
       ${body}
+      ${certs.length
+        ? html`<section class="box wide" id="certificates">
+            <h2>Certificates in the transparency logs <span class="count">${certs.length} newest</span></h2>
+            <ul class="refs">${certs.map((c) => html`<li><a href="https://crt.sh/?id=${c.id}" ${newTab}>${c.names.split("\n").join(", ")}</a> <span class="small">${c.issuer ?? "unknown issuer"}${c.not_before ? ` · from ${c.not_before.slice(0, 10)}` : ""}${c.not_after ? ` to ${c.not_after.slice(0, 10)}` : ""}</span></li>`)}</ul>
+            <p class="small">From crt.sh, read once a day for the domains you listed; a certificate logged since the last read is a News item. One you did not expect means someone else holds a certificate for a name of yours.</p>
+          </section>`
+        : ""}
     </div>
     <aside class="side">
       <div class="box">
