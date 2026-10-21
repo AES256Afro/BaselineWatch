@@ -72,8 +72,12 @@ describe("the switch on the site", () => {
     expect(text).toContain('<html lang="en" data-look="console">');
     expect(text).not.toContain("data-scheme");
     expect(text).toContain('<meta name="color-scheme" content="light dark">');
-    expect(text).toContain('class="look-group" aria-label="Colours"');
-    expect(text).toContain('value="/today"');
+    // The switch left the masthead for the Desk's Appearance page (M17); no page but that one carries it.
+    expect(text).not.toContain('class="look-group"');
+    expect(text).toContain('<b>Appearance</b><small>the look and the colour scheme</small>');
+    const appearance = await (await fetch(`${app.base}/appearance`)).text();
+    expect(appearance).toContain('class="look-group" aria-label="Colours"');
+    expect(appearance).toContain('value="/appearance"');
     const missing = await fetch(`${app.base}/nope`);
     expect(missing.status).toBe(404);
     expect(await missing.text()).toContain('<html lang="en" data-look="console">');
@@ -90,7 +94,8 @@ describe("the switch on the site", () => {
     const page = await (await fetch(`${app.base}/wire`, { headers: { cookie: "bw_look=console; bw_scheme=dark" } })).text();
     expect(page).toContain('<html lang="en" data-look="console" data-scheme="dark">');
     expect(page).toContain('<meta name="color-scheme" content="dark">');
-    expect(page).toContain('name="scheme" value="dark" aria-pressed="true"');
+    const chooser = await (await fetch(`${app.base}/appearance`, { headers: { cookie: "bw_look=console; bw_scheme=dark" } })).text();
+    expect(chooser).toContain('name="scheme" value="dark" aria-pressed="true"');
     // Changing the look keeps the scheme already chosen, and the other way round.
     const next = await formPost(app.base, "/look", { look: "register", back: "/" }, "bw_look=console; bw_scheme=dark");
     expect(next.headers.getSetCookie().map((c) => c.split(";")[0])).toEqual(["bw_look=register", "bw_scheme=dark"]);
@@ -133,13 +138,16 @@ describe("the switch on the site", () => {
     const text = await (await fetch(`${app.base}/today`)).text();
     expect(text).toContain('aria-label="Known exploited by vendor, 30 days: Ahsay 2, &lt;Acme&gt; &amp; Sons 1"');
     expect(text).not.toContain("<Acme>");
-    expect(text).toContain('aria-label="Wire items a day, 14 days: News 1 in all, 1 on 10-15; Vulnerabilities 3 in all, 0 on 10-15; Standards 0 in all, 0 on 10-15"');
+    expect(text).toContain('aria-label="News items a day, 14 days: News 1 in all, 1 on 10-15; Vulnerabilities 3 in all, 0 on 10-15; Standards 0 in all, 0 on 10-15"');
     expect(text).toContain(">10-02</text>");
-    expect(text).toMatch(/<li class="link"><a href="\/vulnerabilities\?watch=1&amp;changed=1&amp;severity=critical"><span>Critical<\/span><svg[^>]*><rect class="t-red" x="0" y="0" width="100\.0"/);
-    expect(text).toContain('aria-label="Vulnerabilities by EPSS band: Over 50% 1, Under 1% 1"');
-    expect(text).toContain('aria-label="Triage by state: Affects us 1"');
-    expect(text).toContain('<i class="dot t-green"></i><a href="/sources#src-cisa-kev">CISA Known Exploited Vulnerabilities</a></span><span class="when">2 min ago</span>');
-    expect(text).toContain("BleepingComputer</a></span><span class=\"when\">1 h ago · error</span>");
+    // Four panels of charts gave their room to lists that lead somewhere (M17): what to do next,
+    // and the window's CVEs by the platform they affect.
+    expect(text).not.toContain("by EPSS band");
+    expect(text).not.toContain("Triage by state");
+    expect(text).toContain('<section class="box wide" id="next">');
+    expect(text).toContain('<section class="box wide" id="platforms">');
+    // A failing source is named with its error in the side column, where it was always drawn too.
+    expect(text).toContain('<a href="/sources#src-bleeping"><b>BleepingComputer</b></a> <span class="small">HTTP 503</span>');
     expect(text).toContain("<b>3</b>");
     expect(text).toContain('<a class="tile warn" href="/triage"><small>Needs you</small><b>1</b>');
   });
