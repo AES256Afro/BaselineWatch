@@ -7,7 +7,8 @@ import type { DatabaseSync } from "node:sqlite";
 import { createApp } from "../src/app.ts";
 import { loadConfig, type Config } from "../src/config.ts";
 import { migrate, openDatabase } from "../src/db.ts";
-import type { HttpGet, HttpResponse } from "../src/http.ts";
+import type { DnsLookup, TlsProbe } from "../src/domaincheck.ts";
+import { HttpError, type HttpGet, type HttpResponse } from "../src/http.ts";
 import type { ReadText, Resolve } from "../src/netscan.ts";
 
 export const fixturesDir = path.join(import.meta.dirname, "fixtures");
@@ -25,6 +26,8 @@ export interface FakeRoute {
   contentType?: string | null;
   /** Answer 304 when the request carries this etag. */
   notModifiedFor?: string;
+  /** Response headers, as the client lowercases them. */
+  headers?: Record<string, string>;
 }
 
 /** An HttpGet that answers from a table of URLs and records every request it saw. */
@@ -34,7 +37,8 @@ export function fakeHttp(routes: Record<string, FakeRoute>): HttpGet & { calls: 
     calls.push({ url, etag: options.etag });
     const route = routes[url];
     if (!route) throw new Error(`fake http: no route for ${url}`);
-    if (route.status && route.status >= 400) throw new Error(`HTTP ${route.status} from ${url}`);
+    // A 3xx under manual redirects and every 4xx or 5xx fail the way the client fails, headers attached.
+    if (route.status && (route.status >= 400 || (route.status >= 300 && options.redirect === "manual"))) throw new HttpError(url, route.status, route.headers ?? {});
     const base: HttpResponse = {
       url,
       status: 200,
@@ -43,6 +47,7 @@ export function fakeHttp(routes: Record<string, FakeRoute>): HttpGet & { calls: 
       etag: route.etag ?? null,
       lastModified: route.lastModified ?? null,
       contentType: route.contentType ?? null,
+      headers: route.headers ?? {},
     };
     if (route.notModifiedFor && options.etag === route.notModifiedFor) {
       return { ...base, status: 304, notModified: true, bytes: new Uint8Array(0) };
@@ -60,7 +65,7 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
-export async function startTestApp(options: { env?: Record<string, string>; http?: HttpGet; now?: () => Date; resolve?: Resolve; readFile?: ReadText } = {}): Promise<TestApp> {
+export async function startTestApp(options: { env?: Record<string, string>; http?: HttpGet; now?: () => Date; resolve?: Resolve; readFile?: ReadText; dns?: DnsLookup; tls?: TlsProbe } = {}): Promise<TestApp> {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "bw-app-"));
   const db = openDatabase(":memory:");
   const migration = migrate(db);
@@ -74,6 +79,8 @@ export async function startTestApp(options: { env?: Record<string, string>; http
     ...(options.now ? { now: options.now } : {}),
     ...(options.resolve ? { resolve: options.resolve } : {}),
     ...(options.readFile ? { readFile: options.readFile } : {}),
+    ...(options.dns ? { dns: options.dns } : {}),
+    ...(options.tls ? { tls: options.tls } : {}),
   });
   const server = await new Promise<Server>((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));

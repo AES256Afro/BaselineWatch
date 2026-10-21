@@ -32,7 +32,7 @@ describe("the Scan page", () => {
     expect(text).toContain("Privacy of the test");
     expect(text).toContain("The one page with a script");
     for (const id of ["hiding", "requests", "dns"]) expect(text).toContain(`href="/scan/why#${id}"`);
-    expect(text).toContain('<a href="/scan" aria-current="page">Scan</a>');
+    expect(text).toContain('<a class="entry" href="/scan" aria-current="page"><b>This browser</b>');
     expect(text).toContain('data-probe-origin=""');
     expect(text).toContain("3 test images, 2 controls");
     expect(text).toContain('<section class="scan" id="scan"');

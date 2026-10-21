@@ -23,6 +23,7 @@ import { readBrand, readBrandMarks, type BrandKind } from "./branding.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
+import type { DnsLookup, TlsProbe } from "./domaincheck.ts";
 import { robotsText } from "./feeds.ts";
 import { mountBaselines } from "./routes/baselines.ts";
 import { publicDir, type RouteContext } from "./routes/context.ts";
@@ -57,6 +58,9 @@ export interface AppContext {
   /** Replaces DNS and the host's files for the network scan in tests. */
   resolve?: Resolve;
   readFile?: ReadText;
+  /** Replaces the resolver and the TLS handshake for the domain check in tests. */
+  dns?: DnsLookup;
+  tls?: TlsProbe;
 }
 
 export interface HealthReport {
