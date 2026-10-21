@@ -114,8 +114,8 @@ export function renderPatchTuesday(options: PatchTuesdayOptions): string | null 
     <section class="box wide" id="updates">
       <h2>By update <span class="count">${updates.length} in ${releaseName(current.release_id)}</span></h2>
       <div class="table-wrap">
-        <table class="vulns kbs">
-          <thead><tr><th>Update</th><th>Products</th><th class="n">CVEs</th><th class="n">Critical</th><th class="n">Exploited</th></tr></thead>
+        <table class="vulns kbs"><caption class="visually-hidden">Updates in this release</caption>
+          <th scope="col"ead><tr><th scope="col">Update</th><th scope="col">Products</th><th scope="col" class="n">CVEs</th><th scope="col" class="n">Critical</th><th scope="col" class="n">Exploited</th></tr></thead>
           <tbody>${updates.slice(0, 40).map((u) => html`<tr class="${u.exploited ? "hit" : ""}"><td class="id">${kbLink(u)}${u.fixedBuild ? html`<span class="small"> · ${u.fixedBuild}</span>` : ""}</td><td class="who">${u.products.slice(0, 6).join(", ")}${u.products.length > 6 ? html` <span class="small">and ${u.products.length - 6} more</span>` : ""}</td><td class="n">${u.cves}</td><td class="n">${u.critical || ""}</td><td class="n">${u.exploited ? html`<b>${u.exploited}</b>` : ""}</td></tr>`)}</tbody>
         </table>
       </div>
@@ -136,8 +136,8 @@ export function renderPatchTuesday(options: PatchTuesdayOptions): string | null 
         <button type="submit">Search</button>
       </form>
       <div class="table-wrap">
-        <table class="vulns">
-          <thead><tr><th>CVE</th><th>Severity</th><th class="n">CVSS</th><th>Component</th><th>Title</th><th>Update</th></tr></thead>
+        <table class="vulns"><caption class="visually-hidden">CVEs in this release</caption>
+          <th scope="col"ead><tr><th scope="col">CVE</th><th scope="col">Severity</th><th scope="col" class="n">CVSS</th><th scope="col">Component</th><th scope="col">Title</th><th scope="col">Update</th></tr></thead>
           <tbody>${listed.slice(0, 400).map(
             (r) => html`<tr class="${r.exploited ? "hit" : ""}">
               <td class="id">${known.has(r.cve_id) ? html`<a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>` : html`<span title="Not in this instance's table yet">${r.cve_id}</span>`}${r.exploited ? html`<span class="chip kev">exploited</span>` : ""}${r.disclosed ? html`<span class="chip exploit">disclosed</span>` : ""}</td>
@@ -154,5 +154,5 @@ export function renderPatchTuesday(options: PatchTuesdayOptions): string | null 
       ${listed.length === 0 ? html`<p class="small">No CVE in ${releaseName(current.release_id)} matches.</p>` : ""}
     </section>
     <p class="small">Revised by Microsoft ${current.revised_at?.slice(0, 10) ?? "—"}. "Exploited" and "disclosed" are Microsoft's own words from the guide's exploitability index; a CVE's page carries NVD's, CISA's and the public exploit indexes' besides.</p>`;
-  return page({ title: `Patch Tuesday · ${releaseName(current.release_id)}`, active: "patch-tuesday", content, meta: html`${current.microsoft} CVEs · ${current.exploited} exploited`, owner, open, look });
+  return page({ title: `Patch Tuesday · ${releaseName(current.release_id)}`, active: "patch-tuesday", content, meta: html`${current.microsoft} CVEs · ${current.exploited} exploited`, owner, open, look, canonical: "/vulnerabilities/microsoft", description: `Microsoft's ${releaseName(current.release_id)} security release by update and product: ${current.microsoft} CVEs, ${current.exploited} exploited, ${current.critical} critical.` });
 }
