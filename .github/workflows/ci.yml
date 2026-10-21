@@ -19,9 +19,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run lint
+      # The whole check, not its parts: the manifest and the release invariant run here too, so a
+      # version can never be tagged while package.json, the lock, the manifest and the changelog
+      # disagree (0.36.0, 0.36.1 and 0.37.0 shipped with no entry because nothing checked).
+      - run: npm run check
+      - name: The tag names this tree's version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node --disable-warning=ExperimentalWarning scripts/release.ts --check --tag "$GITHUB_REF_NAME"
       - name: Container builds and answers /health
         run: |
           docker build -t baselinewatch:ci .
