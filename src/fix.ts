@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { parse as parseYaml } from "yaml";
+import { exploitsFor, type ExploitRow } from "./exploits.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
 import { loadRequirements } from "./register.ts";
 import { followedStigs, type StigSummary } from "./stigs.ts";
@@ -43,6 +44,8 @@ export interface Fix {
   kev: { requiredAction: string | null; dueDate: string | null; dateAdded: string | null; name: string | null } | null;
   packages: { ecosystem: string; name: string; fixed: string[]; advisory: string }[];
   mitigations: Mitigation[];
+  /** What the public exploit indexes hold for this CVE (src/exploits.ts): not a fix, but the reason to want one today. */
+  exploits: ExploitRow[];
   /** True when none of the above holds anything. */
   empty: boolean;
 }
@@ -150,12 +153,15 @@ export function fixesFor(db: DatabaseSync, ctx: FixContext, row: VulnRow): Fix {
     for (const { stig, rules: all } of ctx.stigs) for (const rule of all) if (rule.title.toLowerCase().includes(phrase)) rules.push({ stig, rule });
     if (rules.length) mitigations.push({ id: entry.id, note: entry.note, source: entry.source, rules });
   }
-  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 };
+  // The panel is still "empty" of fixes when only exploits are known: that is the honest, and worse, state.
+  const exploits = exploitsFor(db, row.cve_id);
+  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, exploits, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 };
 }
 
 /** A one-line account of the fix for a list, from the same facts. */
 export function fixSummary(fix: Fix): string {
   const parts: string[] = [];
+  if (fix.exploits.length) parts.push(`${fix.exploits.length} public exploit${fix.exploits.length === 1 ? "" : "s"}${fix.exploits.some((e) => e.verified === 1) ? " (verified)" : ""}`);
   if (fix.kev?.requiredAction) parts.push(`CISA: ${fix.kev.requiredAction.length > 120 ? `${fix.kev.requiredAction.slice(0, 119)}…` : fix.kev.requiredAction}${fix.kev.dueDate ? ` (due ${fix.kev.dueDate})` : ""}`);
   if (fix.references.length) parts.push(`${fix.references.length} patch or advisory reference${fix.references.length === 1 ? "" : "s"} on NVD`);
   if (fix.advisories.length) parts.push(`vendor advisory: ${fix.advisories[0]!.source}`);

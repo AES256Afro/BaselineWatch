@@ -301,6 +301,8 @@ td.n { font-variant-numeric: tabular-nums; text-align: right; }
 .chip.sev.low, .chip.sev.none { color: var(--mute); opacity: 0.8; }
 .chip.epss { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
 .chip.mine { color: var(--ins); background: var(--ins-bg); border-color: transparent; }
+.chip.exploit { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.chip.exploit.verified { color: var(--del); background: var(--del-bg); }
 table.vulns td.id { white-space: nowrap; }
 table.vulns td.id a { font-family: var(--mono); font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--ink); }
 table.vulns td.id .chip { margin-left: 6px; }
@@ -549,8 +551,8 @@ table.browse tr.changed td.id a { color: var(--acc); }
 [data-look="console"] th { font-family: var(--mono); letter-spacing: 0.1em; background: var(--card); }
 [data-look="console"] .chip, [data-look="console"] .state, [data-look="console"] .pill, [data-look="console"] .badge { font: 600 10.5px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; background: transparent; border: 1px solid var(--rule-2); color: var(--mute); border-radius: 3px; }
 [data-look="console"] .state { padding: 2px 7px; }
-[data-look="console"] .chip.kev, [data-look="console"] .chip.sev.critical, [data-look="console"] .chip.del, [data-look="console"] .pill.del { color: var(--red); border-color: var(--red); }
-[data-look="console"] .chip.sev.high, [data-look="console"] .chip.epss, [data-look="console"] .chip.star, [data-look="console"] .chip.mod, [data-look="console"] .pill.mod, [data-look="console"] .state.wait { color: var(--amber); border-color: var(--amber); }
+[data-look="console"] .chip.kev, [data-look="console"] .chip.exploit.verified, [data-look="console"] .chip.sev.critical, [data-look="console"] .chip.del, [data-look="console"] .pill.del { color: var(--red); border-color: var(--red); }
+[data-look="console"] .chip.sev.high, [data-look="console"] .chip.exploit, [data-look="console"] .chip.epss, [data-look="console"] .chip.star, [data-look="console"] .chip.mod, [data-look="console"] .pill.mod, [data-look="console"] .state.wait { color: var(--amber); border-color: var(--amber); }
 [data-look="console"] .chip.mine, [data-look="console"] .chip.ins, [data-look="console"] .pill.ins, [data-look="console"] .state.ok { color: var(--green); border-color: var(--green); }
 [data-look="console"] .chip.sev.medium { color: var(--cyan); border-color: var(--cyan); }
 [data-look="console"] .badge { color: var(--purple); border-color: var(--purple); border-style: dashed; }

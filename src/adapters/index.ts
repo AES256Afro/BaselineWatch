@@ -8,15 +8,18 @@ import { disaAdapter } from "./disa.ts";
 import { disaGpoAdapter } from "./disa-gpo.ts";
 import { disaIntuneAdapter } from "./disa-intune.ts";
 import { epssAdapter } from "./epss.ts";
+import { exploitDbAdapter } from "./exploitdb.ts";
 import { fedrampRulesAdapter } from "./fedramp-rules.ts";
 import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
+import { metasploitAdapter } from "./metasploit.ts";
 import { mscpAdapter } from "./mscp.ts";
 import { nasaPolicyAdapter } from "./nasa-policy.ts";
 import { nvdAdapter } from "./nvd.ts";
 import { nist171Adapter, nistBaselinesAdapter, nistCatalogAdapter } from "./oscal-nist.ts";
 import { osvAdapter } from "./osv.ts";
+import { pocInGithubAdapter } from "./poc-in-github.ts";
 import { redditAdapter } from "./reddit.ts";
 import { sansNewsbitesAdapter } from "./sans-newsbites.ts";
 import { sctAdapter } from "./sct.ts";
@@ -32,6 +35,9 @@ const byId: Record<string, Adapter> = {
   "nvd-cves": nvdAdapter,
   "cvelist-v5": cvelistAdapter,
   "first-epss": epssAdapter,
+  "exploit-db": exploitDbAdapter,
+  metasploit: metasploitAdapter,
+  "poc-in-github": pocInGithubAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
