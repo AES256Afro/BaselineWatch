@@ -6,6 +6,7 @@ import type { NormalizedRequirement } from "./oscal.ts";
 import { loadRequirements } from "./register.ts";
 import { followedStigs, type StigSummary } from "./stigs.ts";
 import type { AffectedPackage, VulnRow } from "./vulns.ts";
+import { parseJson } from "./json.ts";
 
 /**
  * The Fix panel: the remediation already published for a CVE, quoted and linked. NVD's references
@@ -111,15 +112,6 @@ export function matchingEntries(entries: MitigationEntry[], v: { cveId: string; 
   return entries.filter((e) => e.cves.includes(v.cveId.toUpperCase()) || e.keywords.some((k) => text.includes(k.toLowerCase())));
 }
 
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 const fixTags = /^(patch|vendor advisory|mitigation)$/i;
 
 /** The KEV item for a CVE, with the required action from its signals or, for an older item, its summary. */
@@ -132,7 +124,7 @@ export function kevFor(db: DatabaseSync, cveId: string): Fix["kev"] {
 }
 
 /** Vendor advisory items on the Wire that name the CVE. */
-export function advisoriesFor(db: DatabaseSync, cveId: string, limit = 8): FixAdvisory[] {
+function advisoriesFor(db: DatabaseSync, cveId: string, limit = 8): FixAdvisory[] {
   return (
     db
       .prepare(

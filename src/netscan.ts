@@ -32,9 +32,9 @@ export type NetOutcome = "resolved" | "sinkholed" | "timeout";
 export type Resolve = (name: string, server: string) => Promise<string[]>;
 
 /** Five seconds then one retryless failure: a canary that gets no answer is a timeout, not a hang. */
-export const resolveTimeoutMs = 5000;
+const resolveTimeoutMs = 5000;
 
-export const defaultResolve: Resolve = async (name, server) => {
+const defaultResolve: Resolve = async (name, server) => {
   const resolver = new Resolver({ timeout: resolveTimeoutMs, tries: 1 });
   resolver.setServers([server]);
   return resolver.resolve4(name);
@@ -52,7 +52,7 @@ export interface DiscoveredResolver {
 /** Reads a file or says it is not there; injected so discovery is testable without the host's files. */
 export type ReadText = (path: string) => string | null;
 
-export const defaultReadText: ReadText = (path) => {
+const defaultReadText: ReadText = (path) => {
   try {
     return readFileSync(path, "utf8");
   } catch {
@@ -139,7 +139,7 @@ export function classifyError(error: unknown): Classified {
   return { outcome: "timeout", answer: code || "no answer" };
 }
 
-export async function resolveCanary(resolve: Resolve, name: string, server: string): Promise<Classified> {
+async function resolveCanary(resolve: Resolve, name: string, server: string): Promise<Classified> {
   try {
     return classifyAnswer(await resolve(name, server), server);
   } catch (error) {
@@ -157,7 +157,7 @@ export interface CanaryCategory {
 }
 
 /** The four canary sets and the adfection list's domains, the mockup's fifth tile. */
-export const canaryCategories: readonly (CanaryCategory & { key: string })[] = [
+const canaryCategories: readonly (CanaryCategory & { key: string })[] = [
   { category: "ads", label: "Ads", sourceId: "canary-ads", key: "canaries" },
   { category: "trackers", label: "Trackers", sourceId: "canary-trackers", key: "canaries" },
   { category: "malware", label: "Malware", sourceId: "canary-malware", key: "canaries" },
@@ -165,7 +165,7 @@ export const canaryCategories: readonly (CanaryCategory & { key: string })[] = [
   { category: "adfection", label: "Ad-delivered spyware", sourceId: "adfection-dns", key: "domains" },
 ];
 
-export const categoryLabel = (category: string): string => canaryCategories.find((c) => c.category === category)?.label ?? category;
+const categoryLabel = (category: string): string => canaryCategories.find((c) => c.category === category)?.label ?? category;
 
 export interface CanarySet extends CanaryCategory {
   names: string[];

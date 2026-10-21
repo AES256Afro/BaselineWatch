@@ -37,7 +37,7 @@ const s = (v: string | number | boolean | undefined): string | undefined => (v =
 const withheldBy = (source: { name: string; licence: string | null }): string => `The entries of ${source.name} are withheld under the publisher's licence (${licenceOf(source)}); the instance's owner sees them on its pages. Versions and counts are in list_standards.`;
 
 /** A fresh server for one request: tools over the live database, nothing kept between calls. */
-export function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
+function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
   const server = new McpServer(
     { name: "baselinewatch", title: productName, version: productVersion },
     {

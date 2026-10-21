@@ -30,7 +30,7 @@ function item(i: PlanItem): Html {
 }
 
 /** The plan's release, hardware and areas as a GET URL, so a plan can be bookmarked or sent without the form. */
-export function planLink(plan: TestPlan): string {
+function planLink(plan: TestPlan): string {
   const q = new URLSearchParams();
   if (plan.release) q.set("version", plan.release.id);
   if (plan.hardware) q.set("hardware", plan.hardware.id);

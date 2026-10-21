@@ -10,7 +10,7 @@ import type { Config } from "./config.ts";
  *
  * A session is a stateless signed token in an HttpOnly cookie: `<expires>.<hmac>`.
  */
-export const sessionCookie = "bw_session";
+const sessionCookie = "bw_session";
 const sessionDays = 30;
 
 export function signSession(secret: string, expiresAtMs: number): string {
@@ -67,7 +67,7 @@ export function throttleKey(ip: string | undefined): string {
     .join(":")}::/64`;
 }
 
-export function newSessionSecret(): string {
+function newSessionSecret(): string {
   return randomBytes(32).toString("hex");
 }
 

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
+import { parseJson } from "./json.ts";
 
 /**
  * What to do next, and what the window's vulnerabilities are about.
@@ -14,16 +15,6 @@ import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
  * Every row here is a fact already in the database with a link to where it came from; nothing is
  * scored, guessed or generated.
  */
-
-/** The local reader every module here keeps: a column that should hold JSON, and what to do when it does not. */
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 export type ActionKind = "overdue" | "kev-mine" | "kev" | "worse" | "release" | "look";
 

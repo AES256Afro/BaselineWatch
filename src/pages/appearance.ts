@@ -57,4 +57,4 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
 }
 
 /** The schemes and looks this page documents, for the test that keeps the list honest. */
-export const appearanceChoices = { looks, schemes };
+const appearanceChoices = { looks, schemes };

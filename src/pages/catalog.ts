@@ -80,7 +80,7 @@ function openDrafts(db: DatabaseSync, limit = 100): DraftItem[] {
 }
 
 /** The publication number a draft announcement names, for the join to a tracked publication. */
-export function draftNumber(title: string): string | null {
+function draftNumber(title: string): string | null {
   const m = /\b(SP\s+\d{3,4}-\d+[A-Za-z]?|FIPS\s+\d+(?:-\d+)?|(?:NIST\s*)?IR\s+\d+[A-Za-z]?|CSWP\s+\d+)\b/i.exec(title);
   return m ? m[1]!.replace(/\s+/g, " ") : null;
 }

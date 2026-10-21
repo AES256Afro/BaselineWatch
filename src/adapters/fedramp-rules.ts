@@ -9,7 +9,7 @@ import type { NormalizedRequirement } from "../oscal.ts";
 import type { Adapter, DocumentTarget, ParsedDocument, RequirementNote, SourceRow } from "./types.ts";
 import { isoDate } from "./types.ts";
 
-export const rulesRepository = "https://github.com/FedRAMP/rules";
+const rulesRepository = "https://github.com/FedRAMP/rules";
 const raw = "https://raw.githubusercontent.com/FedRAMP/rules";
 const file = "fedramp-consolidated-rules.json";
 

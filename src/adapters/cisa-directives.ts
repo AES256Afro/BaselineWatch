@@ -24,7 +24,7 @@ export interface Directive {
   publishedAt: string | null;
 }
 
-export const directivesBase = "https://www.cisa.gov";
+const directivesBase = "https://www.cisa.gov";
 
 function kindOf(meta: string | null, title: string): Directive["kind"] {
   const m = (meta ?? "").toLowerCase();

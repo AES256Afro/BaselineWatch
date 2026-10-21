@@ -54,7 +54,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   guide: { label: "Guide", path: "/guide" },
 };
 
-export function areaPath(area: Area): string {
+function areaPath(area: Area): string {
   return areas[area].path;
 }
 

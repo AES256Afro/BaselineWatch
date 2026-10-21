@@ -772,7 +772,7 @@ function renderSection(section: Section, n: number): Html {
 }
 
 /** The download box: each script for the platform, its sum, and how to verify and run it. */
-export function scriptBox(scripts: readonly ScanScript[], platform: ScriptPlatform | null, heading = "The script"): Html {
+function scriptBox(scripts: readonly ScanScript[], platform: ScriptPlatform | null, heading = "The script"): Html {
   if (!platform) {
     return html`<div class="box">
   <h2>No script for phones</h2>

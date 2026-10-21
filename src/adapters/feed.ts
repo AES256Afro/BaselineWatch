@@ -48,7 +48,7 @@ function rssLink(value: unknown): string | null {
 const httpUrl = (value: unknown): string | null => (typeof value === "string" && /^https?:\/\//i.test(value) ? value : null);
 
 /** The first <img src> in an HTML fragment, the way feeds embed a lead image in content:encoded. */
-export function imageInHtml(fragment: string | null): string | null {
+function imageInHtml(fragment: string | null): string | null {
   if (!fragment) return null;
   const match = /<img\b[^>]*?\bsrc\s*=\s*("([^"]+)"|'([^']+)')/i.exec(fragment);
   return httpUrl(match?.[2] ?? match?.[3] ?? null);

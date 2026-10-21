@@ -7,15 +7,7 @@ import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type 
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { triageForm } from "./triage.ts";
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
+import { parseJson } from "../json.ts";
 
 function severityChip(row: VulnRow): Html {
   if (row.cvss_score === null) return html`<span class="chip">unscored</span>`;
@@ -146,7 +138,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 }
 
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
-export function fixPanel(fix: Fix): Html {
+function fixPanel(fix: Fix): Html {
   if (fix.empty) {
     return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
   }
