@@ -2,6 +2,76 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.38.0 — 2026-10-21
+
+- **The menus are built from the ladder, and the ladder is written down.** Four words do most of
+  the work in this field and are used loosely nearly everywhere, so `/guide#ladder` now says what
+  each means here and links it to the page that shows it: a **standard** is the rulebook (NIST
+  SP 800-53, a DISA STIG, a CIS Benchmark), a **baseline** is the set of its rules chosen for a
+  kind of system (800-53 High, a platform's STIG baseline, Microsoft's for a Windows release), a
+  **control** is one rule in that set (AC-2, IA-2), and a **configuration setting** is how that
+  rule is enforced on a device (a registry value, a mobileconfig payload key, an Intune
+  definition). The same ladder is drawn twice, as a house and as a federal system, and a closing
+  note says where an agency's own layer fits: NASA's OCIO Cybersecurity Standards and Engineering
+  Team issues approved configuration specifications from NIST, CIS, DISA and vendor guidance, and
+  those are internal, so this site tracks the public quarterly policy reference instead. The
+  Standards menu is now those three words in that order, each with the line that says what it is,
+  with STIGs, the change register and the Atlas under a rule as the tools that cut across them.
+- **Controls** (`/controls`) is a new page: one search across the current version of every
+  standard at once — by label (`AC-2`), by title, or by words in the control's text — then each
+  standard's controls to open, what changed lately, and where the technical end continues. A
+  source whose licence forbids showing its entries is counted and never quoted, as the Register
+  already treats it.
+- **The Desk holds what is yours.** Your own fleet and work (Fleet, Triage, Watchlist), then the
+  instance (Sources, Digest), then how it is drawn (Appearance, Branding). **Platforms is renamed
+  Fleet** and served at `/fleet`, with `/platforms` a permanent redirect; the name is what the
+  code always called it. The look and colour-scheme switch leaves the masthead for an
+  **Appearance** page, which has room to say what each look and scheme is for and to be plain
+  that the choice lives in two cookies on that device and nowhere else.
+- **Today says what to do, not how much happened.** It opens on a short ordered list: an overdue
+  promise first, then a KEV addition that touches your fleet, then one that does not, then a
+  watched CVE that got worse, then a standard release with changes. When nothing is urgent — the
+  common case — it offers the window's CVEs on the platforms your fleet runs, by the odds of
+  exploitation, so a quiet day still says something. Under it, **the window's vulnerabilities
+  grouped by the platform they affect**, your fleet's platforms first and marked, each row leading
+  to the table filtered the same way. The platform is read from a CVE's CPEs, then its vendor and
+  product names, then its description, and is now stored on the CVE (migration 0032, backfilled
+  once at start) so the Vulnerabilities table can filter on it; the ones whose platform cannot be
+  read are counted apart rather than quietly dropped. Four of the six chart panels gave their room
+  to those lists.
+- **What this instance keeps, and what it lets go.** Nothing pruned anything before this release,
+  and the public instance reached 138 MB in its first five days. One rule decides it now: a
+  standard's snapshot is the product — the exact bytes NIST, DISA or Microsoft served are the
+  "before" in every diff a year from now — so snapshots of a requirement-set or setting-set
+  source, and any snapshot a document points at, are kept for good, while a news or vulnerability
+  feed's bytes are a delivery: each document's newest fetch is kept and older ones go after
+  fourteen days. Network scans keep 180 days and the alert log 180; no timeline item, CVE,
+  requirement, change or explanation is ever deleted. A weekly pass runs last on the scheduler's
+  tick, sweeps what is past its window, frees blob files nothing references any more (leaving
+  anything written in the last day alone, because a fetch in flight writes its bytes before the
+  row that points at them), runs `ANALYZE`, `PRAGMA optimize` and the FTS `optimize`, and rewrites
+  the file when a tenth of it is free pages. What is held and what the last pass let go is on the
+  Sources page under **What this instance keeps**, in `/health` under `storage`, and as a line in
+  the digest; `docs/ADMIN.md` carries the policy and what to do at 1 GB and at 5 GB.
+- **A release is one command, and it cannot forget the changelog.** `npm run release <version>`
+  bumps `package.json`, the lock and the catalog manifest together and opens the changelog entry
+  from the commits since the last tag; `npm run check` and CI then refuse a tree whose newest
+  entry is missing, still the draft, or for a different version than everything else carries, and
+  a tag run refuses a tag naming a version this tree is not. CI runs `npm run check` whole rather
+  than its three parts, so the manifest check runs there too — it never did. After a deploy,
+  `npm run release -- --verify https://cybercard.net` asks the address what it is running and
+  compares it with what was released. The entries for 0.36.0, 0.36.1 and 0.37.0, which were tagged
+  and shipped with none, were written from their commits.
+- **A backup nobody has restored is a hope.** `docs/DEPLOY.md` carries the restore rehearsal as
+  five steps that touch nothing live — take the newest BoxPilot archive, unpack it, run the copy
+  on a spare port with the scheduler off, compare it with the live instance, record what happened
+  — and `scripts/health-diff.ts` gives the verdict: a restored copy may be behind by up to a
+  tenth, may never be ahead, must carry the same migrations, and an empty table is its own
+  finding. `npm run rehearsal -- today "…"` records the date and a note; until one is recorded,
+  and again ninety days after the last, the digest asks for one.
+- The side rail keeps its 320px and the page steps up at laptop widths, so the News front page no
+  longer squeezes its lead story on a 13-inch screen.
+
 ## 0.37.0 — 2026-10-20
 
 - **Brand the instance from the Desk.** A page at `/branding` puts any of the marks kept in
