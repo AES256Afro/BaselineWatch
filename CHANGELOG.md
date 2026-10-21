@@ -2,6 +2,34 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.41.0 — 2026-10-21
+
+- **Scan 2.0 — check a domain** (`/scan/domain`). Type a domain and the server reads it the way
+  internet.nl, Hardenize and MXToolbox do, by lookups alone: addresses and name servers, the
+  DNSSEC flag from Cloudflare's validating resolver, CAA; the mail chain the way a receiver reads
+  it — MX and the null MX, SPF with its ending and lookup count, DMARC's policy and reporting,
+  DKIM at twelve common selectors or the ones named, MTA-STS and its policy file, TLS-RPT; the
+  web side — the front page over HTTPS, whether plain HTTP redirects, HSTS, CSP and the other
+  headers, the handshake and certificate, `security.txt`. **Every verdict quotes the record it
+  rests on.** Ten-minute cache, a dozen checks per address, nothing stored; the owner can list
+  their own domains. **Scan is now a menu**: this browser, a domain, your network, by hand.
+- **What this page learned about you**, on the Scan page: the address the request came from and
+  what kind it is, whether it is a **Tor exit** (the Tor Project's exit list, a daily source,
+  migration 0037), the transport, Global Privacy Control and Do Not Track as sent, the referrer,
+  and every header the browser volunteered — computed from the request, kept nowhere. One
+  Shodan InternetDB lookup of the visitor's own public address on their say-so: ports, hostnames,
+  software, CVEs, a 404 read as the good answer.
+- **What this browser gives away**: five rows in the same run of the browser check — GPC and
+  DNT; WebRTC candidates gathered with no STUN server (an mDNS name is the good answer, a LAN
+  address a warning, a public one a leak); the fingerprint surface, a canvas drawn twice and
+  hashed, twelve fonts, screen, time zone, languages and cores, two different hashes read as
+  randomised; the Referer as this server received it against the page's policy; the transport.
+  `/scan/echo` answers what it received. The why page gains a section per row, with sources.
+- **Usability**: a skip link to the one main landmark on every page; a caption and header scopes
+  on all eighteen tables; a description and OpenGraph tags on every page, and a canonical
+  address on the pages a reader lands on; a test that fails on a missing label, caption, scope,
+  alt or text alternative before a page reaches anyone. Checked at phone width.
+
 ## 0.40.0 — 2026-10-21
 
 - **"Is there a public exploit?"** — answered on every CVE from three keyless indexes read whole
