@@ -2,6 +2,14 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.44.0 — 2026-10-21
+
+- **Saved searches.** The owner names a filtered list once — the Vulnerabilities table under a
+  filter, a News filter, a search, a Patch Tuesday component — and it waits under the Desk at
+  `/saved` and in a box on Today (migration 0040). A saved search is a path on this site with
+  its query string and nothing more; the page it names does the work. The list pages show the
+  owner a one-line Save box when a filter is on, and say so once the list is kept.
+
 ## 0.43.0 — 2026-10-21
 
 - **Mail as a notifier transport.** `BW_NOTIFY_URL` takes

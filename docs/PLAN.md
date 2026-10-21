@@ -1557,7 +1557,9 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | N7 S6 history | #26: every network run over time with what changed, the owner's exposure runs, a Today tile | merged |
 | Guide, empty states | #27: five guide sections for the night's areas; three stale empty states rewritten | merged |
 | N6 mail | #28: `mailto://` as a notifier transport, a small SMTP client with STARTTLS and AUTH PLAIN | merged |
-| 0.43.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
+| 0.43.0 | tagged, image published; BoxPilot catalog #556 | superseded by 0.44.0 |
+| N6 saved searches | #29: a named list kept on the desk and on Today (migration 0040) | merged |
+| 0.44.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
