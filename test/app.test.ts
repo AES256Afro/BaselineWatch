@@ -84,7 +84,11 @@ describe("pages", () => {
     expect(text).toContain('href="/vulnerabilities?min_cvss=9"');
     expect(text).toContain('href="/stigs"');
     const home = await (await fetch(`${app.base}/`)).text();
-    expect(home).toContain('<a class="cap" href="/guide">');
+    expect(home).toContain('<a class="cap" href="/guide#ladder">');
+    // The Standards menu is the ladder, each rung with the line that says what it is.
+    expect(home).toContain('<a class="entry" href="/standards"><b>Standards</b><small>the rulebooks this instance tracks</small></a>');
+    expect(home).toContain("<b>Baselines</b><small>the set of rules chosen for a platform</small>");
+    expect(home).toContain("<b>Controls</b><small>one rule at a time, and what changed</small>");
     expect(home).toContain('<a href="/guide">how to read this site</a>');
   });
 
@@ -124,7 +128,8 @@ describe("pages", () => {
     expect(missing.status).toBe(404);
     const text = await missing.text();
     expect(text).toContain("Nothing at");
-    expect(text).not.toContain("<b>");
+    // The path is echoed escaped: the raw tag from the URL never reaches the page.
+    expect(text).not.toContain("/nope/<b>");
     expect(text).toContain("&lt;b&gt;");
   });
 });

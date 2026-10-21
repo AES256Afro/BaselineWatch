@@ -144,7 +144,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
         ${release.notes.length ? html`<ul class="change-list">${release.notes.map((n) => html`<li>${n}</li>`)}</ul>` : ""}
         ${release.sources.length ? html`<p class="small">${release.sources.map((s, i) => html`${i ? " · " : ""}<a href="${s.url}" ${newTabIf(s.url)}>${s.title}</a>`)}</p>` : ""}
       </section>`
-    : html`<section class="box"><h2>Any release</h2><p class="small">Choose a version and hardware above and the plan leaves out what does not apply to them, saying why. <a href="/platforms">Every platform's releases and hardware</a> are listed on the Platforms page.</p></section>`;
+    : html`<section class="box"><h2>Any release</h2><p class="small">Choose a version and hardware above and the plan leaves out what does not apply to them, saying why. <a href="/fleet">Every release and the hardware it runs on</a> is on the Fleet page.</p></section>`;
 
   const aside = html`
     ${releaseBox}
@@ -179,7 +179,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
     <section class="box">
       <h2>How the areas are chosen</h2>
       <p class="small">Each check is filed by the words in its title (then its procedure): Secure Enclave, TPM, secure boot and attestation under the hardware root of trust; Platform SSO, Entra, Kerberos and passkeys under SSO; BitLocker, FileVault and LUKS under disk encryption; passwords, smart cards, session lock and sudo under authentication; audit and logs under logging; firewall, SMB, SSH, TLS, Bluetooth and sharing under network; updates and releases under updates; enrolment and management under MDM; browsers by name; meeting rooms under collaboration. The rest is "everything else". The words are the publishers'; only the filing is this product's.</p>
-      <p class="small">${plan.profile ? html`<a href="/baselines/${p}">The ${name} baseline</a> · ` : ""}<a href="/platforms">Platforms</a> · <a href="/baselines">All baselines</a></p>
+      <p class="small">${plan.profile ? html`<a href="/baselines/${p}">The ${name} baseline</a> · ` : ""}<a href="/fleet">Fleet</a> · <a href="/baselines">All baselines</a></p>
     </section>`;
 
   const content = html`

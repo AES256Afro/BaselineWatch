@@ -123,7 +123,7 @@ describe("STIG pages", () => {
     expect(html).toContain("V2R11");
     expect(html).toContain('CCI list</a>, version 2026-07-14 (<a href="/standards/disa-cci">19 identifiers</a>)');
     expect(html).not.toContain('<a href="/stigs/linux">Linux</a> <span class="count"');
-    expect(html).toContain('aria-current="page">STIGs</a>');
+    expect(html).toContain('aria-current="page"><b>STIGs</b>');
     // Each platform's count and each CAT cell lead to the rules they count.
     expect(html).toContain('<a href="/stigs/windows">Windows</a> <span class="count"><a href="/stigs/windows">2 STIGs</a></span>');
     expect(html).toMatch(/<td class="n"><a href="\/stigs\/macos\?stig=stig%3A[^"&]+&amp;cat=1">\d+<\/a><\/td>/);

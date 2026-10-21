@@ -1,32 +1,56 @@
 import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, type Html } from "../html.ts";
-import { lookAttributes, lookSwitch, type LookState } from "../look.ts";
+import { lookAttributes, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
-export type Area = "today" | "register" | "catalog" | "stigs" | "baselines" | "platforms" | "wire" | "vulnerabilities" | "triage" | "atlas" | "watchlist" | "digest" | "sources" | "branding" | "guide" | "scan";
+export type Area =
+  | "today"
+  | "register"
+  | "catalog"
+  | "controls"
+  | "stigs"
+  | "baselines"
+  | "fleet"
+  | "wire"
+  | "vulnerabilities"
+  | "triage"
+  | "atlas"
+  | "watchlist"
+  | "digest"
+  | "sources"
+  | "branding"
+  | "appearance"
+  | "guide"
+  | "scan";
 
 /**
- * The top, reorganised the way the leading aggregators organise theirs (docs/mockups): News is
- * home, the reading areas sit flat, the standards library is one labelled group, and the owner's
- * desk is one cluster on the right. Both groups are plain <details> menus: no script, CSP intact.
+ * The top, built from the ladder the guide teaches: a **standard** is the rulebook, a
+ * **baseline** is the set of its rules chosen for a kind of system, a **control** is one rule,
+ * and a setting is how that rule is enforced on a device. The Standards menu is those three
+ * words in that order, each with the line that says what it is, and the tools that cut across
+ * them (STIGs, Atlas) sit below a rule. The owner's desk is one cluster on the right: their own
+ * fleet and work, then the instance, then how it looks. Both groups are plain <details> menus:
+ * no script, CSP intact.
  */
-const areas: Record<Area, { label: string; path: string }> = {
+const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   wire: { label: "News", path: "/" },
   today: { label: "Today", path: "/today" },
-  register: { label: "Register", path: "/register" },
-  catalog: { label: "All standards", path: "/standards" },
-  stigs: { label: "STIGs", path: "/stigs" },
-  baselines: { label: "Baselines", path: "/baselines" },
-  platforms: { label: "Platforms", path: "/platforms" },
-  atlas: { label: "Atlas", path: "/atlas" },
+  catalog: { label: "Standards", path: "/standards", blurb: "the rulebooks this instance tracks" },
+  baselines: { label: "Baselines", path: "/baselines", blurb: "the set of rules chosen for a platform" },
+  controls: { label: "Controls", path: "/controls", blurb: "one rule at a time, and what changed" },
+  stigs: { label: "STIGs", path: "/stigs", blurb: "a platform's rules, with check and fix" },
+  atlas: { label: "Atlas", path: "/atlas", blurb: "the rhythm of releases, and what is due" },
+  register: { label: "Change register", path: "/register", blurb: "every release, control by control" },
+  fleet: { label: "Fleet", path: "/fleet", blurb: "your releases and the hardware they run on" },
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities" },
   scan: { label: "Scan", path: "/scan" },
-  triage: { label: "Triage", path: "/triage" },
-  watchlist: { label: "Watchlist", path: "/watchlist" },
-  digest: { label: "Digest", path: "/digest" },
-  sources: { label: "Sources", path: "/sources" },
-  branding: { label: "Branding", path: "/branding" },
+  triage: { label: "Triage", path: "/triage", blurb: "what needs a decision" },
+  watchlist: { label: "Watchlist", path: "/watchlist", blurb: "the products and platforms you run" },
+  digest: { label: "Digest", path: "/digest", blurb: "the daily or weekly summary, and alerts" },
+  sources: { label: "Sources", path: "/sources", blurb: "what is read, how often, under what terms" },
+  appearance: { label: "Appearance", path: "/appearance", blurb: "the look and the colour scheme" },
+  branding: { label: "Branding", path: "/branding", blurb: "the mark this instance wears" },
   guide: { label: "Guide", path: "/guide" },
 };
 
@@ -34,8 +58,13 @@ export function areaPath(area: Area): string {
   return areas[area].path;
 }
 
-const standardsGroup: Area[] = ["register", "catalog", "stigs", "baselines", "platforms", "atlas"];
-const deskGroup: Area[] = ["triage", "watchlist", "digest", "sources", "branding"];
+/** The ladder, in order, then the tools that cut across it. */
+const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
+const standardsTools: Area[] = ["stigs", "register", "atlas"];
+/** The owner's own work, then the instance, then how it is drawn. */
+const deskGroup: Area[] = ["fleet", "triage", "watchlist"];
+const deskInstance: Area[] = ["sources", "digest"];
+const deskLook: Area[] = ["appearance", "branding"];
 
 export interface PageOptions {
   title: string;
@@ -87,6 +116,11 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
     const item = areas[area];
     return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
   };
+  // Inside a menu a label alone teaches nothing, so each entry carries the line that says what it is.
+  const entry = (area: Area): Html => {
+    const item = areas[area];
+    return html`<a class="entry" href="${item.path}"${area === active ? html` aria-current="page"` : ""}><b>${item.label}</b>${item.blurb ? html`<small>${item.blurb}</small>` : ""}</a>`;
+  };
   const session =
     owner === undefined || open
       ? ""
@@ -112,24 +146,31 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
   <div class="mast-inner">
     <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
     <nav aria-label="Areas">
-      ${link("wire")}${link("today")}<details class="group${standardsGroup.includes(active) ? " on" : ""}">
+      ${link("wire")}${link("today")}<details class="group${[...standardsGroup, ...standardsTools].includes(active) ? " on" : ""}">
         <summary>Standards</summary>
-        <div class="menu">
-          <a class="cap" href="/guide">The standards change register — how to read it</a>
-          ${standardsGroup.map((a) => link(a))}
+        <div class="menu wide">
+          <a class="cap" href="/guide#ladder">A standard is the rulebook · a baseline picks its rules for a system · a control is one rule</a>
+          ${standardsGroup.map((a) => entry(a))}
+          <hr>
+          ${standardsTools.map((a) => entry(a))}
         </div>
       </details>${link("vulnerabilities")}${link("scan")}
     </nav>
     <div class="meta">${meta ?? ""}</div>
     <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
       <summary>Desk</summary>
-      <div class="menu right">
-        <span class="cap">Owner's desk</span>
-        ${deskGroup.map((a) => link(a))}
+      <div class="menu right wide">
+        <span class="cap">Your fleet and your work</span>
+        ${deskGroup.map((a) => entry(a))}
+        <hr>
+        <span class="cap">This instance</span>
+        ${deskInstance.map((a) => entry(a))}
+        <hr>
+        <span class="cap">How it is drawn</span>
+        ${deskLook.map((a) => entry(a))}
         ${session}
       </div>
     </details>
-    ${lookSwitch(look)}
   </div>
 </header>
 ${strip ?? ""}
