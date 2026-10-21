@@ -94,6 +94,10 @@ export interface PageOptions {
   look: LookState;
   /** The RSS address that carries this page's list, for a reader's autodiscovery. */
   feed?: { href: string; title: string } | undefined;
+  /** One sentence for search results and link previews; the product's own when a page has none. */
+  description?: string | undefined;
+  /** The page's canonical path, for the tag that tells a crawler which address is the one; pages with filters name their unfiltered self. */
+  canonical?: string | undefined;
   /**
    * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
    * page passes one, under its own policy; every other page is served with script-src 'none'.
@@ -127,7 +131,15 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   return html`<div class="strip"><div class="strip-inner"><a class="lab" href="/register">Register</a> ${entries}</div></div>`;
 }
 
-export function page({ title, active, content, meta, owner, open, strip, look, script, feed }: PageOptions): string {
+/** The instance's public address, set once by createApp, so canonical and OpenGraph tags can be absolute. */
+let siteBase = "";
+export function setSiteBase(baseUrl: string): void {
+  siteBase = baseUrl.replace(/\/+$/, "");
+}
+
+export const productDescription = "News, advisories and CVEs in one timeline, and a change register for the security standards themselves: what each control said before and after, and why.";
+
+export function page({ title, active, content, meta, owner, open, strip, look, script, feed, description, canonical }: PageOptions): string {
   const link = (area: Area, cls?: string): Html => {
     const item = areas[area];
     return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
@@ -152,13 +164,21 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title === productName ? title : `${title} · ${productName}`}</title>
-${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
+<meta name="description" content="${description ?? productDescription}">
+<meta property="og:site_name" content="${productName}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${description ?? productDescription}">
+${canonical && siteBase ? html`<link rel="canonical" href="${siteBase}${canonical}">
+<meta property="og:url" content="${siteBase}${canonical}">
+` : ""}${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
 <link rel="stylesheet" href="/assets/app.css?v=${productVersion}">
 ${feed ? html`<link rel="alternate" type="application/rss+xml" title="${feed.title}" href="${feed.href}">
 ` : ""}<meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
 ${script ? html`<script type="module" src="${script}?v=${productVersion}"></script>` : ""}
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="mast">
   <div class="mast-inner">
     <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
@@ -202,7 +222,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
   </div>
 </header>
 ${strip ?? ""}
-<main class="wrap">${content}</main>
+<main class="wrap" id="main" tabindex="-1">${content}</main>
 <footer class="foot">
   <div class="wrap">
     <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="/guide">how to read this site</a> · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>

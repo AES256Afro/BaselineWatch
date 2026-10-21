@@ -117,5 +117,5 @@ export function renderScanDomain(options: ScanDomainOptions): string {
     </aside>
   </div>
 </section>`;
-  return page({ title: domain ? `Check a domain · ${domain}` : "Check a domain", active: "scan-domain", content, owner, open, look });
+  return page({ title: domain ? `Check a domain · ${domain}` : "Check a domain", active: "scan-domain", content, owner, open, look, canonical: "/scan/domain", description: "A domain's mail, DNS and web posture read by lookups alone: SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA, HSTS, the certificate, security.txt, each record quoted." });
 }
