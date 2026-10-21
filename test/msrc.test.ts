@@ -162,6 +162,9 @@ describe("on the pages", () => {
       expect(page).toContain("restart required");
       expect(page).toContain('href="https://msrc.microsoft.com/update-guide/releaseNote/2026-Oct"');
       expect(page).not.toContain("Nothing published yet");
+      const api = (await (await fetch(`${app.base}/api/v1/vulns/CVE-2026-100200`)).json()) as { fix: { microsoft: { release: string; severity: string; fixes: { kb: string | null }[] } | null } };
+      expect(api.fix.microsoft).toMatchObject({ release: "2026-Oct", severity: "Important" });
+      expect(api.fix.microsoft?.fixes.map((f) => f.kb)).toContain("5127648");
 
       const exploited = await (await fetch(`${app.base}/vulnerabilities/CVE-2026-96951`)).text();
       expect(exploited).toContain('<span class="chip kev">Microsoft: exploited</span>');
