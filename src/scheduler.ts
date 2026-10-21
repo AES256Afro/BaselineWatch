@@ -6,6 +6,7 @@ import { formatBytes, type HousekeepingResult } from "./housekeeping.ts";
 import { httpGet } from "./http.ts";
 import { ingestSource, listSources, type IngestDeps, type IngestResult } from "./ingest.ts";
 import { notify } from "./notify.ts";
+import { alertAfterHours, markAlerted, sourcesToAlert } from "./pipeline.ts";
 
 const intervalMs: Record<SourceRow["schedule"], number> = {
   hourly: 60 * 60 * 1000,
@@ -81,6 +82,8 @@ export interface Scheduler {
   runNetwork(): Promise<boolean>;
   /** Runs the housekeeping pass if one is due; true when one ran. */
   runHousekeeping(): boolean;
+  /** Notifies once for each source that has been failing longer than a day; how many were told. */
+  alertFailingSources(): Promise<number>;
   stop(): void;
 }
 
@@ -168,6 +171,33 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     return ran;
   };
 
+  /**
+   * One notification per failure episode, once a source has been failing for a day (M13.2). A
+   * feed that 403s for an hour recovers by itself and is not news; a key that died on Tuesday is.
+   * recordOutcome clears the marks the moment a source answers, so the next episode speaks again.
+   */
+  const alertFailingSources = async (): Promise<number> => {
+    const stuck = sourcesToAlert(db, now());
+    for (const source of stuck) {
+      const at = now().toISOString();
+      await notify(
+        db,
+        options.transport ?? null,
+        {
+          kind: "source",
+          title: `${source.name} has been failing for ${source.hours} h`,
+          body: `${source.error ?? "no error recorded"}\n\nNothing from this source has reached the timeline since ${source.since?.slice(0, 16).replace("T", " ") ?? "its last success"}. The Sources page says what to do about this failure.`,
+          url: options.baseUrl ? `${options.baseUrl}/sources#src-${source.id}` : null,
+        },
+        options.http ?? httpGet,
+        now,
+      );
+      markAlerted(db, source.id, at);
+      log(`[scheduler] ${source.id} has failed for ${source.hours} h (over ${alertAfterHours}); notified once for this episode`);
+    }
+    return stuck.length;
+  };
+
   const runHousekeeping = (): boolean => {
     if (!options.housekeeping) return false;
     const result = options.housekeeping();
@@ -181,6 +211,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     void runOnce()
       .then(() => runDigest())
       .then(() => runNetwork())
+      .then(() => alertFailingSources())
       // Last on the tick: the pass takes the write lock for a moment, so it waits for the fetches.
       .then(() => runHousekeeping())
       .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`));
@@ -192,6 +223,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     runDigest,
     runNetwork,
     runHousekeeping,
+    alertFailingSources,
     stop: () => clearInterval(timer),
   };
 }

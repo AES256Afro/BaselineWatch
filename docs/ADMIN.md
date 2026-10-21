@@ -85,6 +85,27 @@ Vulnerabilities take a shorter path: NVD records are normalised into `vulns` on 
 differences from the last sighting into `vuln_changes`, and only notable CVEs (KEV, the
 watchlist, new criticals, EPSS over 50%, active exploitation per SSVC) reach the Wire.
 
+## When it tells you something is wrong
+
+| What | When | Where |
+| --- | --- | --- |
+| A source has failed for 24 hours | Once per failure episode, not once a tick. It clears silently when the source answers, so the next outage speaks again. | The notifier, kind `source`; the alert log on the Digest page. |
+| The CVE pull is 36 hours behind | Every digest while it holds. | The digest's Pipeline line. |
+| Any source failing right now | Every digest. | The digest, the Pipeline tile on Today, and the Sources page with the hint for that failure. |
+| A network canary changes category, or the resolver changes | Right away (M12.3). | The notifier, kind `network`. |
+
+**Is there a newer version?** The Sources page says what this instance runs, and the owner's
+**Check now** asks GitHub for the newest published release. Nothing polls for it: this instance
+makes no outbound call except to its declared sources and the configured notifier, and this
+product's own releases are neither. The answer is kept until the next check, and a check that
+gets no answer forgets the old one rather than showing a stale version.
+
+The **Pipeline tile** on Today is the same facts at a glance: how many sources are failing, how
+long the worst one has been failing, how far behind the CVE stream is. It is green when every
+source answered, amber while something is failing, and red once a failure passes a day or the CVE
+stream passes 36 hours. `/metrics` serves the same numbers in Prometheus's text format, gated like
+`/health`: on an instance closed to readers it gives the running version and nothing else.
+
 ## The scheduler
 
 In-process, one tick a minute. A source is due when its interval (hourly, daily, weekly) has

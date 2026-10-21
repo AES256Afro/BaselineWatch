@@ -21,6 +21,7 @@
     "check:manifest": "node scripts/validate-manifest.mjs",
     "check:release": "node --disable-warning=ExperimentalWarning scripts/release.ts --check",
     "check:feeds": "node --disable-warning=ExperimentalWarning scripts/probe-feeds.mjs",
+    "check:templates": "node --disable-warning=ExperimentalWarning scripts/probe-templates.mjs",
     "check": "npm run typecheck && npm run test && npm run lint && npm run check:manifest && npm run check:release"
   },
   "dependencies": {

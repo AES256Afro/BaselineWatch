@@ -31,8 +31,8 @@ steps:
       versions:
         android: [">=14"]
     source:
-      title: Microsoft Learn, "Brokered authentication in Android"
-      url: https://learn.microsoft.com/entra/msal/android/brokered-auth
+      title: Microsoft Learn, "How to enable cross-app SSO on Android using MSAL"
+      url: https://learn.microsoft.com/entra/msal/android/single-sign-on
   - do: On a shared Android device (a meeting-room tablet or a front-desk device), sign in as one user, open Teams, sign out from Authenticator, and sign in as a second user.
     expect: Shared device mode is on (Authenticator shows the shared-mode banner and Intune pushed the shared-mode managed configuration); the global sign-out clears the first user from every supported app and the second user sees nothing of the first.
     fail: Any trace of the first user after sign-out means an app on the device does not support shared device mode; remove it or move the device out of the shared pool.

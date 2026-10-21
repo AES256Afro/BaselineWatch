@@ -9,7 +9,7 @@ import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly
 import { flashHeader, flashText, takeFlash } from "./flash.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
-import type { HttpGet } from "./http.ts";
+import { httpGet, type HttpGet } from "./http.ts";
 import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
 import { renderAppearance } from "./pages/appearance.ts";
@@ -56,6 +56,7 @@ import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
 import { storageReport } from "./housekeeping.ts";
+import { checkLatestRelease, metricsText, pipelineHealth } from "./pipeline.ts";
 import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
@@ -300,6 +301,40 @@ export function createApp(ctx: AppContext): Express {
   };
   app.get("/health", health);
   app.get("/api/v1/health", health);
+
+  // The same facts a dashboard can scrape (M13.2). Gated like /health: on an instance closed to
+  // readers it says only what version is running, which is what a monitor needs to see it is up.
+  app.get("/metrics", (req, res) => {
+    const full = config.publicRead || authState(req, config, now().getTime()).owner;
+    const at = now();
+    const h = pipelineHealth(db, at);
+    const storage = storageReport(db);
+    res.setHeader("Cache-Control", "no-store");
+    res.type("text/plain; version=0.0.4; charset=utf-8");
+    if (!full) {
+      res.send(`# HELP baselinewatch_build_info The running version, as a label on a constant 1.\n# TYPE baselinewatch_build_info gauge\nbaselinewatch_build_info{version="${productVersion}"} 1\n`);
+      return;
+    }
+    res.send(
+      metricsText({
+        health: h,
+        now: at,
+        counts: {
+          sources: countRows(db, "sources"),
+          items: countRows(db, "items"),
+          vulns: countRows(db, "vulns"),
+          changes: countRows(db, "changes"),
+          snapshots: countRows(db, "snapshots"),
+        },
+        bytes: { database: storage.databaseBytes, snapshots: storage.snapshotBytes },
+        images: storage.imageBlobs,
+        housekeeping: storage.lastRun
+          ? { ranAt: storage.lastRun.ranAt, snapshotsDeleted: storage.lastRun.snapshotsDeleted, blobsDeleted: storage.lastRun.blobsDeleted, vacuumed: storage.lastRun.vacuumed }
+          : null,
+        uptimeSeconds: Math.round((Date.now() - ctx.startedAt) / 1000),
+      }),
+    );
+  });
 
   const secureCookies = (req: Request): boolean => req.secure || config.baseUrl.startsWith("https://");
 
@@ -932,6 +967,27 @@ export function createApp(ctx: AppContext): Express {
     clearBrandImage(db, kind);
     res.append("Set-Cookie", flashHeader(kind === "logo" ? "The logo is removed; the masthead carries the wordmark alone." : "The favicon is removed.", secureCookies(req)));
     res.redirect(303, "/branding");
+  });
+
+  // The one request this product makes about itself, and only when the owner asks for it (M13.2).
+  app.post("/sources/check-version", requireOwner, async (req, res) => {
+    const result = await checkLatestRelease(db, ctx.http ?? httpGet, now());
+    res.append(
+      "Set-Cookie",
+      flashHeader(
+        {
+          sourceId: "this instance",
+          status: result.version ? "ok" : "error",
+          detail: result.version
+            ? result.newer
+              ? `${result.version} is published; this instance runs ${productVersion}`
+              : `${productVersion} is the newest release`
+            : "GitHub did not answer with a version",
+        },
+        secureCookies(req),
+      ),
+    );
+    res.redirect(303, "/sources#storage");
   });
 
   app.post("/sources/:id/enable", requireOwner, setEnabled(true));

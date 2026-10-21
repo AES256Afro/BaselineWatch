@@ -335,8 +335,11 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
 - **CVE**: `https://services.nvd.nist.gov/rest/json/cves/2.0` with `lastModStartDate` /
   `lastModEndDate` (max 120-day window), paged by `startIndex` / `resultsPerPage` (max 2000).
 - **CVE history**: `https://services.nvd.nist.gov/rest/json/cvehistory/2.0` with
-  `changeStartDate` / `changeEndDate`; gives per-CVE change events (score added, CPE added,
-  reference added) which is exactly the "what changed on this CVE" view.
+  `changeStartDate` / `changeEndDate`; per-CVE change events (score added, CPE added, reference
+  added). **Not used, and the row is gone** (migration 0034): BaselineWatch computes the same
+  history by diffing successive sightings of a CVE, which costs no extra request, catches changes
+  this endpoint does not report, and has been the only source of `vuln_changes` since M2. The
+  endpoint is recorded here in case that ever stops being true.
 - **Key**: free at `https://nvd.nist.gov/developers/request-an-api-key`, sent as `apiKey`
   header. 5 requests / 30 s without, 50 / 30 s with; sleep between calls anyway.
 - **Shape**: `vulnerability`.

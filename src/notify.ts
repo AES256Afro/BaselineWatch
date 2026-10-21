@@ -9,7 +9,7 @@ import { HttpError, httpGet, type HttpGet } from "./http.ts";
  * Email goes through one of these (ntfy and Apprise both forward to mail) rather than SMTP here.
  */
 export interface Notification {
-  kind: "kev" | "release" | "watch" | "directive" | "digest" | "network" | "test";
+  kind: "kev" | "release" | "watch" | "directive" | "digest" | "network" | "source" | "test";
   title: string;
   body: string;
   url?: string | null;
