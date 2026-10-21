@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { productVersion } from "./version.ts";
+import { productVersion, repositoryUrl } from "./version.ts";
 
 /**
  * Whether the pipeline is actually running (M13.2).
@@ -33,8 +33,10 @@ export interface PipelineHealth {
   cveAgeHours: number | null;
   /** Article images: how many of the items that were looked at ended up with one. */
   images: { have: number; checked: number } | null;
-  /** What this process is running. The newest published version is a later item of M13.2. */
+  /** What this process is running. */
   version: string;
+  /** The newest published release, as of the owner's last check; nothing polls for it. */
+  release: LatestRelease;
   /** The worst thing true right now, which is what the tile colours itself by. */
   state: "ok" | "warn" | "bad";
 }
@@ -82,6 +84,7 @@ export function pipelineHealth(db: DatabaseSync, now: Date): PipelineHealth {
     cveAgeHours,
     images: img.checked > 0 ? { have: img.have ?? 0, checked: img.checked } : null,
     version: productVersion,
+    release: knownRelease(db),
     state,
   };
 }
@@ -97,6 +100,7 @@ export function pipelineSummary(health: PipelineHealth): string {
     return `the CVE pull is ${Math.floor(health.cveAgeHours / 24)} day(s) behind`;
   }
   if (health.failing.length) return `${health.failing.map((f) => f.name).slice(0, 2).join(", ")} failing`;
+  if (health.release.newer) return `every source answering · ${health.release.version} is published, this runs ${health.version}`;
   if (health.cveAgeHours !== null) return `CVEs ${health.cveAgeHours} h ago · every source answering`;
   return "every source answering";
 }
@@ -178,4 +182,72 @@ export function metricsText(input: MetricsInput): string {
   blocks.push(metric("baselinewatch_pipeline_state", "0 ok, 1 something failing, 2 stuck: the tile's own verdict.", "gauge",
     [`baselinewatch_pipeline_state ${health.state === "ok" ? 0 : health.state === "warn" ? 1 : 2}`]));
   return `${blocks.join("\n\n")}\n`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Is a newer version published? The instance promises no outbound calls except to its declared
+// sources and the configured notifier, and this product's own releases are neither. So nothing
+// polls: the owner asks, on the Sources page, and the answer is kept until they ask again. A
+// visitor sees what this instance runs and, if the owner has checked, what the newest release was
+// when they did.
+
+const latestKey = "release.latest";
+const checkedKey = "release.checked_at";
+
+export interface LatestRelease {
+  /** The newest published version the owner's last check saw, without the leading v. */
+  version: string | null;
+  checkedAt: string | null;
+  /** True when that version is ahead of the one running. */
+  newer: boolean;
+}
+
+/** -1, 0 or 1 for two x.y.z strings; anything unparseable sorts as equal rather than as newer. */
+export function compareVersions(a: string, b: string): number {
+  const left = a.split(".").map(Number);
+  const right = b.split(".").map(Number);
+  if (left.length !== 3 || right.length !== 3 || [...left, ...right].some((n) => !Number.isFinite(n))) return 0;
+  for (let i = 0; i < 3; i += 1) {
+    if (left[i] !== right[i]) return (left[i] ?? 0) < (right[i] ?? 0) ? -1 : 1;
+  }
+  return 0;
+}
+
+function setting(db: DatabaseSync, key: string): string | null {
+  return (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value ?? null;
+}
+
+export function knownRelease(db: DatabaseSync): LatestRelease {
+  const version = setting(db, latestKey);
+  return { version, checkedAt: setting(db, checkedKey), newer: version !== null && compareVersions(version, productVersion) > 0 };
+}
+
+/**
+ * Asks GitHub for this product's newest release, once, because the owner pressed the button.
+ * A failure is recorded as a checked time with no version, so the page can say the check did not
+ * get an answer rather than silently showing yesterday's.
+ */
+export async function checkLatestRelease(
+  db: DatabaseSync,
+  http: (url: string, options?: { headers?: Record<string, string> }) => Promise<{ bytes: Uint8Array }>,
+  now: Date,
+  repository = repositoryUrl,
+): Promise<LatestRelease> {
+  const api = `https://api.github.com/repos/${repository.replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "")}/releases/latest`;
+  const at = now.toISOString();
+  const write = db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at");
+  try {
+    const response = await http(api, { headers: { accept: "application/vnd.github+json" } });
+    const body = JSON.parse(new TextDecoder().decode(response.bytes)) as { tag_name?: string };
+    const version = (body.tag_name ?? "").replace(/^v/, "");
+    if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`no version in ${body.tag_name ?? "the answer"}`);
+    write.run(latestKey, version, at);
+    write.run(checkedKey, at, at);
+  } catch {
+    // The reason is not kept: it is a request to one known address, and a stale answer would be
+    // worse than none. The page says when the check last ran and whether it brought a version.
+    db.prepare("DELETE FROM app_settings WHERE key = ?").run(latestKey);
+    write.run(checkedKey, at, at);
+  }
+  return knownRelease(db);
 }

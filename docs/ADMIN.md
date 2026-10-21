@@ -94,6 +94,12 @@ watchlist, new criticals, EPSS over 50%, active exploitation per SSVC) reach the
 | Any source failing right now | Every digest. | The digest, the Pipeline tile on Today, and the Sources page with the hint for that failure. |
 | A network canary changes category, or the resolver changes | Right away (M12.3). | The notifier, kind `network`. |
 
+**Is there a newer version?** The Sources page says what this instance runs, and the owner's
+**Check now** asks GitHub for the newest published release. Nothing polls for it: this instance
+makes no outbound call except to its declared sources and the configured notifier, and this
+product's own releases are neither. The answer is kept until the next check, and a check that
+gets no answer forgets the old one rather than showing a stale version.
+
 The **Pipeline tile** on Today is the same facts at a glance: how many sources are failing, how
 long the worst one has been failing, how far behind the CVE stream is. It is green when every
 source answered, amber while something is failing, and red once a failure passes a day or the CVE

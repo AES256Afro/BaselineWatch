@@ -9,7 +9,7 @@ import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly
 import { flashHeader, flashText, takeFlash } from "./flash.ts";
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
-import type { HttpGet } from "./http.ts";
+import { httpGet, type HttpGet } from "./http.ts";
 import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type IngestResult } from "./ingest.ts";
 import { handleMcpRequest } from "./mcp.ts";
 import { renderAppearance } from "./pages/appearance.ts";
@@ -56,7 +56,7 @@ import { parsePackageValue, recomputeWatchHits, type VulnFilters } from "./vulns
 import { writeDigest } from "./digest.ts";
 import { notify, parseNotifyUrl } from "./notify.ts";
 import { storageReport } from "./housekeeping.ts";
-import { metricsText, pipelineHealth } from "./pipeline.ts";
+import { checkLatestRelease, metricsText, pipelineHealth } from "./pipeline.ts";
 import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "./triage.ts";
 import { markAllRead, setRead, setStarred, type WireFilters } from "./wire.ts";
 
@@ -967,6 +967,27 @@ export function createApp(ctx: AppContext): Express {
     clearBrandImage(db, kind);
     res.append("Set-Cookie", flashHeader(kind === "logo" ? "The logo is removed; the masthead carries the wordmark alone." : "The favicon is removed.", secureCookies(req)));
     res.redirect(303, "/branding");
+  });
+
+  // The one request this product makes about itself, and only when the owner asks for it (M13.2).
+  app.post("/sources/check-version", requireOwner, async (req, res) => {
+    const result = await checkLatestRelease(db, ctx.http ?? httpGet, now());
+    res.append(
+      "Set-Cookie",
+      flashHeader(
+        {
+          sourceId: "this instance",
+          status: result.version ? "ok" : "error",
+          detail: result.version
+            ? result.newer
+              ? `${result.version} is published; this instance runs ${productVersion}`
+              : `${productVersion} is the newest release`
+            : "GitHub did not answer with a version",
+        },
+        secureCookies(req),
+      ),
+    );
+    res.redirect(303, "/sources#storage");
   });
 
   app.post("/sources/:id/enable", requireOwner, setEnabled(true));
