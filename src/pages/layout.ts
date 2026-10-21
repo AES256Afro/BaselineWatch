@@ -24,6 +24,7 @@ export type Area =
   | "scan-domain"
   | "scan-network"
   | "scan-guide"
+  | "scan-history"
   | "triage"
   | "atlas"
   | "watchlist"
@@ -60,6 +61,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
   "scan-network": { label: "Your network", path: "/scan/network", blurb: "the LAN resolver, from this server, daily" },
   "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
+  "scan-history": { label: "History", path: "/scan/history", blurb: "every run, and what changed between them" },
   triage: { label: "Triage", path: "/triage", blurb: "what needs a decision" },
   watchlist: { label: "Watchlist", path: "/watchlist", blurb: "the products and platforms you run" },
   digest: { label: "Digest", path: "/digest", blurb: "the daily or weekly summary, and alerts" },
@@ -75,7 +77,7 @@ const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
 const standardsTools: Area[] = ["stigs", "register", "atlas"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
-const scanGroup: Area[] = ["scan", "scan-domain", "scan-network", "scan-guide"];
+const scanGroup: Area[] = ["scan", "scan-domain", "scan-network", "scan-history", "scan-guide"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
