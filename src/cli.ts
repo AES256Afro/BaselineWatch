@@ -4,6 +4,7 @@
 //   node src/cli.ts relink <source-id|all>        put a standard's versions back in publication order and re-diff the ones that were linked wrong
 //   node src/cli.ts images <count|all>            fetch og:image for existing news articles that have none, newest first (new articles get theirs at ingest)
 //   node src/cli.ts netscan <run|due>             the network scan (M12.3): run now, or only when due and turned on, then exit
+//   node src/cli.ts rehearsal <today|date> [note] record that the backup was restored and checked (docs/DEPLOY.md)
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { adapterFor } from "./adapters/index.ts";
@@ -13,15 +14,16 @@ import { httpGet } from "./http.ts";
 import { getSource, ingestDocumentTarget, ingestSource, listSources } from "./ingest.ts";
 import { backfillImages } from "./images.ts";
 import { maybeRunNetworkScan, netScanEnabled, runNetworkScan } from "./netscan.ts";
+import { lastRehearsal, recordRehearsal } from "./housekeeping.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
 
 const [command, target] = process.argv.slice(2);
 
-if ((command !== "fetch" && command !== "backfill" && command !== "relink" && command !== "images" && command !== "netscan") || !target) {
+if ((command !== "fetch" && command !== "backfill" && command !== "relink" && command !== "images" && command !== "netscan" && command !== "rehearsal") || !target) {
   console.error(
-    "usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>\n       node src/cli.ts images <count|all>\n       node src/cli.ts netscan <run|due>",
+    "usage: node src/cli.ts fetch <source-id|all|due>\n       node src/cli.ts backfill <source-id>\n       node src/cli.ts relink <source-id|all>\n       node src/cli.ts images <count|all>\n       node src/cli.ts netscan <run|due>\n       node src/cli.ts rehearsal <today|YYYY-MM-DD> [note]",
   );
   process.exit(2);
 }
@@ -34,7 +36,18 @@ migrate(db);
 let failures = 0;
 const deps = { settings: { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages }, log: (line: string) => console.log(line) };
 
-if (command === "backfill") {
+if (command === "rehearsal") {
+  // The restore itself happens on the box; this records that it was done, so the digest stops asking.
+  const when = target === "today" ? new Date() : new Date(target);
+  if (Number.isNaN(when.getTime())) {
+    console.error(`rehearsal takes "today" or a date, got "${target}"`);
+    process.exit(2);
+  }
+  const note = process.argv.slice(4).join(" ") || null;
+  const previous = lastRehearsal(db);
+  const recorded = recordRehearsal(db, when.toISOString(), note);
+  console.log(`[rehearsal] recorded ${recorded.at.slice(0, 10)}${recorded.note ? `: ${recorded.note}` : ""}${previous ? ` (previous: ${previous.at.slice(0, 10)})` : " (the first one)"}`);
+} else if (command === "backfill") {
   const source = getSource(db, target);
   const adapter = source ? adapterFor(source) : null;
   if (!source || !adapter?.history) {
