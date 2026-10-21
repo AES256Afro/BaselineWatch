@@ -13,7 +13,6 @@ import { isoDate, plainText, type Adapter, type DocumentTarget, type ListingCont
  * gives the branch's current commit so an unchanged branch costs one small request a day.
  */
 
-const mscpRepository = "https://github.com/usnistgov/macos_security";
 /** Branches followed: the current macOS and the one before it, and the current iOS/iPadOS. */
 const mscpBranches = ["tahoe", "sequoia", "ios_26"] as const;
 

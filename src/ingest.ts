@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "./adapters/index.ts";
 import type { Adapter, AlertDraft, DocumentTarget, ParsedDocument, PullSettings, SourceRow } from "./adapters/types.ts";
 import { putBlob, sha256Hex } from "./blobs.ts";
+import type { Config } from "./config.ts";
 import { httpGet, type HttpGet } from "./http.ts";
 import { fetchNewItemImages } from "./images.ts";
 import { upsertItems } from "./items.ts";
@@ -364,4 +365,9 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     }
     return result;
   }
+}
+
+/** The pull settings an instance's config gives every adapter that runs its own requests. */
+export function pullSettings(config: Config): PullSettings {
+  return { nvdApiKey: config.nvdApiKey, nvdBackfillDays: config.nvdBackfillDays, newsImages: config.newsImages, llmUrl: config.llmUrl, llmModel: config.llmModel };
 }

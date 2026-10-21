@@ -1,10 +1,10 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createApp, pullSettings } from "./app.ts";
+import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { maybeRunHousekeeping } from "./housekeeping.ts";
-import { listSources } from "./ingest.ts";
+import { listSources, pullSettings } from "./ingest.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";

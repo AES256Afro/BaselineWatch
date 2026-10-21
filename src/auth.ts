@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import type { NextFunction, Request, Response } from "express";
 import type { Config } from "./config.ts";
@@ -65,10 +65,6 @@ export function throttleKey(ip: string | undefined): string {
     .slice(0, 4)
     .map((g) => g.padStart(4, "0"))
     .join(":")}::/64`;
-}
-
-function newSessionSecret(): string {
-  return randomBytes(32).toString("hex");
 }
 
 export interface AuthState {

@@ -54,10 +54,6 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   guide: { label: "Guide", path: "/guide" },
 };
 
-function areaPath(area: Area): string {
-  return areas[area].path;
-}
-
 /** The ladder, in order, then the tools that cut across it. */
 const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
 const standardsTools: Area[] = ["stigs", "register", "atlas"];
