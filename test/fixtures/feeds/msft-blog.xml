@@ -1,0 +1,1725 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Microsoft Security Blog</title>
+	<atom:link href="https://www.microsoft.com/en-us/security/blog/feed/" rel="self" type="application/rss+xml" />
+	<link>https://www.microsoft.com/en-us/security/blog/</link>
+	<description>Expert coverage of cybersecurity topics</description>
+	<lastBuildDate>Wed, 21 Oct 2026 20:17:06 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.5</generator>
+	<item>
+		<title>AI-driven, large-scale nation-state campaign using ARTEX enables supply chain compromise</title>
+		<link>https://www.microsoft.com/en-us/security/blog/2026/10/21/storm-0940-uses-artex-agentic-ai-connectwise-supply-chain-compromise/</link>
+		
+		<dc:creator><![CDATA[Microsoft Security Research and Microsoft Threat Intelligence]]></dc:creator>
+		<pubDate>Wed, 21 Oct 2026 18:23:55 +0000</pubDate>
+				<category><![CDATA[Supply chain attack]]></category>
+		<guid isPermaLink="false">https://www.microsoft.com/en-us/security/blog/?p=150178</guid>
+
+					<description><![CDATA[<p>Storm-0940 used ARTEX agentic AI to accelerate a ConnectWise supply chain compromise, enabling application credential abuse across Microsoft 365 environments.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/21/storm-0940-uses-artex-agentic-ai-connectwise-supply-chain-compromise/">AI-driven, large-scale nation-state campaign using ARTEX enables supply chain compromise</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<aside class="table-of-contents-block accordion wp-block-bloginabox-theme-table-of-contents" id="accordion-6f24de08-aed4-47f0-9315-fdc3ba0f677f" data-bi-aN="table-of-contents">
+	<button class="btn btn-collapse" type="button" aria-expanded="true" aria-controls="accordion-collapse-6f24de08-aed4-47f0-9315-fdc3ba0f677f">
+		<span class="table-of-contents-block__label">In this article</span>
+		<span class="table-of-contents-block__current" aria-hidden="true"></span>
+
+		<svg class="table-of-contents-block__arrow" aria-label="Toggle arrow" width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path d="M15.7761 11L18 8.82043L9 0L0 8.82043L2.22394 11L9 4.35913L15.7761 11Z" fill="currentColor" />
+		</svg>
+	</button>
+	<div id="accordion-collapse-6f24de08-aed4-47f0-9315-fdc3ba0f677f" class="table-of-contents-block__collapse-wrapper collapse show" data-parent="#accordion-6f24de08-aed4-47f0-9315-fdc3ba0f677f">
+		<div class="table-of-contents-block__content">
+			<ol class="table-of-contents-block__list"><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#what-s-happening">What’s happening</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#what-is-artex">What is ARTEX?</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#mitigation-and-protection-guidance">Mitigation and protection guidance</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#references">References</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#learn-more">Learn more</a></li></ol>		</div>
+	</div>
+	<span class="table-of-contents-block__progress-bar"></span>
+</aside>
+
+
+
+<p class="wp-block-paragraph">As early as September 2026, Storm-0940, a China-state aligned actor, used the agentic AI penetration testing framework ARTEX to automate attacks targeting hundreds of organizations globally across a broad range of industries. Several of these Storm-0940 ARTEX-driven attacks have resulted in the actor obtaining privileged access to an organization’s cloud infrastructure – including multiple instances where the time from initial targeting to privileged access was less than 3 hours.  Microsoft assesses that Storm-0940 was responsible for the recently disclosed ConnectWise supply chain compromise of a multi-tenant application.</p>
+
+
+
+<p class="wp-block-paragraph">This activity demonstrates how threat actors are integrating agentic AI into existing offensive security workflows and allows them to scale their operations exponentially.  Agents are not constrained by factors affecting humans &#8211; they can work around the clock, on weekends, and on holidays and attempt multiple breach paths simultaneously enabling significantly reduced time from selecting a target to achieving objectives, increasing the speed and impact of complex attacks like supply chain compromises.</p>
+
+
+
+<p class="wp-block-paragraph">Storm-0940’s use of ARTEX accelerated the speed of compromised application abuse to authenticate to Microsoft 365 customer environments through applications that had already been granted access. This allowed the threat actor to operate without requiring an interactive user sign-in. In multiple affected environments, Microsoft observed AI-accelerated follow-on activity through Microsoft Graph, including reconnaissance, application credential changes, and attempts to modify privileges that could enable expanded or persistent access. The activity conducted by the threat actor through the usage of ARTEX framework did not result from a compromise of or a vulnerability in Microsoft corporate systems, products, or services.</p>
+
+
+
+<p class="wp-block-paragraph">Although Microsoft identified Storm-0940-initiated authentication and follow-on activity in multiple customer environments, the presence of an affected application or successful threat actor authentication does not necessarily indicate that customer data was accessed or exfiltrated. Microsoft Defender XDR provides detections and hunting queries for suspicious Microsoft Graph activity and activity associated with known threat infrastructure. Customers should review service principal sign-ins, investigate unexpected application credential or privilege changes, and follow ConnectWise&#8217;s published containment guidance while preserving relevant evidence for investigation. For a full list of detections please see the detections section.</p>
+
+
+
+<h2 class="wp-block-heading" id="what-s-happening">What’s happening</h2>
+
+
+
+<p class="wp-block-paragraph">Storm-0940 is a China-state aligned actor (with no known industry aliases) that has been active since 2021 and targets organizations across multiple industries for data theft. The actor has historically gained initial access using password spraying and exploitation of internet-facing applications, before using compromised accounts to move through targeted environments. In cloud environments, the actor has also established persistence by adding credentials to existing OAuth applications, allowing continued access to Microsoft 365 resources. The actor has used these applications to access and exfiltrate email and other data through Microsoft Graph.</p>
+
+
+
+<p class="wp-block-paragraph">As early as September 2026, Storm-0940 used the agentic AI penetration testing framework ARTEX to automate attacks targeting hundreds of organizations globally across a broad range of industries. These include aerospace and defense, automotive, chemicals, energy, financial services, government, legal, manufacturing, media, military, semiconductor, software, technology, and think tanks and non-profits. During the ConnectWise supply chain compromise, Storm-0940 used ARTEX to accelerate scanning and reconnaissance, password spraying, and OAuth application abuse at downstream victims.</p>
+
+
+
+<p class="wp-block-paragraph">Several of these Storm-0940 ARTEX-driven attacks have resulted in the actor obtaining privileged access to an organization’s cloud infrastructure – including multiple instances where the time from initial targeting to privileged access was less than 3 hours.  When automated with AI, these activities generate a large volume of traffic and log data that may generate alerts. However, the speed of the activity allows very little time for Defenders to respond to those alerts and remediate the actor’s access in a coordinated fashion. Storm-0940’s activity illustrates how a threat actor with a broad target set can use an agentic AI tool and privileged authentication material to quickly attempt to compromise many organizations. While the majority of the targeting wasn’t successful, Storm-0940 achieved privileged cloud persistence at many organizations in a brief time.</p>
+
+
+
+<h2 class="wp-block-heading" id="what-is-artex">What is ARTEX?</h2>
+
+
+
+<p class="wp-block-paragraph">ARTEX is an open-source penetration testing framework that can use any AI model to automate a variety of offensive security workflows. The ARTEX framework is a multi-agent LLM system written in GO with a Next.js frontend. While the UI and generated output default to English, the framework can be switched to Korean, Mandarin, Spanish, or Japanese. ARTEX is a system of LLM-driven agents that run an autonomous penetration test from reconnaissance through data exfiltration with little needed human interaction. The agents then accumulate the discovered assets and vulnerabilities into a graph during the penetration test. In October 2026, public reporting noted that the ARTEX framework was being used by threat actors, such as the personal data breaches targeting Korean financial institutions. Microsoft Threat Intelligence has identified threat actors across multiple geographic regions leveraging the ARTEX framework.<br><br>On October 16, 2026, ConnectWise <a href="https://status.connectwise.com/pages/incident/619cf82551fec9053d612f09/6ad263692dc48705ab3da2cb">publicly reported</a> unauthorized access to its customers’ tenants using multiple OAuth application identities. Following the unauthorized access, Storm-0940 used ARTEX to reach more than 2,250 tenants at 2,900 sign-in attempts per minute, a pace that leaves defenders with little time to detect and respond. While OAuth application abuse is a typical part of Storm-0940’s toolset, in this case the actor used ARTEX to accelerate the activity to machine speed.</p>
+
+
+<figure class="wp-block-image size-full"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-6.webp" alt="Infographic showing Storm-0940&rsquo;s high-speed cyberattack: 151,000+ failed sign-ins, reaching 2,250+ tenants and affecting 327 accounts across eight organizations, with over 2,900 attempts per minute and over 200 sign-ins in under 4 minutes using 4 application credentials." class="wp-image-150189 webp-format" srcset="" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-6.webp"><figcaption class="wp-element-caption">Figure 1. Scale and speed of a subset of Storm-0940&rsquo;s automated ARTEX campaign on downstream tenants, including tenant reach and rapid sign-ins.</figcaption></figure>
+
+
+
+<h3 class="wp-block-heading" id="password-spraying">Password Spraying</h3>
+
+
+
+<p class="wp-block-paragraph">Between October 10 and 14, 2026, Storm-0940 infrastructure at 144.172.64[.]99 conducted an automated cross-tenant password-spray campaign targeting 327 accounts across eight organizations to gain access to Microsoft 365 and Exchange Online. During this large campaign, Microsoft telemetry captured 151,000+ failed logon events, with activity peaking on October 11 at 2,900 failures per minute and concentrating more than 111,000 failures into a single day. The campaign blended broad, low-rate account spraying with sustained, high-volume authentication attempts against selected identities; 48 accounts received more than 1,000 failures, and lockout responses represented nearly 98% of all activity. Despite the scale, no successful authentication, token issuance, Graph call, or directory change was observed.</p>
+
+
+
+<h3 class="wp-block-heading" id="downstream-customer-access">Downstream customer access</h3>
+
+
+
+<p class="wp-block-paragraph">On October 15, immediately after this notable activity, public reports of the compromise of the popular cloud backup application ConnectWise started to surface with direct references to indicators of compromise matching the same network range observed for the earlier password-spray campaign (144.172.64.x). An <a href="https://www.connectwise.com/company/trust/advisories" type="link" id="https://www.connectwise.com/company/trust/advisories" target="_blank" rel="noopener noreferrer">advisory</a> from the affected cloud backup vendor posted on October 16 shared later additional indicators with one IP address matching exactly the 144.172.64[.]99 infrastructure responsible for the earlier password-spray campaign.</p>
+
+
+
+<p class="wp-block-paragraph">Additionally, after acquiring control of the identities of multiple ConnectWise cloud applications, the AI agents operating on behalf of the threat actor continued to use the same IP range to authenticate to customer environments using the illicit access acquired through these stolen app credentials, effectively taking advantage of the already established trust by these apps within a tenant. In some of these environments, the AI agents (on behalf of the threat actor) progressed beyond authentication to Microsoft Graph and directory operations, including reconnaissance, application credential modifications to establish persistence, and changes involving identities, groups, and privileged roles. Microsoft identified multiple customer environments with evidence of follow-on activity, highlighting how a compromised third-party application with high privileges could provide access beyond its originally intended purpose.</p>
+
+
+
+<p class="wp-block-paragraph">The application credential modification made by Storm-0940&#8217;s associated agents in the targeted victims’ environments can lead to persistence through other identities, credentials, and cloud services. These changes can remain active as a backdoor even after the original compromised application is mediated. Organizations should examine service principal sign-ins alongside subsequent Microsoft Graph activity, directory changes, and resource access, correlating suspicious events with authorized administrative activity. The presence of an affected application, or even successful authentication, does not necessarily indicate unauthorized data access or data exfiltration.</p>
+
+
+
+<h2 class="wp-block-heading" id="mitigation-and-protection-guidance">Mitigation and protection guidance</h2>
+
+
+
+<p class="wp-block-paragraph">Microsoft recommends the following mitigations to reduce the impact of this threat. Check the recommendations card for the deployment status of monitored mitigations.</p>
+
+
+
+<h3 class="wp-block-heading" id="immediate-actions">Immediate actions</h3>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">Keep affected ConnectWise application connections disabled until ConnectWise provides formal restoration instructions.</li>
+
+
+
+<li class="wp-block-list-item">Do not delete enterprise applications as the first response. Preserve configuration and evidence before making irreversible changes.</li>
+
+
+
+<li class="wp-block-list-item">Inventory all four application IDs listed in this profile and record the local service-principal Object ID in each tenant.</li>
+
+
+
+<li class="wp-block-list-item">Review every Microsoft 365 tenant where the affected applications are currently or were previously installed or authorized, even if the integration is no longer in use. Search by application ID rather than display name.</li>
+
+
+
+<li class="wp-block-list-item">Preserve available <a href="https://learn.microsoft.com/en-us/entra/architecture/security-operations-applications" target="_blank" rel="noreferrer noopener">Microsoft Entra sign-in and audit records</a>, Microsoft Purview Audit records, SIEM data, and previously configured Microsoft Graph telemetry. Do not delay urgent containment while waiting for exports.</li>
+
+
+
+<li class="wp-block-list-item">Review activity starting from at least October 15, 2026. Where records are available, extend service-principal sign-in review to October 1 and investigate earlier related activity, including failed authentications and volume anomalies.</li>
+
+
+
+<li class="wp-block-list-item">Review successful and failed service-principal sign-ins separately. Investigate unfamiliar sources and activity outside expected vendor infrastructure; do not limit review to the published IPs.</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/en-us/entra/architecture/security-operations-applications" target="_blank" rel="noreferrer noopener">Review Microsoft Entra audit records</a> for application or service-principal credential additions; new applications, service principals, or owners; app-role assignments and consent grants; privileged role assignments; and changes to users, groups, authentication methods, or Conditional Access. On confirmed suspicious activity, revoke unnecessary permissions and rotate credentials.</li>
+
+
+
+<li class="wp-block-list-item">Review <a href="https://learn.microsoft.com/en-us/purview/audit-log-activities" target="_blank" rel="noreferrer noopener">Microsoft 365 audit records</a> to look for reconnaissance activities like listing directories, permissions, and approvals coming from unusual IPs.</li>
+
+
+
+<li class="wp-block-list-item">Review Microsoft 365 audit records for unusual mail or file access, downloads, forwarding, inbox or transport rules, delegated mailbox permissions, and related resource activity.</li>
+
+
+
+<li class="wp-block-list-item">Preserve evidence, then have an appropriately authorized responder remove confirmed unauthorized credentials, grants, owners, assignments, and identities.</li>
+</ul>
+
+
+
+<h3 class="wp-block-heading" id="additional-recommendations">Additional recommendations</h3>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">Threat actor misuse of AI accelerates risk across enterprise environments by amplifying existing threats such as exploitation of vulnerabilities, phishing, malware threats, and insider activity. To help organizations stay ahead of AI-enabled threat activity, Microsoft has introduced the <a href="http://ai.security.microsoft.com/" target="_blank" rel="noreferrer noopener">Security Dashboard for AI</a>. The dashboard provides users with a unified view of AI security posture by aggregating security, identity, and data risk across <a href="https://www.microsoft.com/security/business/microsoft-defender" target="_blank" rel="noreferrer noopener">Microsoft Defender</a>, <a href="https://www.microsoft.com/security/business/microsoft-entra" target="_blank" rel="noreferrer noopener">Microsoft Entra</a>, and <a href="https://www.microsoft.com/security/business/microsoft-purview" target="_blank" rel="noreferrer noopener">Microsoft Purview</a>. This allows organizations to understand what AI assets exist in their environment, recognize emerging risk patterns, and prioritize governance and security across AI agents, applications, and platforms. To learn more about the Microsoft Security Dashboard for AI see: <a href="https://learn.microsoft.com/security/security-for-ai/security-dashboard-for-ai" target="_blank" rel="noreferrer noopener">Assess your organization’s AI risk with Microsoft Security Dashboard for AI (Preview)</a>.</li>
+
+
+
+<li class="wp-block-list-item">Enable <a href="https://learn.microsoft.com/azure/defender-for-cloud/ai-onboarding" target="_blank" rel="noreferrer noopener">threat protection for AI services</a> in <a href="https://www.microsoft.com/security/business/cloud-security/microsoft-defender-cloud" target="_blank" rel="noreferrer noopener">Microsoft Defender for Cloud</a> to identify threats to generative AI applications in real time and for assistance in responding to security issues.</li>
+
+
+
+<li class="wp-block-list-item">Apply least privilege to multi-tenant application permissions and consent grants.</li>
+
+
+
+<li class="wp-block-list-item">Monitor credential additions, privilege assignments, and anomalous app-only activity, especially to applications with high privileged permissions and scopes.</li>
+
+
+
+<li class="wp-block-list-item">Verify that vendor credential rotation and any tenant-level remediation eliminated remaining unauthorized access.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Assess the operational effect on backup and restore workflows and follow current ConnectWise restoration guidance.</p>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-defender-xdr-detections">Microsoft Defender XDR detections</h3>
+
+
+
+<p class="wp-block-paragraph">Microsoft Defender XDR customers can refer to the list of applicable detections below. Microsoft Defender XDR coordinates detection, prevention, investigation, and response across endpoints, identities, email, and apps to provide integrated protection against attacks like the threat discussed in this blog.</p>
+
+
+
+<p class="wp-block-paragraph">Customers with provisioned access can also use <a href="https://learn.microsoft.com/en-us/defender-xdr/security-copilot-in-microsoft-365-defender" target="_blank" rel="noreferrer noopener">Microsoft Security Copilot in Microsoft Defender</a> to investigate and respond to incidents, hunt for threats, and protect their organization with relevant threat intelligence.</p>
+
+
+
+<figure class="wp-block-table" data-table-col-widths="[179,275,226]"><table class="has-fixed-layout"><tbody><tr><td><strong>Tactic </strong></td><td><strong>Observed activity </strong></td><td><strong>Microsoft Defender coverage (Alert title)</strong></td></tr><tr><td><br>Discovery</td><td>Unusual behavior attributes were observed from Graph API activity originating from associated ConnectWise Application.<strong></strong></td><td>Unusual Microsoft Graph activity associated with Compromised ConnectWise Application</td></tr><tr><td>  Privilege Escalation Persistence<br><br>Initial Access/Valid Accounts</td><td>  ConnectWise Management Application directly granted itself the Global Administrator role through the Add member to role operation, with no prior Global Administrator self-assignment observed for the same application in the preceding 7 days.<strong></strong></td><td>Application self-assigned Global Administrator role  </td></tr><tr><td>Discovery</td><td>Graph API activity for the user originated from an active, production Microsoft Threat Intelligence Center IP indicator.<strong></strong></td><td>Graph API activity from a Microsoft threat intelligence IP address</td></tr><tr><td>Valid Accounts<br><br> </td><td>A user sign-in from a nation-state threat actor infrastructure has been detected from this account. A threat actor might have compromised the user account to gain unauthorized access and conducted other malicious activities in your system. Investigate promptly to mitigate security risks.<strong></strong>  </td><td>Suspicious sign-in from verified nation-state threat actor infrastructure  </td></tr><tr><td>Steal Application Access Token<br><br> </td><td>A sign-in was observed from a known threat actor IP address. We recommend promptly investigating this alert, as a threat actor might already be using the stolen credentials to move laterally in the network.<strong></strong>  </td><td>Malicious sign-in from known threat actor IP address  </td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-defender-for-cloud-apps-detections">Microsoft Defender for Cloud Apps detections</h3>
+
+
+
+<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td><strong>Tactic </strong></td><td><strong>Observed activity</strong></td><td><strong>Microsoft Defender coverage (Alert title)</strong></td></tr><tr><td>Persistence</td><td>An application or service principal was granted a highly privileged app role.</td><td>Suspicious addition of app role assignments to service principal  </td></tr><tr><td>Collection    </td><td>High-volume mailbox access by an OAuth app after a suspicious role grant.</td><td>Suspicious mail access activity by OAuth application following role assignment</td></tr><tr><td>Collection</td><td>A suspicious OAuth app that was added recently started accessing the Teams Messages folder using an email client.</td><td>Newly added OAuth application accessing Teams Messages folder via email client</td></tr><tr><td>Credential Access      </td><td>An OAuth application activity from an uncommonly visited ISP has been observed, indicating potential suspicious behavior.</td><td>OAuth application activity from an uncommonly visited ISP</td></tr><tr><td>Exfiltration</td><td>OAuth applications seen performing extensive Microsoft Graph SharePoint enumeration activities shortly after application creation or modification events</td><td>Suspicious OAuth application created from a risky user context performing graph SharePoint enumeration</td></tr><tr><td>Privilege Escalation    </td><td>Risky permissions that enable user to act as other entities or escalate to Global Admin provided to Service Principal</td><td>High-privilege application roles assigned to a service principal  </td></tr><tr><td>Persistence  </td><td>A service principal added an application role assignment to itself</td><td>Suspicious addition of application role assignments by service principal to itself</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-security-copilot">Microsoft Security Copilot  </h3>
+
+
+
+<p class="wp-block-paragraph">Security Copilot customers can use the standalone experience to <a href="https://learn.microsoft.com/copilot/security/prompting-security-copilot#create-your-own-prompts" target="_blank" rel="noreferrer noopener">create their own prompts</a> or run the following <a href="https://learn.microsoft.com/copilot/security/using-promptbooks" target="_blank" rel="noreferrer noopener">prebuilt promptbooks</a> to automate incident response or investigation tasks related to this threat:  </p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">Incident investigation  </li>
+
+
+
+<li class="wp-block-list-item">Threat actor profile  </li>
+
+
+
+<li class="wp-block-list-item">Threat Intelligence 360 report based on MDTI article  </li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Note that some promptbooks require access to plugins for Microsoft products such as Microsoft Defender XDR or Microsoft Sentinel.  </p>
+
+
+
+<h3 class="wp-block-heading" id="threat-intelligence-reports">Threat intelligence reports</h3>
+
+
+
+<p class="wp-block-paragraph">Microsoft customers can use the following reports in Microsoft products to get the most up-to-date information about the threat actor, malicious activity, and techniques discussed in this blog. These reports provide intelligence, protection information, and recommended actions to prevent, mitigate, or respond to associated threats found in customer environments.</p>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-defender-xdr-threat-analytics">Microsoft Defender XDR Threat analytics </h3>
+
+
+
+<p class="wp-block-paragraph"><a href="https://security.microsoft.com/threatanalytics3/1fe0c828-9106-440f-98b6-1a5110fa9f12" target="_blank" rel="noreferrer noopener">Activity Profile: ConnectWise Cloud Backup credential abuse: assessment and response guidance</a></p>
+
+
+
+<h3 class="wp-block-heading" id="indicators-of-compromise-ioc">Indicators of compromise (IOC)</h3>
+
+
+
+<figure class="wp-block-table"><table class="has-fixed-layout"><tbody><tr><td><strong>Indicator</strong></td><td><strong>Type</strong></td><td><strong>Description</strong></td></tr><tr><td><strong>144.172.64[.]128</strong></td><td><strong>IP</strong></td><td rowspan="3"><strong>These IPs were seen performing Sign-ins and Graph API activity in customer environments of ConnectWise apps.</strong></td></tr><tr><td><strong>144.172.64[.]99</strong></td><td><strong>IP</strong></td></tr><tr><td><strong>144.172.64[.]60</strong></td><td><strong>IP</strong></td></tr><tr><td><strong>187.15.88[.]186</strong> <strong>187.15.90[.]217</strong> <strong>187.15.89[.]186</strong>  </td><td><strong>IP</strong></td><td><strong>These IPs were seen accessing the Graph API via the compromised apps. However, since they are VPN IPs, it is transient and relevant for investigation on October 15 and 16 in context with compromised applications.</strong></td></tr><tr><td><strong>Python-urllib/3.12</strong></td><td><strong>User Agent</strong></td><td rowspan="5"><strong>These user agents were seen performing Sign-ins and Graph API activity on customer environments using ConnectWise apps.</strong></td></tr><tr><td><strong>python-requests/2.31.0</strong></td><td><strong>User Agent</strong></td></tr><tr><td><strong>python-requests/2.34.2</strong></td><td><strong>User Agent</strong></td></tr><tr><td><strong>curl/7.88.1</strong></td><td><strong>User Agent</strong></td></tr><tr><td><strong>azure-toolkit/1.0</strong></td><td><strong>User Agent</strong></td></tr></tbody></table></figure>
+
+
+
+<h1 class="wp-block-heading" id="advanced-hunting">Advanced hunting</h1>
+
+
+
+<p class="wp-block-paragraph"><strong>NOTE</strong>: The following sample queries let you search for a week&#8217;s worth of events. To explore up to 30 days’ worth of raw data to inspect events in your network and locate potential indicators related to this campaign for more than a week, go to the <strong>Advanced Hunting</strong> page &gt; <strong>Query</strong> tab, select the calendar dropdown menu to update your query to hunt for the <strong>Last 30 days</strong>.   </p>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-defender-xdr-advanced-hunting">Microsoft Defender XDR advanced hunting</h3>
+
+
+
+<p class="wp-block-paragraph" id="1-oauthappinfo-is-the-affected-app-present-enabled-and-what-permissions-does-it-hold"><strong>1- OAuthAppInfo → Is the affected app present, enabled, and what permissions does it hold?</strong></p>
+
+
+
+<p class="wp-block-paragraph">Start with OAuthAppInfo to determine whether any of the affected ConnectWise applications are present in the tenant and understand the access they have been granted. The query identifies the application and its tenant-specific service principal, whether it is enabled, its privilege level, consent information, and the individual permissions assigned to it. This establishes the customer&#8217;s potential exposure and gives investigators the ServicePrincipalId needed for further hunting. A match does not mean the application was abused, only that it is present and potentially had access, so the next step is to determine whether the service principal was actually used. <a href="https://security.microsoft.com/v2/advanced-hunting?query=H4sIAB9_1moAA62UW2vbQBCFz3Oh_0HkqYa4UXxpbEoe0hRK6C1glz6UPsi2krixY2E5bgP98f1mJIOtyI6Cy7IrzeycmbM7MztRrIWOgnPNdMeINUT-rrFS_s-UMFKdaqQHdiNN2RnqlX7opV6Ay8aB2gr1BkSojq7UVd2lLoi6WqAj1jpySw0N-Iuw7Pp-qCa2LUYE4kCHOmKU8wnQT9i5x2OgdyCGukVKCmwaHieEVVPHHtmidpxXy1meOIdGzquN3EVvFh10bWcUPsmmzvysHmsf2W4nLTAJYRo7hyExLOqAGAP0xuQYfid-L3YHpmui7aAzFl34GZ8GcnUmHzQHm-jGmQQ-_icPY9Hj1h_00WvhFv-XWM3hY7zmLs9cjsiWsfipmt6it_-vVNU9ezd5dV2AusLe9v7qN3rzYWd6bGlZH2MfUIG7K7aW-5tqyWli_UEbYT1ydhZh6oiU1fyclmrT3IvhF6yGX89vGeaL10GMxwVyyjp3ztdwLrN_XapdeamR9_WIfb_pa-_a7KzV4zzGvneLhCxF5LN6TMvEPnENX4xShu3DKtn7LldeqkS89AhL5oRd4_yJuWROnsViu5cii2_gIrfpeccsqPn0GbHK8av6T0DM9CvvkvW4WSZWOd_kVNZ5mxY957L0FyDOz3vH_9j7bFKCyDytcyxmY_udbVpegD3D_9Rjnuedat1pPVqMu6u7qlfgfpXzVD9V6bcqVZPl3N7eUf4SD-AfaDPXAd-UXB1ueQt3nSRwz4b-B4d38586CAAA&amp;timeRangeId=day" target="_blank" rel="noreferrer noopener">Run query</a></p>
+
+
+<div class="wp-block-syntaxhighlighter-code "><pre class="brush: plain; auto-links: false; gutter: false; title: ; quick-code: false; notranslate">
+let ConnectWiseApps = dynamic([
+    "506e08f9-6e9a-4da4-942b-a099a03644ae", // ConnectWise Cloud Backup
+    "24205314-2b89-4e07-a2a4-579e898a5640", // ConnectWise - MS Teams
+    "0de14c77-b9b0-4137-9360-34878a929827", // ConnectWise - MS Graph
+    "c921256f-04a7-44e8-9b2a-69c33929ba19" // SkyKick Partner Portal
+]);
+OAuthAppInfo
+| where OAuthAppId in (ConnectWiseApps)
+| mv-expand Permission = Permissions
+| extend
+    PermissionName = tostring(Permission.PermissionName),
+    TargetApp = tostring(Permission.TargetAppDisplayName),
+    TargetAppId = tostring(Permission.TargetAppId),
+    PermissionType = tostring(Permission.PermissionType),
+    PermissionPrivilegeLevel = tostring(Permission.PrivilegeLevel),
+    UsageStatus = tostring(Permission.UsageStatus)
+| project
+    AppName,
+    OAuthAppId,
+    ServicePrincipalId,
+    AppStatus,
+    PrivilegeLevel,
+    IsAdminConsented,
+    PermissionName,
+    PermissionType,
+    PermissionPrivilegeLevel,
+    TargetApp,
+    TargetAppId,
+    UsageStatus
+| order by AppName asc, PermissionPrivilegeLevel desc
+</pre></div>
+
+
+<p class="wp-block-paragraph" id="2-entraidspnsigninevents-graphapiauditevents-did-the-service-principal-authenticate-and-what-microsoft-graph-activity-followed"><strong>2 &#8211; EntraIdSpnSignInEvents + GraphAPIAuditEvents → Did the service principal authenticate, and what Microsoft Graph activity followed?</strong></p>
+
+
+
+<p class="wp-block-paragraph">Use this query to investigate service-principal sign-ins and Microsoft Graph API activity associated with the identified ConnectWise applications and suspicious IP addresses, starting October 13, 2026.</p>
+
+
+
+<p class="wp-block-paragraph">The query combines both event types into a chronological view, helping defenders identify suspicious authentication and related Graph operations, including potential credential changes, privilege modifications, and unusual resource access. Remove the IP filter for broader hunting. Results require further correlation, as authentication alone does not establish compromise. <a href="https://security.microsoft.com/v2/advanced-hunting?query=H4sIAGeB1moAA8VVbWvTUBQ-nwX_w2WfOljWNE1fgijMrUgRZawDP4gf0uZqo1kbmqgM9uN9zpMuW5NoIg7k0tyX8_ac555zm4iVXIwsMO_kh8SywuoS61g2WMeSSoKTuUSSQe8lfpHcQhbKDbV78lGeyzPpm2Icwdcl9C9kIEdyIn0MI29hsZWf-P45VohoGqvZoweP5h88fpJjecFVwrz7Zk7PG8jVNsTZFtYZ8mzLciA-xinmCXCdypi7sbhl1urbNHjv4ifAeAo_A6yn8NTmp8qMkXPINhgWmrl8gEWG9RkYTTvxMwITY1i4iP8Z2TjcBbBwgCzC7GMV4OvJEqsQmgHlrgyJ3sfaliw041GcCSTf4dHIa1is5Bt2aQWNxzguUA3JlMOoU-LyiXJCDN4e1wj7AOeqMcXZiIjcVjQOfu9Qj0ausVd2sgoSF0gtMawQQ6MuEWOJc0UyAL4JeRmylhzMPhBMiCIAPsXjYd8dyRvccQhG1kRi9uMpkSiOBXi_RVfGvAGDWgsRNyeyHfdb7rUfDytuBp2cGLVPF0C6wTeWL5i1WmfobEudgss7dP2aXi15jsGyhSwn36m8YnVqdWslF9Ieb99DJg4yc_kdAkHdX1HhSdkhMfmds75ivja9lt5o8qq9dwYfEfcZ39J7b797g47L-71hDhv2pda6zqpl6E3fPYtohtwmnFdErpIct2LQgTv6Ubs1EVjqNeXaxHKXF_Yho27_Jv87v5Q2X_e3-LhL6zV1ciBvrpEuOpr5oV4bs--JwP6lVRFH-b0msyHZdZBRynxjMKa2hkw9eDJk5dCX3smy5Mnwn_gxlisypfe2o48L9oPmHuJumvFXbeq81DvmUD7D-Y6dohUU1SKcU6a2SYX_4vb7RuXR_nVasorq9641lAHhLw9EKqEoCQAA&amp;timeRangeId=SetInQuery" target="_blank" rel="noreferrer noopener">Run query</a></p>
+
+
+<div class="wp-block-syntaxhighlighter-code "><pre class="brush: plain; auto-links: false; gutter: false; title: ; quick-code: false; notranslate">
+let Apps = dynamic([
+    "506e08f9-6e9a-4da4-942b-a099a03644ae",
+    "24205314-2b89-4e07-a2a4-579e898a5640",
+    "0de14c77-b9b0-4137-9360-34878a929827",
+    "c921256f-04a7-44e8-9b2a-69c33929ba19"
+]);
+let IPs = dynamic(["144.172.64.60", "144.172.64.99", "144.172.64.128"]);
+union kind=outer
+    (EntraIdSpnSignInEvents
+     | extend EventType = "Sign-in"),
+    (GraphAPIAuditEvents
+     | extend EventType = "Graph API", IPAddress = IpAddress)
+| where Timestamp >= datetime(2026-10-13)
+| where ApplicationId in (Apps)
+| where IPAddress in (IPs) // Comment out for broader hunting
+| project-away IpAddress
+| order by Timestamp asc
+</pre></div>
+
+
+<h3 class="wp-block-heading" id="sentinel-hunting-queries">Sentinel hunting queries</h3>
+
+
+
+<p class="wp-block-paragraph"><strong>1-SigninLogs → Did a service principal authenticate, from where, and against what resource?</strong></p>
+
+
+
+<p class="wp-block-paragraph">Use SigninLogs to determine whether an affected application identity actually authenticated. This moves the investigation from potential exposure to observed authentication, allowing defenders to examine the application and service principal alongside the source IP address, geographic information, authentication result, and resource being accessed. Investigators should evaluate these sign-ins against the application&#8217;s expected activity and look for unusual source infrastructure, resources, or authentication patterns before pivoting into subsequent Graph activity. <a href="https://security.microsoft.com/v2/advanced-hunting?query=H4sIAA3U12oAA61UXWvbQBCc50L_g8iTA1ElS7JlUVpIUwimH4S60IfSB1k-J24Ux1huQqA_vrMjOY0cJ6hQDt3d3n7Nze6phMMGgTfGGcZYYoYFCuQ8u8YaFTVv-M1wR12OK2l7-I6XeMHzehygj4TjFdcUEdehpCFCHOCotkPQZLF5N0-XaBnH_4vW537EeN2i_cAhXmtXNnydULfkcLTc4Bs9Ku6PseLoytqA_AzpFRLJnLfzJWX08IlxxjXhLuMcYcpdTstM-hCx7pFw77as6Bb7cdl5Sc0vRg28d_QqcElptYMoUq6QyGLx5ivzSNgSIU2FI2qwDShnPDeLEc8GQhV2QuTz-4QJ56-UjaVqB01ItE44CuaxzFPmmfLc0PSJMRU_sTrN55oQRSokGTEapojyv6E5Zc1zMnOxg6ZQTOsbu-Wc-ULxnwpNIhZ84YtUwSH3BTHFDZYpT_vq4S2WCWtwhw_qjkvKZ7RYE5WhW0u-lpyzdu0unNDnnHYLfh9pdd5w95tet0Ru_k7MLsirwym_Oqp1tVMXvEXdo_XJprHsqf4R0ftEG2qOmXdf9Lrbx4pmSAKvh-ffxf449vKOGWUmudL72cZ76r902KrolbAv9TKty201y8CziDf0dbilZEyWWgvd2DQb1iDw5oxqcczvQiic7Ax3eZ97odtV8O7vsZLfz-a-Dzvmae6PWnZ_WWyfT-Rzo9yOLKxV7YLzSh3xWW_G7Xh9EXbjYC2_96qA3SHnPbv5PMbyuEJt_YmqYrryAU8WZ8uT6WdNX0_F-HO9mTNDgT97GqX4nAYAAA&amp;timeRangeId=SetInQuery" target="_blank" rel="noreferrer noopener">Run query</a></p>
+
+
+<div class="wp-block-syntaxhighlighter-code "><pre class="brush: plain; auto-links: false; gutter: false; title: ; quick-code: false; notranslate">
+let IPIndicators = dynamic([
+    "144.172.64.60",  // IP Indicator
+    "144.172.64.99",  // IP Indicator
+    "144.172.64.128"  // IP Indicator
+]);
+let ConnectWiseApps = dynamic([
+    "506e08f9-6e9a-4da4-942b-a099a03644ae", // ConnectWise Cloud Backup
+    "24205314-2b89-4e07-a2a4-579e898a5640", // ConnectWise - MS Teams
+    "0de14c77-b9b0-4137-9360-34878a929827", // ConnectWise - MS Graph
+    "c921256f-04a7-44e8-9b2a-69c33929ba19" // SkyKick Partner Portal
+]);
+SigninLogs
+| where TimeGenerated >= datetime(2026-10-13)
+| where AppId in (ConnectWiseApps)
+//| where IPAddress in (IPIndicators) // Comment out to review all activity from these applications
+| project
+    TimeGenerated,
+    AppId,
+    ServicePrincipalName,
+    
+    ResourceDisplayName,
+    ResourceId,
+    IPAddress,
+    CorrelationId
+| order by TimeGenerated asc
+</pre></div>
+
+
+<p class="wp-block-paragraph" id="2-microsoftgraphactivitylogs-what-observable-graph-api-activity-followed"><strong>2 &#8211; MicrosoftGraphActivityLogs → What observable Graph API activity followed?</strong></p>
+
+
+
+<p class="wp-block-paragraph">Use MicrosoftGraphActivityLogs to investigate observable Microsoft Graph activity following authentication. This query allows defenders to pivot on the affected ApplicationId or tenant-specific ServicePrincipalId and examine details such as the request URI, HTTP method, response status, scopes, source IP address, and target workload. This helps establish what Graph activity occurred after the service principal authenticated and provides additional context around the resources the application attempted to access.</p>
+
+
+
+<p class="wp-block-paragraph">Importantly, the absence of results should not be treated as confirmation that no access occurred; Graph API telemetry should be considered alongside the application permissions and service principal authentication activity identified in the previous hunting steps. <a href="https://security.microsoft.com/v2/advanced-hunting?query=H4sIAJrU12oAA61U227TQBCdZyT-IepTKtXYsZ2LhUAKeUARVFSkiAfEgy8bYupcsF2qSnw8Z46dprbTKkjIsndndubsmbOzzsRIKXZvLlcyl40kkkosIXxbyaXAyhu8idxjLZQ1V_vyTV7KC_ir50wG4uN5hXEsLsYRrZE4ciYXVZzY9S76be9zClqA5_-hDTCfAO80tO9yLq85y2q9Zljb4DGILOUrMgrMp7LDc6pqQ-gzQpYDJktUZ9EKkGGBY4LRxyzA15UIsxCRAdcd8ViHj7nZq8IqjvNSf4aVW6DavXfIiuUG1q7FyOVeDph51M3izhNy88l0TB5uzW0IO4BfIybwDcnKOYmRhfdSFvhew1aVihYbB2wNecTYR3eOsE8Ev7IZgOOY-njsNAujDxZjMgnAUTm5sP-NzXuceQhlVi02MTG1b7TKJfZzqP-YbHyqYJGfyxMcYR6Dk1dzieAdsIf3XBY4g3v5wO64gX2FiByslF1Oe0s7xNk1u_CSOTnWC7xLxBxYT1lZKr_xlsD_iIgftbZ_gHqHGMU3VD6F7gbZpt5Vu96wS95K1cOVp6wj--wPF9VZqMbh1wOvY-jVbZgTLQW-3evL8_fmOI7ezClQEtoF79ce76n_1nnjxNfkvuHN1Vugo0baPUVUpYzcwVKls0YPqK-pp91bUvk1MVZkZBinNWQPPFJWetB9x6yfdeWPe-vpU7hoxB30bPq7-jTXP8P7C1XrWone0dNcgUsbpxn3BWjpkYgCHKrKDO5LSa63sGZENK2MBardIsN0WM2oVXUqzZ27FX4iQv5I125MF2OvvHZEUt-piCf4XN-HyI_lL5sKY0QYBwAA&amp;timeRangeId=SetInQuery" target="_blank" rel="noreferrer noopener">Run query</a></p>
+
+
+<div class="wp-block-syntaxhighlighter-code "><pre class="brush: plain; auto-links: false; gutter: false; title: ; quick-code: false; notranslate">
+let IPIndicators = dynamic([
+    "144.172.64.60",  // IP Indicator
+    "144.172.64.99",  // IP Indicator
+    "144.172.64.128"  // IP Indicator
+]);
+let ConnectWiseApps = dynamic([
+    "506e08f9-6e9a-4da4-942b-a099a03644ae", // ConnectWise Cloud Backup
+    "24205314-2b89-4e07-a2a4-579e898a5640", // ConnectWise - MS Teams
+    "0de14c77-b9b0-4137-9360-34878a929827", // ConnectWise - MS Graph
+    "c921256f-04a7-44e8-9b2a-69c33929ba19" // SkyKick Partner Portal
+]);
+MicrosoftGraphActivityLogs 
+| where TimeGenerated >= datetime(2026-10-13)
+| where AppId in (ConnectWiseApps)
+| where IPAddress in (IPIndicators) // Comment out to review all Graph activity from these applications
+| project
+    TimeGenerated,
+    AppId,
+    
+    IPAddress,
+    RequestMethod,
+    RequestUri,
+    ResponseStatusCode,
+    Scopes,
+    ClientRequestId,
+    OperationId,
+    RequestId
+| order by TimeGenerated asc
+</pre></div>
+
+
+<h3 class="wp-block-heading" id="mitre-att-ck-techniques-observed">MITRE ATT&amp;CK Techniques observed</h3>
+
+
+
+<p class="wp-block-paragraph">This threat has exhibited use of the following attack techniques. For standard industry documentation about these techniques, refer to the <a href="https://attack.mitre.org/" target="_blank" rel="noreferrer noopener">MITRE ATT&amp;CK framework</a>.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Reconnaissance</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1595" target="_blank" rel="noreferrer noopener">T1595 Active Scanning</a> | Scanning cloud resources to identify targets for compromise.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>Initial Access</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1078/004/" target="_blank" rel="noreferrer noopener">T1078.004 Valid Accounts: Cloud Accounts</a> | Using compromised cloud accounts to obtain access.</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1195/" target="_blank" rel="noreferrer noopener">T1195 Supply Chain Compromise</a> | Compromising a multi-tenant OAuth application to access downstream customer environments.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>Privilege Escalation</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1098/003/" target="_blank" rel="noreferrer noopener">T1098.003 Account Manipulation: Additional Cloud Roles</a> | Addition of privileged cloud role assignments, including self assignment of global admin from one of the ConnectWise Management Application.</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1098/001/" target="_blank" rel="noreferrer noopener">T1098.001 Account Manipulation: Additional Cloud Credentials</a> | Addition or modification of application credentials.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>Credential Access</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1528/" target="_blank" rel="noreferrer noopener">T1528 Steal Application Access Token</a> | Compromising OAuth application authentication material.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>Discovery</strong></p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1087/004/" target="_blank" rel="noreferrer noopener">T1087.004 Account Discovery: Cloud Account</a> | Identifying privileged cloud accounts for further targeting.</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://attack.mitre.org/techniques/T1580/" target="_blank" rel="noreferrer noopener">T1580 Cloud Infrastructure Discovery</a> | Mapping cloud infrastructure for further targeting.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading" id="references">References</h2>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://support.huntress.io/hc/articles/56492265597459-2026-October-SkyKick" target="_blank" rel="noreferrer noopener">2026 &#8211; October SkyKick</a>. Huntress (accessed 2026-10-19).</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://www.connectwise.com/company/trust/advisories" target="_blank" rel="noreferrer noopener">ConnectWise Trust Center &#8211; Cloud Backup advisories</a>. ConnectWise (accessed 2026-10-19).</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://www.connectwise.com/contentassets/10777cd3364d440c86ed5270a94a5f24/connectwise-cloud-backup-technical-investigation-and-remediation-guide-1.pdf" target="_blank" rel="noreferrer noopener">ConnectWise Cloud Backup technical investigation and remediation guide</a>. ConnectWise (accessed 2026-10-19).</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading" id="learn-more">Learn more</h2>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">For guidance on investigating and responding to compromised applications, see <a href="https://learn.microsoft.com/security/operations/incident-response-playbook-compromised-malicious-app" target="_blank" rel="noreferrer noopener">Compromised and malicious applications investigation</a>.</li>
+
+
+
+<li class="wp-block-list-item">Learn how to investigate app-only authentication with <a href="https://learn.microsoft.com/entra/identity/monitoring-health/concept-service-principal-sign-ins" target="_blank" rel="noreferrer noopener">Service principal sign-in logs</a>.</li>
+
+
+
+<li class="wp-block-list-item">Review application credentials, permissions, role assignments, and configuration changes in <a href="https://learn.microsoft.com/entra/architecture/security-operations-applications" target="_blank" rel="noreferrer noopener">Microsoft Entra security operations for applications</a>.</li>
+
+
+
+<li class="wp-block-list-item">Learn how to proactively investigate threats with <a href="https://learn.microsoft.com/defender-xdr/advanced-hunting-overview" target="_blank" rel="noreferrer noopener">Advanced hunting in Microsoft Defender XDR</a>.</li>
+
+
+
+<li class="wp-block-list-item">Explore the <a href="https://learn.microsoft.com/defender-xdr/advanced-hunting-oauthappinfo-table" target="_blank" rel="noreferrer noopener">OAuthAppInfo</a> and <a href="https://learn.microsoft.com/defender-xdr/advanced-hunting-graphapiauditevents-table" target="_blank" rel="noreferrer noopener">GraphAPIAuditEvents</a> advanced hunting tables.</li>
+
+
+
+<li class="wp-block-list-item">Learn how to find Microsoft 365 activity with <a href="https://learn.microsoft.com/purview/audit-search" target="_blank" rel="noreferrer noopener">Search the audit log</a>.</li>
+
+
+
+<li class="wp-block-list-item">Review guidance for reducing excessive application permissions in <a href="https://learn.microsoft.com/entra/identity-platform/secure-least-privileged-access" target="_blank" rel="noreferrer noopener">Secure applications using least privilege</a>.</li>
+
+
+
+<li class="wp-block-list-item">For the latest security research from the Microsoft Threat Intelligence community, check out the <a href="https://aka.ms/threatintelblog" target="_blank" rel="noreferrer noopener">Microsoft Threat Intelligence Blog</a>.</li>
+
+
+
+<li class="wp-block-list-item">To get notified about new publications and to join discussions on social media, follow us on <a href="https://www.linkedin.com/showcase/microsoft-threat-intelligence" target="_blank" rel="noreferrer noopener">LinkedIn</a>, <a href="https://x.com/MsftSecIntel" target="_blank" rel="noreferrer noopener">X (formerly Twitter)</a>, and <a href="https://bsky.app/profile/threatintel.microsoft.com" target="_blank" rel="noreferrer noopener">Bluesky</a>.</li>
+
+
+
+<li class="wp-block-list-item">To hear stories and insights from the Microsoft Threat Intelligence community about the ever-evolving threat landscape, listen to the <a href="https://thecyberwire.com/podcasts/microsoft-threat-intelligence" target="_blank" rel="noreferrer noopener">Microsoft Threat Intelligence podcast</a>.</li>
+</ul>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/21/storm-0940-uses-artex-agentic-ai-connectwise-supply-chain-compromise/">AI-driven, large-scale nation-state campaign using ARTEX enables supply chain compromise</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Agents are your newest insiders. Security must move at their speed. </title>
+		<link>https://www.microsoft.com/en-us/security/blog/2026/10/19/agents-are-your-newest-insiders-security-must-move-at-their-speed/</link>
+		
+		<dc:creator><![CDATA[Nadim Abdo]]></dc:creator>
+		<pubDate>Mon, 19 Oct 2026 13:00:00 +0000</pubDate>
+				<guid isPermaLink="false">https://www.microsoft.com/en-us/security/blog/?p=150126</guid>
+
+					<description><![CDATA[<p>New capabilities in Microsoft 365 E7 and Project Perception help organizations contain agent risk and adapt protection continuously.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/19/agents-are-your-newest-insiders-security-must-move-at-their-speed/">Agents are your newest insiders. Security must move at their speed. </a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">Agents are rapidly becoming part of how work gets done. They can support a range of activities from writing code and researching products to analyzing revenue, processing expenses, and acting across the systems that run the business. To be most useful, they often need access to company data, applications, tools, and other agents. That access is what makes agents more capable. With that capability can come insider risk.</p>
+
+
+
+<p class="wp-block-paragraph">This does not mean agents are inherently malicious. It means they are capable tools that can be granted access to important systems by users. They can make mistakes, be manipulated, or be compromised. Their models can produce variable outputs, their context can change, and their plans can evolve as they work. An agent that operates as intended when a task begins may respond differently as context or inputs change. Depending on how they are designed and deployed, agents can operate continuously, at machine speed and scale. </p>
+
+
+
+<div class="wp-block-buttons is-content-justification-center is-layout-flex wp-container-core-buttons-is-layout-a89b3969 wp-block-buttons-is-layout-flex">
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://www.microsoft.com/en-us/security/business/solutions/security-for-ai" target="_blank" rel="noopener noreferrer">Learn how to secure your agentic estate at speed and scale</a></div>
+</div>
+
+
+
+<p class="wp-block-paragraph">Satya Nadella, Chairman and Chief Executive Officer of Microsoft, <a href="https://snscratchpad.com/posts/models-as-insider-risks/" target="_blank" rel="noreferrer noopener">recently described</a> the trust architecture this new era requires: we must separate the supply of intelligence from the authority over it. We should not ask a model to be its own security authority. The controls that determine what it can access, what actions it can take, and whether it should continue operating must sit outside the model, where the model cannot bypass or tamper with them. </p>
+
+
+
+<figure class="wp-block-pullquote has-h-5-font-size" style="border-width:2px;padding-top:var(--wp--preset--spacing--lg);padding-right:var(--wp--preset--spacing--md);padding-bottom:var(--wp--preset--spacing--lg);padding-left:var(--wp--preset--spacing--md)"><blockquote><p>&#8220;The most trustworthy agentic system will not be the one with the model we trust most. It will be the one designed that enables us to trust the model least.&#8221;</p><cite>Satya Nadella</cite></blockquote></figure>
+
+
+
+<figure class="wp-block-bloginabox-theme-ump-embed wp-block-msx-ump-embed" class="wp-block-bloginabox-theme-ump-embed" data-bi-dnt="true" role="presentation">
+	<div class="wp-block-embed__wrapper">
+		<universal-media-player id="ump-6ad92bb4ad9b6"></universal-media-player>
+		<script type="module">
+			const currentTheme =
+				localStorage.getItem('blogInABoxCurrentTheme') ||
+				(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+			// Modify player theme based on localStorage value.
+			let options = {"autoplay":false,"hideControls":null,"language":"en-us","loop":false,"partnerName":"cloud-blogs","poster":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/image\/microsoftcorp\/1308753-msec_tbmnl_en-us?wid=1280","title":"1308753-msec\u200b\u200b","sources":[{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-msec-0x1080-6439k","type":"video\/mp4","quality":"HQ"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-msec-0x720-3266k","type":"video\/mp4","quality":"HD"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-msec-0x540-2160k","type":"video\/mp4","quality":"SD"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-msec-0x360-958k","type":"video\/mp4","quality":"LO"}],"ccFiles":[{"url":"https:\/\/www.microsoft.com\/en-us\/security\/blog\/wp-json\/bloginabox\/v1\/get-captions?url=https%3A%2F%2Fwww.microsoft.com%2Fcontent%2Fdam%2Fmicrosoft%2Fbade%2Fvideos%2Fproducts-and-services%2Fen-us%2Fsecurity%2F1308753-msec%2F1308753-msec_cc_en-us.ttml","locale":"en-us","ccType":"TTML"}]};
+
+			if (currentTheme) {
+				options.playButtonTheme = currentTheme;
+			}
+
+			document.addEventListener('DOMContentLoaded', () => {
+				ump("ump-6ad92bb4ad9b6", options);
+			});
+		</script>
+	</div>
+	</figure>
+
+
+
+<h2 class="wp-block-heading" id="project-perception-securing-your-agentic-insider"><strong>Project Perception—Securing your agentic insider</strong></h2>
+
+
+
+<p class="wp-block-paragraph">We introduced <a href="https://blogs.microsoft.com/blog/2026/07/27/rethinking-security-for-the-age-of-ai/" target="_blank" rel="noreferrer noopener">Project Perception</a> and the Microsoft cyber stack to help organizations defend with agents. Today, we are <a href="https://aka.ms/AA13thd5" type="link" id="https://aka.ms/AA13thd5" target="_blank" rel="noopener noreferrer">extending Perception to secure the agentic insider</a>. Guardian Agents help security teams operate continuously, at machine speed and scale, while sensors, context, and actuators across the cyber stack help understand changing agent risk and continuously adapt protection in response. Project Perception and <a href="https://www.microsoft.com/en-us/microsoft-agent-365" target="_blank" rel="noopener noreferrer">Microsoft Agent 365</a> share signals, context, and a unified registry giving IT and security teams a consistent view of agents and risk, with the controls each needs.</p>
+
+
+
+<figure class="wp-block-image size-large"><img fetchpriority="high" decoding="async" width="1024" height="576" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18-1024x576.jpg" alt="Illustration showing AI agents protected through layered identity, permissions, data, endpoint, network, cloud, and runtime controls to continuously assess and contain risk. " class="wp-image-150163" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18-1024x576.jpg 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18-300x169.jpg 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18-768x432.jpg 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18-809x455.jpg 809w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Secure-AI-blog-stack-image_FINAL_10_18.jpg 1280w" sizes="(max-width: 1024px) 100vw, 1024px" /></figure>
+
+
+
+<p class="wp-block-paragraph"><strong>This builds on a simple security principle: surround non-deterministic intelligence with deterministic controls, independent evidence, and containment boundaries.</strong> Assume an agent can fail or be compromised. Observe it continuously. Minimize and tailor its authority before it acts. And continuously adjust that authority as risk changes.</p>
+
+
+
+<p class="wp-block-paragraph">This requires protection across identity, permissions, data, endpoints, network, cloud, and runtime. The system has four continuous responsibilities:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><strong>Know</strong> which agents exist, who owns them, why they exist, and what they are doing. </li>
+
+
+
+<li class="wp-block-list-item"><strong>Contain</strong> what each agent can access and do before it acts. </li>
+
+
+
+<li class="wp-block-list-item"><strong>Protect</strong> the data, tools, runtime, resources, and systems in the agent&#8217;s path. </li>
+
+
+
+<li class="wp-block-list-item"><strong>Adapt</strong> protection continuously as behavior, context, and risk change. </li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">These are not four products or sequential phases. They operate together. <strong>Evidence changes risk. Risk changes policy. Policy changes what the agent is allowed to do.</strong> Consider an expense-approval agent. It may need to read expense submissions, check policy, and approve routine reimbursements, but it should not inherit every permission of the employee who sponsors it. Its identity, runtime, access paths, and task-scoped authority should be explicit from the start. If it later encounters a prompt injection or attempts an action outside that task, the system should respond proportionately: preserve safe reads while blocking writes, narrow the resources it can reach, require provable human approval for a consequential step, or isolate and stop the agent when the risk warrants it. This is what continuous containment looks like in practice. </p>
+
+
+
+<figure class="wp-block-bloginabox-theme-ump-embed wp-block-msx-ump-embed" class="wp-block-bloginabox-theme-ump-embed" data-bi-dnt="true" role="presentation">
+	<div class="wp-block-embed__wrapper">
+		<universal-media-player id="ump-6ad92bb4aeb5f"></universal-media-player>
+		<script type="module">
+			const currentTheme =
+				localStorage.getItem('blogInABoxCurrentTheme') ||
+				(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+			// Modify player theme based on localStorage value.
+			let options = {"autoplay":false,"hideControls":null,"language":"en-us","loop":false,"partnerName":"cloud-blogs","poster":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/image\/microsoftcorp\/1308753-demo_tbmnl_en-us?wid=1280","title":"1308753-demo","sources":[{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-demo-0x1080-6439k","type":"video\/mp4","quality":"HQ"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-demo-0x720-3266k","type":"video\/mp4","quality":"HD"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-demo-0x540-2160k","type":"video\/mp4","quality":"SD"},{"src":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-demo-0x360-958k","type":"video\/mp4","quality":"LO"}],"ccFiles":[{"url":"https:\/\/www.microsoft.com\/en-us\/security\/blog\/wp-json\/bloginabox\/v1\/get-captions?url=https%3A%2F%2Fwww.microsoft.com%2Fcontent%2Fdam%2Fmicrosoft%2Fbade%2Fvideos%2Fproducts-and-services%2Fen-us%2Fsecurity%2F1308753-demo%2F1308753-demo_cc_en-us.ttml","locale":"en-us","ccType":"TTML"}],"downloadableFiles":[{"url":"https:\/\/cdn-dynmedia-1.microsoft.com\/is\/content\/microsoftcorp\/1308753-demo_transcript_en-us","locale":"en-us","mediaType":"transcript"}]};
+
+			if (currentTheme) {
+				options.playButtonTheme = currentTheme;
+			}
+
+			document.addEventListener('DOMContentLoaded', () => {
+				ump("ump-6ad92bb4aeb5f", options);
+			});
+		</script>
+	</div>
+	</figure>
+
+
+
+<h2 class="wp-block-heading" id="know-every-agent-and-give-it-an-accountable-identity"><strong>Know every agent and give it an accountable identity </strong></h2>
+
+
+
+<p class="wp-block-paragraph">You cannot secure what you cannot see. Agents can be created through Microsoft platforms, integrated through partner platforms and software development kits (SDKs), or introduced locally without a central deployment process. Microsoft Security uses native integrations, connectors, and sensors across the cyber stack to discover more of the agent estate. </p>
+
+
+
+<p class="wp-block-paragraph">We are expanding discovery to 35 additional types of local agents, bringing the total to <a href="https://learn.microsoft.com/en-us/defender-endpoint/ai-agent-support-matrix" target="_blank" rel="noreferrer noopener">60 supported local agents</a>, including Claude Code, OpenAI Codex, and GitHub Copilot. Organizations can bring these agents into a unified registry, regardless of how they were discovered, to understand ownership, activity, and risk. </p>
+
+
+
+<p class="wp-block-paragraph">Discovery tells you that an agent exists. Identity gives security and governance systems a durable anchor for controlling it. </p>
+
+
+
+<p class="wp-block-paragraph">Every agent should have a first-class identity distinct from the person using or sponsoring it. We are extending <a href="https://learn.microsoft.com/en-us/entra/agent-id/what-is-microsoft-entra-agent-id" target="_blank" rel="noopener noreferrer">Microsoft Entra Agent ID</a> with identity types for additional agent patterns, including local and previously unknown agents discovered through security sensors. This means an agent can become a policy target even when it was not originally integrated with Microsoft Security. Agent identity anchors attribution, ownership, lifecycle, risk, permissions, authorization, and policy, so the enterprise can distinguish what a person did from what an agent did on that person&#8217;s behalf. </p>
+
+
+
+<h2 class="wp-block-heading" id="contain-what-the-agent-can-do-before-it-acts"><strong>Contain what the agent can do before it acts </strong></h2>
+
+
+
+<p class="wp-block-paragraph">Being able to find and identify an agent is necessary, but it is just the start. We need to understand the potential impact the agent can have in the enterprise environment. The next step is to bound the agent across its runtime, its paths to tools and resources, and the authority it can exercise. </p>
+
+
+
+<h3 class="wp-block-heading" id="contain-the-runtime"><strong>Contain the runtime </strong></h3>
+
+
+
+<p class="wp-block-paragraph">The model and harness should execute inside a controlled environment rather than inherit fully-privileged access to the device. Sandboxes such as Microsoft Execution Container (MXC) provide policy-controlled access to resources the agent needs to complete its task. They also create an enforcement boundary where security controls and observability can operate outside the agent&#8217;s reach. If the agent or harness is compromised, it should not be able to disable the controls watching it. </p>
+
+
+
+<h3 class="wp-block-heading" id="control-the-action-space"><strong>Control the action space </strong></h3>
+
+
+
+<p class="wp-block-paragraph">An agent should not be free to call any tool, API, Model Context Protocol (MCP) server, resource, or other agent it can find. Local and network and data controls must mediate those paths, observe the calls, and enforce enterprise policy. Controlling the destination alone is not enough. Security must also understand the content flowing into and out of the agent, including its sensitivity, provenance, and whether untrusted data may be influencing the agent&#8217;s behavior. </p>
+
+
+
+<h3 class="wp-block-heading" id="start-with-no-permissions-or-least-privilege"><strong>Start with no permissions, or least privilege</strong></h3>
+
+
+
+<p class="wp-block-paragraph">We have spent decades applying <a href="https://www.microsoft.com/en-us/security/business/zero-trust" target="_blank" rel="noopener noreferrer">Zero Trust</a> and least privilege to people. Agents make those principles even more important. An agent should not automatically inherit all the standing access of its user. It should begin with no authority and receive only what it needs for the approved task, for only as long as the task requires. </p>
+
+
+
+<p class="wp-block-paragraph">To enable this, we are introducing Dynamic Permissions. Organization-wide policy sets the outer boundary, including preventing an agent from obtaining authority its user does not have. Permissions can then be scoped to the task, made time-bound, and contracted or removed as the task changes or completes. Higher-impact actions can require verified human approval. </p>
+
+
+
+<figure class="wp-block-pullquote has-h-5-font-size" style="border-width:2px"><blockquote><p>The employee retains the employee&#8217;s access. The agent receives its own identity, permissions and its own authority scoped to its current task and for the duration of the task only.</p></blockquote></figure>
+
+
+
+<h2 class="wp-block-heading" id="adapt-protection-as-agent-risk-changes"><strong>Adapt protection as agent risk changes </strong></h2>
+
+
+
+<p class="wp-block-paragraph">Least privilege reduces exposure, but it does not eliminate risk. An expense-approval agent may begin a task with the right access and then encounter a prompt injection in an external document. Its configuration has not changed, but its behavior and risk have. </p>
+
+
+
+<p class="wp-block-paragraph">For human users, a delay between detection and response may be manageable. For an agent operating at machine speed, it can be the difference between containment and impact. The security system must be able to understand what changed and act before a person can manually investigate every signal. </p>
+
+
+
+<p class="wp-block-paragraph">That is why we are introducing Dynamic Agent Risk and Dynamic Conditional Access for agents. </p>
+
+
+
+<h3 class="wp-block-heading" id="dynamic-agent-risk"><strong>Dynamic Agent Risk </strong></h3>
+
+
+
+<p class="wp-block-paragraph">Dynamic Agent Risk combines signals from identity, data, endpoints, cloud, network, runtime, and the agent&#8217;s own activity. It considers how securely the agent is configured, what resources it can reach, the potential impact if something goes wrong, and whether its actions are drifting from the user&#8217;s or organization&#8217;s intent. </p>
+
+
+
+<p class="wp-block-paragraph">The result is not a one-time score assigned at onboarding. It is a continuously updated understanding of the agent&#8217;s current risk and whether its current authority still matches that risk. The question is not simply whether the agent should run or stop. It is what the agent should be allowed to read, change, invoke, or approve at that moment. </p>
+
+
+
+<figure data-wp-context="{&quot;imageId&quot;:&quot;6ad92bb4b0350&quot;}" data-wp-interactive="core/image" data-wp-key="6ad92bb4b0350" class="wp-block-image size-large wp-lightbox-container"><img decoding="async" width="1024" height="572" data-wp-class--hide="state.isContentHidden" data-wp-class--show="state.isContentVisible" data-wp-init="callbacks.setButtonStyles" data-wp-on--click="actions.showLightbox" data-wp-on--load="callbacks.setButtonStyles" data-wp-on-window--resize="callbacks.setButtonStyles" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21-1024x572.jpg" alt="Diagram titled “Dynamic Agent Risk” showing signals from Microsoft Sentinel, Entra, Intune, Purview, Global Secure Access, and Defender feeding into context analysis, which produces a dynamic risk score for real-time detection of intent and task drift." class="wp-image-150207" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21-1024x572.jpg 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21-300x168.jpg 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21-768x429.jpg 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21-1536x859.jpg 1536w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/image-21.jpg 1680w" sizes="(max-width: 1024px) 100vw, 1024px" /><button
+			class="lightbox-trigger"
+			type="button"
+			aria-haspopup="dialog"
+			aria-label="Enlarge"
+			data-wp-init="callbacks.initTriggerButton"
+			data-wp-on--click="actions.showLightbox"
+			data-wp-style--right="state.imageButtonRight"
+			data-wp-style--top="state.imageButtonTop"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 12 12">
+				<path fill="#fff" d="M2 0a2 2 0 0 0-2 2v2h1.5V2a.5.5 0 0 1 .5-.5h2V0H2Zm2 10.5H2a.5.5 0 0 1-.5-.5V8H0v2a2 2 0 0 0 2 2h2v-1.5ZM8 12v-1.5h2a.5.5 0 0 0 .5-.5V8H12v2a2 2 0 0 1-2 2H8Zm2-12a2 2 0 0 1 2 2v2h-1.5V2a.5.5 0 0 0-.5-.5H8V0h2Z" />
+			</svg>
+		</button></figure>
+
+
+
+<h3 class="wp-block-heading" id="dynamic-conditional-access"><strong>Dynamic Conditional Access </strong></h3>
+
+
+
+<p class="wp-block-paragraph">Dynamic Conditional Access extends <a href="https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-conditional-access" target="_blank" rel="noopener noreferrer">Microsoft Entra Conditional Access</a> for agents so a change in risk can drive coordinated action across multiple enforcement points. The response is graduated, not binary. Policy can reduce permissions, preserve reads while blocking writes, narrow the data and resources the agent can reach, restrict network paths, shorten or revoke time-bound access, or require provable human approval before a consequential action proceeds. At the highest levels of risk, it can isolate the runtime or stop execution entirely. </p>
+
+
+
+<p class="wp-block-paragraph">Return to the expense agent. It begins with narrowly scoped permission to review and approve expenses within policy. When it encounters untrusted content and attempts an unrelated action, new evidence raises its Dynamic Agent Risk. Policy responds proportionately: it can preserve read access while removing the ability to approve or write, block access to sensitive resources, and require cryptographically provable human approval for a high-impact step. If the risk continues to rise, the system can isolate the runtime or stop execution. The employee remains productive. The agent is constrained without treating every risk change as a kill-switch event. </p>
+
+
+
+<h2 class="wp-block-heading" id="secure-agentic-systems-at-scale-with-guardian-agents"><strong>Secure agentic systems at scale with Guardian Agents </strong></h2>
+
+
+
+<p class="wp-block-paragraph">As organizations deploy thousands or hundreds of thousands of agents, manually triaging every alert and coordinating every response will not scale. Securing agents must itself become agentic, while remaining inside boundaries people set. </p>
+
+
+
+<p class="wp-block-paragraph">That is why we are introducing new Playbooks and a team of Guardian Agents in Project Perception. People define policy, approval boundaries, and delegation rules. Playbooks define the desired security outcome and coordinate protective actions. Guardian Agents carry out the work at machine speed, adapting as agent activity, risk, security context, and organizational policy change. </p>
+
+
+
+<p class="wp-block-paragraph">Guardian Agents can help teams understand why risk changed, investigate the relevant evidence, recommend or apply containment, and use what they learn to harden policy. This is not about outsourcing judgment. People retain control over objectives and consequential decisions. The system carries the continuous work that does not scale through manual operations. </p>
+
+
+
+<blockquote class="wp-block-quote has-quote-default-font-size is-layout-flow wp-block-quote-is-layout-flow">
+<p class="has-body-large-font-size wp-block-paragraph"><em>Agents will only be adopted at scale if they can be trusted at scale. At Microsoft, we are already operating in a world of hundreds of thousands of agents. As Customer Zero, we have learned that securing agents requires continuous visibility into agent activity, proactive protection of access and data, and adaptive protection that keeps pace with evolving threats. Those lessons directly inform the innovations we are delivering to help every organization adopt agents with confidence.”</em></p>
+
+
+
+<p class="has-body-large-font-size wp-block-paragraph">—<strong>Terrell Cox, Corporate Vice President (CVP) and Deputy Chief Information Security Officer (CISO), Customer Security, Microsoft</strong></p>
+</blockquote>
+
+
+
+<h2 class="wp-block-heading" id="extending-containment-to-the-model"><strong>Extending containment to the model </strong></h2>
+
+
+
+<p class="wp-block-paragraph">As model transparency increases, it creates a new source of security evidence. Chain-of-thought and other model-level signals can help identify intent drift, understand whether untrusted information is influencing reasoning, and detect when an agent’s planned actions are diverging from the task it was given. </p>
+
+
+
+<p class="wp-block-paragraph">We are bringing this deeper evidence into Dynamic Agent Risk, together with signals from across the cyber stack. This builds on Satya Nadella&#8217;s principle: increase transparency into the model while keeping security decisions and enforcement independent of it. </p>
+
+
+
+<p class="wp-block-paragraph">Greater model transparency gives security systems deeper evidence to detect suspicious behavior and inform Dynamic Agent Risk. But the core security principle does not change: the model cannot be its own security boundary. Independent systems must observe every layer, including the model itself, and ultimately determine and enforce what the system is allowed to do. </p>
+
+
+
+<p class="wp-block-paragraph">These are not separate pillars. They make the same containment architecture stronger: better evidence, stronger assurance, more accurate risk, and more effective protection. </p>
+
+
+
+<h2 class="wp-block-heading" id="confidence-to-move-faster"><strong>Confidence to move faster </strong></h2>
+
+
+
+<p class="wp-block-paragraph">Organizations are adopting agents to serve customers better, solve problems faster, and give people more time for the work that matters most. The goal is not to make every model perfectly predictable before it can be useful. The goal is to build systems that remain secure even when the model is not. </p>
+
+
+
+<p class="wp-block-paragraph">That requires a clear division of responsibility. Models supply intelligence. People and organizations retain authority. Independent controls establish identity, limit privilege, protect data, preserve evidence, and contain unsafe action. Security continuously reassesses risk and adapts protection as the agent works. </p>
+
+
+
+<figure class="wp-block-pullquote has-h-5-font-size" style="border-width:2px;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0"><blockquote><p>You should not have to choose<br>between innovation and safety.</p></blockquote></figure>
+
+
+
+<p class="wp-block-paragraph">That is what we are working toward: an agentic world where organizations can put intelligence to work with confidence because security can observe it, govern it, and contain it at the same speed. </p>
+
+
+
+<p class="wp-block-paragraph">Learn more <a href="https://www.microsoft.com/en-us/security/business/solutions/security-for-ai" target="_blank" rel="noreferrer noopener">here</a> and join us at <a href="https://ignite.microsoft.com/home?wt.mc_ID=msignite26_ciarmar_corp_np_oo_securitysite_SecBlogSecureWhatsNext_0545" target="_blank" rel="noreferrer noopener">Microsoft Ignite</a>.</p>
+
+
+
+<p class="wp-block-paragraph">To learn more about Microsoft Security solutions, visit our <a href="https://www.microsoft.com/en-us/security/business" target="_blank" rel="noreferrer noopener">website.</a> Bookmark the <a href="https://www.microsoft.com/security/blog/" target="_blank" rel="noreferrer noopener">Security blog</a> to keep up with our expert coverage on security matters. Also, follow us on LinkedIn (<a href="https://www.linkedin.com/showcase/microsoft-security/" target="_blank" rel="noreferrer noopener">Microsoft Security</a>) and X (<a href="https://twitter.com/@MSFTSecurity" target="_blank" rel="noreferrer noopener">@MSFTSecurity</a>) for the latest news and updates on cybersecurity.</p>
+
+
+
+<p class="wp-block-paragraph"></p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/19/agents-are-your-newest-insiders-security-must-move-at-their-speed/">Agents are your newest insiders. Security must move at their speed. </a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Managing open-weight model risk in enterprise deployments</title>
+		<link>https://www.microsoft.com/en-us/security/blog/2026/10/16/managing-open-weight-model-risk-in-enterprise-deployments/</link>
+		
+		<dc:creator><![CDATA[Michael Scovetta]]></dc:creator>
+		<pubDate>Fri, 16 Oct 2026 16:00:00 +0000</pubDate>
+				<guid isPermaLink="false">https://www.microsoft.com/en-us/security/blog/?p=150082</guid>
+
+					<description><![CDATA[<p>New whitepaper from Microsoft and NVIDIA helps enterprises manage open-weight AI model risks with a shared taxonomy, evaluations, and controls.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/16/managing-open-weight-model-risk-in-enterprise-deployments/">Managing open-weight model risk in enterprise deployments</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">The growing AI landscape is giving enterprises more choice in how they build, customize, and deploy increasingly capable models. Open-weight models are an important part of that landscape. They give enterprises access to model weights and greater flexibility to inspect, evaluate, modify, and run models within their own environments.</p>
+
+
+
+<p class="wp-block-paragraph">While that flexibility can be valuable, it also affects how enterprises evaluate models, where they implement safeguards, and who is responsible for maintaining those safeguards over time. </p>
+
+
+
+<p class="wp-block-paragraph">As enterprises choose which models to deploy, the relevant question is broader than whether a model is open-weight or closed-weight. Enterprises need to understand what they are using the model for, what could go wrong in that context, and what evidence and controls they need to manage risks. </p>
+
+
+
+<p class="wp-block-paragraph">Today, Microsoft and NVIDIA are publishing <a href="https://github.com/NVIDIA/OpenEnterpriseRiskManagementGuidance/blob/main/Papers/Risk%20Management%20Guidance.pdf" target="_blank" rel="noreferrer noopener"><strong><em>Risk Management for Open-Weight Models in Enterprise</em></strong></a><strong>,</strong> the first in a planned series of joint resources intended to help enterprises address those questions. The paper introduces a shared risk taxonomy and an approach to managing model risks grounded in established standards and frameworks, including International Organization for Standardization (ISO) standards and the National Institute of Standards and Technology (NIST) AI Risk Management Framework.  </p>
+
+
+
+<p class="wp-block-paragraph">The paper reflects a core idea: weight openness alone does not determine an AI system&#8217;s risk. Risk depends on the model, use case, deployment, and safeguards.</p>
+
+
+
+<div class="wp-block-buttons is-content-justification-center is-layout-flex wp-container-core-buttons-is-layout-a89b3969 wp-block-buttons-is-layout-flex">
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://github.com/NVIDIA/OpenEnterpriseRiskManagementGuidance/blob/main/Papers/Risk%20Management%20Guidance.pdf" target="_blank" rel="noopener noreferrer">Read the whitepaper: Risk Management for Open-Weight Models in Enterprise</a></div>
+</div>
+
+
+
+<h2 class="wp-block-heading" id="understanding-risk-in-the-deployment-context">Understanding risk in the deployment context </h2>
+
+
+
+<p class="wp-block-paragraph">Open- and closed-weight models can share many of the same underlying risks, but how those risks materialize depends on the deployment. A model used to help an employee draft a document presents different considerations than the same model used in a customer-facing workflow, just as a standalone inference endpoint differs from a system connected to external data or tools. </p>
+
+
+
+<p class="wp-block-paragraph">The architecture matters too. A risk may originate in the model, while the most effective control may sit in the inference environment, application, or surrounding operational processes. The joint guidance looks beyond the model label to factors including provenance, intended use, users, deployment conditions, and surrounding controls. This first paper focuses primarily on model-layer risks. Evaluating a model alone does not establish the safety of an agent or application: teams must also assess its permissions, data access, tools, runtime, and operational controls.</p>
+
+
+
+<h2 class="wp-block-heading" id="establishing-a-common-language">Establishing a common language </h2>
+
+
+
+<p class="wp-block-paragraph">Managing these risks consistently also requires a common vocabulary across engineering, security, legal, safety, and business teams. </p>
+
+
+
+<p class="wp-block-paragraph">The initial Microsoft and NVIDIA taxonomy organizes risks into five broad categories: Cybersecurity, Data Protection, Content, Human-AI Interaction, and Bias. It is not a policy or deployment checklist, but instead it should be used by enterprises to adapt it to their own systems, use cases, and risk criteria, then connect relevant risks to evaluations, mitigations, and accountable owners.  </p>
+
+
+
+<h2 class="wp-block-heading" id="using-evaluations-as-risk-evidence">Using evaluations as risk evidence </h2>
+
+
+
+<p class="wp-block-paragraph">Evaluations help turn the taxonomy into something enterprises can use. The paper maps evaluations to a selection of risks across the five categories, giving teams a way to start with a risk that matters for their deployment and identify evaluations that can produce relevant evidence about it.</p>
+
+
+
+<p class="wp-block-paragraph">Microsoft Foundry helps enterprises assess quality, groundedness, and safety with built-in and custom evaluations and automated red teaming. Its configurable content-safety controls help detect and mitigate harmful inputs and outputs and prompt attacks. Teams should validate control availability for their model and deployment, including preview status, and combine these capabilities with application-specific testing, monitoring, and human oversight.</p>
+
+
+
+<p class="wp-block-paragraph">Evaluations still need to be interpreted in the context of a particular deployment and the goal is to make it easier for teams to connect the risks they identify with useful evidence, while building a broader set of evaluation resources that can evolve alongside models, deployment patterns, and emerging risks. Microsoft and NVIDIA plan to use the joint repository to share additional evaluations and point to existing resources that can help enterprises assess specific risks.</p>
+
+
+
+<h2 class="wp-block-heading" id="accounting-for-changes-in-control-and-responsibility">Accounting for changes in control and responsibility </h2>
+
+
+
+<p class="wp-block-paragraph">Open-weight access gives enterprises greater control over how a model is evaluated, modified, and deployed. Model access and deployment are separate choices: open-weight models can also be used through managed platforms. Responsibility for safeguards depends on the service and deployment configuration; enterprises that operate their own model deployments may take on controls otherwise provided by a managed service.</p>
+
+
+
+<p class="wp-block-paragraph">Those safeguards can operate at different layers, and (depending on the risk) enterprises might use model changes, access controls, input and output filtering, monitoring, or human review. The important step is connecting each identified risk to controls that can effectively address it within the deployed system. Those decisions need to be revisited as models and deployments change.</p>
+
+
+
+<h2 class="wp-block-heading" id="building-on-this-work">Building on this work </h2>
+
+
+
+<p class="wp-block-paragraph"><em><a href="https://github.com/NVIDIA/OpenEnterpriseRiskManagementGuidance/blob/main/Papers/Risk%20Management%20Guidance.pdf" target="_blank" rel="noopener noreferrer">Risk Management for Open-Weight Models in Enterprise</a></em> focuses primarily on the model layer. Future work from Microsoft and NVIDIA is intended to extend this approach across the runtime, harness, and application layers, with additional technical guidance on evaluation and mitigation.  </p>
+
+
+
+<p class="wp-block-paragraph">We also expect the resources supporting this work to evolve as new models, evaluations, and deployment patterns emerge. The joint repository will provide a place to share additional evaluation resources, including contributions from the broader community.</p>
+
+
+
+<p class="wp-block-paragraph">For enterprises deploying open-weight models today, the paper provides guidance they can begin applying to their own use cases. We encourage developers, security practitioners, researchers, and others working in this space to read the paper, explore the evaluations, and contribute evaluations that can help strengthen this shared body of work.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Read the joint Microsoft-NVIDIA paper, </strong><a href="https://github.com/NVIDIA/OpenEnterpriseRiskManagementGuidance/blob/main/Papers/Risk%20Management%20Guidance.pdf" target="_blank" rel="noreferrer noopener"><strong><em>Risk Management for Open-Weight Models in Enterprise</em></strong></a>.</p>
+
+
+
+<p class="wp-block-paragraph"><strong><a href="https://github.com/NVIDIA/OpenEnterpriseRiskManagementGuidance" target="_blank" rel="noopener noreferrer">Explore the joint repository and technical resources</a></strong>.</p>
+
+
+
+<p class="wp-block-paragraph"><em>Risk Management for Open-Weight Models in Enterprise</em> was developed jointly by Microsoft and NVIDIA, with Andrew Berkley and April Chen of Microsoft and Michael Boone, Eileen Long, and Arun Rao of NVIDIA leading the development and editing of the paper.</p>
+
+
+
+<p class="wp-block-paragraph">Explore <a href="https://learn.microsoft.com/en-us/azure/foundry/concepts/built-in-evaluators" target="_blank" rel="noreferrer noopener">Microsoft Foundry evaluations</a> and <a href="https://learn.microsoft.com/en-us/azure/foundry/guardrails/guardrails-overview" target="_blank" rel="noreferrer noopener">content-safety controls</a> for implementation guidance.</p>
+
+
+
+<p class="wp-block-paragraph">To learn more about Microsoft Security solutions, visit our <a href="https://www.microsoft.com/en-us/security/business" target="_blank" rel="noreferrer noopener">website.</a> Bookmark the <a href="https://www.microsoft.com/security/blog/" target="_blank" rel="noreferrer noopener">Security blog</a> to keep up with our expert coverage on security matters. Also, follow us on LinkedIn (<a href="https://www.linkedin.com/showcase/microsoft-security/" target="_blank" rel="noreferrer noopener">Microsoft Security</a>) and X (<a href="https://twitter.com/@MSFTSecurity" target="_blank" rel="noreferrer noopener">@MSFTSecurity</a>) for the latest news and updates on cybersecurity.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/16/managing-open-weight-model-risk-in-enterprise-deployments/">Managing open-weight model risk in enterprise deployments</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>The hidden network: Inside the phishing infrastructure ecosystem powering global cybercrime</title>
+		<link>https://www.microsoft.com/en-us/security/blog/2026/10/14/the-hidden-network-inside-the-phishing-infrastructure-ecosystem-powering-global-cybercrime/</link>
+		
+		<dc:creator><![CDATA[Microsoft Threat Intelligence and Microsoft Digital Crimes Unit]]></dc:creator>
+		<pubDate>Wed, 14 Oct 2026 13:00:00 +0000</pubDate>
+				<category><![CDATA[Phishing]]></category>
+		<category><![CDATA[Social engineering]]></category>
+		<guid isPermaLink="false">https://www.microsoft.com/en-us/security/blog/?p=150083</guid>
+
+					<description><![CDATA[<p>Microsoft uncovered a Chinese-language cybercriminal ecosystem, an interconnected network of phishing kit operators (tracked as Storm-2990), and an illicit marketplace (tracked as Storm-3119) selling tools and infrastructure for large-scale phishing. In collaboration with law enforcement agencies and other partners worldwide, Microsoft’s Digital Crimes Unit (DCU) facilitated a disruption of the ecosystem.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/14/the-hidden-network-inside-the-phishing-infrastructure-ecosystem-powering-global-cybercrime/">The hidden network: Inside the phishing infrastructure ecosystem powering global cybercrime</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<aside class="table-of-contents-block accordion wp-block-bloginabox-theme-table-of-contents" id="accordion-7defb5aa-e9fd-47cd-9b47-6b14d8681046" data-bi-aN="table-of-contents">
+	<button class="btn btn-collapse" type="button" aria-expanded="true" aria-controls="accordion-collapse-7defb5aa-e9fd-47cd-9b47-6b14d8681046">
+		<span class="table-of-contents-block__label">In this article</span>
+		<span class="table-of-contents-block__current" aria-hidden="true"></span>
+
+		<svg class="table-of-contents-block__arrow" aria-label="Toggle arrow" width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path d="M15.7761 11L18 8.82043L9 0L0 8.82043L2.22394 11L9 4.35913L15.7761 11Z" fill="currentColor" />
+		</svg>
+	</button>
+	<div id="accordion-collapse-7defb5aa-e9fd-47cd-9b47-6b14d8681046" class="table-of-contents-block__collapse-wrapper collapse show" data-parent="#accordion-7defb5aa-e9fd-47cd-9b47-6b14d8681046">
+		<div class="table-of-contents-block__content">
+			<ol class="table-of-contents-block__list"><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#uncovering-the-shadow-world-of-a-phishing-kit-ecosystem">Uncovering the shadow world of a phishing kit ecosystem</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#storm-3119-yam-store-the-power-broker">Storm-3119: YAM Store, the power broker</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#storm-2990-the-iron-man-system-phishing-kit">Storm-2990: The Iron Man System phishing kit</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#downstream-activity-from-storm-2990-phishing-kits">Downstream activity from Storm-2990 phishing kits</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#mitigation-and-protection-guidance">Mitigation and protection guidance</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#microsoft-defender-detections">Microsoft Defender detections</a></li></ol>		</div>
+	</div>
+	<span class="table-of-contents-block__progress-bar"></span>
+</aside>
+
+
+
+<p class="wp-block-paragraph">Over the past year, Microsoft uncovered a Chinese-language cybercriminal ecosystem, an interconnected network of phishing kit operators, developers, and an illicit marketplace selling tools and infrastructure for large-scale phishing, enabling cybercriminal operations worldwide.</p>
+
+
+
+<p class="wp-block-paragraph">Threat actors purchased and used these tools and infrastructure, including phishing kits and access to compromised or fraudulent Microsoft or Google cloud environments and related credentials, to target organizations across the healthcare, financial services, wholesale distribution, and information technology (IT) sectors in Japan, the United States, Australia, and India. In collaboration with law enforcement agencies and other partners worldwide, <a href="https://aka.ms/YamCOGUIIronMan">Microsoft’s Digital Crimes Unit (DCU) facilitated a disruption of the ecosystem’s primary developers and infrastructure</a>. </p>
+
+
+
+<p class="wp-block-paragraph">Microsoft&#8217;s research into one phishing kit unraveled a larger ecosystem, including the phishing kit developers, an infrastructure dealer, and the threat actors who buy from both. In this blog, we examine several phishing kits marketed and sold through YAM Store, an underground marketplace tracked by Microsoft as Storm-3119. We share our analysis of the technical aspects of this Chinese-language phishing kit ecosystem, the shared infrastructure, provisioning methods, and downstream activity by threat actors using these tools.</p>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-1024x495.webp" alt="Map showing the countries affected by  Storm-3119 and Storm-2990-related activity, with the United States and Japan being the most affected." class="wp-image-150096 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-1024x495.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-300x145.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-768x371.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-1536x742.webp 1536w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map.webp 1553w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig1-heat-map-1024x495.webp"><figcaption class="wp-element-caption"><em>Figure 1: Heat map of most impacted countries by combined Storm-3119 and Storm-2990-related activity.</em></figcaption></figure>
+
+
+
+<h2 class="wp-block-heading" id="uncovering-the-shadow-world-of-a-phishing-kit-ecosystem">Uncovering the shadow world of a phishing kit ecosystem</h2>
+
+
+
+<p class="wp-block-paragraph">Microsoft, alongside industry partner <a href="https://www.resecurity.com/blog/article/iron-man-yamstore-powering-a-global-phishing-as-a-service-ecosystem" target="_blank" rel="noopener noreferrer">Resecurity</a>, identified three phishing kits sold through the YAM Store that make up this Chinese-language cybercriminal network: CoGUI (also known as NX or FA), Haozi (also known as Phoenix), and Iron Man System. Microsoft tracks the cluster of activity and the developers behind all three phishing kits as Storm-2990. Since January 2026, the threat actors behind these kits have been responsible for facilitating the sending of over one billion phishing emails and SMS messages to over 75 thousand organizations worldwide.</p>
+
+
+
+<p class="wp-block-paragraph">Microsoft assesses with high confidence that these phishing kits were developed by Chinese-speaking threat actors, and, despite their distinct branding and separate Telegram-based sales channels, exhibit highly similar capabilities and functionality. The phishing kits provide phishing templates impersonating legitimate brands and organizations (including government, financial, and logistics) worldwide, and enable criminal actors to facilitate high-volume phishing and credential stealing operations. The similarity in their infrastructure and overlap in activity suggest either shared development origins, code reuse, or close collaboration among their developers.</p>
+
+
+
+<p class="wp-block-paragraph">These phishing kits have been advertised through YAM Store, first CoGUI and Haozi, followed by Iron Man System starting in June 2026. YAM Store and affiliated phishing kit companies accepted payments through cryptocurrency, including USDT and Ethereum, adding another layer to conceal illicit activity. The scale and proliferation of this ecosystem demonstrate how readily available criminal infrastructure can lower the barrier to entry, enabling less skilled cybercriminals to target organizations at scale and contribute to fraud losses.</p>
+
+
+
+<p class="wp-block-paragraph">By mapping the relationship between YAM Store and these phishing kits, we provide insight into the commercial infrastructure that supports modern phishing operations.</p>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990-1024x709.webp" alt="Diagram showing the relationship of YAM Store (Storm-3119) and the phishing kits tracked as Storm-2990." class="wp-image-150097 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990-1024x709.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990-300x208.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990-768x532.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990.webp 1381w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig2-Storm-3119-and-Storm-2990-1024x709.webp"><figcaption class="wp-element-caption"><em>Figure 2. YAM Store (Storm-3119) sells fraudulently acquired infrastructure to CoGUI, Haozi, and Iron Man System, all interconnected phishing kit operators, who then provide these services to other threat actors. </em></figcaption></figure>
+
+
+
+<h2 class="wp-block-heading" id="storm-3119-yam-store-the-power-broker">Storm-3119: YAM Store, the power broker</h2>
+
+
+
+<p class="wp-block-paragraph">YAM Store is an initial access broker (IAB) that sells infrastructure using compromised or fraudulently obtained environments in providers like Microsoft and Google. The marketplace offers a variety of infrastructure based on age, subscription type, and environment types such as education (.edu) or non-profit (.org).</p>
+
+
+<figure class="wp-block-image size-full"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig3-Storm-3119-procurement-and-downstream-activity.webp" alt="Diagram showing the procurement and downstream activity related to YAM Store" class="wp-image-150098 webp-format" srcset="" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig3-Storm-3119-procurement-and-downstream-activity.webp"><figcaption class="wp-element-caption"><em>Figure 3: YAM Store procurement and downstream activity chain</em></figcaption></figure>
+
+
+
+<p class="wp-block-paragraph">The YAM Store marketplace provides cybercriminals with a platform to purchase fraudulently acquired Microsoft and Google domains associated with legitimate, expired, or previously used organization numbers, allowing actors to use seemingly legitimate infrastructure and obtain workspaces at relatively low cost. Storm-3119 uses automation to identify expired environment or organization names and leverages legitimate customer information associated with them to help circumvent existing detections.</p>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-1024x523.webp" alt="Screenshot of YAM Store interface and Telegram" class="wp-image-150099 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-1024x523.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-300x153.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-768x392.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-1536x784.webp 1536w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram.webp 1999w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig4-YAM-store-interface-and-Telegram-1024x523.webp"><figcaption class="wp-element-caption"><em>Figure 4. YAM Store interface and Telegram contact</em></figcaption></figure>
+
+
+
+<h3 class="wp-block-heading" id="anatomy-of-yam-store-operations-how-storm-3119-acquires-controls-and-monetizes-infrastructure">Anatomy of YAM Store operations: How Storm-3119 acquires, controls, and monetizes infrastructure</h3>
+
+
+
+<p class="wp-block-paragraph">During this investigation, Microsoft uncovered a five-stage attack pipeline often used in Storm-3119’s operations. YAM Store functions as an access broker, an intermediary that hijacks Microsoft 365 and Azure for Education tenants and resells the stolen accounts, licenses, and storage as a service to downstream operations, including the phishing kits tracked as Storm-2990. The pipeline below describes the supply side of that business: how the actor acquires, controls, and monetizes compromised environments.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Stage 1 – Reconnaissance</strong>: Storm-3119 conducts automated reconnaissance of target environments. The actor uses Flask, a lightweight Python web framework, to covertly identify and profile cloud-enabled organizations. The tooling is designed to discover Microsoft 365 tenants, assess enrollment opportunities, gather licensing and Azure cloud information, and perform these activities anonymously through Tor infrastructure.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Stage 2 – Environment takeover and app-only admin panels</strong>: Once a viable environment is identified, the threat actor centralizes associated information in an actor-controlled platform used to administer compromised Microsoft 365 environments. This platform is a separate set of administrative panels (implemented in PHP, Java/Spring, and Cloudflare Workers) that lets the operator maintain, monetize, and expand access using stolen application credentials. Leveraging the compromised environment&#8217;s client secret through an application-only authentication flow, the panel performs full directory control: it resets passwords silently (without forcing a change at next sign-in), assigns education licenses, and grants privileged attributes that the actor can later monetize. Because this access is application-level rather than tied to a single user session, the resulting persistence is more durable, more scalable, and harder to detect.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Stage 3 – Storage and resource abuse</strong>: With the stolen privileged credentials, the threat actor signs in to a compromised Global Administrator account and self-provisions the PnP Management Shell service principal, which represents the actor&#8217;s application inside the compromised tenant. Through this service principal, the threat actor grants themselves broad Microsoft Graph permissions, including read and write access to directory data and AppCatalog.ReadWrite.All, along with full control over the SharePoint API. The actor then abuses the compromised tenant&#8217;s SharePoint and OneDrive as bulk hosting and converts the hijacked storage into a sellable product.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Stage 4 – Phishing and DNS infrastructure support</strong>: The threat actor maintains dedicated infrastructure to support and manage phishing operations on behalf of their customers. A custom DNS management platform enables centralized control of phishing domains, SSL certificates, and domain-routing configurations through Cloudflare.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Stage 5 – Storefront and monetization</strong>: Storm-3119 resells the hijacked accounts, licenses, and storage through an automated storefront, operating as the access broker that supplies these resources to downstream operations. Payment is accepted through Alipay, WeChat Pay, and USDT (TRC20), and the storefront supports a sub-reseller tier. Telegram is used for order notifications and buyer contact rather than as the primary sales channel.</p>
+
+
+
+<p class="wp-block-paragraph">In addition to targeting existing tenants, Storm-3119 also separately creates fraudulent organizations and supporting web presence to establish tenants on Microsoft’s platform, likely using AI-generated content and forged documentation to make the fabricated entities appear legitimate. In one case, the actor created an environment, likely using AI, named “Jewish Choice” under the guise of a nonprofit organization and associated it with <em>jewishchoice[.]org</em>, a domain registered only within the past several months that did not appear to represent a legitimate organization. This activity indicates that Storm-3119 likely established the website and associated domain to lend credibility to the fabricated nonprofit identity and facilitate tenant creation.</p>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" alt="Screenshot of website for a fake non-profit "Jewish Choice"" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-1024x770.webp" alt='Screenshot of website for a fake non-profit "Jewish Choice"' class="wp-image-150100 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-1024x770.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-300x226.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-768x578.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-1536x1156.webp 1536w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-809x607.webp 809w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure.webp 1728w" data-orig-alt="Screenshot of website for a fake non-profit "Jewish Choice"" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig5-Sample-lure-1024x770.webp"><figcaption class="wp-element-caption"><em>Figure 5: YAM Store created the fake non-profit &ldquo;Jewish Choice&rdquo; to sell to criminal actors with a [.]org top-level domain to appear as a legitimate organization in phishing emails.</em></figcaption></figure>
+
+
+
+<h2 class="wp-block-heading" id="storm-2990-the-iron-man-system-phishing-kit">Storm-2990: The Iron Man System phishing kit</h2>
+
+
+
+<p class="wp-block-paragraph">YAM Store sells its illicitly acquired infrastructure, as well as the prominent phishing kits tracked as Storm-2990, to other threat actors. The platforms are commercially licensed phishing-as-a-service (PaaS) products. They are designed to impersonate organizations across several industry verticals to steal information, including sign-in credentials (usernames, passwords) and financial data (credit card information), used to gain access to network environments.</p>
+
+
+
+<p class="wp-block-paragraph">Iron Man System’s customers purchase a subscription that provides access to the kit’s license server, with the domain hard-coded into the kit. This restriction adds a layer of obfuscation by limiting site access to paying customers. The kits allow attackers to steal money by abusing the stolen credit card information.</p>
+
+
+<figure class="wp-block-image size-full is-resized"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig6-Sample-lure.webp" alt="Screenshot of Iron Man System sign-in" class="wp-image-150101 webp-format" style="width:480px" srcset="" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig6-Sample-lure.webp"><figcaption class="wp-element-caption"><em>Figure 6. Iron Man System admin sign-in</em></figcaption></figure>
+
+
+
+<p class="wp-block-paragraph">The Iron Man System phishing kit contains over 2,335 templates tailored to over 139 countries including Australia, Japan, India, and the United States, with the United States accounting for the most phishing templates. The phishing lures used by Iron Man System mimic various trusted brands and organizations, such as local government including authorities associated with traffic and parking fees, law enforcement, healthcare, finance, transportation, and retail. These lures are designed to trick targets into providing sensitive information. Most phishing lures used in the United States are transportation or government-related.</p>
+
+
+<figure class="wp-block-image size-full is-resized"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig7-Sample-lure.webp" alt="Screenshot of SMS phishing impersonating traffic authorities in the Philippines" class="wp-image-150102 webp-format" style="width:480px" srcset="" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig7-Sample-lure.webp"><figcaption class="wp-element-caption"><em>Figure 7. Phishing lure impersonating traffic authorities in the Philippines  </em></figcaption></figure>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig8-Sample-lure-705x1024.webp" alt="Screenshot of phishing email impersonating Amazon" class="wp-image-150103 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig8-Sample-lure-705x1024.webp 705w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig8-Sample-lure-206x300.webp 206w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig8-Sample-lure.webp 768w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig8-Sample-lure-705x1024.webp"><figcaption class="wp-element-caption"><em>Figure 8. Phishing lure impersonating Amazon shipping services</em></figcaption></figure>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure-1024x416.webp" alt="Screenshot of a Japanese-language phishnig lure" class="wp-image-150104 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure-1024x416.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure-300x122.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure-768x312.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure.webp 1440w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig9-Sample-lure-1024x416.webp"><figcaption class="wp-element-caption"><em>Figure 9. Phishing lure impersonating a Japanese financial service provider. It warns the target that a routine security check determined that the target&rsquo;s account requires re-authentication. The email provides instructions for the target to visit the &lsquo;official&rsquo; website and follow instructions to authenticate to the portal</em></figcaption></figure>
+
+
+<figure class="wp-block-image size-medium is-resized"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure-300x295.webp" alt="Screenshot of SMS phishing impersonating Australia Post" class="wp-image-150109 webp-format" style="width:480px" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure-300x295.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure-1024x1005.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure-768x754.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure.webp 1152w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig10-Sample-lure-300x295.webp"><figcaption class="wp-element-caption"><em>Figure 10. Sample lure impersonating Australia Post</em></figcaption></figure>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-1024x457.webp" alt="Screenshot of phishing email impersonating Medicare" class="wp-image-150106 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-1024x457.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-300x134.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-768x343.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-1536x686.webp 1536w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure.webp 1728w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig11-Sample-lure-1024x457.webp"><figcaption class="wp-element-caption"><em>Figure 11. Sample lure impersonating Medicare</em></figcaption></figure>
+
+
+
+<p class="wp-block-paragraph">The phishing kits are capable of the following advanced evasion techniques to varying degrees:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><strong>Geofencing</strong>, a technique used to restrict access to configured countries only, so only users from specific countries can access the phishing content from their web browser</li>
+
+
+
+<li class="wp-block-list-item"><strong>Fake CAPTCHA gates</strong>, used to prevent or block automated browsing from threat research tools by making the user click a box or execute an action</li>
+
+
+
+<li class="wp-block-list-item"><strong>IP address block list and allow list</strong>, used to block or allow IP addresses to prevent threat researcher interaction</li>
+
+
+
+<li class="wp-block-list-item"><strong>Anti-detection configuration </strong>related tosettings to evade security researcher detection</li>
+
+
+
+<li class="wp-block-list-item"><strong>Telegram bot configuration</strong>,including bot tokens and chat IDs for real-time phishing that enables credential exfiltration. It allows the kit operator to receive automatic notifications on their Telegram account when a target takes action on a phishing lure, including entering credentials, credit card data submission, and verification codes.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">After the target provides the sensitive information (sign-in details, credit card info), the phishing kit collects it using a WebSocket, offering customers real-time victim interaction through Telegram notifications during credential harvesting. This confirms that the kit supports live, interactive phishing where the operator monitors each victim’s progress and manually controls what the victim sees next, a hallmark of sophisticated PaaS platforms. The attacker then harvests the information to use in follow-on fraudulent financial activities.</p>
+
+
+
+<p class="wp-block-paragraph">The Iron Man System phishing kit panel is predominately hosted on China-based hosting providers, with a smaller number of panels found on hosting providers in other countries. The fully featured, multi-tenant phishing kit uses the GoFrame application development framework, an open-source Go framework with roots in the Chinese developer ecosystem.</p>
+
+
+
+<h2 class="wp-block-heading" id="downstream-activity-from-storm-2990-phishing-kits">Downstream activity from Storm-2990 phishing kits</h2>
+
+
+
+<p class="wp-block-paragraph">Microsoft observed downstream activity by threat actors using infrastructure affiliated with the Storm-2990 phishing kits. In analyzed cases, the actors used similar common phishing techniques, such as urgency in the message and attaching malicious links that redirect to actor-controlled infrastructure that allows these downstream threat actors to perform the following activities:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><strong>Credential stealing:</strong> The actors use phishing pages that impersonate legitimate services to trick targets into providing credentials or other authentication information, enabling downstream actors to access compromised accounts.</li>
+
+
+
+<li class="wp-block-list-item"><strong>Device code phishing:</strong> In some cases, the actors abuse the device code authentication flow to trick victims into authenticating to legitimate applications, allowing downstream actors to obtain authentication tokens and access compromised accounts.</li>
+
+
+
+<li class="wp-block-list-item"><strong>Financial fraud:</strong> The end goal for the downstream actors is to use stolen payment data to make fraudulent purchases of high-end goods or fraudulent transactions on legitimate financial platforms.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">The <a>threat</a> actors using the phishing kits conduct phishing campaigns at scale whether it is a missing toll payment or a traffic citation. The following screenshots show email or SMS phishing lures used in Storm-2990 phishing kits.   </p>
+
+
+<figure class="wp-block-image size-large"><img decoding="async" src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages-1024x911.webp" alt="Screenshots of phishing landing pages" class="wp-image-150107 webp-format" srcset="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages-1024x911.webp 1024w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages-300x267.webp 300w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages-768x683.webp 768w, https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages.webp 1215w" data-orig-src="https://www.microsoft.com/en-us/security/blog/wp-content/uploads/2026/10/Fig12-Sample-phishing-pages-1024x911.webp"><figcaption class="wp-element-caption"><em>Figure 12: Sample of landing pages impersonating mainstream tech, streaming and brokerage services around the world. The templates are tailored to specific countries using trusted local or international brand names and local language.</em></figcaption></figure>
+
+
+
+<h2 class="wp-block-heading" id="mitigation-and-protection-guidance">Mitigation and protection guidance</h2>
+
+
+
+<p class="wp-block-paragraph">This interconnected network of Chinese-language phishing kit operators and developers operates as an enabling ecosystem, providing infrastructure and services that facilitate criminal activity rather than functioning as a standalone malware tool. Microsoft assesses that the ecosystem is not limited to the abuse of Microsoft services and extends to other providers.</p>
+
+
+
+<p class="wp-block-paragraph">While Microsoft notes that the identified organizations impacted by attacks stemming from Storm-3119 or Storm-2990 operations include financial, healthcare, and IT companies, the activity conducted by threat actors using these tools are common attacks that could affect any organization.</p>
+
+
+
+<p class="wp-block-paragraph">Most of the activity that stems from this phishing kit ecosystem consists of social engineering, phishing operations, and account and storage takeovers. Microsoft recommends the following to mitigate the impact of Storm-3119 and Storm-2990-related threats.</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">In nearly all the cases observed by Microsoft, the phishing lures used by the Storm-2990 operators followed prescriptive scam red flags, including urgency, time-sensitive tasks such as clicking a provided link with official branding. Users should verify with the purported sender of the message or email, even when the task involves signing in to a known, secure account not provided by the link or calling the purported organization or company directly.</li>
+
+
+
+<li class="wp-block-list-item">Educate users about <a href="https://www.microsoft.com/security/business/security-101/what-is-email-security">protecting personal and business information</a> in social media, filtering unsolicited communication, identifying lures in spear-phishing emails and watering holes, and reporting reconnaissance attempts and other suspicious activities.</li>
+
+
+
+<li class="wp-block-list-item">Educate users about common phishing techniques. Sign-in prompts should clearly identify the application being authenticated to. As of 2021, Microsoft Azure interactions prompt the user to confirm (Cancel or Continue) that they are signing in to the app they expect, which is an option frequently missing from phishing sign-ins.</li>
+
+
+
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/defender-office-365/recommended-settings-for-eop-and-office365">Review our recommended settings</a> for Exchange Online Protection and Microsoft Defender for Office 365 to ensure your organization has established essential defenses and knows how to monitor and respond to threat activity.</li>
+
+
+
+<li class="wp-block-list-item">Configure the Microsoft Defender for Office 365 <a href="https://learn.microsoft.com/defender-office-365/safe-links-about#safe-links-settings-for-email-messages">Safe Links policy</a> to apply to internal recipients.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Hardening credentials and cloud identities is also necessary to defend against phishing attacks, which seek to gain valid credentials and access tokens.  As an initial step, use passwordless solutions like passkeys and implement multifactor authentication (MFA) throughout your environment:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">Invoke the principles of least privilege and Zero Trust to significantly slow down threat actors who might have been able to gain initial access and buy time for defenders to respond. Since Storm-3119 operators have been observed obtaining Global Administrator access, implementing these principles can help lock down Global Administrator roles and who has access to specific resources.</li>
+
+
+
+<li class="wp-block-list-item">Use the <a href="https://learn.microsoft.com/entra/identity/authentication/how-to-enable-authenticator-passkey">Microsoft Authenticator app for passkeys and MFA</a>, and complement MFA with Conditional Access policies, where sign-in requests are evaluated using additional identity-driven signals.</li>
+
+
+
+<li class="wp-block-list-item">Conditional Access policies can also be scoped to <a href="https://learn.microsoft.com/entra/identity/conditional-access/policy-admin-phish-resistant-mfa#create-a-conditional-access-policy">strengthen privileged accounts with phishing-resistant MFA</a>.</li>
+
+
+
+<li class="wp-block-list-item">Your passkey and MFA policy can be further secured by <a href="https://learn.microsoft.com/entra/id-protection/howto-identity-protection-configure-mfa-policy">only allowing MFA and passkey registrations</a> from trusted locations and devices.</li>
+
+
+
+<li class="wp-block-list-item">Enable network protection to prevent applications or users from accessing malicious domains and other malicious content on the internet.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading" id="microsoft-defender-detections">Microsoft Defender detections</h2>
+
+
+
+<p class="wp-block-paragraph"><a href="https://www.microsoft.com/security/business/microsoft-defender">Microsoft Defender</a> customers can refer to the list of applicable detections below. Microsoft Defender coordinates detection, prevention, investigation, and response across endpoints, identities, email, and apps to provide integrated protection against attacks like the threat discussed in this blog.</p>
+
+
+
+<p class="wp-block-paragraph">The coverage below applies to the downstream activity detected by Microsoft that was identified using Storm-2990 infrastructure.</p>
+
+
+
+<figure class="wp-block-table" data-table-col-widths="[131,184,365]"><table class="has-fixed-layout"><tbody><tr><td><strong>Tactic</strong> </td><td><strong>Observed activity</strong> </td><td><strong>Microsoft Defender coverage</strong> </td></tr><tr><td>Initial access</td><td>Storm-2990-affiliated threat actors sign in to compromised accounts. Phishing campaigns use emails with malicious links.        </td><td><strong>Microsoft Entra ID Protection</strong> <br>&#8211; Atypical travel <br>&#8211; Malicious IP address <br>&#8211; Unfamiliar sign-in properties   <br><br><strong>Microsoft Defender for Office 365</strong> <br>&#8211; A potentially malicious URL click was detected <br>&#8211; Email messages containing malicious URL removed after delivery <br>&#8211; Email reported by user as malware or phish   <br><br><strong>Microsoft Defender for Cloud</strong> <br>&#8211; Communication with suspicious domain identified by threat intel</td></tr><tr><td>Credential access</td><td>Storm-2990 facilitates high-volume phishing and credential stealing operations.</td><td><strong>Microsoft Entra ID Protection</strong> <br>&#8211; Password Spray   <br><br><strong>Microsoft Defender for Endpoint</strong> <br>&#8211; Potential phishing web site <br>&#8211; Suspicious activity linked to an emerging threat actor detected <br>&#8211; Suspicious connection blocked by network protection   <br><br><strong>Microsoft Defender for Identity</strong> <br>&#8211; User identity risk elevated based on defender risk assessment <br>&#8211; User exhibiting spike in distinct application resource access combinations <br>&#8211; User sign-in from shared client infrastructure exhibiting anomalous activity   <br><br><strong>Microsoft Defender XDR</strong> <br>&#8211; Account compromise through anomalous password spray or credential compromise <br>&#8211; Authentication from password-spraying infrastructure <br>&#8211; Potential user account compromise identified through attack analysis</td></tr></tbody></table></figure>
+
+
+
+<h3 class="wp-block-heading" id="microsoft-security-copilot">Microsoft Security Copilot</h3>
+
+
+
+<p class="wp-block-paragraph"><a href="https://www.microsoft.com/security/business/ai-machine-learning/microsoft-security-copilot">Microsoft Security Copilot</a> is <a href="https://learn.microsoft.com/defender-xdr/security-copilot-in-microsoft-365-defender">embedded in Microsoft Defender</a> and provides security teams with AI-powered capabilities to summarize incidents, analyze files and scripts, summarize identities, use guided responses, and generate device summaries, hunting queries, and incident reports.</p>
+
+
+
+<p class="wp-block-paragraph">Customers can also <a href="https://learn.microsoft.com/defender-xdr/security-copilot-agents-defender">deploy AI agents</a>, including the following <a href="https://learn.microsoft.com/copilot/security/agents-overview">Microsoft Security Copilot agents</a>, to perform security tasks efficiently:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/defender-xdr/threat-intel-briefing-agent-defender">Threat Intelligence Briefing agent</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/defender-xdr/phishing-triage-agent">Phishing Triage agent</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/defender-xdr/advanced-hunting-security-copilot-threat-hunting-agent">Threat Hunting agent</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://learn.microsoft.com/defender-xdr/dynamic-threat-detection-agent">Dynamic Threat Detection agent</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Security Copilot is also available as a <a href="https://learn.microsoft.com/copilot/security/experiences-security-copilot">standalone experience</a> where customers can perform specific security-related tasks, such as incident investigation, user analysis, and vulnerability impact assessment. In addition, Security Copilot offers <a href="https://learn.microsoft.com/copilot/security/developer/custom-agent-overview">developer scenarios</a> that allow customers to build, test, publish, and integrate AI agents and plugins to meet unique security needs.</p>
+
+
+
+<h3 class="wp-block-heading" id="threat-intelligence-reports">Threat intelligence reports</h3>
+
+
+
+<p class="wp-block-paragraph">Microsoft Defender XDR customers can use the following <a href="https://learn.microsoft.com/defender-xdr/threat-analytics">threat analytics</a> reports in the Defender portal (requires license for at least one Defender XDR product) to get the most up-to-date information about the activity and techniques discussed in this blog. These reports provide intelligence, protection information, and recommended actions to prevent, mitigate, or respond to associated threats found in customer environments.</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://security.microsoft.com/threatanalytics3/3b00014f-e854-4877-869e-204a0823dc99/analystreport">Threat Overview Profile: Evolving phishing threats</a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Microsoft Security Copilot customers can also use the <a href="https://learn.microsoft.com/defender/threat-intelligence/security-copilot-and-defender-threat-intelligence?bc=%2Fsecurity-copilot%2Fbreadcrumb%2Ftoc.json&amp;toc=%2Fsecurity-copilot%2Ftoc.json#turn-on-the-security-copilot-integration-in-defender-ti">Microsoft Security Copilot integration</a> in Microsoft Defender Threat Intelligence, either in the Security Copilot standalone portal or in the <a href="https://learn.microsoft.com/defender/threat-intelligence/using-copilot-threat-intelligence-defender-xdr">embedded experience</a> in the Microsoft Defender portal to get more information about the activity discussed in this blog.</p>
+
+
+
+<h3 class="wp-block-heading" id="references">References</h3>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://www.proofpoint.com/us/blog/threat-insight/cogui-phish-kit-targets-japan-millions-messages">CoGUI Phish Kit Targets Japan with Millions of Messages | Proofpoint US</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://phisheye.com/blog/irontoll-iron-man-phaas-campaign">IronToll: Global Government-Impersonation PhaaS | PhishEye</a></li>
+</ul>
+
+
+
+<h3 class="wp-block-heading" id="learn-more">Learn more</h3>
+
+
+
+<p class="wp-block-paragraph">For the latest security research from the Microsoft Threat Intelligence community, check out the <a href="https://aka.ms/threatintelblog">Microsoft Threat Intelligence Blog</a>.</p>
+
+
+
+<p class="wp-block-paragraph">To get notified about new publications and to join discussions on social media, follow us on <a href="https://www.linkedin.com/showcase/microsoft-threat-intelligence">LinkedIn</a>, <a href="https://x.com/MsftSecIntel">X (formerly Twitter)</a>, and <a href="https://bsky.app/profile/threatintel.microsoft.com">Bluesky</a>.</p>
+
+
+
+<p class="wp-block-paragraph">To hear stories and insights from the Microsoft Threat Intelligence community about the ever-evolving threat landscape, listen to the <a href="https://thecyberwire.com/podcasts/microsoft-threat-intelligence">Microsoft Threat Intelligence podcast</a>.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/14/the-hidden-network-inside-the-phishing-infrastructure-ecosystem-powering-global-cybercrime/">The hidden network: Inside the phishing infrastructure ecosystem powering global cybercrime</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+		<item>
+		<title>Post-quantum authentication: Why organizations should start testing certificate ecosystems now</title>
+		<link>https://www.microsoft.com/en-us/security/blog/2026/10/08/post-quantum-authentication-why-organizations-should-start-testing-certificate-ecosystems-now/</link>
+		
+		<dc:creator><![CDATA[Microsoft Security Research, Lora Randolph, Tahmina Ahmad and Karina Sirota Goodley]]></dc:creator>
+		<pubDate>Thu, 08 Oct 2026 20:44:28 +0000</pubDate>
+				<category><![CDATA[Quantum]]></category>
+		<guid isPermaLink="false">https://www.microsoft.com/en-us/security/blog/?p=150070</guid>
+
+					<description><![CDATA[<p>Prepare for post-quantum authentication by testing certificate ecosystems now. Learn how Microsoft’s PQC TLS Pilot Program helps advance future readiness.</p>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/08/post-quantum-authentication-why-organizations-should-start-testing-certificate-ecosystems-now/">Post-quantum authentication: Why organizations should start testing certificate ecosystems now</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<aside class="table-of-contents-block accordion wp-block-bloginabox-theme-table-of-contents" id="accordion-e226cf21-5531-4b31-a0ba-ab64a18360c3" data-bi-aN="table-of-contents">
+	<button class="btn btn-collapse" type="button" aria-expanded="true" aria-controls="accordion-collapse-e226cf21-5531-4b31-a0ba-ab64a18360c3">
+		<span class="table-of-contents-block__label">In this article</span>
+		<span class="table-of-contents-block__current" aria-hidden="true"></span>
+
+		<svg class="table-of-contents-block__arrow" aria-label="Toggle arrow" width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<path d="M15.7761 11L18 8.82043L9 0L0 8.82043L2.22394 11L9 4.35913L15.7761 11Z" fill="currentColor" />
+		</svg>
+	</button>
+	<div id="accordion-collapse-e226cf21-5531-4b31-a0ba-ab64a18360c3" class="table-of-contents-block__collapse-wrapper collapse show" data-parent="#accordion-e226cf21-5531-4b31-a0ba-ab64a18360c3">
+		<div class="table-of-contents-block__content">
+			<ol class="table-of-contents-block__list"><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#why-post-quantum-authentication-presents-a-different-challenge">Why post-quantum authentication presents a different challenge</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#why-organizations-should-begin-preparing-now">Why organizations should begin preparing now</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#microsoft-s-perspective-on-readiness">Microsoft&#039;s perspective on readiness</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#testing-the-future-certificate-ecosystem">Testing the future certificate ecosystem</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#expanding-end-to-end-testing">Expanding end-to-end testing</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#what-organizations-can-do-today">What organizations can do today</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#looking-ahead">Looking ahead</a></li><li class="table-of-contents-block__list-item"><a class="table-of-contents-block__list-item-link" href="#learn-more">Learn more</a></li></ol>		</div>
+	</div>
+	<span class="table-of-contents-block__progress-bar"></span>
+</aside>
+
+
+
+<p class="wp-block-paragraph">Post-quantum cryptography (PQC) planning often focuses on protecting encrypted data, but authentication systems must also evolve. Certificates, trust anchors, PKI services, applications, devices, and hardware security modules may all be affected by new algorithms and larger certificate chains.</p>
+
+
+
+<p class="wp-block-paragraph">Microsoft’s Post-Quantum Cryptography (PQC) Transport Layer Security (TLS) Pilot Program helps eligible certificate authorities evaluate interoperability and operational readiness in controlled environments. Organizations should begin now by inventorying certificate dependencies, assessing vendor roadmaps, identifying long-lived infrastructure, and creating non-production test environments. Early testing can surface compatibility and process gaps before post-quantum authentication is required at scale.</p>
+
+
+
+<p class="wp-block-paragraph">By the end of this article, security leaders, public key infrastructure (PKI) administrators, and architects will understand the key certificate dependencies, migration risks, and practical first steps for post-quantum authentication readiness.</p>
+
+
+
+<h2 class="wp-block-heading" id="why-post-quantum-authentication-presents-a-different-challenge">Why post-quantum authentication presents a different challenge</h2>
+
+
+
+<p class="wp-block-paragraph">Much of the current PQC readiness discussion focuses on confidentiality and the ‘harvest now, decrypt later’ risk, in which adversaries collect encrypted data today with the expectation that future quantum computers could decrypt it.</p>
+
+
+
+<p class="wp-block-paragraph">Authentication introduces a different set of challenges. </p>
+
+
+
+<p class="wp-block-paragraph">While confidentiality protections primarily focus on safeguarding encrypted communications, authentication depends on a broad ecosystem of technologies and trust relationships. Certificates and private keys must be issued, distributed, stored, validated, renewed, and managed across diverse environments and vendors. Changes to cryptographic algorithms can therefore have implications that extend beyond cryptographic correctness into operational processes, interoperability, and infrastructure readiness. </p>
+
+
+
+<p class="wp-block-paragraph">Organizations frequently understand where TLS protects their communications. Fewer organizations have a complete inventory of every system that issues, validates, stores, distributes, or depends on certificates. </p>
+
+
+
+<p class="wp-block-paragraph">As the industry moves toward post-quantum authentication, security teams will need greater visibility into those dependencies. </p>
+
+
+
+<h2 class="wp-block-heading" id="why-organizations-should-begin-preparing-now">Why organizations should begin preparing now</h2>
+
+
+
+<p class="wp-block-paragraph">The transition to post-quantum authentication is unlikely to be a single technology upgrade.</p>
+
+
+
+<p class="wp-block-paragraph">Enterprise environments often contain decades of accumulated infrastructure, including internally managed PKI deployments, embedded devices, operational technology, security appliances, custom applications, third-party services, and hardware-backed trust systems. Some of these technologies may have long deployment lifecycles, fixed cryptographic assumptions, or operational constraints that are not immediately visible until testing begins.</p>
+
+
+
+<p class="wp-block-paragraph">The challenge facing organizations is not that post-quantum standards are unavailable. Rather, it is understanding how proposed post-quantum certificate hierarchies interact with the systems and processes already deployed across their environments.</p>
+
+
+
+<p class="wp-block-paragraph">Testing helps answer questions such as:</p>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item">Can existing applications correctly process and validate post-quantum certificates? </li>
+
+
+
+<li class="wp-block-list-item">How do larger post-quantum certificates and certificate chains affect handshake size, performance, storage, transmission, and inspection limits?</li>
+
+
+
+<li class="wp-block-list-item">Do enterprise PKI workflows require changes to accommodate new algorithms? </li>
+
+
+
+<li class="wp-block-list-item">Are network monitoring, inspection, or certificate-management systems prepared for post-quantum authentication? </li>
+
+
+
+<li class="wp-block-list-item">Are hardware security modules and other cryptographic infrastructure components ready to support future certificate requirements? </li>
+
+
+
+<li class="wp-block-list-item">What hidden dependencies exist within supply chains, vendors, and third-party services?</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">In many cases, organizations may not yet know which of these questions are most relevant to their environments. Identifying those unknowns is one of the primary reasons ecosystem testing is important today.</p>
+
+
+
+<h2 class="wp-block-heading" id="microsoft-s-perspective-on-readiness">Microsoft&#8217;s perspective on readiness</h2>
+
+
+
+<p class="wp-block-paragraph">Post-quantum authentication readiness requires validating how certificate chains, platforms, and operational processes behave together.</p>
+
+
+
+<p class="wp-block-paragraph">The goal is not simply to determine whether a certificate can be issued or validated. The goal is to identify interoperability, compatibility, performance, and operational challenges before post-quantum authentication must be deployed at scale.</p>
+
+
+
+<p class="wp-block-paragraph">Organizations should view post-quantum readiness as a multi-year planning effort rather than a future migration project. Security leaders who begin inventorying dependencies, assessing vendor readiness, and testing interoperability now will be better positioned to make informed decisions as standards, platform support, and industry requirements continue to evolve.</p>
+
+
+
+<h2 class="wp-block-heading" id="testing-the-future-certificate-ecosystem">Testing the future certificate ecosystem</h2>
+
+
+
+<p class="wp-block-paragraph">To help the ecosystem gain practical experience with post-quantum authentication, Microsoft launched the PQC TLS Pilot Program on August 27, 2026.</p>
+
+
+
+<p class="wp-block-paragraph">The pilot enables approved certificate authorities in good standing with the Microsoft Trusted Root Program to evaluate PQC TLS roots and certificate issuance using quantum-resilient Module-Lattice-Based Digital Signal Algorithm, <a href="https://csrc.nist.gov/pubs/fips/204/final" target="_blank" rel="noreferrer noopener">ML-DSA-87</a>.</p>
+
+
+
+<p class="wp-block-paragraph">The program is intended to create a controlled environment where participants can evaluate interoperability, compatibility, performance, and operational considerations associated with post-quantum certificate hierarchies.</p>
+
+
+
+<p class="wp-block-paragraph">Certificates issued through the pilot are not publicly trusted and are intended solely for interoperability and ecosystem-readiness testing in closed environments, custom applications, and enterprise testbeds. They must not be used for production trust scenarios or public-facing websites. ML-DSA support remains limited and evolving during the pilot and should not be relied upon for production use.</p>
+
+
+
+<p class="wp-block-paragraph"><a href="https://github.com/TrustedRootProgram/Program-Requirements/blob/main/Announcements.md" target="_blank" rel="noreferrer noopener">According to the Microsoft Trusted Root Program Annoucement, </a>the August 2026 release added seven pilot roots operated by ComSign, DigiCert, HARICA, IdenTrust Services, Sectigo, Shanghai Electronic Certification Authority, and SSL.com.</p>
+
+
+
+<p class="wp-block-paragraph">The pilot will continue with rolling admissions through the end of 2026, providing additional opportunities for eligible certificate authorities participating in the Microsoft Trusted Root Program to join.  Organizations that participate in the Microsoft Trusted Root Program and are interested in evaluating post-quantum authentication readiness should review the PQC TLS Pilot Program requirements and application process through the <a href="https://aka.ms/rootcert" target="_blank" rel="noreferrer noopener">https://aka.ms/rootcert</a>. The pilot provides eligible certificate authorities with an opportunity to test interoperability, operational processes, and ecosystem readiness ahead of broader post-quantum authentication adoption.</p>
+
+
+
+<p class="wp-block-paragraph">The objective is not to validate a predetermined outcome. It is to help the certificate ecosystem discover where modernization, testing, and operational improvements may be required before post-quantum authentication can be adopted broadly.</p>
+
+
+
+<h2 class="wp-block-heading" id="expanding-end-to-end-testing">Expanding end-to-end testing</h2>
+
+
+
+<p class="wp-block-paragraph">On supported and appropriately configured Windows 11 systems, ML-DSA certificates can be evaluated in the pilot’s controlled, non-production testing scenarios. Support begins with the July 28, 2026 updates: <a href="https://support.microsoft.com/en-us/servicing/os/windows-11/2026/07/july-28-2026-kb5101681-preview" target="_blank" rel="noreferrer noopener">KB5101681 (OS Build 28000.2608) for 26H1</a> and <a href="https://support.microsoft.com/en-us/servicing/os/windows-11/2026/07/july-28-2026-kb5101684-preview" target="_blank" rel="noreferrer noopener">KB5101684 (OS Builds 26200.8973 and 26100.8973) for 25H2</a>.</p>
+
+
+
+<p class="wp-block-paragraph">ML-DSA certificates can also be used with Secure Channel (Schannel) in supported scenarios. Confirm the applicable Windows and Schannel platform requirements before testing.</p>
+
+
+
+<p class="wp-block-paragraph">Together, Microsoft platform support and the PQC TLS Pilot Program provide a controlled way to identify application incompatibilities, certificate-size constraints, performance effects, and operational workflow gaps before they affect production environments.</p>
+
+
+
+<h2 class="wp-block-heading" id="what-organizations-can-do-today">What organizations can do today</h2>
+
+
+
+<p class="wp-block-paragraph">Organizations do not need to wait for broad industry adoption to begin preparing for post-quantum authentication.</p>
+
+
+
+<p class="wp-block-paragraph">Security leaders, PKI administrators, and architects can begin by:</p>
+
+
+
+<p class="wp-block-paragraph">1. Inventory certificate-dependent systems<strong>. </strong>Identify applications, services, devices, appliances, and infrastructure that depend on certificates for authentication, trust establishment, or lifecycle management.</p>
+
+
+
+<p class="wp-block-paragraph">2. Map trust relationships<strong>.</strong><strong></strong></p>
+
+
+
+<p class="wp-block-paragraph">Document both public and private PKI environments, including internal certificate hierarchies, trust anchors, device authentication systems, and externally managed certificates.</p>
+
+
+
+<p class="wp-block-paragraph">3. Assess vendor readiness<strong>.</strong><strong></strong></p>
+
+
+
+<p class="wp-block-paragraph">Engage certificate providers, PKI vendors, hardware security module (HSM) providers, software vendors, and platform providers to understand their post-quantum roadmaps and testing capabilities.</p>
+
+
+
+<p class="wp-block-paragraph">4. Identify long-lived infrastructure<strong>.</strong><strong></strong></p>
+
+
+
+<p class="wp-block-paragraph">Pay particular attention to systems with lengthy upgrade cycles, including embedded devices, appliances, operational technology environments, and security infrastructure.</p>
+
+
+
+<p class="wp-block-paragraph">5. Develop a <strong>safe </strong>testing strategy<strong>.</strong><strong></strong></p>
+
+
+
+<p class="wp-block-paragraph">Establish non-production environments where post-quantum certificate hierarchies can be evaluated for interoperability, performance, and operational impacts.</p>
+
+
+
+<p class="wp-block-paragraph">6. Build a multi-year transition roadmap.<strong></strong></p>
+
+
+
+<p class="wp-block-paragraph">Treat post-quantum authentication readiness as a program rather than a project. Assign owners, sequence dependencies, and use test results to prioritize modernization work before future requirements emerge.</p>
+
+
+
+<p class="wp-block-paragraph">Organizations interested in testing should consult their certificate provider about whether it participates in the pilot and whether it offers testing opportunities appropriate for their environment.</p>
+
+
+
+<p class="wp-block-paragraph">If your certificate provider participates in the Microsoft Trusted Root Program but is not currently part of the pilot, consider encouraging them to participate through the program&#8217;s admissions process.</p>
+
+
+
+<h2 class="wp-block-heading" id="looking-ahead">Looking ahead</h2>
+
+
+
+<p class="wp-block-paragraph">Post-quantum authentication will require coordinated changes across certificate authorities, platforms, software, hardware, and enterprise environments. Organizations that begin testing trust infrastructure and certificate dependencies now will be better positioned to reduce future migration risk and strengthen readiness for a quantum-resistant future.</p>
+
+
+
+<h2 class="wp-block-heading" id="learn-more">Learn more</h2>
+
+
+
+<ul class="wp-block-list">
+<li class="wp-block-list-item"><a href="https://github.com/TrustedRootProgram/Program-Requirements/blob/main/PQC%20Pilot%20Program.md" target="_blank" rel="noreferrer noopener">PQC TLS Pilot Program Requirements</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://github.com/TrustedRootProgram/Program-Requirements/blob/main/Announcements.md" target="_blank" rel="noreferrer noopener">Microsoft Trusted Root Program Announcements</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/new-windows-features-to-secure-today%E2%80%99s-data-in-a-post-quantum-world/4523370">New Windows Features to Secure Today</a><a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/new-windows-features-to-secure-today%E2%80%99s-data-in-a-post-quantum-world/4523370" target="_blank" rel="noreferrer noopener">’</a><a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/new-windows-features-to-secure-today%E2%80%99s-data-in-a-post-quantum-world/4523370">s Data in a Post-Quantum World | Microsoft Community Hub</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://techcommunity.microsoft.com/blog/post-quantum-crypto-tech-blog/asp-net-kestrel-and-schannel-ga-with-tls-1-3-post-quantum-cryptography/4536649" target="_blank" rel="noreferrer noopener">ASP.NET, Kestrel and Schannel GA with TLS 1.3 Post-Quantum Cryptography</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://www.microsoft.com/en-us/security/blog/2025/08/20/quantum-safe-security-progress-towards-next-generation-cryptography/" target="_blank" rel="noreferrer noopener">Quantum-safe security: Progress towards next-generation cryptography</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/microsofts-quantum-resistant-cryptography-is-here/4238780" target="_blank" rel="noreferrer noopener">Microsoft&#8217;s quantum-resistant cryptography is here | Microsoft Community Hub</a></li>
+
+
+
+<li class="wp-block-list-item"><a href="https://techcommunity.microsoft.com/blog/microsoft-security-blog/post-quantum-cryptography-apis-now-generally-available-on-microsoft-platforms/4469093" target="_blank" rel="noreferrer noopener">Post-Quantum Cryptography APIs Now Generally Available on Microsoft Platforms</a></li>
+
+
+
+<li class="wp-block-list-item">For the latest security research from the Microsoft Threat Intelligence community, check out the <a href="https://aka.ms/threatintelblog" target="_blank" rel="noreferrer noopener">Microsoft Threat Intelligence Blog</a>.</li>
+
+
+
+<li class="wp-block-list-item">To get notified about new publications and to join discussions on social media, follow us on <a href="https://www.linkedin.com/showcase/microsoft-threat-intelligence" target="_blank" rel="noreferrer noopener">LinkedIn</a>, <a href="https://x.com/MsftSecIntel" target="_blank" rel="noreferrer noopener">X (formerly Twitter)</a>, and <a href="https://bsky.app/profile/threatintel.microsoft.com" target="_blank" rel="noreferrer noopener">Bluesky</a>.</li>
+
+
+
+<li class="wp-block-list-item">To hear stories and insights from the Microsoft Threat Intelligence community about the ever-evolving threat landscape, listen to the <a href="https://thecyberwire.com/podcasts/microsoft-threat-intelligence" target="_blank" rel="noreferrer noopener">Microsoft Threat Intelligence podcast</a>.</li>
+</ul>
+<p>The post <a href="https://www.microsoft.com/en-us/security/blog/2026/10/08/post-quantum-authentication-why-organizations-should-start-testing-certificate-ecosystems-now/">Post-quantum authentication: Why organizations should start testing certificate ecosystems now</a> appeared first on <a href="https://www.microsoft.com/en-us/security/blog">Microsoft Security Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+			</item>
+</channel></rss>
