@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import type { NextFunction, Request, Response } from "express";
 import type { Config } from "./config.ts";
@@ -10,7 +10,7 @@ import type { Config } from "./config.ts";
  *
  * A session is a stateless signed token in an HttpOnly cookie: `<expires>.<hmac>`.
  */
-export const sessionCookie = "bw_session";
+const sessionCookie = "bw_session";
 const sessionDays = 30;
 
 export function signSession(secret: string, expiresAtMs: number): string {
@@ -65,10 +65,6 @@ export function throttleKey(ip: string | undefined): string {
     .slice(0, 4)
     .map((g) => g.padStart(4, "0"))
     .join(":")}::/64`;
-}
-
-export function newSessionSecret(): string {
-  return randomBytes(32).toString("hex");
 }
 
 export interface AuthState {

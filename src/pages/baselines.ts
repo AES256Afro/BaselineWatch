@@ -8,6 +8,10 @@ import { controlLabel, controlPageBase } from "../stigs.ts";
 import { decisionChip } from "./decisions.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Baselines pages: the index of platforms and the builder, where the strictest published profile
+ * for a platform is drawn one section at a time with a checkbox per item and exported in four formats.
+ */
 interface Who {
   owner: boolean;
   open: boolean;

@@ -8,6 +8,11 @@ import { ingestSource, listSources, type IngestDeps, type IngestResult } from ".
 import { notify } from "./notify.ts";
 import { alertAfterHours, markAlerted, sourcesToAlert } from "./pipeline.ts";
 
+/**
+ * The in-process scheduler: a tick a minute, the sources that are due fetched a few hosts at a time
+ * with a pause between requests to one host, then the digest, the network scan, the failure alerts
+ * and the weekly housekeeping pass, each only when it is due.
+ */
 const intervalMs: Record<SourceRow["schedule"], number> = {
   hourly: 60 * 60 * 1000,
   daily: 24 * 60 * 60 * 1000,

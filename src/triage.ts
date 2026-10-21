@@ -1,7 +1,12 @@
 import type { DatabaseSync } from "node:sqlite";
 import { csvLine } from "./csv.ts";
 import { withheldLabel } from "./register.ts";
+import { parseJson } from "./json.ts";
 
+/**
+ * Triage: the owner's state on any item, CVE or control-in-a-release — new, reviewing, affects us,
+ * done, not ours — with a note and a due date, the board's counts and inbox, and the CSV of it all.
+ */
 export type TriageKind = "item" | "vuln" | "control";
 export type TriageState = "new" | "reviewing" | "affects" | "done" | "dismissed";
 export const triageStates: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
@@ -71,15 +76,6 @@ export interface TriageCard extends TriageRow {
   signals: Record<string, unknown>;
   /** A requirement of a licence-restricted source, drawn for someone other than the owner: its key is its name, so the card carries neither. */
   withheld?: boolean;
-}
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 /**

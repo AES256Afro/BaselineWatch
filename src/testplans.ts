@@ -38,7 +38,7 @@ export const areas: { id: Area; label: string }[] = [
   { id: "other", label: "Everything else" },
 ];
 
-export function areaLabel(id: Area): string {
+function areaLabel(id: Area): string {
   return areas.find((a) => a.id === id)?.label ?? id;
 }
 
@@ -447,7 +447,7 @@ function facts(plan: TestPlan, meta: { generatedAt: string; version: string }): 
 }
 
 /** The plan as a document: the same blocks the LaTeX, Word and PDF renderers draw. */
-export function planBlocks(plan: TestPlan, meta: { baseUrl: string; generatedAt: string; version: string }): Block[] {
+function planBlocks(plan: TestPlan, meta: { baseUrl: string; generatedAt: string; version: string }): Block[] {
   const f = facts(plan, meta);
   const blocks: Block[] = [{ type: "title", text: f.title }, { type: "subtitle", text: f.summary }];
   if (plan.release) {

@@ -13,9 +13,8 @@ import { isoDate, plainText, type Adapter, type DocumentTarget, type ListingCont
  * gives the branch's current commit so an unchanged branch costs one small request a day.
  */
 
-export const mscpRepository = "https://github.com/usnistgov/macos_security";
 /** Branches followed: the current macOS and the one before it, and the current iOS/iPadOS. */
-export const mscpBranches = ["tahoe", "sequoia", "ios_26"] as const;
+const mscpBranches = ["tahoe", "sequoia", "ios_26"] as const;
 
 export function branchZipUrl(ref: string): string {
   return `https://codeload.github.com/usnistgov/macos_security/zip/${/^[0-9a-f]{40}$/.test(ref) ? ref : `refs/heads/${ref}`}`;
@@ -65,7 +64,7 @@ export function parseVersion(text: string): MscpVersion {
 }
 
 /** A rule file as a requirement; `baselines` are the baseline files that list it. */
-export function normalizeRule(section: string, text: string, baselines: string[]): NormalizedRequirement | null {
+function normalizeRule(section: string, text: string, baselines: string[]): NormalizedRequirement | null {
   const r = obj(parseYaml(text));
   const id = str(r.id);
   if (!id) return null;

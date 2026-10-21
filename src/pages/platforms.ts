@@ -8,6 +8,10 @@ import { loadTemplates, type Template } from "../testplans.ts";
 import { repositoryUrl } from "../version.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Fleet page: every platform's releases with the vendor's dates and status, the hardware each
+ * runs on, and what the Register holds for each, leading to the test plan and the builder.
+ */
 interface Who {
   owner: boolean;
   open: boolean;

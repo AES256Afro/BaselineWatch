@@ -93,7 +93,7 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * that mirrors it) are one advisory here: the GitHub-reviewed record speaks for the group and
  * the others lend their ids and packages, so a pull never flips a row between two wordings.
  */
-export function storeOsvRecords(
+function storeOsvRecords(
   ctx: Pick<PullContext, "db">,
   records: OsvVuln[],
   options: { observedAt: string; watch: WatchEntry[]; announce: boolean },

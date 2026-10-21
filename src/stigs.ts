@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { NormalizedRequirement } from "./oscal.ts";
 import { latestDocument, loadRequirements, type DocumentRow } from "./register.ts";
+import { parseJson } from "./json.ts";
 
 /**
  * The STIG pages: the operating systems and products the Register follows, their rules by
@@ -243,15 +244,6 @@ export interface KevEntry {
   ransomware: boolean;
   vendor: string | null;
   product: string | null;
-}
-
-function parseJson<T>(text: string | null, fallback: T): T {
-  if (!text) return fallback;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 /** CISA's KEV entries whose vendor and product belong to a platform, newest first. */

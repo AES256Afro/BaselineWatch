@@ -6,6 +6,11 @@ import { getSource } from "../ingest.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines, redline } from "../redline.ts";
 import {
+
+/**
+ * The Register's pages: a standard and its versions, a release's changes, every requirement of a
+ * version to browse and search, and one control before and after with the publisher's reason.
+ */
   baselinesFor,
   changeSummaryFor,
   changeSummaryText,

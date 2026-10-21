@@ -31,7 +31,7 @@ export function publicProfile(profile: Profile): Profile {
 export type ExportFormat = "html" | "md" | "csv" | "json";
 export type Flavour = "plain" | "jamf" | "intune" | "linux";
 
-export const exportFormats: ExportFormat[] = ["html", "md", "csv", "json"];
+const exportFormats: ExportFormat[] = ["html", "md", "csv", "json"];
 export const flavours: { id: Flavour; label: string; blurb: string }[] = [
   { id: "plain", label: "Plain", blurb: "Every field: check, fix, controls, registry, payloads, Intune and DISA's checklist." },
   { id: "jamf", label: "Jamf", blurb: "The mSCP rule id and the configuration-profile payload domain and keys for each rule." },

@@ -8,6 +8,10 @@ import { areas, planAreas, planFormats, planPlatformName, type Area, type PlanIt
 import { reportStyles } from "../report.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The test-plan page: what to test on a release so the baseline still holds, by area, with the
+ * release and hardware selects, the areas chosen, and the exports in seven formats.
+ */
 interface Who {
   owner: boolean;
   open: boolean;
@@ -30,7 +34,7 @@ function item(i: PlanItem): Html {
 }
 
 /** The plan's release, hardware and areas as a GET URL, so a plan can be bookmarked or sent without the form. */
-export function planLink(plan: TestPlan): string {
+function planLink(plan: TestPlan): string {
   const q = new URLSearchParams();
   if (plan.release) q.set("version", plan.release.id);
   if (plan.hardware) q.set("hardware", plan.hardware.id);

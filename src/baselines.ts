@@ -141,7 +141,7 @@ const stigPlatform: Record<BuilderPlatform, string> = { windows: "windows", maco
 const productFilter: Partial<Record<BuilderPlatform, RegExp>> = { ios: /\bios\b|ipados/i, ipados: /\bios\b|ipados/i, android: /android/i };
 
 /** The followed STIGs a builder platform draws from. */
-export function platformStigs(db: DatabaseSync, platform: BuilderPlatform): StigSummary[] {
+function platformStigs(db: DatabaseSync, platform: BuilderPlatform): StigSummary[] {
   const filter = productFilter[platform];
   return followedStigs(db).filter((s) => s.platform === stigPlatform[platform] && (!filter || filter.test(s.product)));
 }
@@ -155,7 +155,7 @@ function choiceOf(doc: DocumentRow, label: string): DocChoice {
  * leads on macOS and Linux (macOS 26 before 15, RHEL 10 before 9); on Windows the client STIG
  * leads, since Windows 11 is what most people build first.
  */
-export function stigChoices(db: DatabaseSync, platform: BuilderPlatform): DocChoice[] {
+function stigChoices(db: DatabaseSync, platform: BuilderPlatform): DocChoice[] {
   const out: DocChoice[] = [];
   const stigs = platformStigs(db, platform);
   // On Android, Google's own STIG leads Samsung's Knox variant; within a vendor the newest release first.
@@ -175,13 +175,13 @@ const sctLabel = (key: string): string =>
     .join(" ");
 
 /** The latest version of each Windows baseline in the Security Compliance Toolkit. */
-export function sctChoices(db: DatabaseSync): DocChoice[] {
+function sctChoices(db: DatabaseSync): DocChoice[] {
   const keys = (db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = 'microsoft-sct' AND document_key LIKE 'baseline:windows%' ORDER BY document_key").all() as { document_key: string }[]).map((r) => r.document_key);
   return keys.map((k) => latestDocument(db, "microsoft-sct", k)).filter((d): d is DocumentRow => d !== null).map((d) => choiceOf(d, sctLabel(d.document_key)));
 }
 
 /** The latest version of each mSCP branch for the platform: the macOS branches, or the ios_* ones. */
-export function mscpChoices(db: DatabaseSync, platform: BuilderPlatform = "macos"): DocChoice[] {
+function mscpChoices(db: DatabaseSync, platform: BuilderPlatform = "macos"): DocChoice[] {
   const keys = (db.prepare("SELECT DISTINCT document_key FROM documents WHERE source_id = 'nist-mscp' ORDER BY document_key").all() as { document_key: string }[])
     .map((r) => r.document_key)
     .filter((k) => (platform === "macos" ? !/^mscp:(ios|visionos)_/.test(k) : platform === "ios" || platform === "ipados" ? /^mscp:ios_/.test(k) : false));
@@ -217,7 +217,7 @@ export function defaultMscp(stigKey: string, mscps: DocChoice[]): DocChoice | nu
 }
 
 /** Which of DISA's Intune policies and checklists speak for a STIG. */
-export const disaPolicyFamilies: Record<string, { intune: string | null; checklist: string | null }> = {
+const disaPolicyFamilies: Record<string, { intune: string | null; checklist: string | null }> = {
   "stig:microsoft-windows-11": { intune: "DoD Windows 11 STIG Settings Catalog", checklist: "DoD Windows 11 STIG" },
   "stig:microsoft-windows-10": { intune: "DoD Windows 10 STIG Settings Catalog", checklist: "DoD Windows 10 STIG" },
   "stig:microsoft-windows-server-2025": { intune: null, checklist: "DoD WinSvr 2025 MS STIG" },
@@ -525,7 +525,7 @@ export function buildProfile(db: DatabaseSync, options: ProfileOptions): Profile
 }
 
 /** "Current versus next": what the strict set gains or loses in a newer version of each component. */
-export function compareNext(
+function compareNext(
   db: DatabaseSync,
   chosen: { stig: DocChoice | null; sct: DocChoice | null; mscp: DocChoice | null },
   choices: { stigs: DocChoice[]; scts: DocChoice[]; mscps: DocChoice[] },

@@ -1,5 +1,5 @@
 import { html } from "../html.ts";
-import { lookLabels, lookSwitch, looks, schemeLabels, schemes, type LookState } from "../look.ts";
+import { lookLabels, lookSwitch, looks, schemeLabels, type LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -55,6 +55,3 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
 
   return page({ title: "Appearance", active: "appearance", content, meta: html`${lookLabels[look.look].label} · ${schemeLabels[look.scheme].label}`, ...options });
 }
-
-/** The schemes and looks this page documents, for the test that keeps the list honest. */
-export const appearanceChoices = { looks, schemes };
