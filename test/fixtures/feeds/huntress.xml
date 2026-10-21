@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+  <rss version="2.0"
+  	xmlns:atom="http://www.w3.org/2005/Atom"
+  	xmlns:media="http://search.yahoo.com/mrss/">
+  	<channel>
+  		<title>Huntress Blog</title>
+  		<link>https://www.huntress.com/blog</link>
+  		<description></description>
+      <language>en-us</language>
+      <pubDate>2026-10-21T15:50:03Z</pubDate>
+      <ttl>60</ttl>
+      <generator></generator>
+		  <atom:link href="https://www.huntress.com/blog/rss.xml" rel="self" type="application/rss+xml"/>
+      <item>
+        <title>Amazon-Themed ClickFix Campaign Serves Up Finger-Licking Malware</title>
+        <link>https://www.huntress.com/blog/amazon-clickfix-finger</link>
+        <guid>https://www.huntress.com/blog/amazon-clickfix-finger</guid>
+        <description>A Google search for Amazon business led to a ClickFix lure that dropped multiple malicious payloads onto the victim machine, including versions of Lumma Stealer and NetSupport Client RMM.</description>
+        <pubDate>2026-10-21T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F21a5f95ccf344856ac40492920da5d63" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F21a5f95ccf344856ac40492920da5d63"/>
+      </item>
+      <item>
+        <title>Attack Reduction in Huntress Managed ESPM: Disrupting ClickFix </title>
+        <link>https://www.huntress.com/blog/espm-attack-reduction-clickfix</link>
+        <guid>https://www.huntress.com/blog/espm-attack-reduction-clickfix</guid>
+        <description>ClickFix tricks users into pasting malicious commands into the Windows Run dialog. See how Attack Reduction in Huntress ESPM helps prevent that from happening.</description>
+        <pubDate>2026-10-21T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F041f810dd97f4dfa9fbc74e9491228a0" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F041f810dd97f4dfa9fbc74e9491228a0"/>
+      </item>
+      <item>
+        <title>Rapid Response: php2shell, Leaked Critical PHP Vulnerabilities (CVE-2026-109618 &amp; CVE-2026-109619)</title>
+        <link>https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities</link>
+        <guid>https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities</guid>
+        <description>Two critical PHP RCEs, CVE-2026-109618 and CVE-2026-109619, leaked before the patch. Learn what&#39;s known, who&#39;s exposed, and how to prepare now.</description>
+        <pubDate>2026-10-21T04:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F266936e4b61b4dd6821599adf741b9db" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F266936e4b61b4dd6821599adf741b9db"/>
+      </item>
+      <item>
+        <title>Introducing ITDR Lookback: Find Out Who Was in Your Microsoft 365 Tenant Before You Were</title>
+        <link>https://www.huntress.com/blog/managed-itdr-lookback-feature</link>
+        <guid>https://www.huntress.com/blog/managed-itdr-lookback-feature</guid>
+        <description>Attackers may be in your tenant before you connect it. Huntress Managed ITDR Lookback reviews 180 days of Microsoft 365 logins &amp; our SOC acts on active incidents.</description>
+        <pubDate>2026-10-20T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fd119abe5efa440be979c272784f6e047" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fd119abe5efa440be979c272784f6e047"/>
+      </item>
+      <item>
+        <title>Identity Posture Assessment for Microsoft 365 | Managed ISPM</title>
+        <link>https://www.huntress.com/blog/identity-posture-assessment-microsoft-365</link>
+        <guid>https://www.huntress.com/blog/identity-posture-assessment-microsoft-365</guid>
+        <description>Build identity resilience with Identity Posture Assessment, an on-demand Microsoft 365 report that scores your identity defenses and shows how fast you can fix the gaps. </description>
+        <pubDate>2026-10-20T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Ff2b76980e242421c812576181941b3bf" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Ff2b76980e242421c812576181941b3bf"/>
+      </item>
+      <item>
+        <title>ConnectWise (SkyKick) Vendor Credentials Abused in M365 Attacks</title>
+        <link>https://www.huntress.com/blog/vendor-credential-enables-unauthorized-access</link>
+        <guid>https://www.huntress.com/blog/vendor-credential-enables-unauthorized-access</guid>
+        <description>ConnectWise (SkyKick) vendor credentials are being abused to access Microsoft 365 tenants. Disable the apps now and check your logs here.</description>
+        <pubDate>2026-10-16T23:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F266936e4b61b4dd6821599adf741b9db" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F266936e4b61b4dd6821599adf741b9db"/>
+      </item>
+      <item>
+        <title>Inside the Hunt: Sarah Reddish</title>
+        <link>https://www.huntress.com/blog/employee-spotlight-sarah-reddish</link>
+        <guid>https://www.huntress.com/blog/employee-spotlight-sarah-reddish</guid>
+        <description>Go inside the hunt with Sarah Reddish, a SOC analyst on Huntress’ global SOC working in Triage &amp; Analysis. See how she makes a difference every day. </description>
+        <pubDate>2026-10-16T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F24b135c3dfc74206ad8af9ae91882e51" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F24b135c3dfc74206ad8af9ae91882e51"/>
+      </item>
+      <item>
+        <title>Huntress + AlgaPSA Integration: Built in Days by Nine Minds</title>
+        <link>https://www.huntress.com/blog/algapsa-huntress-api-integration</link>
+        <guid>https://www.huntress.com/blog/algapsa-huntress-api-integration</guid>
+        <description>Nine Minds used the Huntress API and public docs to turn Huntress incident reports into AlgaPSA tickets in days. See how they did it and what you can build.</description>
+        <pubDate>2026-10-15T13:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fc1233531315749d1bcab15b77496a3a5" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fc1233531315749d1bcab15b77496a3a5"/>
+      </item>
+      <item>
+        <title>What Does the Dark Web Look Like? Pulling Back the Curtain | Huntress</title>
+        <link>https://www.huntress.com/blog/pulling-back-the-curtain-a-journey-through-the-dark-web</link>
+        <guid>https://www.huntress.com/blog/pulling-back-the-curtain-a-journey-through-the-dark-web</guid>
+        <description>Learn what the dark web looks like with an exploration of the far reaches of the internet, how you can get there, and what you might find… from a safe distance.</description>
+        <pubDate>2026-10-14T19:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F05c39ad65786486b84c64fc1da9aa036" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2F05c39ad65786486b84c64fc1da9aa036"/>
+      </item>
+      <item>
+        <title>Passkeys Raise the Bar. Here’s Where Attackers Can Still Get In.</title>
+        <link>https://www.huntress.com/blog/passkeys-raise-the-bar-but-attackers-can-still-get-in</link>
+        <guid>https://www.huntress.com/blog/passkeys-raise-the-bar-but-attackers-can-still-get-in</guid>
+        <description>Passkeys significantly improve authentication, but attackers still target enrollment, recovery, endpoints, and alternative flows. Discover how to secure the full account lifecycle with a comprehensive identity strategy.</description>
+        <pubDate>2026-10-14T17:00:00Z</pubDate>
+        <media:content url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fd119abe5efa440be979c272784f6e047" medium="image"/>
+        <media:thumbnail url="https://cdn.builder.io/api/v1/image/assets%2F3eb6f92aedf74f109c7b4b0897ec39a8%2Fd119abe5efa440be979c272784f6e047"/>
+      </item>
+</channel></rss>
