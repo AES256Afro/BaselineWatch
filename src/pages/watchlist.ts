@@ -23,7 +23,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
 
   const content = html`
     <h1>Watchlist</h1>
-    <p class="lede">What you own. A CVE that touches a product here is marked as your stack, goes in the News however small its score, and can be filtered to on the Vulnerabilities page. Baselines and control families are used by the Register from M3.</p>
+    <p class="lede">What you own. A CVE that touches a product here is marked as your stack, goes in the News however small its score, and can be filtered to on the Vulnerabilities page. A baseline or control family here marks the Register's changes to it as yours.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="cols">
       <section class="main">
