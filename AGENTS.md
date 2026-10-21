@@ -93,6 +93,7 @@ src/eol.ts           endoflife.date's cycles, and which of them a fleet release 
 src/ct.ts            the certificates the transparency logs hold for the owner's domains
 src/scanhistory.ts   the scans over time: every network run with its tallies and changes, Today's tile for the area
 src/smtp.ts          the notifier's mail transport: one message, STARTTLS or TLS, AUTH PLAIN
+src/saved.ts         saved searches: a named list page with its filters, kept on the desk and on Today
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation
