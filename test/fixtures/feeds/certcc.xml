@@ -1,0 +1,816 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xml:lang="en-us" xmlns="http://www.w3.org/2005/Atom"><title>CERT Recently Published Vulnerability Notes</title><link href="https://kb.cert.org/vuls/" rel="alternate"/><link href="https://kb.cert.org/vuls/atomfeed/" rel="self"/><id>https://kb.cert.org/vuls/</id><updated>2026-10-21T20:48:51.532429+00:00</updated><author><name>CERT</name><email>cert@cert.org</email><uri>https://www.sei.cmu.edu</uri></author><subtitle>CERT publishes vulnerability advisories called "Vulnerability Notes." Vulnerability Notes include summaries, technical details, remediation information, and lists of affected vendors.  Many vulnerability notes are the result of private coordination and disclosure efforts.</subtitle><entry><title>VU#645818: Xerj Console API Authentication Bypass Leads to Unauthorized Credential Minting</title><link href="https://kb.cert.org/vuls/id/645818" rel="alternate"/><published>2026-10-20T18:09:44.460556+00:00</published><updated>2026-10-20T18:09:44.279918+00:00</updated><id>https://kb.cert.org/vuls/id/645818</id><summary type="html">
+
+&lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;An authentication bypass vulnerability in the Xerj Console API allows sessions to bypass passkey-backed requirements during token issuance. By exploiting this flaw, an attacker with an existing valid token can create independent, persistent successor credentials directly through the console API. This allows the attacker to maintain access and potentially escalate privileges within the Xerj ecosystem, even if the initial token is revoked.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Xerj is an open-source search and indexing engine tailored specifically for AI agents utilizing the Elasticsearch API, allowing AI models to query a structured index. &lt;/p&gt;
+&lt;p&gt;The vulnerability, &lt;strong&gt;CVE-2026-97406&lt;/strong&gt;, stems from a flaw in how session states are authenticated and handled within the Xerj system architecture. According to the documented security contract, the issuance of new API tokens must be strictly authorized by a passkey-backed session. However, the Xerj implementation converts both standard browser sessions and API bearer tokens into the same generic &lt;code&gt;AuthSession&lt;/code&gt; object. The token creation handler then accepts this generalized principal without verifying whether the session was authenticated via a passkey.&lt;br&gt;
+Because of this architectural oversight, an attacker who obtains or intercepts a valid Xerj API token can directly invoke the token creation endpoint, allowing them to create independent successor credentials with the same access levels of the original token. Furthermore, the Xerj platform lacks hierarchical revocation logic; consequently, revoking a compromised parent token has no effect on any descendant tokens spawned from it.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;Exploiting this vulnerability allows an attacker to gain persistent, unauthorized access that completely bypasses multi-factor controls. The security risk escalates significantly if the compromised token belongs to a Xerj account owner. In this scenario, the newly created successor token retains full administrative authority. An attacker can use this persistent access to issue a new account invitation, redeem it in their own browser, and successfully enroll an entirely independent, attacker-controlled passkey. This grants the attacker permanent control over the Xerj instance and its sensitive data indices, rendering the revocation of the initial token completely ineffective.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;The vendor could not be reached to coordinate this vulnerability and an official patch has not been made available at the time of this writing. Users are advised to monitor the project's GitHub repository for updates and install the latest version of this library once a fix has been released.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to the reporter, Shiran Guez, a Principal Application Security Architect.&lt;/p&gt;
+&lt;p&gt;This document was written by Laurie Tyzenhaus.&lt;/p&gt;
+
+</summary><content type="html">
+
+&lt;div class="row" id="content"&gt;
+  &lt;div class="large-9 medium-9 columns"&gt;
+    &lt;div class="blog-post"&gt;
+      &lt;div class="row"&gt;
+        &lt;div class="large-12 columns"&gt;
+	  
+	  &lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;An authentication bypass vulnerability in the Xerj Console API allows sessions to bypass passkey-backed requirements during token issuance. By exploiting this flaw, an attacker with an existing valid token can create independent, persistent successor credentials directly through the console API. This allows the attacker to maintain access and potentially escalate privileges within the Xerj ecosystem, even if the initial token is revoked.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Xerj is an open-source search and indexing engine tailored specifically for AI agents utilizing the Elasticsearch API, allowing AI models to query a structured index. &lt;/p&gt;
+&lt;p&gt;The vulnerability, &lt;strong&gt;CVE-2026-97406&lt;/strong&gt;, stems from a flaw in how session states are authenticated and handled within the Xerj system architecture. According to the documented security contract, the issuance of new API tokens must be strictly authorized by a passkey-backed session. However, the Xerj implementation converts both standard browser sessions and API bearer tokens into the same generic &lt;code&gt;AuthSession&lt;/code&gt; object. The token creation handler then accepts this generalized principal without verifying whether the session was authenticated via a passkey.&lt;br&gt;
+Because of this architectural oversight, an attacker who obtains or intercepts a valid Xerj API token can directly invoke the token creation endpoint, allowing them to create independent successor credentials with the same access levels of the original token. Furthermore, the Xerj platform lacks hierarchical revocation logic; consequently, revoking a compromised parent token has no effect on any descendant tokens spawned from it.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;Exploiting this vulnerability allows an attacker to gain persistent, unauthorized access that completely bypasses multi-factor controls. The security risk escalates significantly if the compromised token belongs to a Xerj account owner. In this scenario, the newly created successor token retains full administrative authority. An attacker can use this persistent access to issue a new account invitation, redeem it in their own browser, and successfully enroll an entirely independent, attacker-controlled passkey. This grants the attacker permanent control over the Xerj instance and its sensitive data indices, rendering the revocation of the initial token completely ineffective.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;The vendor could not be reached to coordinate this vulnerability and an official patch has not been made available at the time of this writing. Users are advised to monitor the project's GitHub repository for updates and install the latest version of this library once a fix has been released.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to the reporter, Shiran Guez, a Principal Application Security Architect.&lt;/p&gt;
+&lt;p&gt;This document was written by Laurie Tyzenhaus.&lt;/p&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; Vendor Information &lt;/h3&gt;
+	  
+	  &lt;div id="vendorinfo"&gt;
+	    One or more vendors are listed for this advisory. Please reference the full report for more information.
+	  &lt;/div&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;br/&gt;
+      
+      
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; References &lt;/h3&gt;
+	  &lt;ul&gt;
+	    
+	    
+	    
+            &lt;li&gt;&lt;a href="https://kb.cert.org/vuls/id/645818" class="vulreflink safereflink" target="_blank" rel="noopener"&gt;https://kb.cert.org/vuls/id/645818&lt;/a&gt;&lt;/li&gt;
+            
+          
+	  
+	  &lt;/ul&gt;
+	&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;h3&gt;Other Information&lt;/h3&gt;
+        &lt;div class="vulcontent"&gt;
+          &lt;table class="unstriped"&gt;
+            &lt;tbody&gt;
+	      
+              &lt;tr&gt;
+                &lt;td width="200"&gt;&lt;b&gt;CVE IDs:&lt;/b&gt;&lt;/td&gt;
+		&lt;td&gt;
+		
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-97406"&gt;CVE-2026-97406  &lt;/a&gt;
+		
+                
+		&lt;/td&gt;
+	      &lt;/tr&gt;
+	      
+	      &lt;tr&gt;
+		&lt;td&gt;
+		  &lt;b&gt;Date Public:&lt;/b&gt;
+		&lt;/td&gt;
+                &lt;td&gt;2026-10-20&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date First Published:&lt;/b&gt;&lt;/td&gt;
+                &lt;td id="datefirstpublished"&gt;2026-10-20&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date Last Updated: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2026-10-20 18:09 UTC&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Document Revision: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;1 &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+	&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="large-3 medium-3 columns" data-sticky-container&gt;
+  &lt;div class="sticky" data-sticky data-anchor="content"&gt;
+    &lt;div class="sidebar-links"&gt;
+      &lt;ul class="menu vertical"&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" rel="noopener"&gt;About vulnerability notes&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="mailto:cert@cert.org?Subject=VU%23645818 Feedback"&gt;Contact us about this vulnerability&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" &gt;Provide a vendor statement&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+
+</content></entry><entry><title>VU#410595: Google BoringSSL Name Constraints Bypass in SAN Validation Logic</title><link href="https://kb.cert.org/vuls/id/410595" rel="alternate"/><published>2026-10-14T15:11:33.058399+00:00</published><updated>2026-10-19T14:38:25.242015+00:00</updated><id>https://kb.cert.org/vuls/id/410595</id><summary type="html">
+
+&lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Five Name Constraints findings in BoringSSL (VU#410595.8–.12) describe cases where certificate names may not be constrained as intended. Records .8, .9, .10 and .12 concern the legacy crypto/x509 path; .11 concerns the newer pki path. Two have been fixed, one is accepted, one is disputed, and one was declined.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Name Constraints limit the names a subordinate certificate authority may issue. The reports concern how BoringSSL applies those limits to certain SAN (Subject Alternative Name) forms. The records do not share one status, and they do not all affect the same validation path.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.8&lt;/strong&gt; (&lt;strong&gt;Fixed 2026-03-04&lt;/strong&gt;): A wildcard DNS name may not be treated as covering a specifically excluded host.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.9&lt;/strong&gt; (&lt;strong&gt;Accepted&lt;/strong&gt;): A URI with a colon before &lt;code&gt;@&lt;/code&gt; may cause the wrong host to be used when matching URI constraints.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.10&lt;/strong&gt; (&lt;strong&gt;Disputed&lt;/strong&gt;): The finding concerns first-@ domain extraction in rfc822Name constraint matching. How consuming mail applications interpret the submitted multi-@ input, and whether that creates deployment exploitation, was not established.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.11&lt;/strong&gt; (&lt;strong&gt;Rejected&lt;/strong&gt;): Trailing-dot handling in rfc822Name domains. The BoringSSL team declined this on 2026-02-28 as below its security threshold.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.12&lt;/strong&gt; (&lt;strong&gt;Fixed 2026-03-04&lt;/strong&gt;): Trailing-dot DNS names were not always normalized on the legacy validation path.&lt;/p&gt;
+&lt;p&gt;Using BoringSSL in a product does not mean that product invokes an affected path or name form.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;These findings matter only where Name Constraints are enforced on an affected path, a trusted signature can be obtained over attacker-chosen SAN fields, and the accepted name is used for authorization. Mixed-library environments may accept or reject the same certificate differently. Presence of BoringSSL does not, by itself, mean that Chrome, Android, or other products are affected.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;BoringSSL fixes land in the &lt;a href="https://boringssl.googlesource.com/boringssl/"&gt;upstream repository&lt;/a&gt; and reach products through each product's own update process.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VU#410595.8 and .12 were fixed in &lt;a href="https://boringssl.googlesource.com/boringssl/+/5774eca6004ed7c7467bd644c057797ca96b65f2"&gt;commit 5774eca&lt;/a&gt; on 2026-03-04.&lt;/li&gt;
+&lt;li&gt;VU#410595.9 is accepted and under coordination.&lt;/li&gt;
+&lt;li&gt;VU#410595.10 is disputed.&lt;/li&gt;
+&lt;li&gt;VU#410595.11 was declined.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;CERT/CC is not coordinating BoringSSL fixes. For vendor status, contact the BoringSSL team through the &lt;a href="https://issuetracker.google.com/issues?q=componentid:187143"&gt;Google Issue Tracker&lt;/a&gt;. Operators should confirm whether their deployment uses an affected path, apply available updates, and keep issued SANs well formed. A second validator helps only when it uses the same inputs and fails closed.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Oleh Konko for discovering and reporting these issues. This document was prepared with AI assistance by Timur Snoke.&lt;/p&gt;
+
+</summary><content type="html">
+
+&lt;div class="row" id="content"&gt;
+  &lt;div class="large-9 medium-9 columns"&gt;
+    &lt;div class="blog-post"&gt;
+      &lt;div class="row"&gt;
+        &lt;div class="large-12 columns"&gt;
+	  
+	  &lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Five Name Constraints findings in BoringSSL (VU#410595.8–.12) describe cases where certificate names may not be constrained as intended. Records .8, .9, .10 and .12 concern the legacy crypto/x509 path; .11 concerns the newer pki path. Two have been fixed, one is accepted, one is disputed, and one was declined.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Name Constraints limit the names a subordinate certificate authority may issue. The reports concern how BoringSSL applies those limits to certain SAN (Subject Alternative Name) forms. The records do not share one status, and they do not all affect the same validation path.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.8&lt;/strong&gt; (&lt;strong&gt;Fixed 2026-03-04&lt;/strong&gt;): A wildcard DNS name may not be treated as covering a specifically excluded host.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.9&lt;/strong&gt; (&lt;strong&gt;Accepted&lt;/strong&gt;): A URI with a colon before &lt;code&gt;@&lt;/code&gt; may cause the wrong host to be used when matching URI constraints.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.10&lt;/strong&gt; (&lt;strong&gt;Disputed&lt;/strong&gt;): The finding concerns first-@ domain extraction in rfc822Name constraint matching. How consuming mail applications interpret the submitted multi-@ input, and whether that creates deployment exploitation, was not established.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.11&lt;/strong&gt; (&lt;strong&gt;Rejected&lt;/strong&gt;): Trailing-dot handling in rfc822Name domains. The BoringSSL team declined this on 2026-02-28 as below its security threshold.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;VU#410595.12&lt;/strong&gt; (&lt;strong&gt;Fixed 2026-03-04&lt;/strong&gt;): Trailing-dot DNS names were not always normalized on the legacy validation path.&lt;/p&gt;
+&lt;p&gt;Using BoringSSL in a product does not mean that product invokes an affected path or name form.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;These findings matter only where Name Constraints are enforced on an affected path, a trusted signature can be obtained over attacker-chosen SAN fields, and the accepted name is used for authorization. Mixed-library environments may accept or reject the same certificate differently. Presence of BoringSSL does not, by itself, mean that Chrome, Android, or other products are affected.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;BoringSSL fixes land in the &lt;a href="https://boringssl.googlesource.com/boringssl/"&gt;upstream repository&lt;/a&gt; and reach products through each product's own update process.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VU#410595.8 and .12 were fixed in &lt;a href="https://boringssl.googlesource.com/boringssl/+/5774eca6004ed7c7467bd644c057797ca96b65f2"&gt;commit 5774eca&lt;/a&gt; on 2026-03-04.&lt;/li&gt;
+&lt;li&gt;VU#410595.9 is accepted and under coordination.&lt;/li&gt;
+&lt;li&gt;VU#410595.10 is disputed.&lt;/li&gt;
+&lt;li&gt;VU#410595.11 was declined.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;CERT/CC is not coordinating BoringSSL fixes. For vendor status, contact the BoringSSL team through the &lt;a href="https://issuetracker.google.com/issues?q=componentid:187143"&gt;Google Issue Tracker&lt;/a&gt;. Operators should confirm whether their deployment uses an affected path, apply available updates, and keep issued SANs well formed. A second validator helps only when it uses the same inputs and fails closed.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Oleh Konko for discovering and reporting these issues. This document was prepared with AI assistance by Timur Snoke.&lt;/p&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; Vendor Information &lt;/h3&gt;
+	  
+	  &lt;div id="vendorinfo"&gt;
+	    One or more vendors are listed for this advisory. Please reference the full report for more information.
+	  &lt;/div&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;br/&gt;
+      
+      
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; References &lt;/h3&gt;
+	  &lt;ul&gt;
+	    
+	    
+	    
+            &lt;li&gt;[RFC 5280 §4.2.1.10 — Name Constraints](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.10)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[RFC 1035 — Domain Names: Implementation and Specification](https://datatracker.ietf.org/doc/html/rfc1035)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[RFC 3986 §3.2 — URI Authority Component](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[BoringSSL Source Repository](https://boringssl.googlesource.com/boringssl/)&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[Google Issue Tracker](https://issuetracker.google.com/issues?q=componentid:187143)&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[BoringSSL commit 5774eca — wildcard and trailing-dot fixes](https://boringssl.googlesource.com/boringssl/+/5774eca6004ed7c7467bd644c057797ca96b65f2)&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[Same Certificate. Different Answers.](https://paperlock.org/findings/)&lt;/li&gt;
+            
+          
+	  
+	  &lt;/ul&gt;
+	&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;h3&gt;Other Information&lt;/h3&gt;
+        &lt;div class="vulcontent"&gt;
+          &lt;table class="unstriped"&gt;
+            &lt;tbody&gt;
+	      
+              &lt;tr&gt;
+                &lt;td width="200"&gt;&lt;b&gt;CVE IDs:&lt;/b&gt;&lt;/td&gt;
+		&lt;td&gt;
+		
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		&lt;/td&gt;
+	      &lt;/tr&gt;
+	      
+	      &lt;tr&gt;
+		&lt;td&gt;
+		  &lt;b&gt;Date Public:&lt;/b&gt;
+		&lt;/td&gt;
+                &lt;td&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date First Published:&lt;/b&gt;&lt;/td&gt;
+                &lt;td id="datefirstpublished"&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date Last Updated: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2026-10-19 14:38 UTC&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Document Revision: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;4 &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+	&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="large-3 medium-3 columns" data-sticky-container&gt;
+  &lt;div class="sticky" data-sticky data-anchor="content"&gt;
+    &lt;div class="sidebar-links"&gt;
+      &lt;ul class="menu vertical"&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" rel="noopener"&gt;About vulnerability notes&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="mailto:cert@cert.org?Subject=VU%23410595 Feedback"&gt;Contact us about this vulnerability&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" &gt;Provide a vendor statement&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+
+</content></entry><entry><title>VU#948176: Multiple TLS Libraries can Bypass Delegation Enforcement</title><link href="https://kb.cert.org/vuls/id/948176" rel="alternate"/><published>2026-10-14T15:11:20.471674+00:00</published><updated>2026-10-19T14:39:20.420157+00:00</updated><id>https://kb.cert.org/vuls/id/948176</id><summary type="html">
+
+&lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;This note covers thirteen library-specific records (VU#948176.6, .8–.19) of how widely used TLS libraries apply X.509 Name Constraints. The records describe cases where a constrained name may be accepted by one library and rejected by another. Some are fixed, some remain under review, and some were not accepted as security issues.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Name Constraints are meant to keep a subordinate CA inside an allowed namespace. The records cover several name forms and do not all have the same classification. VU#948176.7 does not exist.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;DNS case-sensitivity and wildcards.&lt;/strong&gt; While RFC 5280 requires case-insensitive DNS matching, it does not explicitly define wildcard Subject Alternative Name (SAN) matching, leading to varied implementation behaviors. For instance, GnuTLS was found to perform case-sensitive comparisons on certain names (CVE-2026-3833, fixed in 3.8.13). Similar discrepancies regarding case handling in wildcard parent-constraint lookups were reported in Go, as well as wildcard inconsistencies in LibreSSL and wolfSSL. Additionally, pyca/cryptography was identified to check DNS Name Constraints against certificate SANs but failed to validate them against the requested peer name (CVE-2026-34073, fixed in 46.0.6).&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;IP addresses.&lt;/strong&gt; Some libraries treat IPv4 and IPv4-mapped IPv6 forms as different when matching constraints. The Go security team determined that report did not meet its security bar; similar reports exist for Apple's Security.framework and Mozilla NSS and are included as comparative evidence.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;URIs.&lt;/strong&gt; Libraries can differ on which host they extract from a URI SAN. OpenSSL merged &lt;a href="https://github.com/openssl/openssl/pull/30319"&gt;PR #30319&lt;/a&gt; for an &lt;code&gt;@&lt;/code&gt; in the path, query, or fragment; a separate userinfo-colon report remains in triage. Related URI reports exist for Apple, NSS, and wolfSSL (CVE-2026-3547, fixed in 5.9.0). A well-formed single &lt;code&gt;@&lt;/code&gt; is handled per RFC 3986 by most implementations.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Common Name fallback.&lt;/strong&gt; AWS-LC and s2n-tls were reported to apply DNS constraints inconsistently when a leaf has no SAN and uses a wildcard Common Name. The AWS-LC wildcard-CN issue has been fixed; a separate Unicode CN question remains under coordination. s2n-tls is in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Non-critical constraints.&lt;/strong&gt; In the reported Mbed TLS configuration, non-critical Name Constraints are not enforced. RFC 5280 requires conforming CAs to mark the extension critical, and the reviewed Mbed TLS 3.x configuration rejects unsupported critical extensions. The vendor treats adding support as a feature request; the reporter's concern remains disputed.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;These records matter only when an attacker can obtain a trusted signature over chosen certificate fields, reach an affected validation path, and the application uses the accepted identity for authorization. Validator disagreement alone is not exploitation. Effects, if any, are deployment-specific and may include acceptance of a name outside the intended namespace.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;CERT/CC is coordinating remediation across the affected projects. The following summarizes available status; individual entries reflect different reporting and confirmation dates.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;GnuTLS&lt;/strong&gt; — CVE-2026-3833 fixed in 3.8.13.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;pyca/cryptography&lt;/code&gt;&lt;/strong&gt; — CVE-2026-34073 fixed in 46.0.6.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;wolfSSL&lt;/strong&gt; — CVE-2026-3547 fixed in 5.9.0. The wildcard was addressed in &lt;a href="https://github.com/wolfssl/wolfssl/pull/9991"&gt;PR# 9991&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Go's &lt;code&gt;crypto/x509&lt;/code&gt;&lt;/strong&gt; — Two reports are in triage. The IPv4-mapped IPv6 report was not accepted as meeting the project's security bar.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;OpenSSL&lt;/strong&gt; — PR #30319 was merged and, as confirmed on 10 September 2026, is present in all then-current publicly supported versions. The separate userinfo-colon report remains in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Apple's &lt;code&gt;Security.framework&lt;/code&gt;&lt;/strong&gt; — Three reports submitted on 2026-03-16 remain in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Mozilla NSS&lt;/strong&gt; — IP-address report under coordination.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;LibreSSL&lt;/strong&gt; — Wildcard report under coordination.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;AWS-LC&lt;/strong&gt; — Wildcard CN issue fixed; Unicode CN report under coordination. &lt;strong&gt;s2n-tls&lt;/strong&gt; is in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Mbed TLS&lt;/strong&gt; — Non-critical Name Constraints are not enforced in the reported configuration. Marking the extension critical causes such chains to fail closed rather than adding enforcement.&lt;/p&gt;
+&lt;p&gt;Until updates are widely deployed, operators who depend on Name Constraints should confirm the behavior of the libraries they actually run, keep leaf certificates to explicit SANs, and treat issuance policy as the first control. A second validator helps only when it uses the same inputs and fails closed.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Oleh Konko for discovering and reporting these issues. This document was prepared with AI assistance by Timur Snoke.&lt;/p&gt;
+
+</summary><content type="html">
+
+&lt;div class="row" id="content"&gt;
+  &lt;div class="large-9 medium-9 columns"&gt;
+    &lt;div class="blog-post"&gt;
+      &lt;div class="row"&gt;
+        &lt;div class="large-12 columns"&gt;
+	  
+	  &lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;This note covers thirteen library-specific records (VU#948176.6, .8–.19) of how widely used TLS libraries apply X.509 Name Constraints. The records describe cases where a constrained name may be accepted by one library and rejected by another. Some are fixed, some remain under review, and some were not accepted as security issues.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Name Constraints are meant to keep a subordinate CA inside an allowed namespace. The records cover several name forms and do not all have the same classification. VU#948176.7 does not exist.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;DNS case-sensitivity and wildcards.&lt;/strong&gt; While RFC 5280 requires case-insensitive DNS matching, it does not explicitly define wildcard Subject Alternative Name (SAN) matching, leading to varied implementation behaviors. For instance, GnuTLS was found to perform case-sensitive comparisons on certain names (CVE-2026-3833, fixed in 3.8.13). Similar discrepancies regarding case handling in wildcard parent-constraint lookups were reported in Go, as well as wildcard inconsistencies in LibreSSL and wolfSSL. Additionally, pyca/cryptography was identified to check DNS Name Constraints against certificate SANs but failed to validate them against the requested peer name (CVE-2026-34073, fixed in 46.0.6).&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;IP addresses.&lt;/strong&gt; Some libraries treat IPv4 and IPv4-mapped IPv6 forms as different when matching constraints. The Go security team determined that report did not meet its security bar; similar reports exist for Apple's Security.framework and Mozilla NSS and are included as comparative evidence.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;URIs.&lt;/strong&gt; Libraries can differ on which host they extract from a URI SAN. OpenSSL merged &lt;a href="https://github.com/openssl/openssl/pull/30319"&gt;PR #30319&lt;/a&gt; for an &lt;code&gt;@&lt;/code&gt; in the path, query, or fragment; a separate userinfo-colon report remains in triage. Related URI reports exist for Apple, NSS, and wolfSSL (CVE-2026-3547, fixed in 5.9.0). A well-formed single &lt;code&gt;@&lt;/code&gt; is handled per RFC 3986 by most implementations.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Common Name fallback.&lt;/strong&gt; AWS-LC and s2n-tls were reported to apply DNS constraints inconsistently when a leaf has no SAN and uses a wildcard Common Name. The AWS-LC wildcard-CN issue has been fixed; a separate Unicode CN question remains under coordination. s2n-tls is in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Non-critical constraints.&lt;/strong&gt; In the reported Mbed TLS configuration, non-critical Name Constraints are not enforced. RFC 5280 requires conforming CAs to mark the extension critical, and the reviewed Mbed TLS 3.x configuration rejects unsupported critical extensions. The vendor treats adding support as a feature request; the reporter's concern remains disputed.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;These records matter only when an attacker can obtain a trusted signature over chosen certificate fields, reach an affected validation path, and the application uses the accepted identity for authorization. Validator disagreement alone is not exploitation. Effects, if any, are deployment-specific and may include acceptance of a name outside the intended namespace.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;CERT/CC is coordinating remediation across the affected projects. The following summarizes available status; individual entries reflect different reporting and confirmation dates.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;GnuTLS&lt;/strong&gt; — CVE-2026-3833 fixed in 3.8.13.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;pyca/cryptography&lt;/code&gt;&lt;/strong&gt; — CVE-2026-34073 fixed in 46.0.6.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;wolfSSL&lt;/strong&gt; — CVE-2026-3547 fixed in 5.9.0. The wildcard was addressed in &lt;a href="https://github.com/wolfssl/wolfssl/pull/9991"&gt;PR# 9991&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Go's &lt;code&gt;crypto/x509&lt;/code&gt;&lt;/strong&gt; — Two reports are in triage. The IPv4-mapped IPv6 report was not accepted as meeting the project's security bar.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;OpenSSL&lt;/strong&gt; — PR #30319 was merged and, as confirmed on 10 September 2026, is present in all then-current publicly supported versions. The separate userinfo-colon report remains in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Apple's &lt;code&gt;Security.framework&lt;/code&gt;&lt;/strong&gt; — Three reports submitted on 2026-03-16 remain in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Mozilla NSS&lt;/strong&gt; — IP-address report under coordination.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;LibreSSL&lt;/strong&gt; — Wildcard report under coordination.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;AWS-LC&lt;/strong&gt; — Wildcard CN issue fixed; Unicode CN report under coordination. &lt;strong&gt;s2n-tls&lt;/strong&gt; is in triage.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Mbed TLS&lt;/strong&gt; — Non-critical Name Constraints are not enforced in the reported configuration. Marking the extension critical causes such chains to fail closed rather than adding enforcement.&lt;/p&gt;
+&lt;p&gt;Until updates are widely deployed, operators who depend on Name Constraints should confirm the behavior of the libraries they actually run, keep leaf certificates to explicit SANs, and treat issuance policy as the first control. A second validator helps only when it uses the same inputs and fails closed.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Oleh Konko for discovering and reporting these issues. This document was prepared with AI assistance by Timur Snoke.&lt;/p&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; Vendor Information &lt;/h3&gt;
+	  
+	  &lt;div id="vendorinfo"&gt;
+	    One or more vendors are listed for this advisory. Please reference the full report for more information.
+	  &lt;/div&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;br/&gt;
+      
+      
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; References &lt;/h3&gt;
+	  &lt;ul&gt;
+	    
+	    
+	    
+            &lt;li&gt;[RFC 5280 §4.2.1.10 — Name Constraints](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.10)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[RFC 5280 §4.2.1.6 — Subject Alternative Name](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.6)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[RFC 5280 §6.1.3 — Basic Certificate Processing](https://datatracker.ietf.org/doc/html/rfc5280#section-6.1.3)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[RFC 3986 §3.2 — URI Authority Component](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[CVE-2026-3833 — GnuTLS Name Constraints case-sensitivity (VU#948176.6)](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-3833)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[GnuTLS 3.8.13 Security Advisory](https://www.gnutls.org/news.html)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[CVE-2026-34073 — pyca/cryptography wildcard Name Constraints](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-34073)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[GHSA-m959-cc7f-wv43 — pyca/cryptography wildcard advisory](https://github.com/pyca/cryptography/security/advisories/GHSA-m959-cc7f-wv43)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[CVE-2026-3547 — wolfSSL URI Name Constraints bypass](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-3547)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[pyca/cryptography v46.0.6](https://cryptography.io/en/latest/changelog/)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[wolfSSL 5.9.0 Release Notes](https://www.wolfssl.com/docs/release-notes/)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[wolfSSL PR# 9991](https://github.com/wolfssl/wolfssl/pull/9991)&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[OpenSSL PR #30319 — URI authority parsing (VU#948176.12)](https://github.com/openssl/openssl/pull/30319)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[OpenSSL PR #30318 — smtpUTF8Mailbox](https://github.com/openssl/openssl/pull/30318)  &lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[Mbed TLS Documentation](https://mbed-tls.readthedocs.io/)&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;[Same Certificate. Different Answers.](https://paperlock.org/findings/)&lt;/li&gt;
+            
+          
+	  
+	  &lt;/ul&gt;
+	&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;h3&gt;Other Information&lt;/h3&gt;
+        &lt;div class="vulcontent"&gt;
+          &lt;table class="unstriped"&gt;
+            &lt;tbody&gt;
+	      
+              &lt;tr&gt;
+                &lt;td width="200"&gt;&lt;b&gt;CVE IDs:&lt;/b&gt;&lt;/td&gt;
+		&lt;td&gt;
+		
+		
+                
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-34073"&gt;CVE-2026-34073  &lt;/a&gt;
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		
+                
+		&lt;/td&gt;
+	      &lt;/tr&gt;
+	      
+	      &lt;tr&gt;
+		&lt;td&gt;
+		  &lt;b&gt;Date Public:&lt;/b&gt;
+		&lt;/td&gt;
+                &lt;td&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date First Published:&lt;/b&gt;&lt;/td&gt;
+                &lt;td id="datefirstpublished"&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date Last Updated: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2026-10-19 14:39 UTC&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Document Revision: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;3 &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+	&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="large-3 medium-3 columns" data-sticky-container&gt;
+  &lt;div class="sticky" data-sticky data-anchor="content"&gt;
+    &lt;div class="sidebar-links"&gt;
+      &lt;ul class="menu vertical"&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" rel="noopener"&gt;About vulnerability notes&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="mailto:cert@cert.org?Subject=VU%23948176 Feedback"&gt;Contact us about this vulnerability&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" &gt;Provide a vendor statement&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+
+</content></entry><entry><title>VU#166125: Bisheng has authentication bypass vulnerabilities</title><link href="https://kb.cert.org/vuls/id/166125" rel="alternate"/><published>2026-10-14T12:39:18.342128+00:00</published><updated>2026-10-14T16:42:17.238288+00:00</updated><id>https://kb.cert.org/vuls/id/166125</id><summary type="html">
+
+&lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Bisheng contains three vulnerabilities: a pre-authentication account takeover mechanism via a legacy single sign-on (SSO) endpoint; an Insecure Direct Object Reference (IDOR) vulnerability that exposes cross-user workflow data; and prior to version 2.5.0, authenticated attackers could perform cross-user LLM credential abuse and data disclosure due to missing service-layer access checks. Together, these flaws could allow unauthenticated attackers to gain administrative control while enabling authenticated users access to sensitive data and hardcoded credentials.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Bisheng is an open-source Large Language Model (LLM) application DevOps platform, developed by DataElement, designed to assist in building, managing, and scaling LLMs.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96679 (Legacy SSO Bypass)&lt;/strong&gt; A vulnerability resides in the legacy SSO endpoint (&lt;code&gt;POST /user/sso&lt;/code&gt;). The application processes incoming JSON payloads containing arbitrary usernames and issues a valid JSON Web Token (JWT) without enforcing any form of caller authentication, such as signature verification, shared secrets, or network allowlisting. Furthermore, if the provided username does not exist, the system automatically registers the account. If this newly generated account matches the configured administrative username or is the first user in the system, it is automatically granted super-administrator privileges.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96681 (IDOR Workflow Exposure)&lt;/strong&gt; There are missing authorization controls across multiple version retrieval endpoints. The underlying source code retrieves flow and workflow version records based on user-supplied parameters without performing any data ownership or permission validation. Any authenticated user can query and read the complete Domain-Specific Language (DSL) configurations belonging to other accounts.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-100156 (Credential Abuse &amp;amp; Access Control Skip)&lt;/strong&gt; Within the assistant service's prompt auto-optimization feature, endpoints accept an assistant identifier from the caller without verifying whether the caller owned that assistant. An assistant identifier is a mechanism that lets users or systems recognize that content or interactions come from an AI assistant rather than a human.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;Authentication Bypass / Account Takeover: The legacy SSO vulnerability (&lt;strong&gt;CVE-2026-96679&lt;/strong&gt;) allows unauthenticated attackers to bind their session to an existing victim's profile by completely skipping JWT validation, potentially granting full super-administrative access, leading to full application compromise.&lt;/p&gt;
+&lt;p&gt;Unauthorized Data Disclosure: The IDOR vulnerability (&lt;strong&gt;CVE-2026-96681&lt;/strong&gt;) causes a breach of data confidentiality, as the system fails to properly validate whether the authenticated user has permission to access the resource.&lt;/p&gt;
+&lt;p&gt;Resource and Credential Abuse: The assistant service vulnerability (&lt;strong&gt;CVE-2026-100156&lt;/strong&gt;) allows authenticated attackers to run unauthorized AI inferences billed directly to another user's provider account (such as OpenAI, Azure, or Anthropic), while also leaking the victim assistant's configured tools and workflows.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;The vendor has addressed two of the three discovered vulnerabilities in subsequent software releases. CERT/CC recommends upgrading to patched releases. &lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-100156&lt;/strong&gt;: The vendor has remediated the assistant service vulnerability in version 2.5.0.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96681&lt;/strong&gt;: The vendor has remediated the IDOR workflow vulnerability in version 3.0.0.&lt;/p&gt;
+&lt;p&gt;For the remaining unpatched vulnerability (&lt;strong&gt;CVE-2026-96679&lt;/strong&gt;), DataElement/Bisheng has not responded to multiple coordination efforts. CERT/CC suggests implementing the manual mitigations below until an official update becomes available.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;CVE-2026-96679 Legacy SSO Vulnerability:&lt;/strong&gt;  Administrators should consider the following defensive measures:&lt;/em&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;Avoid setting BISHENGPRO=true in the environment configuration.&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Disable or deprecate the legacy SSO endpoint entirely, or enforce global JWT validation. The affected function is &lt;code&gt;sso()&lt;/code&gt;, located in &lt;code&gt;src/backend/bisheng/user/api/user.py&lt;/code&gt;, affecting the API endpoint &lt;code&gt;POST /user/sso&lt;/code&gt;.&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Restrict access to the &lt;code&gt;POST /user/sso&lt;/code&gt; network path to loopback/same-origin to provide defense-in-depth.&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Louis Sanchez, Voke Cyber, for reporting these vulnerabilities.&lt;/p&gt;
+&lt;p&gt;This vulnerability note was prepared by Laurie Tyzenhaus.&lt;/p&gt;
+
+</summary><content type="html">
+
+&lt;div class="row" id="content"&gt;
+  &lt;div class="large-9 medium-9 columns"&gt;
+    &lt;div class="blog-post"&gt;
+      &lt;div class="row"&gt;
+        &lt;div class="large-12 columns"&gt;
+	  
+	  &lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Bisheng contains three vulnerabilities: a pre-authentication account takeover mechanism via a legacy single sign-on (SSO) endpoint; an Insecure Direct Object Reference (IDOR) vulnerability that exposes cross-user workflow data; and prior to version 2.5.0, authenticated attackers could perform cross-user LLM credential abuse and data disclosure due to missing service-layer access checks. Together, these flaws could allow unauthenticated attackers to gain administrative control while enabling authenticated users access to sensitive data and hardcoded credentials.&lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Bisheng is an open-source Large Language Model (LLM) application DevOps platform, developed by DataElement, designed to assist in building, managing, and scaling LLMs.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96679 (Legacy SSO Bypass)&lt;/strong&gt; A vulnerability resides in the legacy SSO endpoint (&lt;code&gt;POST /user/sso&lt;/code&gt;). The application processes incoming JSON payloads containing arbitrary usernames and issues a valid JSON Web Token (JWT) without enforcing any form of caller authentication, such as signature verification, shared secrets, or network allowlisting. Furthermore, if the provided username does not exist, the system automatically registers the account. If this newly generated account matches the configured administrative username or is the first user in the system, it is automatically granted super-administrator privileges.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96681 (IDOR Workflow Exposure)&lt;/strong&gt; There are missing authorization controls across multiple version retrieval endpoints. The underlying source code retrieves flow and workflow version records based on user-supplied parameters without performing any data ownership or permission validation. Any authenticated user can query and read the complete Domain-Specific Language (DSL) configurations belonging to other accounts.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-100156 (Credential Abuse &amp;amp; Access Control Skip)&lt;/strong&gt; Within the assistant service's prompt auto-optimization feature, endpoints accept an assistant identifier from the caller without verifying whether the caller owned that assistant. An assistant identifier is a mechanism that lets users or systems recognize that content or interactions come from an AI assistant rather than a human.&lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;Authentication Bypass / Account Takeover: The legacy SSO vulnerability (&lt;strong&gt;CVE-2026-96679&lt;/strong&gt;) allows unauthenticated attackers to bind their session to an existing victim's profile by completely skipping JWT validation, potentially granting full super-administrative access, leading to full application compromise.&lt;/p&gt;
+&lt;p&gt;Unauthorized Data Disclosure: The IDOR vulnerability (&lt;strong&gt;CVE-2026-96681&lt;/strong&gt;) causes a breach of data confidentiality, as the system fails to properly validate whether the authenticated user has permission to access the resource.&lt;/p&gt;
+&lt;p&gt;Resource and Credential Abuse: The assistant service vulnerability (&lt;strong&gt;CVE-2026-100156&lt;/strong&gt;) allows authenticated attackers to run unauthorized AI inferences billed directly to another user's provider account (such as OpenAI, Azure, or Anthropic), while also leaking the victim assistant's configured tools and workflows.&lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;The vendor has addressed two of the three discovered vulnerabilities in subsequent software releases. CERT/CC recommends upgrading to patched releases. &lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-100156&lt;/strong&gt;: The vendor has remediated the assistant service vulnerability in version 2.5.0.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CVE-2026-96681&lt;/strong&gt;: The vendor has remediated the IDOR workflow vulnerability in version 3.0.0.&lt;/p&gt;
+&lt;p&gt;For the remaining unpatched vulnerability (&lt;strong&gt;CVE-2026-96679&lt;/strong&gt;), DataElement/Bisheng has not responded to multiple coordination efforts. CERT/CC suggests implementing the manual mitigations below until an official update becomes available.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;CVE-2026-96679 Legacy SSO Vulnerability:&lt;/strong&gt;  Administrators should consider the following defensive measures:&lt;/em&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;Avoid setting BISHENGPRO=true in the environment configuration.&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Disable or deprecate the legacy SSO endpoint entirely, or enforce global JWT validation. The affected function is &lt;code&gt;sso()&lt;/code&gt;, located in &lt;code&gt;src/backend/bisheng/user/api/user.py&lt;/code&gt;, affecting the API endpoint &lt;code&gt;POST /user/sso&lt;/code&gt;.&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;Restrict access to the &lt;code&gt;POST /user/sso&lt;/code&gt; network path to loopback/same-origin to provide defense-in-depth.&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Louis Sanchez, Voke Cyber, for reporting these vulnerabilities.&lt;/p&gt;
+&lt;p&gt;This vulnerability note was prepared by Laurie Tyzenhaus.&lt;/p&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; Vendor Information &lt;/h3&gt;
+	  
+	  &lt;div id="vendorinfo"&gt;
+	    One or more vendors are listed for this advisory. Please reference the full report for more information.
+	  &lt;/div&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;br/&gt;
+      
+      
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; References &lt;/h3&gt;
+	  &lt;ul&gt;
+	    
+	    
+	    
+            &lt;li&gt;&lt;a href="http://kb.cert.org/vuls/id/166125" class="vulreflink safereflink" target="_blank" rel="noopener"&gt;http://kb.cert.org/vuls/id/166125&lt;/a&gt;&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;&lt;a href="https://vokecyber.com/blog/cve-2026-96679-bisheng-preauth-admin-takeover" class="vulreflink safereflink" target="_blank" rel="noopener"&gt;https://vokecyber.com/blog/cve-2026-96679-bisheng-preauth-admin-takeover&lt;/a&gt;&lt;/li&gt;
+            
+          
+	    
+            &lt;li&gt;&lt;a href="https://vokecyber.com/research/cve-2026-96679-bisheng-preauth-admin-takeo" class="vulreflink safereflink" target="_blank" rel="noopener"&gt;https://vokecyber.com/research/cve-2026-96679-bisheng-preauth-admin-takeo&lt;/a&gt;&lt;/li&gt;
+            
+          
+	  
+	  &lt;/ul&gt;
+	&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;h3&gt;Other Information&lt;/h3&gt;
+        &lt;div class="vulcontent"&gt;
+          &lt;table class="unstriped"&gt;
+            &lt;tbody&gt;
+	      
+              &lt;tr&gt;
+                &lt;td width="200"&gt;&lt;b&gt;CVE IDs:&lt;/b&gt;&lt;/td&gt;
+		&lt;td&gt;
+		
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-96681"&gt;CVE-2026-96681  &lt;/a&gt;
+		
+                
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-100156"&gt;CVE-2026-100156  &lt;/a&gt;
+		
+                
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-96679"&gt;CVE-2026-96679  &lt;/a&gt;
+		
+                
+		&lt;/td&gt;
+	      &lt;/tr&gt;
+	      
+	      &lt;tr&gt;
+		&lt;td&gt;
+		  &lt;b&gt;Date Public:&lt;/b&gt;
+		&lt;/td&gt;
+                &lt;td&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date First Published:&lt;/b&gt;&lt;/td&gt;
+                &lt;td id="datefirstpublished"&gt;2026-10-14&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date Last Updated: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2026-10-14 16:42 UTC&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Document Revision: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2 &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+	&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="large-3 medium-3 columns" data-sticky-container&gt;
+  &lt;div class="sticky" data-sticky data-anchor="content"&gt;
+    &lt;div class="sidebar-links"&gt;
+      &lt;ul class="menu vertical"&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" rel="noopener"&gt;About vulnerability notes&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="mailto:cert@cert.org?Subject=VU%23166125 Feedback"&gt;Contact us about this vulnerability&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" &gt;Provide a vendor statement&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+
+</content></entry><entry><title>VU#456950: Komodo Periphery Agent Contains an OS Command Injection Vulnerability</title><link href="https://kb.cert.org/vuls/id/456950" rel="alternate"/><published>2026-10-13T19:24:10.004944+00:00</published><updated>2026-10-13T19:24:09.627365+00:00</updated><id>https://kb.cert.org/vuls/id/456950</id><summary type="html">
+
+&lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Versions &amp;lt;= 2.2.0 of Periphery, an agent within the Komodo server management platform, is vulnerable to OS command injection due to missing validation of container names, through two vectors: container destruction and container log searches. This allows an authenticated attacker to execute arbitrary commands as &lt;strong&gt;root&lt;/strong&gt; on the underlying host, enabling persistent compromise of infrastructure. &lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Komodo is an open-source server and deployment manager, maintained by mogh.tech, widely used in self-hosted and Docker multi-server environments. Periphery is an agent service installed on servers to give Komodo control over Docker environments. &lt;/p&gt;
+&lt;p&gt;In vulnerable versions of Komodo, Periphery does not properly validate user-supplied Docker container names before those values are interpolated into shell commands used by the agent. Two operations exhibit this vulnerability: container destruction (&lt;code&gt;DestroyContainer&lt;/code&gt; / &lt;code&gt;RemoveContainer&lt;/code&gt;) and container log searches (&lt;code&gt;SearchContainerLog&lt;/code&gt; / &lt;code&gt;GetContainerLogSearch&lt;/code&gt;). Through both avenues, raw container names are directly inserted into &lt;code&gt;sh -c&lt;/code&gt; command lines without any shell escaping or validation. These commands then run with Periphery's &lt;strong&gt;root&lt;/strong&gt; privileges on the host OS and Docker socket. &lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;An authenticated non-admin user can escalate privileges through OS command injection via a maliciously crafted container name. Successful exploitation enables arbitrary command execution as &lt;strong&gt;root&lt;/strong&gt; on a target server within a Komodo deployment. Ultimately, this enables an attacker to establish persistence, achieve lateral movement, and completely compromise a user or organization's managed infrastructure. &lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;Fortunately, Komodo was reached to coordinate this vulnerability, and a patch has been implemented to remediate the issue in versions 2.3.0 and higher. The CERT/CC recommends that all users update immediately.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Muhammadjon Ahmadjonov for reporting this vulnerability. This document was written by Alex Lewis.&lt;/p&gt;
+
+</summary><content type="html">
+
+&lt;div class="row" id="content"&gt;
+  &lt;div class="large-9 medium-9 columns"&gt;
+    &lt;div class="blog-post"&gt;
+      &lt;div class="row"&gt;
+        &lt;div class="large-12 columns"&gt;
+	  
+	  &lt;h3 id="overview"&gt;Overview&lt;/h3&gt;
+&lt;p&gt;Versions &amp;lt;= 2.2.0 of Periphery, an agent within the Komodo server management platform, is vulnerable to OS command injection due to missing validation of container names, through two vectors: container destruction and container log searches. This allows an authenticated attacker to execute arbitrary commands as &lt;strong&gt;root&lt;/strong&gt; on the underlying host, enabling persistent compromise of infrastructure. &lt;/p&gt;
+&lt;h3 id="description"&gt;Description&lt;/h3&gt;
+&lt;p&gt;Komodo is an open-source server and deployment manager, maintained by mogh.tech, widely used in self-hosted and Docker multi-server environments. Periphery is an agent service installed on servers to give Komodo control over Docker environments. &lt;/p&gt;
+&lt;p&gt;In vulnerable versions of Komodo, Periphery does not properly validate user-supplied Docker container names before those values are interpolated into shell commands used by the agent. Two operations exhibit this vulnerability: container destruction (&lt;code&gt;DestroyContainer&lt;/code&gt; / &lt;code&gt;RemoveContainer&lt;/code&gt;) and container log searches (&lt;code&gt;SearchContainerLog&lt;/code&gt; / &lt;code&gt;GetContainerLogSearch&lt;/code&gt;). Through both avenues, raw container names are directly inserted into &lt;code&gt;sh -c&lt;/code&gt; command lines without any shell escaping or validation. These commands then run with Periphery's &lt;strong&gt;root&lt;/strong&gt; privileges on the host OS and Docker socket. &lt;/p&gt;
+&lt;h3 id="impact"&gt;Impact&lt;/h3&gt;
+&lt;p&gt;An authenticated non-admin user can escalate privileges through OS command injection via a maliciously crafted container name. Successful exploitation enables arbitrary command execution as &lt;strong&gt;root&lt;/strong&gt; on a target server within a Komodo deployment. Ultimately, this enables an attacker to establish persistence, achieve lateral movement, and completely compromise a user or organization's managed infrastructure. &lt;/p&gt;
+&lt;h3 id="solution"&gt;Solution&lt;/h3&gt;
+&lt;p&gt;Fortunately, Komodo was reached to coordinate this vulnerability, and a patch has been implemented to remediate the issue in versions 2.3.0 and higher. The CERT/CC recommends that all users update immediately.&lt;/p&gt;
+&lt;h3 id="acknowledgements"&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to Muhammadjon Ahmadjonov for reporting this vulnerability. This document was written by Alex Lewis.&lt;/p&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; Vendor Information &lt;/h3&gt;
+	  
+	  &lt;div id="vendorinfo"&gt;
+	    One or more vendors are listed for this advisory. Please reference the full report for more information.
+	  &lt;/div&gt;
+	  
+	&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;br/&gt;
+      
+      
+      &lt;div class="row"&gt;
+	&lt;div class="large-12 columns"&gt;
+	  &lt;h3&gt; References &lt;/h3&gt;
+	  &lt;ul&gt;
+	    
+	    
+	    
+            &lt;li&gt;&lt;a href="https://github.com/moghtech/komodo" class="vulreflink safereflink" target="_blank" rel="noopener"&gt;https://github.com/moghtech/komodo&lt;/a&gt;&lt;/li&gt;
+            
+          
+	  
+	  &lt;/ul&gt;
+	&lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;h3&gt;Other Information&lt;/h3&gt;
+        &lt;div class="vulcontent"&gt;
+          &lt;table class="unstriped"&gt;
+            &lt;tbody&gt;
+	      
+              &lt;tr&gt;
+                &lt;td width="200"&gt;&lt;b&gt;CVE IDs:&lt;/b&gt;&lt;/td&gt;
+		&lt;td&gt;
+		
+		
+                &lt;a href="http://web.nvd.nist.gov/view/vuln/detail?vulnId=2026-110005"&gt;CVE-2026-110005  &lt;/a&gt;
+		
+                
+		&lt;/td&gt;
+	      &lt;/tr&gt;
+	      
+	      &lt;tr&gt;
+		&lt;td&gt;
+		  &lt;b&gt;Date Public:&lt;/b&gt;
+		&lt;/td&gt;
+                &lt;td&gt;2026-10-13&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date First Published:&lt;/b&gt;&lt;/td&gt;
+                &lt;td id="datefirstpublished"&gt;2026-10-13&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Date Last Updated: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;2026-10-13 19:24 UTC&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;&lt;b&gt;Document Revision: &lt;/b&gt;&lt;/td&gt;
+                &lt;td&gt;1 &lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/table&gt;
+	&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="large-3 medium-3 columns" data-sticky-container&gt;
+  &lt;div class="sticky" data-sticky data-anchor="content"&gt;
+    &lt;div class="sidebar-links"&gt;
+      &lt;ul class="menu vertical"&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" rel="noopener"&gt;About vulnerability notes&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="mailto:cert@cert.org?Subject=VU%23456950 Feedback"&gt;Contact us about this vulnerability&lt;/a&gt;&lt;/li&gt;
+	&lt;li&gt;&lt;a href="" target="_blank" &gt;Provide a vendor statement&lt;/a&gt;&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+
+
+</content></entry>
+</feed>

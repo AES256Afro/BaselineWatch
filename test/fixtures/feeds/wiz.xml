@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Wiz Blog | RSS feed</title>
+        <link>https://www.wiz.io</link>
+        <description>Guides, announcements, and articles about Cloud Security and the Wiz platform.</description>
+        <lastBuildDate>Wed, 21 Oct 2026 23:47:44 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <language>en-US</language>
+        <image>
+            <title>Wiz Blog | RSS feed</title>
+            <url>https://www.wiz.io/rss_feed_logo.jpg</url>
+            <link>https://www.wiz.io</link>
+        </image>
+        <copyright>All rights reserved 2026, Wiz Inc.</copyright>
+        <atom:link href="https://www.wiz.io/feed/rss.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[PHP2Shell: AI uncovers critical RCE vulnerabilities affecting 70% of the Internet]]></title>
+            <link>https://www.wiz.io/blog/php2shell-php-rce</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/php2shell-php-rce</guid>
+            <pubDate>Wed, 21 Oct 2026 13:59:59 GMT</pubDate>
+            <description><![CDATA[Core PHP engine flaws enable remote code execution and Heartbleed-style memory disclosure across the web.]]></description>
+            <content:encoded><![CDATA[Core PHP engine flaws enable remote code execution and Heartbleed-style memory disclosure across the web.]]></content:encoded>
+            <author>Sagi Tzadik</author>
+            <author>Shir Tamari</author>
+            <author>Nir Ohfeld</author>
+            <author>Tomer Schwartz </author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792534907-img_7274.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[LiteLLM Compromised, Steals Credentials]]></title>
+            <link>https://www.wiz.io/blog/litellm-compromised-steals-credentials</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/litellm-compromised-steals-credentials</guid>
+            <pubDate>Wed, 21 Oct 2026 13:44:12 GMT</pubDate>
+            <description><![CDATA[In a new incident, a malicious version (1.107.0)  of the LiteLLM package was uploaded to PyPI and Docker on October 21. The malicious version includes a credential stealer targeting browser, cloud and AI secrets as well as a dormant C2 capability. ]]></description>
+            <content:encoded><![CDATA[In a new incident, a malicious version (1.107.0)  of the LiteLLM package was uploaded to PyPI and Docker on October 21. The malicious version includes a credential stealer targeting browser, cloud and AI secrets as well as a dormant C2 capability. ]]></content:encoded>
+            <author>Benjamin Read</author>
+            <author>Rami McCarthy</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792586935-3.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[Wiz Sensor on GKE. 1-Click Runtime Protection, Now Native.]]></title>
+            <link>https://www.wiz.io/blog/wiz-sensor-on-gke-1-click-runtime-protection-now-native</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/wiz-sensor-on-gke-1-click-runtime-protection-now-native</guid>
+            <pubDate>Tue, 20 Oct 2026 22:02:42 GMT</pubDate>
+            <description><![CDATA[Enable native runtime protection for GKE in just one click. The Wiz Runtime Sensor add-on now automates deployment and credential management while delivering predictable, kernel-level eBPF threat detection for your GKE Kubernetes fleets.]]></description>
+            <content:encoded><![CDATA[Enable native runtime protection for GKE in just one click. The Wiz Runtime Sensor add-on now automates deployment and credential management while delivering predictable, kernel-level eBPF threat detection for your GKE Kubernetes fleets.]]></content:encoded>
+            <author>Shahar Yakov</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792533747-wiz-1-click-gke-google-banner-1x.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[From Phishing to LLMjacking: Threat Actors Targeting Cloud Billing Accounts for LLM Usage]]></title>
+            <link>https://www.wiz.io/blog/from-phishing-to-llmjacking</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/from-phishing-to-llmjacking</guid>
+            <pubDate>Tue, 20 Oct 2026 20:03:10 GMT</pubDate>
+            <description><![CDATA[How a single Google Search ad click leads to credential theft, hijacking of cloud billing account, and hundreds of thousands of dollars incurred in unauthorized AI API usage]]></description>
+            <content:encoded><![CDATA[How a single Google Search ad click leads to credential theft, hijacking of cloud billing account, and hundreds of thousands of dollars incurred in unauthorized AI API usage]]></content:encoded>
+            <author>Shira Ayal</author>
+            <author>Andre Maccarone</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792511853-4-1.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[Supply Chain Zero Days: Closing the Gap Between Publication and Detection]]></title>
+            <link>https://www.wiz.io/blog/detect-supply-chain-zero-days-at-publication</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/detect-supply-chain-zero-days-at-publication</guid>
+            <pubDate>Mon, 19 Oct 2026 14:39:29 GMT</pubDate>
+            <description><![CDATA[When trusted packages are compromised, malicious code can quickly spread throughout and beyond developer environments. See how Wiz’s supply chain pipeline identifies compromised packages at publication, helping teams detect zero-day supply chain compromises in Wiz Defend before a CVE is published]]></description>
+            <content:encoded><![CDATA[When trusted packages are compromised, malicious code can quickly spread throughout and beyond developer environments. See how Wiz’s supply chain pipeline identifies compromised packages at publication, helping teams detect zero-day supply chain compromises in Wiz Defend before a CVE is published]]></content:encoded>
+            <author>Alice Klimovitsky</author>
+            <author>Gal Benmocha</author>
+            <author>Gili Tikochinski</author>
+            <author>Tal Moriah</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792088711-malicious-package-pipeline-blog2.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[Loud, Fast, and Everywhere: Anatomy of a Real AI-Driven Cloud Attack]]></title>
+            <link>https://www.wiz.io/blog/anatomy-of-ai-driven-cloud-attacks</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/anatomy-of-ai-driven-cloud-attacks</guid>
+            <pubDate>Mon, 19 Oct 2026 11:26:53 GMT</pubDate>
+            <description><![CDATA[Wiz CIRT responded to AI-driven attacks spanning cloud, Kubernetes, CI/CD, and identity. Learn how these attacks behave and how to detect them.]]></description>
+            <content:encoded><![CDATA[Wiz CIRT responded to AI-driven attacks spanning cloud, Kubernetes, CI/CD, and identity. Learn how these attacks behave and how to detect them.]]></content:encoded>
+            <author>Eden Abergil</author>
+            <author>Zohar Kaplan</author>
+            <author>Kurt Giacchino</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792332491-17.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[ASPM in the AI Era Part 1: Unified Visibility Across Your Stack ]]></title>
+            <link>https://www.wiz.io/blog/aspm-ai-era-pt-1-centralize-appsec-scanners</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/aspm-ai-era-pt-1-centralize-appsec-scanners</guid>
+            <pubDate>Wed, 14 Oct 2026 20:13:53 GMT</pubDate>
+            <description><![CDATA[Integrate your existing code scanners into Wiz for a unified view of application risk across your environment. ]]></description>
+            <content:encoded><![CDATA[Integrate your existing code scanners into Wiz for a unified view of application risk across your environment. ]]></content:encoded>
+            <author>Salman Ladha</author>
+            <author>Annam Iyer</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1792077235-aspm2-2x.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[Securing the Mission at Machine Speed: Wiz AI Agents Arrive in Wiz for Gov]]></title>
+            <link>https://www.wiz.io/blog/wiz-for-gov-agents-fedramp</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/wiz-for-gov-agents-fedramp</guid>
+            <pubDate>Wed, 14 Oct 2026 11:00:02 GMT</pubDate>
+            <description><![CDATA[Wiz AI Agents elevate traditional CNAPP, empowering public sector security teams to accelerate security and innovation.]]></description>
+            <content:encoded><![CDATA[Wiz AI Agents elevate traditional CNAPP, empowering public sector security teams to accelerate security and innovation.]]></content:encoded>
+            <author>Mike Schimmel</author>
+            <author>Bryan Rosensteel</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1791822162-w4g-2x.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[How the Wiz Red Agent caught a Fortune 500 firm’s data exposure (that other tools missed)]]></title>
+            <link>https://www.wiz.io/blog/red-agent-financial-services-data-exposure</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/red-agent-financial-services-data-exposure</guid>
+            <pubDate>Wed, 07 Oct 2026 14:53:27 GMT</pubDate>
+            <description><![CDATA[Traditional DSPM and classification tools scan from the inside out. Thinking like an attacker, the Red Agent found a public page exposing sensitive data in minutes.]]></description>
+            <content:encoded><![CDATA[Traditional DSPM and classification tools scan from the inside out. Thinking like an attacker, the Red Agent found a public page exposing sensitive data in minutes.]]></content:encoded>
+            <author>Chad Knipschild</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1791380287-blog-wiz-red-agent-caught-a-data-exposure-of-a-fortune-500-financial-services-customer.png" length="0" type="image/png"/>
+        </item>
+        <item>
+            <title><![CDATA[Introducing Wiz AI SAST: Application Security that Understands Your Code and Your Infrastructure ]]></title>
+            <link>https://www.wiz.io/blog/introducing-wiz-ai-sast</link>
+            <guid isPermaLink="false">https://www.wiz.io/blog/introducing-wiz-ai-sast</guid>
+            <pubDate>Tue, 06 Oct 2026 13:47:28 GMT</pubDate>
+            <description><![CDATA[Find, validate, and fix complex business logic flaws with an AI code scanner backed by Wiz Research, operationalized within your existing security program. ]]></description>
+            <content:encoded><![CDATA[Find, validate, and fix complex business logic flaws with an AI code scanner backed by Wiz Research, operationalized within your existing security program. ]]></content:encoded>
+            <author>Salman Ladha</author>
+            <author>Sharon Ben Zeev</author>
+            <enclosure url="https://www.datocms-assets.com/75231/1790945909-ai-sast-2x-1.png" length="0" type="image/png"/>
+        </item>
+</channel></rss>

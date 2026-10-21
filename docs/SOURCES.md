@@ -468,6 +468,14 @@ beside the owner's date (Windows has two per version: Home/Pro and Enterprise); 
 ninety days of its end, or past it within the month, is one Wire item. Adapter
 `src/adapters/endoflife.ts`; fixtures `test/fixtures/endoflife/` as served 2026-10-21.
 
+### More feeds (added 2026-10-21, late in N5)
+Probed against what the security aggregators carry. Added, each replaying its real file:
+CERT/CC Vulnerability Notes (Atom, vulnerabilities group), the Microsoft Security Blog, the Rapid7
+blog, SentinelLABS, GreyNoise, the Wiz blog and the Huntress blog (RSS, news group; the last two
+carry their whole archive, so the first read is large). Probed and not added: Elastic Security
+Labs (8 MB, 306 posts, every read), Sophos News (redirects away from its feed), Google Cloud
+Threat Intelligence (HTML at the feed path).
+
 ### Lookups on request (not pulled)
 - **Check a domain** (`/scan/domain`, Scan 2.0 S3) asks this server's resolver about the name a
   visitor typed, asks Cloudflare's resolver over DoH (`cloudflare-dns.com`, already the network
