@@ -124,6 +124,11 @@ export function apiVuln(db: DatabaseSync, cveId: string) {
       advisories: fix.advisories.map((a) => ({ source: a.source, title: a.title, url: a.url, published: a.publishedAt })),
       kev: fix.kev,
       packages: fix.packages,
+      // The public exploit indexes and Microsoft's update (N5): the same rows the panel draws.
+      exploits: fix.exploits.map((e) => ({ source: e.source_id, ref: e.ref, title: e.title, url: e.url, published: e.published_at, verified: e.verified === 1 })),
+      microsoft: fix.microsoft
+        ? { release: fix.microsoft.release_id, severity: fix.microsoft.severity, exploited: fix.microsoft.exploited === 1, disclosed: fix.microsoft.disclosed === 1, exploitability: fix.microsoft.exploitability, fixes: fix.microsoft.fixes }
+        : null,
       mitigations: fix.mitigations.map((m) => ({ id: m.id, note: m.note, source: m.source, rules: m.rules.map((r) => ({ stig: r.stig.product, label: r.rule.label, title: r.rule.title, severity: r.rule.family })) })),
     },
   };
