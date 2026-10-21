@@ -169,7 +169,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile release" href="/"><small>Standard releases</small><b>${realReleases.length}</b><span>${realReleases[0] ? realReleases[0].title.split(":")[0] : releases.length ? `${releases.length} first load(s), no diffs yet` : "none in the window"}</span></a>
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
       <a class="tile ${ending.length ? "warn" : ""}" href="/fleet"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
-      <a class="tile ${pipeline.state === "ok" ? "" : pipeline.state}" href="/sources"><small>Pipeline</small><b>${pipeline.failing.length === 0 ? "ok" : pipeline.failing.length}</b><span>${pipelineSummary(pipeline)}</span></a>
+      <a class="tile${pipeline.state === "ok" ? "" : ` ${pipeline.state}`}" href="/sources"><small>Pipeline</small><b>${pipeline.failing.length === 0 ? "ok" : pipeline.failing.length}</b><span>${pipelineSummary(pipeline)}</span></a>
     </div>
     <div class="glance two" aria-label="At a glance">
       <section class="box"><h2><a href="/?kind=kev">Known exploited</a> <span class="count">by vendor, 30 days</span></h2>${donut(glance.vendors, { label: "Known exploited by vendor, 30 days" })}</section>
