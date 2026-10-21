@@ -69,6 +69,10 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* The sheet is tuned in px against a desktop monitor; a laptop's built-in display draws a CSS
+   pixel physically smaller, so at laptop widths the whole page steps up uniformly instead of
+   making the reader reach for ⌘+. Wider desktops and small windows stay 1:1. */
+@media (min-width: 1200px) and (max-width: 1800px) { html { zoom: 1.1; } }
 body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--sans); }
 a { color: var(--acc); }
 h1, h2, h3 { font-family: var(--display); font-weight: 500; letter-spacing: -0.005em; text-wrap: balance; margin: 0; }
@@ -127,7 +131,9 @@ h2 { font-size: 19px; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; margin-bottom: 40px; }
 @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
 .main { min-width: 0; }
-.side { display: grid; gap: 16px; min-width: 0; }
+/* minmax(0, 1fr): the implicit auto track would otherwise grow to the widest box's
+   min-content (the Sources list's nowrap names), pushing every box past the 320px rail. */
+.side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
 .box { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; }
 .box h2 { font-size: 16px; margin-bottom: 8px; }
 .box h2 a { color: inherit; text-decoration: none; }

@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "../adapters/index.ts";
 import type { Adapter, SourceRow } from "../adapters/types.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
+import { defaultRetention, formatBytes, storageReport } from "../housekeeping.ts";
 import { shortStamp } from "../time.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
@@ -81,11 +82,32 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
     </section>`);
   }
 
+  // What the instance is holding, and what the weekly pass let go (M13). Public, like the counts:
+  // the rules are the product's policy, and a disk figure says nothing a visitor should not see.
+  const storage = storageReport(db);
+  const last = storage.lastRun;
+  const storageSection = html`<section id="storage">
+      <h2>What this instance keeps <span class="count">${formatBytes(storage.databaseBytes)}</span></h2>
+      <p class="note">A standard's snapshot is the product: the exact bytes NIST, DISA or Microsoft served, kept for good, because they are the "before" in every diff. A news or vulnerability feed's bytes are a delivery: the items are normalised out of them on arrival, so each document's newest fetch is kept and the rest go after ${defaultRetention.feedSnapshotDays} days. Network scans are kept ${defaultRetention.networkScanDays} days and the alert log ${defaultRetention.alertDays}. Nothing deletes a timeline item, a CVE, a requirement, a change or an explanation.</p>
+      <div class="table-wrap"><table>
+        <tbody>
+          <tr><th>Database</th><td class="n">${formatBytes(storage.databaseBytes)}</td></tr>
+          <tr><th>Snapshots</th><td class="n">${storage.snapshots} (${formatBytes(storage.snapshotBytes)}), ${storage.keptSnapshots} kept as a standard's evidence</td></tr>
+          <tr><th>Article images</th><td class="n">${storage.imageBlobs}</td></tr>
+          <tr><th>Oldest snapshot held</th><td class="n">${storage.oldestSnapshotAt ? shortStamp(storage.oldestSnapshotAt) : "none yet"}</td></tr>
+          <tr><th>Last housekeeping</th><td class="n">${last
+            ? html`${shortStamp(last.ranAt)}: ${last.snapshotsDeleted} snapshot(s), ${last.blobsDeleted} blob(s) (${formatBytes(last.blobBytesFreed)}), ${last.networkScansDeleted} scan(s), ${last.alertsDeleted} alert(s)${last.vacuumed ? ", file rewritten" : ""}`
+            : html`<span class="state wait">not yet; the pass runs weekly</span>`}</td></tr>
+        </tbody>
+      </table></div>
+    </section>`;
+
   const content = html`
     <h1>Sources</h1>
     <p class="lede">Everything BaselineWatch reads, with how often and under what terms. Sources are fetched on their schedule; ${owner ? "Fetch now runs one immediately, and Turn off or Turn on takes a source out of or back into the schedule." : "the owner can fetch one immediately, or turn one off or on."}</p>
     ${notice ? html`<div class="notice ${notice.status}"><b>${notice.sourceId}</b>: ${notice.status}${notice.detail ? html` · ${notice.detail}` : ""}</div>` : ""}
-    ${tables}`;
+    ${tables}
+    ${storageSection}`;
 
   return page({ title: "Sources", active: "sources", content, meta: html`${rows.length} sources`, owner, open, look });
 }

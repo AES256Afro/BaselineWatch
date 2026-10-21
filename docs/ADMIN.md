@@ -19,6 +19,43 @@ Sizes to expect: a day of NVD modifications is 4,000 to 5,000 CVEs; a month is r
 of database. Standards snapshots are a few MB per release (the 800-53 catalog is 10 MB). EPSS is
 joined daily without being stored.
 
+## What is kept, what goes, and what to do when it grows
+
+One rule decides it: **a standard's snapshot is the product.** The Register's "before" a year
+from now is the exact bytes NIST, DISA or Microsoft served, so a snapshot belonging to a
+requirement-set or setting-set source is kept for good, and so is any snapshot a `documents` row
+points at, whatever its source. A news or vulnerability feed's bytes are the van, not the cargo:
+the items were normalised out of them on arrival.
+
+| What | Kept |
+| --- | --- |
+| Snapshots of a standard or baseline, and anything a document points at | For good. This is the evidence. |
+| Snapshots of a news feed, a vulnerability stream or a listing | Each document's newest fetch, plus 14 days of older ones. |
+| Blob files nothing references any more | Swept once they are a day old, so a fetch in flight is never caught. |
+| Network scan runs and their canary rows | 180 days. |
+| The alert log | 180 days. |
+| Timeline items, CVEs, requirements, changes, explanations, triage, decisions, digests | For good. Nothing deletes the record. |
+
+The pass runs itself **once a week** from the scheduler's ticks, after the fetches, and takes a
+moment: it sweeps what is past its window, frees the blobs nothing points at, runs `ANALYZE`,
+`PRAGMA optimize` and the FTS `optimize`, and rewrites the file with `VACUUM` when the free list
+has reached a tenth of it. What it did is on the Sources page under **What this instance keeps**
+(`/sources#storage`), in `/health` under `storage`, and as one line in the digest.
+
+**The budget.** A year of ordinary running is roughly 1 to 2 GB: the CVE table and its history
+are most of it, the standards snapshots a few hundred megabytes, article images the rest.
+
+- **At 1 GB**: nothing to do. Check `/sources#storage` once — the oldest snapshot held and the
+  blob count should both look like the policy above, and the last pass should be within the week.
+- **At 5 GB**: something is not being let go. Look in this order: the number of snapshots against
+  the number kept as evidence (a feed source miscatalogued as a requirement-set keeps everything);
+  article images, if a source has started attaching large pictures (`BW_NEWS_IMAGES=false` stops
+  that); then the CVE history, which is the one table with no window. Shortening a window is one
+  edit to `defaultRetention` in `src/housekeeping.ts`; the next pass applies it.
+- **The disk is full.** The database is in WAL mode, so a write fails rather than corrupting
+  anything. Free space, then run a pass by restarting the app (a pass runs when the marker in
+  `app_settings` is a week old — delete `housekeeping.last_run` to force one on the next tick).
+
 ## How a diff is computed
 
 1. **Snapshot.** The adapter names the versioned documents of a standard (the 800-53 catalog, the
@@ -54,7 +91,9 @@ In-process, one tick a minute. A source is due when its interval (hourly, daily,
 passed since its last fetch; a failed source is retried after thirty minutes; the first fetch of
 each source happens ten seconds after start. Requests to one host go one after another with a
 pause between (Reddit answers 429 to a burst); different hosts run three at a time. The digest
-runs on the same ticks at the configured local hour.
+runs on the same ticks at the configured local hour, the network scan once a local day when the
+owner has turned it on, and the housekeeping pass once a week — last on the tick, so it takes the
+write lock only after the fetches have finished.
 
 Switch the scheduler off with `BW_SCHEDULER=false` and run the same work from cron:
 
@@ -284,5 +323,8 @@ with `cosign download attestation`. GitHub's own provenance check is
   the matching `snapshots` row; the next fetch reloads it.
 - **Start over on vulnerabilities.** Delete the `nvd.cursor` row from `app_settings`; the next
   pull backfills `BW_NVD_BACKFILL_DAYS` again.
+- **The file has grown and the pass has not run.** `housekeeping.last_run` in `app_settings`
+  carries the date of the last one and `housekeeping.last_result` what it did; delete the first
+  and the next tick runs a pass.
 - **Lost the owner password.** Set a new `BW_ADMIN_PASSWORD`; changing `BW_SESSION_SECRET`
   signs every browser out.
