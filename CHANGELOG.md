@@ -2,6 +2,13 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.45.0 — 2026-10-21
+
+- **Seven more feeds**, from what the security aggregators carry: CERT/CC Vulnerability Notes
+  (vulnerabilities group); the Microsoft Security Blog, the Rapid7 blog, SentinelLABS, GreyNoise,
+  the Wiz blog and the Huntress blog (news). Each answers real RSS or Atom and replays its real
+  file in a test; the Sources page says which two carry their whole archive on the first read.
+
 ## 0.44.0 — 2026-10-21
 
 - **Saved searches.** The owner names a filtered list once — the Vulnerabilities table under a
