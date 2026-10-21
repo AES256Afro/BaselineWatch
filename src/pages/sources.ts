@@ -61,7 +61,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
     tables.push(html`<section id="${group}">
       <h2><a href="/?group=${group}">${groupLabel[group] ?? group}</a> <span class="count"><a href="#${group}">${list.length}</a></span></h2>
       <div class="table-wrap"><table><caption class="visually-hidden">Sources read by this instance</caption>
-        <th scope="col"ead><tr><th scope="col">Source</th><th scope="col">Format</th><th scope="col">Checked</th><th scope="col">Items</th><th scope="col">Last fetch</th><th scope="col">Licence</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
+        <thead><tr><th scope="col">Source</th><th scope="col">Format</th><th scope="col">Checked</th><th scope="col">Items</th><th scope="col">Last fetch</th><th scope="col">Licence</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
         <tbody>${list.map((s) => {
           const adapter = adapterFor(s);
           return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">

@@ -73,7 +73,7 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
       <h2><a href="/stigs/${platform.id}">${platform.label}</a> <span class="count"><a href="/stigs/${platform.id}">${stigs.length} STIG${stigs.length === 1 ? "" : "s"}</a></span></h2>
       <p class="small">${platform.blurb}</p>
       <div class="table-wrap"><table><caption class="visually-hidden">STIGs followed</caption>
-        <th scope="col"ead><tr><th scope="col">STIG</th><th scope="col">Version</th><th scope="col">Published</th><th scope="col">CAT I</th><th scope="col">CAT II</th><th scope="col">CAT III</th><th scope="col">Against the previous version</th></tr></thead>
+        <thead><tr><th scope="col">STIG</th><th scope="col">Version</th><th scope="col">Published</th><th scope="col">CAT I</th><th scope="col">CAT II</th><th scope="col">CAT III</th><th scope="col">Against the previous version</th></tr></thead>
         <tbody>${stigs.map((s) => {
           const summary = s.previous ? changeSummaryText(changeSummaryFor(db, s.latest.id)) : "first version loaded";
           const cat = (n: 1 | 2 | 3) => `/stigs/${platform.id}?stig=${encodeURIComponent(s.key)}&cat=${n}`;

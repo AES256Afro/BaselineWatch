@@ -20,10 +20,12 @@ afterAll(async () => {
 });
 
 /** Every table on the page: its caption and its header cells. */
-function tables(html: string): { caption: boolean; headersWithoutScope: number }[] {
+function tables(html: string): { caption: boolean; headersWithoutScope: number; headRow: boolean }[] {
   return [...html.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/g)].map((m) => ({
     caption: /<caption/.test(m[1]!),
     headersWithoutScope: [...m[1]!.matchAll(/<th(\s[^>]*)?>/g)].filter((th) => !/scope="(col|row)"/.test(th[1] ?? "")).length,
+    // Column headers belong in a thead; a table of row headers alone (the storage table) has none.
+    headRow: !/<th scope="col"/.test(m[1]!) || /<thead>[\s\S]*?<th scope="col"[\s\S]*?<\/thead>/.test(m[1]!),
   }));
 }
 
@@ -41,7 +43,10 @@ describe.each(pages)("%s", (path) => {
     for (const [i, t] of tables(html).entries()) {
       expect(t.caption, `${path} table ${i + 1} caption`).toBe(true);
       expect(t.headersWithoutScope, `${path} table ${i + 1} header scope`).toBe(0);
+      expect(t.headRow, `${path} table ${i + 1} has its header cells inside a thead`).toBe(true);
     }
+    // A tag that is not one: the mark of a header regex that once caught <thead> as <th>.
+    expect(html, "a well-formed thead").not.toMatch(/<th [^>]*ead>/);
     // Every input has a label: one wrapping it, one pointing at its id, or an aria-label of its own; hidden inputs need none.
     const outsideLabels = html.replace(/<label[^>]*>[\s\S]*?<\/label>/g, "");
     for (const input of outsideLabels.matchAll(/<input([^>]*)>/g)) {
