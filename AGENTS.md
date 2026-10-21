@@ -18,6 +18,13 @@ owner's sign-in (M7); installable from the BoxPilot catalog on BigBox. Article i
 passively at ingest (feed media, else og:image once per new item), live in the blob store and
 are served from `/img/<hash>`; nothing is ever hot-linked.
 
+The forward plan (2026-10-21) is the last part of `docs/PLAN.md`: a ledger that re-homes every
+open item of M10 to M12, then M13 to M19 ending at 1.0. Take M13 first — retention and a weekly
+housekeeping pass, a restore that has been done and dated, one release command that refuses a
+version the CHANGELOG does not carry, the pipeline on Today and in `/metrics` — because two of
+its items are losses, not gaps. A milestone is done when its "Done when" can be shown on
+cybercard.net, not when its dates are up.
+
 ## Conventions
 
 - **Stack**: Node ≥ 24 running TypeScript directly (type stripping, so `erasableSyntaxOnly`: no

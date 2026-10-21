@@ -1,6 +1,9 @@
 # BaselineWatch: plan and milestones
 
-*Written 2026-10-14. Owner: Chris (AES256Afro). M0 to M8 shipped by 2026-10-15; M9 planned 2026-10-17.*
+*Written 2026-10-14. Owner: Chris (AES256Afro). M0 to M9 shipped by 2026-10-17; M10 to M12 in part by
+2026-10-20. The forward plan, written 2026-10-21, is the last part of section 5: where it stands, a
+ledger of what every earlier milestone left open, and M13 to M19 ending at 1.0. Sections 6 to 8 are
+the original planning and stay as written.*
 
 BaselineWatch is one page that keeps a security practitioner in tune with the whole landscape:
 security news, new and changed CVEs, CISA advisories and the Known Exploited Vulnerabilities list,
@@ -29,6 +32,7 @@ to be installed from the BoxPilot catalog on BigBox.
 | 2026-10-19 | **M11 Platform engineering**: the fleet (each OS release, its support dates and the hardware it runs on) drives the test plans; templates carry success and failure branches and apply by release and hardware; areas are chosen per run; exports add LaTeX, Word and PDF; iOS, iPadOS, Android and the Samsung meeting rooms get template plans. NIST's PIV and platform-security publications join the Register. |
 | 2026-10-20 | **All standards in one place** (`/standards`, "All standards" in the Standards menu, 0.36.0): per operating system the current, new and draft standards from the sources already tracked; the NIST publications with CSRC's drafts open for comment; and NASA's cybersecurity document set. Chris's "CSET" is NASA OCIO's Cybersecurity Standards and Engineering Team: its ASCS standards are NASA-internal, so the public layer — the quarterly Cybersecurity Policy Reference on nasa.gov, which lists every NASA cybersecurity document with dates and status notes — joins the Register as source `nasa-cyber-ref` and is diffed like any standard. |
 | 2026-10-17 | **M9 Baselines** turns the tracked standards into guidance: STIG pages per operating system, a baseline builder per platform with exports for Jamf, Intune and Linux, test plans for a new OS release, platform alerts and a Fix panel. No generative AI in that path: every line derives from DISA, NIST, Microsoft and CISA text and refreshes with the sources. CIS stays upload-only. Survey of comparable tools in [COMPETITION.md](COMPETITION.md). |
+| 2026-10-21 | **The forward plan**: every open item of M10, M11 and M12 is re-homed in a ledger (end of section 5) and the work from here is M13 to M19, ending at a 1.0 a stranger can install and run for a week. M13 comes first because two of its items are losses rather than gaps: nothing in the code prunes anything (138 MB in five days), and three tags shipped with no changelog entry. A milestone is finished when its "Done when" can be shown on the live instance; the dates are the least load-bearing part of the plan, and each milestone names the thin slice that ships if a week slips. Multi-user waits for a second person to need it, and because that may never happen, 1.0 does not wait for multi-user: M18 is off the 1.0 path and ships as 1.1. The plan's claims about the code were verified against it on the day it was written. |
 
 ---
 
@@ -849,6 +853,311 @@ router; contacting any advertising or malware domain; any model in the path.
 
 ---
 
+**From here on: the forward plan, written 2026-10-21.** M0 to M12 above are the record of what
+shipped, in the order it shipped, each milestone's notes left as they were written. What follows is
+the plan from here — where it stands, a ledger that re-homes every item those milestones left open,
+M13 to M19 ending at 1.0, and the standing work that keeps the platform from rotting between them.
+
+### Where it stands, 2026-10-21
+
+Seven days took the product from an empty timeline to thirty-seven tags. The forward plan below
+is written against what is actually running, not against what the sections above hoped for.
+
+| Thing | Where it is on 2026-10-21 |
+| --- | --- |
+| Live | 0.37.0 at https://cybercard.net: BigBox, installed from the BoxPilot catalog since 2026-10-16, published through the Cloudflare Tunnel, strict CSP, public read with the owner's sign-in for writes. |
+| Data | 73 sources, 1,712 snapshots, 1,591 changes, 4,990 timeline items, 34,276 CVEs, 30 migrations, 138 MB (`/health`, 12:33 UTC). |
+| Code | About 19,000 lines of TypeScript in `src`, 24 adapters, 49 test files, 351 tests, no build step. |
+| Shipped whole | M0 to M9. |
+| Shipped in part | M10 (the keyless CVE backbone and the digest's health lines), M11 (through M11.3), M12 (through M12.3). |
+| Not started | M11.4 to M11.7, M12.4 to M12.7, multi-user. |
+
+Every claim in this section and the ledger below was re-read against the code on 2026-10-21,
+not taken from the milestone notes: `src/` and `scripts/` hold no match for `vacuum`,
+`retention`, `prune`, `orphan` or `pragma optimize`; `ci.yml` runs `typecheck`, `test` and
+`lint` and never `check:manifest`, and nothing in the repository runs on a schedule; the
+CHANGELOG's newest heading is 0.35.0 against a newest tag of v0.37.0; there is no `/metrics`
+route, no `robots.txt`, no sitemap, no canonical or OpenGraph tags, no dependency-update
+mechanism and no `LICENSE` file; `nvd-cve-history` is seeded by migration 0002 and disabled by
+0005. Where a ledger row below turned out to be smaller or larger than its milestone note
+assumed, the row says so.
+
+Two things the numbers say that no milestone note does. **Nothing prunes anything**: there is no
+retention rule, no orphan sweep, no `VACUUM` and no size budget anywhere in the code, and five
+days of operation is 138 MB. **The release ritual already loses steps**: 0.36.0, 0.36.1 and 0.37.0
+are tags and images with no CHANGELOG entry, and CI runs `typecheck`, `test` and `lint` but never
+`check:manifest`. Both are M13's first work, because they are losses rather than gaps.
+
+### The carry-over ledger
+
+Every open item from an earlier milestone, and the milestone that now owns it. Nothing is left
+orphaned in a "next, in order" list.
+
+| Open item | Left from | Where it goes |
+| --- | --- | --- |
+| Pipeline tile, an alert when a source has failed for a day, `/metrics`, running version against the newest tag | M10 | M13 |
+| A release in one command; the three tags with no changelog entry | M10 | M13 |
+| `check:feeds` and `check:manifest` not in CI, no template probe | M10 | M13 |
+| Retention, orphan blob sweep, the `/img/` and `/assets/` cache rules | M10 | M13 |
+| `nvd-cve-history` seeded with no adapter | M10 | M13, settled and nearly free: migration 0005 already disabled the row, so what is left is dropping it and saying in SOURCES.md that the history computed between sightings has been better than the endpoint |
+| Search in the masthead, the accessibility pass | M10 | M17 |
+| Router; firewall and exposure; device scripts; scan history and alerts | M12.4 to M12.7 | M14 |
+| Mine: the profile in a signed cookie, the shareable link, per-profile feeds | M11.4 | M15 |
+| CVEs by release; the Apple, Android and Samsung pages that have no feed | M11.5 | M15 |
+| Plan runs as data, runs compared, saved named plans, results in the API and MCP | M11.7 | M16 |
+| endoflife.date as a source, `check:templates`, the quarterly template review | M11.6 | M16 |
+| Saved named baseline profiles | M9.3 | M16, beside saved plans |
+| Multi-user with roles | M8 | M18, gated on a second person needing it |
+| Intune baselines | M8 | Standing backlog: blocked until Microsoft publishes a machine-readable baseline. DISA's Intune package already covers Windows. |
+| ComplianceAsCode adapter | M4 | Standing backlog: free diffs, little left to win now that STIG and mSCP are read directly. |
+
+### M13: The platform keeps itself (close M10)
+
+M10 named the right lesson and shipped half of it: `cvelist-v5` is the keyless coverage backbone
+with NVD as enrichment, so an NVD outage now costs enrichment lag and not coverage, and the digest
+names a failing source and a stale CVE pull. What it did not do is the half that shows in the
+numbers above. This milestone makes growth bounded, the backup proven, and a release one command.
+
+- **Growth with a policy, per kind.** Standards snapshots are the product and are kept for good;
+  vulnerability payloads, image blobs, scan rows and digests are not. A retention rule per source
+  kind, a weekly housekeeping pass in the scheduler that sweeps blobs no row references, runs
+  `ANALYZE`, `PRAGMA optimize` and the FTS `optimize`, and rewrites the file with `VACUUM INTO`
+  when free pages pass a threshold; the bytes, the blob count and the oldest kept snapshot on
+  `/health`, on the Sources page and in the digest; a budget in ADMIN.md saying what the owner
+  does at 1 GB and at 5 GB.
+- **A restore that has been done.** Restore BoxPilot's backup into a throwaway instance on the
+  box, compare its `/health` counts with the live one, and write the date, the steps and what
+  differed into DEPLOY.md, with a quarterly line in the digest so the next rehearsal is not a
+  year away.
+- **A release that cannot drift.** `npm run release <version>` bumps `package.json` and the
+  manifest, opens the CHANGELOG heading from the commits since the last tag, and refuses a version
+  the changelog does not carry; CI runs `npm run check` whole (so the manifest check runs there
+  too) and refuses a tag whose version disagrees with the manifest or the changelog; a post-deploy
+  step compares `/health` with the tag. The milestone's first commit writes the three missing
+  entries from their commits.
+- **The pipeline on screen.** A sixth Today tile — sources failing with the Sources page's
+  translation of the failure, days since the newest CVE change, the image-cache rate, and the
+  running version against the newest tag; an alert through the notifier when a source has failed
+  for more than a day, because a digest line was not enough the last time; `/metrics` in the plain
+  text format section 4 promised, so BoxPilot can draw it.
+- **Probes on a schedule, not by hand.** `check:feeds` and a new `check:templates` (every
+  template's cited source URL still answers) run nightly in CI as the one network job, and a
+  failure opens an issue; dead URLs and bot-blocked forms stop being something a person finds.
+  This is a second workflow, not a job in `ci.yml`: nothing in the repository runs on a
+  `schedule:` trigger today, and opening an issue needs `issues: write`, which the current
+  read-only `permissions` block does not grant.
+- **An upgrade that cannot strand the database.** Migrations are forward-only and each one runs
+  in its own transaction, so a failure leaves the file at the previous version — but nothing
+  proves the thirty migrations still apply to a *populated* database rather than an empty one,
+  and that is the only case that matters to someone upgrading. A test that applies every
+  migration to a fixture database holding rows of each kind; the restore rehearsal above done
+  from the running version to the next tag, not into an empty instance; and the rollback written
+  into DEPLOY.md — which image tag to go back to, and the rule that a database a newer version
+  has already migrated does not go back with it.
+- **Depends on**: nothing. **Thin slice**: retention and the release script — both stop a loss,
+  the rest stops an annoyance.
+- **Done when**: the database's size is a number the owner chose rather than one that happens, a
+  restore has been done and dated, a tag that forgets its changelog entry fails CI, and the next
+  stuck source is a notification within the day.
+
+### M14: The scan's other eyes (close M12.4 to M12.7)
+
+The browser check, the guides, the lists and the network check shipped in three days. The three
+rows this product exists to add — the router, the firewall from both sides, and what a device can
+report that a browser cannot — are still mockups. The data they need is already here: the CVE
+database, KEV, the Fix panel and the blocklists as Register sources.
+
+- **The router** (M12.4): gateway from the lease, the UPnP device description for model and
+  firmware, SSDP and the IGD `GetGenericPortMappingEntry` walk, TLS and the redirect on the admin
+  page, the DNS handed out by DHCP, and the firmware matched to the CVE database and KEV by vendor
+  and product, with `platforms.ts` gaining the network vendors' CPE names.
+- **Firewall and exposure** (M12.5): InternetDB for the public address once a day; DNS
+  interception by resolver identity against 8.8.8.8 and 1.1.1.1; bypass over plain 53 and DoH;
+  SMB and NetBIOS egress against a probe; IPv6 reachability through a small endpoint the public
+  instance runs, omitted when none is configured.
+- **Device scripts** (M12.6): `bw-scan.ps1` and the two `bw-scan.sh` generated from the Register's
+  lists at fetch time, served with their SHA-256 and their source viewable, and `/scan/devices`
+  taking a report back by paste or upload; MVT pointers for phones.
+- **History and alerts** (M12.7): every run stored as the facts observed and diffed against the
+  last; right away for KEV firmware, a new port mapping, a category that stops being sinkholed and
+  WAN remote management; the rest in the digest; a Today tile, the Console look, the phone layout.
+- **Depends on**: M13's housekeeping — scan runs are the first data with a natural expiry.
+  **Thin slice**: M12.4 and M12.7. A KEV'd router is the finding that justifies the area, and
+  history is what makes a daily run worth running.
+- **Done when**: turning UPnP off and adding the Pi-hole redirect rule turn two findings green on
+  the next run, a router whose firmware reaches KEV is a finding the same hour with the vendor
+  advisory beside it, and an unchanged run alerts nobody.
+
+### M15: Mine, a visitor's own stack (M11.4 and M11.5)
+
+The public site is read-only and anonymous, which is right, and so it shows everyone everything.
+A signed-cookie profile makes a teaching site personal without becoming an account system, and it
+is the shape multi-user upgrades later rather than replaces.
+
+- **The profile**: platforms, releases, hardware and test areas chosen on one page, kept in a
+  signed cookie — no account, no row, gone with the browser's cookies — filtering News,
+  Vulnerabilities, Today and the plan pages to "my stack"; "Make this a link" puts it in a URL to
+  bookmark or send; a per-profile Atom feed and an ntfy-shaped JSON feed so a reader or a phone
+  can take the alerts.
+- **CVEs by release**: NVD's CPE version ranges joined to the fleet's release ids, so a CVE page
+  says "affects Windows 11 24H2 and 25H2" or "iOS 26 only", the Platforms page counts the open
+  CVEs per release, and a profile alerts on its own releases.
+- **The releases with no feed** get small HTML adapters, like the SANS one: Apple's security
+  releases page, the Android Security Bulletins, Samsung's monthly SMR and its display advisories,
+  each a News item tagged with its platform and release.
+- **Depends on**: the fleet (shipped) and `platforms.ts`. **Thin slice**: the profile without the
+  feeds — the filter is the value, the feed is the convenience.
+- **Done when**: a stranger picks macOS 27 and Windows 11 26H2, gets a News page and a
+  Vulnerabilities page about their fleet, can bookmark the link, and a new Apple CVE names the
+  releases it affects.
+
+### M16: Evidence — runs, results, and a fleet file that is checked (M11.7 and M11.6)
+
+The plans export beautifully and prove nothing. A plan that ends in a signed PDF cannot answer
+"what broke moving to 26H2", which is the question the release axis was built for. And
+`data/platforms.yaml` is curated dates: a hand-kept file is wrong the quarter nobody re-reads it.
+
+- **A run as data**: pass, fail, not applicable, evidence, tester and date per step; runs compared
+  across releases; saved named plans and saved baseline profiles for the owner; the results in the
+  JSON API and the MCP tools, so an agent answers "did we test Platform SSO on Golden Gate yet"
+  without a person opening a page.
+- **The fleet file checked against a source**: endoflife.date as an adapter, diffed into the
+  Register like any standard, with `platforms.yaml` as the curated layer over it and a digest line
+  when the two disagree; M13's `check:templates` extended to name a template whose cited page
+  changed; a quarterly review line in the digest.
+- **Quality of life as it fits**: per-platform sections in the digest, a print stylesheet for the
+  plan page, "what changed in this template since you last exported it", Zoom Rooms and Webex
+  templates beside Teams Rooms.
+- **Depends on**: M13 (retention covers run history), M15 (the profile decides whose runs they
+  are). **Thin slice**: runs and the comparison. The fleet check can wait a quarter; a plan
+  without results cannot.
+- **Done when**: last month's macOS run and this month's sit side by side with what changed
+  between them, and the MCP server answers the Golden Gate question.
+
+### M17: The teaching site earns the name
+
+cybercard.net is the public mission and its audience is people learning. `/guide` shipped and is
+good; the rest of the site still assumes the reader knows what OSCAL, a CCI, CAT II, EPSS and a
+baseline are. The accessibility pass promised in M10 never happened, and eleven looks across two
+colour schemes is a lot of contrast to leave unchecked.
+
+- **Accessibility**: keyboard order and visible focus everywhere, the menus and the builder's
+  hundreds of checkboxes included; a screen-reader pass over News, the Register's redline and the
+  builder; contrast checked in every look and both schemes; captions and scopes on the tables;
+  titles and text alternatives on the inline SVG charts; a test that fails on a missing label.
+- **Reading**: the FTS5 search promoted into the masthead; a short explainer beside each area's
+  first heading, linking into `/guide`; `/guide` extended with CCIs, OSCAL, SSVC, the severity
+  scales and what a baseline is; and a plain "what this is not" line — it does not scan your
+  systems and it does not tell you whether you comply.
+- **Weight and cache**: a page-weight and render budget for the heaviest pages (the builder, a
+  release's change list, Vulnerabilities), measured and recorded; the Cloudflare cache rules for
+  `/img/<hash>` and `/assets/` written into DEPLOY.md; `robots.txt`, a sitemap and per-page
+  canonical and OpenGraph tags, which a public teaching site needs and this one has none of.
+- **Depends on**: nothing, but it is worth taking after M15 so the personalised pages are in the
+  pass. **Thin slice**: the accessibility pass and the masthead search.
+- **Done when**: every page is usable by keyboard and by a screen reader in both schemes and all
+  eleven looks, the heaviest page stays inside its budget, and a reader who has never heard of
+  OSCAL can follow an 800-53 diff from the News item to the control.
+
+### M18: More than one person (the last of M8)
+
+The one milestone to defer deliberately. There is one owner, and the public read-only site serves
+everyone else. Roles touch every write path, so the work starts when a second person needs to
+record a decision, not before.
+
+- Roles: owner, editor (triage, decisions, uploads) and reader (what the public sees, signed in
+  for their own profile); M15's profile upgraded into an account rather than a second shape;
+  per-user triage, decisions and watchlists; every write audited with who and when; one
+  owner-issued invitation link, no mail server.
+- **Depends on**: M15's profile shape. **Gate**: a real second user asks — and because that gate
+  may never open, this is the one milestone that is **not** a gate on 1.0: M19 ships with one
+  owner and the public read, and roles land afterwards as 1.1. **Thin slice**: editor and reader
+  with the owner creating the accounts.
+- **Done when**: two people sign in with different roles, the reader cannot write, the editor's
+  decisions carry their name, and the owner's existing data came across untouched.
+
+### M19: 1.0 — freeze, prove, document
+
+Thirty-seven releases in seven days is the right pace for building and the wrong pace for handing
+something over. 1.0 is the version a stranger installs from the catalog and runs for a week
+without the author.
+
+- **Scope freeze**: no new areas, and only the gates above closed — M13 to M17, not M18.
+- **A written threat model and a sweep against it**: the one page that carries a script, the two
+  upload paths (the CIS PDF and the branding mark) and the hand-rolled multipart reader, the
+  session and cookie handling, the per-route CSP, SSRF in every adapter that follows a URL out of
+  a document, the restricted-source path (that no URL confirms a name is on a list), and the
+  scan's outbound behaviour.
+- **Dependency and image hygiene**: a weekly dependency PR, which this repo has no mechanism for
+  today; the base image rebuilt on its own schedule; a verify step that checks the signature and
+  SBOM the tag builds already produce.
+- **A licence for this work.** There is no `LICENSE` file in the repository. The plan is careful
+  about every publisher's licence and silent about its own, which makes "a stranger installs 1.0
+  and runs it" a thing nobody is actually permitted to do. Choose it, add the file, name it in
+  README, `package.json` and the BoxPilot card, and keep it separate on screen from the
+  publishers' terms, which it does not cover.
+- **A fixture refresh across every adapter**, so the suite replays this quarter's real responses,
+  and the licence position of all 73 sources re-read and recorded in SOURCES.md.
+- **Docs that agree with each other**: README, AGENTS, ADMIN, DEPLOY, SOURCES and this plan each
+  checked against the code, and the BoxPilot card's copy refreshed.
+- **Done when**: a fresh BoxPilot install of 1.0 runs a week unattended — fetching, digesting,
+  alerting, no manual backfill, no stuck source that nothing reported — and every claim on the
+  public site is either sourced to a publisher or covered by a fixture test.
+
+### The order, and what the dates are worth
+
+```
+M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
+                  ├──► M15 Mine ──────► M16 evidence ───────┤
+                  └──► M17 teaching site ───────────────────┴──► M19 1.0
+
+                        M15 ──► M18 more than one person
+                                (gated on demand, off the 1.0 path, ships as 1.1)
+```
+
+| Milestone | Target | Size | Gate to the next |
+| --- | --- | --- | --- |
+| M13 The platform keeps itself | 2026-10-25 | 3 days | A dated restore, a bounded database, one release command. |
+| M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
+| M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |
+| M16 Evidence | 2026-11-11 | 4 days | Two runs of one plan compared, answerable through MCP. |
+| M17 The teaching site | 2026-11-16 | 3 days | Keyboard and screen reader across looks and schemes. |
+| M18 More than one person | when a second person needs it | 4 days | Roles enforced on every write. Not a gate on 1.0. |
+| M19 1.0 | 2026-11-30 | 5 days | The unattended week. |
+
+The dates assume the pace of the first week — a sub-milestone a day with an agent — and they are
+the least load-bearing part of this plan. **The gate matters and the date does not**: a milestone
+is finished when its "Done when" can be shown on the live instance, not when its week is up. If a
+week slips, the thin slice named in each milestone is what ships; the rest moves to the next pass.
+
+**Definition of done, from here on, for every milestone**: `npm run check` green; a fixture test
+replaying a real response for every new source; a CHANGELOG entry written before the tag; the
+document that describes the area updated in the same commit; the tag deployed and `/health`
+showing it; and the milestone's own "Done when" demonstrated on cybercard.net rather than only in
+a test.
+
+### Standing commitments
+
+The plan above is work that ends. This is the work that does not, and it is what keeps the
+platform from quietly rotting between milestones.
+
+| When | What |
+| --- | --- |
+| Every release | The changelog entry before the tag, the manifest version matched, `npm run check` green, `/health` compared with the tag after the deploy. |
+| Weekly | The housekeeping pass (orphan blobs, optimize, size); the feed and template probes read; the digest read as a user rather than as a developer. |
+| Monthly | Fixtures refreshed for the listing adapters (DISA, SCT, CSRC, NASA, the blocklists); dependencies bumped; the image rebuilt. |
+| Quarterly | The restore rehearsal; the licence review of every source; the DISA quarterly drop followed end to end, from the listing through the diff and the explanation to the builder and the plan; an accessibility spot-check; every template's cited page re-read. |
+
+### Still out of scope
+
+Unchanged from M9 and M12, and worth repeating because each one gets asked for: scanning or
+assessing a host; per-host state beyond a report a person pastes in; remediation scripts beyond
+the publisher's own words; any model in the ingest, diff or explain path, except the optional
+summary that is labelled and sits beside the quoted rationale; ticketing integrations;
+multi-tenant hosting; and redistributing CIS or any licence-restricted source.
+
+---
+
 ## 6. Three ways to build it
 
 ### Path A: hard but quality (10 to 14 weeks to M7)
@@ -928,6 +1237,13 @@ first half of Path A's.
 | Diff noise (whitespace, reflowed PDFs) | Normalise whitespace and hyphenation before diff; diff on structured fields first, free text last. |
 | "Why" is missing from the publisher | Store an explicit `no stated rationale` marker; never fill the gap with a generated guess unlabelled. |
 | Scope creep into a GRC tool | Non-goals list in section 1; triage is states and notes, not a workflow engine. |
+| Data outgrows the box (138 MB in the first five days, and nothing prunes) | M13: a retention rule per source kind, a weekly sweep of blobs nothing references, the size on `/health` and in the digest, and a written budget for 1 GB and 5 GB. |
+| The release ritual loses a step (0.36.0, 0.36.1 and 0.37.0 are tags with no changelog entry) | M13: one release command that refuses a version the changelog does not carry, and CI that runs `npm run check` whole and checks the tag against the manifest. |
+| A backup nobody has ever restored | M13: a dated rehearsal written into DEPLOY.md and a quarterly line in the digest. |
+| Fixtures rot as publishers change their markup | Nightly `check:feeds` and `check:templates` in CI, a monthly fixture refresh, and a listing parse failure that alerts. |
+| No `LICENSE` file, while the catalog card invites installs | M19: pick one, add it, name it in README, `package.json` and the card; the publishers' terms stay separate on screen. |
+| A migration that fails on a populated database during an upgrade | Each migration runs in its own transaction, so the file stays at the previous version; M13 adds a test that applies all of them to a database holding rows of each kind, and a written rollback in DEPLOY.md. |
+| One maintainer at agent pace | Every milestone names a thin slice; `npm run check` and the fixtures are the handover; the ledger says where each open item went, so nothing survives only in someone's memory. |
 
 ---
 
