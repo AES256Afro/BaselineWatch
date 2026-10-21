@@ -1317,3 +1317,215 @@ first half of Path A's.
 3. Three adapters end to end: BleepingComputer RSS, CISA KEV JSON, NIST OSCAL 800-53 catalog.
 4. Load the 800-53 Rel 5.1.1 and 5.2.0 catalogs and get the first real diff on screen.
 5. Pick the mockup direction (see `docs/mockups/`) and set the tokens.
+
+---
+
+## 9. The night of 2026-10-21: plan for review
+
+*Written 16:30 CDT for the run to 03:00. Submitted before anything below is started.*
+
+### Where it stands
+
+0.39.0 is published and BoxPilot 1.207.0 is being cut as this is written; cybercard.net runs
+0.38.0 until the two clicks on BigBox. 53 test files, 409 tests, 34 migrations, 73 sources
+(72 after 0034), about 20,500 lines of TypeScript in `src` and 9,300 in `test`. The biggest
+files are `src/app.ts` (1,027 lines of routes), `src/pages/scan-guide.ts` (910 lines of prose
+held as code), `src/vulns.ts` (742). Ten modules carry their own copy of `parseJson`. Four
+SQL statements are built by interpolation (all of them `IN (?, ?, …)` placeholders, to be
+confirmed by the sweep). Every `src` module but `pages/scan-network.ts` is named by a test.
+Dev dependencies are a major behind (eslint 10, vitest 5, typescript 7); runtime dependencies
+are current.
+
+### Ground rules for the night
+
+- One branch and one pull request per milestone, CI green before merge, every change tested
+  the way the repo tests things (a fixture that replays a real response for every source).
+- Nothing loosens: a test that asserts the old behaviour is rewritten to assert the new one,
+  never deleted; a finding that is real is fixed, a finding that is not is written down as not.
+- The rules that are the product hold: no model anywhere in the path, no outbound call to a
+  destination that is not a declared source, no personal host data in a commit, CIS and
+  restricted content never leave the box.
+- Each sweep ends in a table in its pull request: what was looked at, what was found, what was
+  done, what was left and why.
+- A morning report at the end: every pull request, every release, every finding, in one place.
+
+### N1: 0.39.0 to live — in flight
+
+BoxPilot 1.207.0 is cutting; then System → update, then the card → 0.39.0, then `/health` says
+0.39.0 with 34 migrations and Today has the Pipeline tile.
+
+### N2: Security sweep — first, because the site is public
+
+The threat model is a read-only public site with one owner's sign-in and a LAN-resident server
+that makes outbound calls. What the sweep reads, with the question each answers:
+
+| Surface | Question |
+| --- | --- |
+| Every `POST` | Behind `requireOwner` and the same-origin guard? Body limits? |
+| Cookies | `HttpOnly`, `SameSite`, `Secure` behind TLS, the signing secret never derived from anything guessable |
+| The CSP per route | `script-src 'none'` everywhere but `/scan`; nothing inline crept in with today's pages |
+| `/img/:hash`, `/scan/scripts/:file`, `/branding/marks/:id` | Path parameters validated before they touch the filesystem |
+| Uploads: the CIS PDF, the branding mark, the multipart reader | Size limits, magic numbers, a hostile part name, a truncated body |
+| Adapters that follow a URL from a document (og:image, listing pages, `nasa-cyber-ref`'s links) | Do they refuse private addresses — this server sits on the LAN, so an SSRF reaches it |
+| The network scan's owner-saved dashboard URL | Same question, the other way: the owner's own input reaching the LAN is intended, but the response must never be rendered |
+| The MCP endpoint and the JSON API | Read-only, restricted sources withheld, query parameters bounded |
+| The login throttle | Per address, not bypassable by a header |
+| SQL | Every statement a prepared statement; the four interpolations are placeholders only |
+| Secrets | `grep` the rendered pages and the logs for the NVD key and the notifier URL |
+| Dependencies | `npm audit`; the dev-tool majors judged, not blindly taken |
+
+Done when every row has an answer in the pull request and every real finding is fixed.
+
+### N3: Bug sweep and codebase audit
+
+Every route walked against a copy of the development database, as a visitor and as the owner,
+at phone and desktop width, with the server log watched for anything thrown; every filter and
+query parameter fed its edge (empty, absurd, the wrong type, too long); every empty state
+drawn with an empty database; every error path drawn (a source that throws, a PDF that is not
+one). The audit: unused exports, dead routes, modules without a test, the migration gap at 0014
+(understood or documented), fixture freshness against what the sources serve today, and the
+dependency majors with what each would break.
+
+### N4: Readability sweep
+
+Mechanical and covered by the suite: one `src/json.ts` for the ten `parseJson` copies;
+`src/app.ts` split into route modules by area (`routes/standards.ts`, `routes/scan.ts`, …) with
+`app.ts` left as the assembly; `scan-guide.ts`'s 900 lines of prose moved to data the page
+reads; a file header on every module saying what it is and why, in the voice the rest already
+use; functions over a hundred lines named in the pull request with what would split them.
+
+### N5: Sources
+
+Each is one adapter, a fixture that replays a real response, a row in a migration, a line in
+`index.ts`, and a `docs/SOURCES.md` entry with its licence. In order of worth:
+
+| Source | What it gives | Format | Licence |
+| --- | --- | --- | --- |
+| Apple security releases | every macOS, iOS, iPadOS release with its CVEs, tagged to the fleet's releases (M15's own item) | HTML | Apple, quoted |
+| Android Security Bulletins, Samsung SMR | the same for the mobile fleet | HTML | Google, Samsung |
+| Mozilla Foundation Security Advisories | Firefox and Thunderbird CVEs | HTML/JSON index | MPL |
+| MSRC Security Update Guide | Patch Tuesday as data, each CVE with its KB and product, so a monthly roll-up page can exist | CVRF/JSON API | Microsoft, attribution |
+| Zero Day Initiative advisories | published and *upcoming* advisories, which no feed here has | RSS | ZDI |
+| Adobe, Oracle CPU, VMware/Broadcom, Atlassian, Kubernetes, HashiCorp | vendor PSIRTs for a corporate fleet | RSS/HTML | each vendor |
+| AWS, Azure, GCP security bulletins | cloud, which the Wire has none of | RSS | each |
+| **Exploit availability**: Exploit-DB's index, Metasploit's module list, nomi-sec's PoC-in-GitHub, VulnCheck's community KEV | "a public exploit exists" on every CVE that has one — the single most-asked question in triage | CSV, JSON, GitHub | GPL (index only), BSD, MIT, VulnCheck terms — **decision 4** |
+| Tor exit list, IEEE OUI | for Scan: whether a visitor arrives from Tor; a device's maker from its MAC | text | Tor Project, IEEE |
+| endoflife.date | M16's own item: the fleet file checked against a source | JSON API | MIT |
+
+Not sources but computed from what is already held: **trending CVEs**, the CVE ids mentioned
+across the News items of the last seven days, ranked by how many sources name them.
+
+### N6: Heavy quality of life
+
+What the comparable aggregators do that this one does not, each cheap against what is held:
+
+- **The instance as a feed.** `/feed.xml` of notable items, a feed per source and per platform,
+  OPML export of every followed source. Most people read aggregators in a reader.
+- **Exploit and trending chips** on every CVE row and page, from N5's sources and the News.
+- **A CVE's history drawn** as a timeline from `vuln_changes`, not a table.
+- **Story clustering**: the same story from four sources is one row with a "4 sources" chip.
+- **Watchlist from an SBOM**: paste a CycloneDX or SPDX file, every package is watched.
+- **KEV due dates as a calendar** (`.ics`), and a Patch Tuesday roll-up page from MSRC.
+- **Masthead search** across News, CVEs, controls (M17's item), with saved searches as feeds.
+- **Owner's digest by email** over SMTP, beside ntfy and the webhook.
+
+### N7: Scan 2.0 — its own milestone
+
+What the public checks and the home-network tools actually test, and what this product can
+honestly take from each. The rule from M12 stands as the frame: a page tests one browser, the
+LAN-resident server tests the network, and nothing here contacts an advertising or malware
+domain or signs in to anything. What is *new* in this list is marked, and where it would cross
+a line M12 drew, it is a decision below, not a change made quietly.
+
+| Who | What they test | Here |
+| --- | --- | --- |
+| EFF Cover Your Tracks, BrowserLeaks | fingerprinting surface, WebRTC and IPv6 leaks, canvas, fonts | **S1** |
+| Cloudflare 1.1.1.1/help, internet.nl connection test | Secure DNS (DoH/DoT), DNSSEC validation, TLS 1.3, ECH, IPv6 | **S1**, **S2** |
+| d3ward adblock test, canyoublockit | hundreds of ad and tracker hosts tried, scored by category | **S1** (from the Register's canary sets, resolve-only) |
+| dnsleaktest, ipleak | which resolver really answers, in a zone they control | needs a zone this product controls — **decision 6** |
+| internet.nl, MXToolbox, Hardenize | a *domain's* posture: DNSSEC, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, CAA, HSTS, `security.txt` | **S3** — lookups only, the best fit for a teaching site |
+| GRC ShieldsUP, Shodan | the public address from outside | **S4**: InternetDB lookup, never a scan from here |
+| F-Secure Router Checker, RouterSecurity.org | DNS hijack, router admin exposure, UPnP, WAN management, firmware age | **S4** (M12.4 and 12.5 as planned) |
+| Fing, Bitdefender Home Scanner | every device on the LAN, its maker, open ports | **S5**: passive discovery only — **decision 7** |
+| crt.sh, Facebook CT | certificates issued for your domain, which is how a lookalike is caught | **S3**, CT watch |
+| Have I Been Pwned, Firefox Monitor | breached accounts | not here: a public site taking email addresses is the wrong thing to build |
+| Mobile Verification Toolkit | stalkerware on a phone | pointers only, as M12.6 said |
+
+- **S1 Browser check 2.0**: what the page can see of its own browser — fingerprinting surface
+  (canvas, audio, fonts, screen, a stable-hash estimate), WebRTC local-address leak, IPv6
+  reachability, Secure DNS result, Global Privacy Control and Do Not Track as sent, third-party
+  cookie behaviour, referrer policy behaviour, TLS version and HTTP version as the server saw
+  them (from the edge's headers), and the ad and tracker coverage test grown from twenty baits
+  to the Register's canary sets. Everything drawn in the one script, nothing uploaded.
+- **S2 What this page learned about you**: the server's side of S1 on one honest panel — the
+  address and network it saw, whether that address is a Tor exit (from the Tor exit list as a
+  source), the headers the browser volunteered. A teaching page, not a tracker: nothing stored.
+- **S3 Check a domain**: the owner's (and any visitor's) domain read by DNS and HTTPS alone —
+  DNSSEC, SPF, DKIM selectors on request, DMARC and its policy, MTA-STS, TLS-RPT, CAA, HSTS and
+  preload status, `security.txt`, and a certificate-transparency watch for the owner's domains
+  as a declared source so a new certificate is a Wire item. Lookups only; no port is touched.
+- **S4 Router and exposure**: M12.4 and M12.5 as written — gateway, UPnP description and
+  mappings, admin page on TLS, DHCP-handed DNS, firmware against KEV; InternetDB for the public
+  address; DNS interception and bypass; IPv6 reachability.
+- **S5 Devices seen**: passive mDNS and SSDP listening and the router's UPnP table, with the
+  maker from the IEEE OUI list as a source, so the owner sees what is on the LAN without a
+  packet sent to it; the device scripts (M12.6) generated from the lists, `/scan/devices`
+  taking a report back.
+- **S6 History, alerts, Today**: M12.7 — every run stored and diffed, alerts only on change, a
+  tile, the phone layout.
+
+Done when a visitor on the public site learns six true things about their own browser and
+connection, the owner's domain shows its email and TLS posture with each record quoted, a
+router on the KEV list is a finding the hour CISA adds it, and nothing in the area has sent a
+packet to a host that did not ask for one.
+
+### N8: Usability and accessibility
+
+M17's remainder: keyboard order and visible focus on every page, a screen-reader pass over
+News, the redline and the builder, contrast in both schemes and both looks, every table with a
+caption and scopes, the SVG charts with text alternatives, a test that fails on a missing label;
+the mobile layout of Today's new blocks and the menus; `robots.txt`, a sitemap, canonical and
+OpenGraph tags; the empty states and error messages read as a newcomer.
+
+### Order, and where the cuts fall
+
+N1 first (minutes). Then **N2 → N3 → N4** before any new code, because a sweep after a night of
+additions audits the additions instead of the product (about three hours). Then **N5 and N6**
+interleaved, each source landing with the chip or page that uses it (about four hours). Then
+**N7** (about two hours for S1 to S4; S5 and S6 if the night allows). **N8** last, so it covers
+everything built (about an hour). If time runs short the cut falls between N6 and N7, and the
+Scan milestone is written up with what was found in the survey rather than half-built.
+
+### Decisions — taken 16:40, "all that you suggest"
+
+1. Merge each milestone's pull request when CI is green. 2. Release at checkpoints and take
+each to live through BoxPilot. 3. The full readability refactor. 4. Exploit-DB, Metasploit and
+PoC-in-GitHub, keyless; VulnCheck behind an optional key the owner may set. 5. The BoxPilot
+self-update click is mine. 6. No DNS zone: the resolver-identity tests stay with AdGuard's and
+NextDNS's self-checks. 7. Passive device discovery, owner-only and opt-in like the network
+check. 8. Dependency majors wait for a quieter day. 9. Nothing off limits.
+
+### Decisions as put for review
+
+1. **Merging.** Merge each milestone's pull request myself when CI is green, or leave every one
+   open for the morning? (Merging as I go means later milestones build on earlier ones.)
+2. **Releasing.** Cut 0.40.0 and 0.41.0 at checkpoints and take them to live through BoxPilot
+   as today, cut one release at the end, or tag nothing and leave it on `main`?
+3. **Refactor appetite.** N4 moves a thousand lines of `app.ts` into route modules and nine
+   hundred lines of prose into data. The suite covers it, but it is churn in the history. Yes,
+   or only the `parseJson` and file-header parts?
+4. **Exploit sources.** Exploit-DB's CSV index and Metasploit's module list are the gold
+   standard and say nothing but "a public exploit exists"; nomi-sec's PoC-in-GitHub is a
+   community list; VulnCheck's community KEV needs an API key and has terms. Which of the four?
+5. **The BoxPilot self-update click.** Still mine to press, each time?
+6. **A DNS zone for the leak test.** A real "which resolver answered" test needs a name this
+   product controls and a way to see the query. That is a zone and an authoritative endpoint,
+   which this product does not have; skip it, or set it up on cybercard.net?
+7. **Passive device discovery.** S5 listens for mDNS and SSDP on the LAN and reads the router's
+   UPnP table — no packet sent to any device, but it is a list of what is in your house, on an
+   instance whose public side anyone can read. Owner-only and opt-in like the network check, or
+   not built?
+8. **Dependency majors.** eslint 10, vitest 5, typescript 7 — take them tonight, with whatever
+   each breaks fixed, or leave them for a quieter day?
+9. **Anything off limits** overnight: schema changes, deleting data, touching BoxPilot, anything
+   on BigBox beyond the two update clicks?
