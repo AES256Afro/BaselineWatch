@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { HealthReport } from "../src/app.ts";
 import { productVersion } from "../src/version.ts";
-import { startTestApp, type TestApp } from "./helpers.ts";
+import { formPost, startTestApp, type TestApp } from "./helpers.ts";
 
 let app: TestApp;
 
@@ -131,5 +131,19 @@ describe("pages", () => {
     // The path is echoed escaped: the raw tag from the URL never reaches the page.
     expect(text).not.toContain("/nope/<b>");
     expect(text).toContain("&lt;b&gt;");
+  });
+});
+
+describe("a request that is the client's fault", () => {
+  it("is answered with its own status, not a 500 and a stack trace in the log", async () => {
+    const app = await startTestApp();
+    try {
+      // 16 kB is the limit for every route but the builder's; a note this long is the client's doing.
+      const big = await formPost(app.base, "/triage", { kind: "item", id: "1", state: "new", note: "x".repeat(40_000) });
+      expect(big.status).toBe(413);
+      expect(await big.text()).toContain("larger than this page accepts");
+    } finally {
+      await app.close();
+    }
   });
 });

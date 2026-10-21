@@ -1018,7 +1018,15 @@ export function createApp(ctx: AppContext): Express {
     res.status(404).type("html").send(renderNotFound(shown, lookOf(req)));
   });
 
-  app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((error: Error & { status?: number; statusCode?: number; type?: string }, _req: Request, res: Response, _next: NextFunction) => {
+    // The body parser throws for a request that is the client's fault — too large for the route's
+    // limit, or not the encoding it claims — with the status it means. That is an answer to send,
+    // not a failure to log: a 20 kB triage note is a 413, and the log stays for real faults.
+    const status = error.status ?? error.statusCode;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      res.status(status).type("text").send(status === 413 ? "That request is larger than this page accepts." : "That request could not be read.");
+      return;
+    }
     console.error(error);
     res.status(500).type("text").send("Something went wrong on the server. The log has the detail.");
   });
