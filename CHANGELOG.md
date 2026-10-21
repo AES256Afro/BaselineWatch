@@ -2,6 +2,48 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.39.0 — 2026-10-21
+
+- **The pipeline says when it has stopped.** The digest has named a failing source since 0.38.0,
+  but nothing knew *how long* one had been failing: the status column says a source is failing
+  now, never since when, so a feed that answers 403 for an hour looked exactly like an API key
+  that died on Tuesday — which is how three days of missing CVEs once went unnoticed. A failure
+  episode is now a thing this instance keeps (migration 0033): when it began, and whether it has
+  been reported. From it, a sixth tile on **Today**, green while every source answers, amber while
+  something is failing, red once a failure passes a day or the CVE stream passes 36 hours, saying
+  the worst thing true in the fewest words — "NVD CVE API 2.0 has failed for 50 h". And **one
+  notification per episode** through the notifier already configured, after a day, never once a
+  tick: a feed that recovers by itself is not news, and a source still dead tomorrow has already
+  been reported. A source that answers clears both marks, so the next outage speaks again. The
+  digest now says how long each failing source has been failing, so it and the tile tell the same
+  story.
+- **`/metrics`.** The figures a dashboard can scrape, in Prometheus's text format: rows and bytes
+  held, seconds since the newest CVE change, how long each failing source has been failing, what
+  the weekly housekeeping pass last let go, and the pipeline's own verdict. It is gated like
+  `/health`, so an instance closed to readers tells a monitor the running version and nothing
+  else. No new queries: the tile, the digest and `/metrics` read the same rows and cannot
+  disagree.
+- **Is a newer version published?** The Sources page says what this instance runs, and the
+  owner's **Check now** asks GitHub once and keeps the answer until the next press. Nothing polls
+  for it: this instance makes no outbound call except to its declared sources and the configured
+  notifier, and this product's own releases are neither. A check that gets no answer forgets the
+  old version rather than showing a stale one, and the Today tile mentions a newer release only
+  while nothing worse is true — a stuck source outranks an upgrade.
+- **A nightly probe, so a dead source is found before a release ships it.** Once a night, a
+  workflow asks every seeded feed whether it still answers XML and every page a test-plan step
+  cites whether it still answers at all, and keeps one issue open with the result rather than
+  opening one a night. Its first run found three cited pages that had moved: the macOS Security
+  Compliance Project's FileVault rule, Microsoft's brokered-authentication guide (now "How to
+  enable cross-app SSO on Android using MSAL") and Ubuntu's UEFI Secure Boot page (now in the
+  security documentation). Each successor was read before it was written down, because a step
+  citing a page that does not say the same thing is worse than one whose citation is known to be
+  stale.
+- **One source fewer.** `nvd-cve-history` is gone (migration 0034). It was registered on the
+  first day and switched off a day later, because this product computes a CVE's history by
+  diffing successive sightings of it, which costs no extra request and catches changes that
+  endpoint does not report. It has had no adapter for a month, so the Sources page was carrying a
+  source that would never run; `docs/SOURCES.md` records the endpoint and why it is unused.
+
 ## 0.38.0 — 2026-10-21
 
 - **The menus are built from the ladder, and the ladder is written down.** Four words do most of
