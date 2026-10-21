@@ -21,6 +21,9 @@ export type Area =
   | "patch-tuesday"
   | "feeds"
   | "search"
+  | "scan-domain"
+  | "scan-network"
+  | "scan-guide"
   | "triage"
   | "atlas"
   | "watchlist"
@@ -53,7 +56,10 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   vulnerabilities: { label: "Vulnerabilities", path: "/vulnerabilities", blurb: "every CVE, scored and marked: KEV, EPSS, exploits" },
   "patch-tuesday": { label: "Patch Tuesday", path: "/vulnerabilities/microsoft", blurb: "Microsoft's monthly release, by update and product" },
   feeds: { label: "Feeds", path: "/feeds", blurb: "RSS, OPML and a KEV calendar for your reader" },
-  scan: { label: "Scan", path: "/scan" },
+  scan: { label: "This browser", path: "/scan", blurb: "ads, trackers and filtering DNS, seen from this tab" },
+  "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
+  "scan-network": { label: "Your network", path: "/scan/network", blurb: "the LAN resolver, from this server, daily" },
+  "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
   triage: { label: "Triage", path: "/triage", blurb: "what needs a decision" },
   watchlist: { label: "Watchlist", path: "/watchlist", blurb: "the products and platforms you run" },
   digest: { label: "Digest", path: "/digest", blurb: "the daily or weekly summary, and alerts" },
@@ -69,6 +75,7 @@ const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
 const standardsTools: Area[] = ["stigs", "register", "atlas"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
+const scanGroup: Area[] = ["scan", "scan-domain", "scan-network", "scan-guide"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
@@ -169,7 +176,12 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
         <div class="menu wide">
           ${vulnGroup.map((a) => entry(a))}
         </div>
-      </details>${link("scan")}
+      </details><details class="group${scanGroup.includes(active) ? " on" : ""}">
+        <summary>Scan</summary>
+        <div class="menu wide">
+          ${scanGroup.map((a) => entry(a))}
+        </div>
+      </details>
     </nav>
     <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"></form>
     <div class="meta">${meta ?? ""}</div>

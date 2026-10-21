@@ -172,6 +172,10 @@ export function renderScan({ owner, open, look, probeOrigin, network }: ScanPage
         <p class="small">Advertising networks deliver code to a device the way any other content arrives, and that path has been used to deliver spyware: Citizen Lab documented an ad-tech pipeline that placed Candiru's spyware through targeted ads. Blocking ad delivery closes one road in; it is not proof of safety, and ads served from the same domain as the content are not blocked by any of this. <a href="/scan/why">The whole argument, with the sources</a>.</p>
       </div>
       <div class="box">
+        <h2>Check a domain</h2>
+        <p class="small">Your own domain's mail, DNS and web posture — SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA, HSTS, the certificate, <code>security.txt</code> — read by lookups from this server, each record quoted: <a href="/scan/domain">check a domain</a>.</p>
+      </div>
+      <div class="box">
         <h2>Do it by hand</h2>
         <p class="small">Everything this area checks, done yourself, one platform at a time, with the command that proves each step and the vendor page it follows: <a href="/scan/guide/windows">Windows</a> · <a href="/scan/guide/macos">macOS</a> · <a href="/scan/guide/linux">Linux</a> · <a href="/scan/guide/ios">iPhone and iPad</a> · <a href="/scan/guide/android">Android</a>. The <a href="/scan/guide">guide index</a> carries the two scripts that do the computer checks in one go, with their checksums.</p>
       </div>
