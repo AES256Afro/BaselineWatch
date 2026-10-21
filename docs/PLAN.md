@@ -1001,11 +1001,14 @@ sources and the configured notifier, and this product's own releases are neither
 polls: the Sources page carries an owner-only **Check now**, the answer is kept until the next
 press, and a check that gets no answer forgets the old version rather than showing a stale one.
 
-*Found on the way*: the template probe's first run named three cited pages that no longer answer.
-The mSCP FileVault citation was repointed at the branch its siblings already use; Microsoft's
-brokered-auth page and Ubuntu's Secure Boot wiki page have no unambiguous successor, so they are
-recorded rather than guessed at — a step that cites a page which may not say the same thing is
-worse than one whose citation is known to be stale.
+*Found on the way*: the template probe's first run named three cited pages that no longer answer,
+which is the whole point of having it. The mSCP FileVault citation was repointed at the branch its
+siblings already use; Microsoft's brokered-auth page became "How to enable cross-app SSO on
+Android using MSAL", which was read to confirm it still covers the broker apps the step's failure
+text names; and Ubuntu's Secure Boot wiki page became the security documentation's UEFI Secure
+Boot page, which carries the shim and MOK enrolment the step checks. Each replacement was read
+before it was written down — a step citing a page that does not say the same thing is worse than
+one whose citation is known to be stale — and the probe now reports every cited page answering.
 
 ### M14: The scan's other eyes (close M12.4 to M12.7)
 

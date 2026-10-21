@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { rehearsalLine, storageLine, storageReport } from "./housekeeping.ts";
+import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 
 /**
@@ -97,8 +98,11 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const open = (["affects", "reviewing", "new"] as TriageState[]).map((s) => `${counts[s]} ${stateLabel[s].toLowerCase()}`).join(", ");
   const due = db.prepare("SELECT COUNT(*) AS n FROM triage WHERE due_at IS NOT NULL AND due_at <= ? AND state NOT IN ('done', 'dismissed')").get(day(to)) as { n: number };
   lines.push(`Triage: ${open}${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`);
-  const failing = db.prepare("SELECT name FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { name: string }[];
-  if (failing.length) lines.push(`Sources failing: ${failing.map((f) => f.name).join(", ")} ${baseUrl}/sources`);
+  // How long, not just which: an hour is a passing 403, a day is something to act on (M13.2).
+  const failing = failingSources(db, new Date(to));
+  if (failing.length) {
+    lines.push(`Sources failing: ${failing.map((f) => (f.hours === null ? f.name : `${f.name} (${f.hours} h)`)).join(", ")} ${baseUrl}/sources`);
+  }
   lines.push(storageLine(storageReport(db), baseUrl));
   const rehearsal = rehearsalLine(db, new Date(to), baseUrl);
   if (rehearsal) lines.push(rehearsal);
