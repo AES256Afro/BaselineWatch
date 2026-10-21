@@ -2,6 +2,27 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.42.0 — 2026-10-21
+
+- **Router and exposure** (Scan 2.0, S4), on the network page, owner-only and opt-in: once a day,
+  the public address from Cloudflare's trace, what Shodan's InternetDB last saw of it (ports,
+  hostnames, software, CVEs), the router's front page over plain HTTP and TLS (does it redirect;
+  its title and Server header, never its contents), and the vendor and model the owner typed
+  matched against the CVE table and the KEV. The last two runs are kept; a new open port, a new
+  KEV match or a changed address is **one notification**, an unchanged run silence.
+- **Certificate transparency** for the owner's domains: crt.sh read once a day for each domain
+  listed on the domain check (migration 0039); a certificate issued since the last read is one
+  News item — a lookalike's, or one you did not expect — and the domain page lists the newest.
+- **endoflife.date** for the releases the fleet runs (migration 0038): the vendor's end beside
+  the owner's date on the Fleet page, Windows per edition, with the latest build; a release inside
+  ninety days of its end, or past it within the month, is one News item.
+- **The API** carries the public exploit rows and Microsoft's update under `fix` on
+  `/api/v1/vulns/<id>`, the same rows the Fix panel draws.
+- **Fixed**: the usability sweep's header-scope pass had turned every `<thead>` into a
+  `<th scope="col"ead>` tag on ten tables (0.41.0); browsers recovered by implying a body row, so
+  header cells read as data. Put back, and the accessibility test now insists on a real `thead`.
+- The plan closes the night with a ledger of what landed, what was left and why.
+
 ## 0.41.0 — 2026-10-21
 
 - **Scan 2.0 — check a domain** (`/scan/domain`). Type a domain and the server reads it the way
