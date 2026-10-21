@@ -27,7 +27,16 @@ backs up and restores it like any other app on the box.
 ### 1. The code and the image (from the development machine)
 
 ```bash
-git push -u origin main && git tag v0.17.0 && git push origin v0.17.0
+npm run release -- 0.38.0
+```
+
+That bumps `package.json`, the lock and `boxpilot/baselinewatch.yaml`, and opens the CHANGELOG
+entry with the commit subjects since the last tag. Write them up as prose and delete the `TODO`
+line: `npm run check` (and CI) refuse a tree whose newest entry is missing, still a draft, or for
+a different version than the one everything else carries. Then:
+
+```bash
+git commit -am "Release 0.38.0: what it is" && git tag v0.38.0 && git push origin main --tags
 ```
 
 CI (`.github/workflows/ci.yml`) runs the checks, boots the container and on a tag pushes
@@ -134,8 +143,13 @@ catalog: BoxPilot's daily catalog-updates workflow sees the new tag and opens th
 request against `catalog/baselinewatch.yaml` (or bump `image.reference` and `image.version`
 there by hand), the next BoxPilot release carries it, BigBox takes that release from the System
 page, and BaselineWatch's card then offers the newer image. BoxPilot pulls it and recreates the
-container; the data directory carries over and migrations run at start. Check with
-`https://cybercard.net/health`, which reports the running version.
+container; the data directory carries over and migrations run at start. Check it from the
+development machine, which asks the address what it is running and compares that with the version
+this tree released:
+
+```bash
+npm run release -- --verify https://cybercard.net
+```
 
 After a version that adds a standard, the standard loads itself on its first scheduled fetch; to
 load it at once, run the `backfill` command above with the source id. Package advisories start
@@ -148,6 +162,66 @@ Compose project, `.env` (with the generated secrets) and `data/`, and the card o
 backup for restore, which stops the app, puts the volume back and starts it. BoxPilot's off-box
 copies (backup drive, SSH, cloud) carry these archives with everything else. A machine snapshot
 reinstalls the app with its settings but not its data; the app backup is what restores the data.
+
+## The restore rehearsal
+
+A backup nobody has restored is a hope, not a backup. Once a quarter, bring one up beside the
+live instance and compare what it holds. Nothing is taken offline: the copy runs on its own port
+against a scratch directory, and the live container is not touched.
+
+1. **Take the newest archive.** BoxPilot's app backups are under
+   `/var/lib/boxpilot-managed/backups/catalog`; the app's card lists them with their dates. Copy
+   the newest one somewhere with room (an archive is about the size of `data/`).
+
+   ```bash
+   sudo ls -lt /var/lib/boxpilot-managed/backups/catalog | head
+   ```
+
+2. **Unpack it into a scratch directory**, and find the `data/` directory inside it. The archive
+   also carries `compose.yaml` and `.env`; the rehearsal needs neither, and `.env` holds the
+   instance's secrets, so delete the scratch copy when you are done.
+
+   ```bash
+   mkdir -p ~/restore-test && tar -xzf <archive> -C ~/restore-test && find ~/restore-test -maxdepth 3 -name baselinewatch.db
+   ```
+
+3. **Run the copy on a spare port**, with the scheduler off so it fetches nothing and sends no
+   alerts, and with no notifier and no keys from the live instance:
+
+   ```bash
+   docker run --rm -d --name bw-restore -p 8795:8790 \
+     -e BW_SCHEDULER=false -e BW_PUBLIC_READ=true \
+     -v ~/restore-test/<path to data>:/data \
+     ghcr.io/aes256afro/baselinewatch:<the live version>
+   ```
+
+4. **Compare it with the live instance.** From the development machine:
+
+   ```bash
+   node --disable-warning=ExperimentalWarning scripts/health-diff.ts https://cybercard.net http://<bigbox>:8795
+   ```
+
+   It prints the counts side by side and gives a verdict: the restored copy is a backup, so every
+   count may be behind by up to a tenth, it may never be ahead, and it must carry the same number
+   of migrations — fewer means the wrong volume was restored. Open the copy in a browser too and
+   look at one release's diff: a database that answers `/health` but has lost its blobs still
+   shows a change list with nothing behind it.
+
+5. **Stop the copy and delete the scratch directory** (`docker rm -f bw-restore`), then record the
+   rehearsal, which is what stops the digest asking:
+
+   ```bash
+   npm run rehearsal -- today "restored 2026-10-21 archive on bigbox, health-diff clean"
+   ```
+
+   Run it against the live instance's database (`BW_DATA_DIR`), or on the box:
+   `docker exec bp-baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts rehearsal today "..."`.
+   Until one is recorded, and again ninety days after the last, the digest carries a line asking
+   for it.
+
+| Rehearsal | Result |
+| --- | --- |
+| *(none recorded yet — the first one goes here, with what differed)* | |
 
 ## Checks
 
