@@ -8,7 +8,7 @@ steps:
     expect: FileVault turns on at the first sign-in; the user cannot defer past the configured limit.
     source:
       title: macOS Security Compliance Project, FileVault supplemental
-      url: https://github.com/usnistgov/macos_security/blob/main/rules/supplemental/supplemental_filevault.yaml
+      url: https://github.com/usnistgov/macos_security/blob/tahoe/rules/supplemental/supplemental_filevault.yaml
   - do: Run fdesetup status and confirm the volume is encrypted; then confirm the MDM's inventory record for the device shows a personal recovery key.
     expect: FileVault is On; the MDM holds a valid personal recovery key for the device.
     source:

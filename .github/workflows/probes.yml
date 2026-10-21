@@ -1,0 +1,75 @@
+# The sources this product reads are other people's pages, and they move without telling anyone:
+# a feed URL dies (Ars, Sophos), a form starts refusing robots (Reddit's JSON listing), a vendor
+# reorganises the documentation a test-plan step cites. None of that fails a build, so it is found
+# when a person happens to look — which is how a dead feed shipped in a release once already.
+#
+# This asks every seeded feed and every cited page whether it still answers, once a night, and
+# keeps one issue open with the answer. It is the only job here that touches the network, which is
+# why it is not part of `npm run check`.
+name: Probes
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: probes
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Feeds still answer XML
+        id: feeds
+        continue-on-error: true
+        run: npm run check:feeds 2>&1 | tee feeds.txt
+
+      - name: Cited pages still answer
+        id: templates
+        continue-on-error: true
+        run: npm run check:templates 2>&1 | tee templates.txt
+
+      # One issue, updated, rather than one a night: a publisher that rate-limits CI for a week
+      # would otherwise open seven, and seven issues about the same thing get read as noise.
+      - name: Report what stopped answering
+        if: steps.feeds.outcome == 'failure' || steps.templates.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "The nightly probe found sources that no longer answer. Full output: $RUN"
+            echo
+            echo '### Feeds'
+            echo '```'
+            tail -40 feeds.txt 2>/dev/null || echo "(did not run)"
+            echo '```'
+            echo '### Cited pages'
+            echo '```'
+            tail -40 templates.txt 2>/dev/null || echo "(did not run)"
+            echo '```'
+          } > body.md
+          existing=$(gh issue list --label probe --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file body.md
+          else
+            gh label create probe --description "A nightly probe found a source that stopped answering" --color D4C5F9 2>/dev/null || true
+            gh issue create --title "Probe: a source stopped answering" --label probe --body-file body.md
+          fi
+
+      - name: Fail the run when something is dead
+        if: steps.feeds.outcome == 'failure' || steps.templates.outcome == 'failure'
+        run: exit 1
