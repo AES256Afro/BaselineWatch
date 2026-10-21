@@ -43,6 +43,17 @@ export function mountScan(r: RouteContext): void {
     res.type("html").send(renderScan({ ...who(req, res), probeOrigin: config.probeOrigin, network: networkSummary(db), seen: whatWasSeen(db, facts(req)), ...extra }));
   };
   app.get("/scan", (req, res) => scanPage(req, res));
+  // What this server received from a request the page's script made (S1): the Referer as it
+  // arrived, and the transport. Readable cross-origin so a second origin can answer the same.
+  app.get("/scan/echo", (req, res) => {
+    const f = facts(req);
+    const ip = (f.ip ?? "").replace(/^::ffff:/, "");
+    const one = (v: string | string[] | undefined): string | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Vary", "Origin");
+    res.json({ referer: one(req.headers.referer), origin: one(req.headers.origin), secFetchSite: one(req.headers["sec-fetch-site"]), family: isIP(ip) === 6 ? "IPv6" : isIP(ip) === 4 ? "IPv4" : null, httpVersion: f.httpVersion, protocol: f.protocol, tls: f.tlsProtocol });
+  });
   // One InternetDB lookup, of a public address, when the visitor asks; a visitor may ask about
   // their own address a few times, not about the internet.
   const lookedUp = new Map<string, number[]>();
@@ -201,5 +212,6 @@ export function mountScan(r: RouteContext): void {
  */
 function scanPolicy(probeOrigin: string | null): string {
   const img = probeOrigin ? `'self' data: ${probeOrigin}` : "'self' data:";
-  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src 'self' ${resolverCheckSources.join(" ")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
+  const connect = probeOrigin ? `'self' ${probeOrigin} ${resolverCheckSources.join(" ")}` : `'self' ${resolverCheckSources.join(" ")}`;
+  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src ${img}; font-src 'self'; connect-src ${connect}; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 }
