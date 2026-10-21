@@ -116,7 +116,7 @@ function osSection(db: DatabaseSync, fleet: Fleet, now: Date): Html {
     return html`<section class="std" id="os-${p.id}">
       <div class="std-head"><b><a href="#os-${p.id}">${p.label}</a></b><span class="small"><a href="/baselines/${p.id}">builder</a> · <a href="/baselines/${p.id}/tests">test plan</a></span></div>
       <div class="table-wrap"><table><caption class="visually-hidden">Standards tracked, by release</caption>
-        <th scope="col"ead><tr><th scope="col">Release</th><th scope="col">Standard</th><th scope="col">Current version</th><th scope="col">Published</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
+        <thead><tr><th scope="col">Release</th><th scope="col">Standard</th><th scope="col">Current version</th><th scope="col">Published</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </section>`;
@@ -133,7 +133,7 @@ function nistSection(db: DatabaseSync, now: Date): Html {
     <div class="std-head"><b><a href="#nist">NIST publications</a></b><span class="small">${latest.length} tracked · <a href="/register">Register</a></span></div>
     ${latest.length
       ? html`<div class="table-wrap"><table><caption class="visually-hidden">Publications tracked</caption>
-          <th scope="col"ead><tr><th scope="col">Publication</th><th scope="col">Set</th><th scope="col">Current version</th><th scope="col">Published</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
+          <thead><tr><th scope="col">Publication</th><th scope="col">Set</th><th scope="col">Current version</th><th scope="col">Published</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
           <tbody>${latest.map(
             (d) => html`<tr>
               <td><a href="/standards/${d.source_id}/${d.id}">${d.title ?? d.document_key}</a></td>
@@ -195,7 +195,7 @@ function nasaSection(db: DatabaseSync): Html {
   // this instance's page for the row, with its history once editions diff.
   const table = (rows: Row[]): Html =>
     html`<div class="table-wrap"><table><caption class="visually-hidden">Documents in this reference</caption>
-      <th scope="col"ead><tr><th scope="col">Document</th><th scope="col">Title</th><th scope="col">Dates</th><th scope="col">Status note</th></tr></thead>
+      <thead><tr><th scope="col">Document</th><th scope="col">Title</th><th scope="col">Dates</th><th scope="col">Status note</th></tr></thead>
       <tbody>${rows.map(
         (r) => html`<tr>
           <td>${r.url ? html`<a href="${r.url}" ${newTab}>${r.label}</a>` : html`<a href="/standards/nasa-cyber-ref/${doc.id}/${encodeURIComponent(r.ref)}">${r.label}</a>`}</td>

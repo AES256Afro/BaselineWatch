@@ -191,7 +191,7 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
   )}</div>`;
 
   const table = html`<div class="table-wrap"><table><caption class="visually-hidden">Canary names and their answers</caption>
-    <th scope="col"ead><tr><th scope="col">Canary</th><th scope="col">List</th><th scope="col">Answer</th><th scope="col">Means</th></tr></thead>
+    <thead><tr><th scope="col">Canary</th><th scope="col">List</th><th scope="col">Answer</th><th scope="col">Means</th></tr></thead>
     <tbody>${rows.map((r) => html`<tr><td class="mono">${r.name}</td><td>${r.category}</td><td class="mono">${r.answer ?? ""}</td><td>${meaning(r)}</td></tr>`)}</tbody>
   </table></div>
   <p class="small">All ${rows.length} canaries of the last run, with the list each came from and the answer verbatim. The upstream the resolver forwards to is read from the control name, so a resolver forwarding to an unfiltered upstream is caught.</p>`;
