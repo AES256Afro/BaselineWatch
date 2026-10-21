@@ -60,5 +60,5 @@ export function renderFeeds({ baseUrl, owner, open, look }: { baseUrl: string; o
         </section>
       </aside>
     </div>`;
-  return page({ title: "Feeds", active: "feeds", content, owner, open, look });
+  return page({ title: "Feeds", active: "feeds", content, owner, open, look, canonical: "/feeds", description: "RSS for the news and the CVE table under any filter, every source as OPML, and CISA KEV due dates as a calendar." });
 }

@@ -60,8 +60,8 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
   for (const [group, list] of groups) {
     tables.push(html`<section id="${group}">
       <h2><a href="/?group=${group}">${groupLabel[group] ?? group}</a> <span class="count"><a href="#${group}">${list.length}</a></span></h2>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Source</th><th>Format</th><th>Checked</th><th>Items</th><th>Last fetch</th><th>Licence</th>${owner ? html`<th></th>` : ""}</tr></thead>
+      <div class="table-wrap"><table><caption class="visually-hidden">Sources read by this instance</caption>
+        <th scope="col"ead><tr><th scope="col">Source</th><th scope="col">Format</th><th scope="col">Checked</th><th scope="col">Items</th><th scope="col">Last fetch</th><th scope="col">Licence</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
         <tbody>${list.map((s) => {
           const adapter = adapterFor(s);
           return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">
@@ -93,13 +93,13 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
   const storageSection = html`<section id="storage">
       <h2>What this instance keeps <span class="count">${formatBytes(storage.databaseBytes)}</span></h2>
       <p class="note">A standard's snapshot is the product: the exact bytes NIST, DISA or Microsoft served, kept for good, because they are the "before" in every diff. A news or vulnerability feed's bytes are a delivery: the items are normalised out of them on arrival, so each document's newest fetch is kept and the rest go after ${defaultRetention.feedSnapshotDays} days. Network scans are kept ${defaultRetention.networkScanDays} days and the alert log ${defaultRetention.alertDays}. Nothing deletes a timeline item, a CVE, a requirement, a change or an explanation.</p>
-      <div class="table-wrap"><table>
+      <div class="table-wrap"><table><caption class="visually-hidden">What this instance keeps</caption>
         <tbody>
-          <tr><th>Database</th><td class="n">${formatBytes(storage.databaseBytes)}</td></tr>
-          <tr><th>Snapshots</th><td class="n">${storage.snapshots} (${formatBytes(storage.snapshotBytes)}), ${storage.keptSnapshots} kept as a standard's evidence</td></tr>
-          <tr><th>Article images</th><td class="n">${storage.imageBlobs}</td></tr>
-          <tr><th>Oldest snapshot held</th><td class="n">${storage.oldestSnapshotAt ? shortStamp(storage.oldestSnapshotAt) : "none yet"}</td></tr>
-          <tr><th>Version</th><td class="n">${productVersion} running${release.version
+          <tr><th scope="row">Database</th><td class="n">${formatBytes(storage.databaseBytes)}</td></tr>
+          <tr><th scope="row">Snapshots</th><td class="n">${storage.snapshots} (${formatBytes(storage.snapshotBytes)}), ${storage.keptSnapshots} kept as a standard's evidence</td></tr>
+          <tr><th scope="row">Article images</th><td class="n">${storage.imageBlobs}</td></tr>
+          <tr><th scope="row">Oldest snapshot held</th><td class="n">${storage.oldestSnapshotAt ? shortStamp(storage.oldestSnapshotAt) : "none yet"}</td></tr>
+          <tr><th scope="row">Version</th><td class="n">${productVersion} running${release.version
             ? release.newer
               ? html` · <b>${release.version} is published</b> (checked ${shortStamp(release.checkedAt)})`
               : html` · the newest release, checked ${shortStamp(release.checkedAt)}`
@@ -108,7 +108,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
               : html` · <span class="state wait">never checked</span>`}${owner
             ? html` <form method="post" action="/sources/check-version" class="inline"><button type="submit">Check now</button></form>`
             : ""}</td></tr>
-          <tr><th>Last housekeeping</th><td class="n">${last
+          <tr><th scope="row">Last housekeeping</th><td class="n">${last
             ? html`${shortStamp(last.ranAt)}: ${last.snapshotsDeleted} snapshot(s), ${last.blobsDeleted} blob(s) (${formatBytes(last.blobBytesFreed)}), ${last.networkScansDeleted} scan(s), ${last.alertsDeleted} alert(s)${last.vacuumed ? ", file rewritten" : ""}`
             : html`<span class="state wait">not yet; the pass runs weekly</span>`}</td></tr>
         </tbody>

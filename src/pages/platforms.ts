@@ -53,8 +53,8 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
       <p class="std-note">${p.blurb}</p>
       <div class="std-meta">${isBuilderPlatform(p.id) ? html`<a href="/baselines/${p.id}">Baseline builder</a>` : ""}<a href="/baselines/${p.id}/tests">Test plan</a></div>
       ${releases.length
-        ? html`<div class="table-wrap"><table class="fleet">
-            <thead><tr><th>Release</th><th>Status</th><th>Released</th><th>Support</th><th>Runs on</th><th>In the Register</th><th></th></tr></thead>
+        ? html`<div class="table-wrap"><table class="fleet"><caption class="visually-hidden">The fleet's releases</caption>
+            <th scope="col"ead><tr><th scope="col">Release</th><th scope="col">Status</th><th scope="col">Released</th><th scope="col">Support</th><th scope="col">Runs on</th><th scope="col">In the Register</th><th scope="col"></th></tr></thead>
             <tbody>${releases.map(
               (r) => html`<tr class="${r.status}">
                 <td><b>${r.label}</b>${r.models ? html`<div class="note">${r.models}</div>` : ""}${r.notes.length ? html`<ul class="note">${r.notes.map((n) => html`<li>${n}</li>`)}</ul>` : ""}</td>

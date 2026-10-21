@@ -148,8 +148,8 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     </div>
     ${rows.length === 0
       ? html`<div class="empty"><b>${total === 0 && stats.total === 0 ? "No CVEs yet." : "No CVEs match."}</b><p>${stats.total === 0 ? "The NVD source pulls every CVE modified in the last days on its first run; the owner can start it now from the Sources page." : "Loosen a filter or search differently."}</p></div>`
-      : html`<div class="table-wrap"><table class="vulns">
-          <thead><tr><th>CVE</th><th>CVSS</th><th>EPSS</th><th>Vendor, product</th><th>Description</th><th>Modified</th></tr></thead>
+      : html`<div class="table-wrap"><table class="vulns"><caption class="visually-hidden">CVEs</caption>
+          <th scope="col"ead><tr><th scope="col">CVE</th><th scope="col">CVSS</th><th scope="col">EPSS</th><th scope="col">Vendor, product</th><th scope="col">Description</th><th scope="col">Modified</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table></div>
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
@@ -157,7 +157,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
 
   const feedQuery = query(filters, { offset: 0 });
   const feed = { href: `/vulnerabilities/feed.xml${feedQuery.slice("/vulnerabilities".length)}`, title: "Vulnerabilities" };
-  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look, feed });
+  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look, feed, canonical: "/vulnerabilities", description: "Every CVE as NVD, CISA and FIRST describe it: CVSS, EPSS, KEV, public exploits, and the fix published for each." });
 }
 
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
@@ -309,5 +309,5 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
       </aside>
     </div>`;
 
-  return page({ title: row.cve_id, active: "vulnerabilities", content, owner, open, look });
+  return page({ title: row.cve_id, active: "vulnerabilities", content, owner, open, look, canonical: `/vulnerabilities/${row.cve_id}`, description: `${row.cve_id}: ${(row.description ?? "no description yet").slice(0, 150)}` });
 }

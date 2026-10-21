@@ -255,5 +255,5 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
 
   const feedQuery = query(filters, { before: undefined, unread: false });
   const feed = { href: feedQuery === "/" ? "/feed.xml" : `/feed.xml${feedQuery.slice(1)}`, title: "News" };
-  return page({ title: "News", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, strip: registerStrip(db, now), look, feed });
+  return page({ title: "News", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, strip: registerStrip(db, now), look, feed, canonical: "/", description: "Security news, vendor advisories and the CVEs that matter, in one timeline, with what to do about each." });
 }
