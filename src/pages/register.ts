@@ -90,7 +90,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
     ([key, docs]) => html`<section class="box" id="${anchor(key)}">
       <h2><a href="/standards/${sourceId}/${docs[0]!.id}/browse">${keyLabel(key)}</a> <span class="count"><a href="#${anchor(key)}">${docs.length} version${docs.length === 1 ? "" : "s"}</a></span></h2>
       <div class="table-wrap"><table><caption class="visually-hidden">Versions of this standard</caption>
-        <th scope="col"ead><tr><th scope="col">Version</th><th scope="col">Published</th><th scope="col">Requirements</th><th scope="col">Against the previous version</th><th scope="col">Loaded</th></tr></thead>
+        <thead><tr><th scope="col">Version</th><th scope="col">Published</th><th scope="col">Requirements</th><th scope="col">Against the previous version</th><th scope="col">Loaded</th></tr></thead>
         <tbody>${docs.map((d) => {
           const summary = d.previous_document_id ? changeSummaryText(changeSummaryFor(db, d.id)) : "first version loaded";
           return html`<tr>
@@ -180,7 +180,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
       ? html`<div class="filters"><a class="${!family ? "on" : ""}" href="${link()}">All</a>${families.map((f) => html`<a class="${family === f ? "on" : ""}" href="${link(f)}">${f}</a>`)}</div>`
       : ""}
     <div class="table-wrap"><table class="browse"><caption class="visually-hidden">Controls in this version</caption>
-      <th scope="col"ead><tr><th scope="col">Ref</th><th scope="col">Title</th><th scope="col">Text</th><th scope="col"></th></tr></thead>
+      <thead><tr><th scope="col">Ref</th><th scope="col">Title</th><th scope="col">Text</th><th scope="col"></th></tr></thead>
       <tbody>${rows.slice(0, 400).map(
         (r) => html`<tr class="${r.status === "withdrawn" ? "off" : ""}${changed.has(r.ref) ? " changed" : ""}">
           <td class="id"><a href="/standards/${sourceId}/${documentId}/${r.ref}"><b>${r.label}</b></a>${r.parentRef ? html`<div class="note">in ${r.parentRef.toUpperCase()}</div>` : ""}</td>
@@ -277,11 +277,11 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
           : ""}
         ${substantive.length
           ? html`<section class="box" id="substantive"><h2><a href="#substantive">Controls added, removed or revised${inWords}</a> <span class="count"><a href="#substantive">${substantive.length}</a></span></h2>
-              <div class="table-wrap"><table><caption class="visually-hidden">Controls added, removed or revised</caption><th scope="col"ead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
+              <div class="table-wrap"><table><caption class="visually-hidden">Controls added, removed or revised</caption><thead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">Change</th></tr></thead><tbody>${substantive.map(row)}</tbody></table></div></section>`
           : ""}
         ${editorial.length
           ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
-              <div class="table-wrap"><table><caption class="visually-hidden">Discussion, related-control and assessment updates</caption><th scope="col"ead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
+              <div class="table-wrap"><table><caption class="visually-hidden">Discussion, related-control and assessment updates</caption><thead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
           : ""}`}
     <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 

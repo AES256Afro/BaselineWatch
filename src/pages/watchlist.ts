@@ -30,7 +30,7 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
         ${entries.length === 0
           ? html`<div class="empty"><b>Nothing watched yet.</b><p>Add a vendor or product name (<code>fortinet</code>, <code>fortios</code>), a vendor:product pair (<code>cisco:ios_xe</code>), a CPE prefix (<code>cpe:2.3:o:microsoft:windows_server_2025</code>), or a keyword that should match a description.</p></div>`
           : html`<div class="table-wrap"><table><caption class="visually-hidden">Watchlist entries</caption>
-              <th scope="col"ead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">CVEs matched</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
+              <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">CVEs matched</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
               <tbody>${entries.map(
                 (e) => html`<tr>
                   <td>${kindLabel[e.kind] ?? e.kind}</td>

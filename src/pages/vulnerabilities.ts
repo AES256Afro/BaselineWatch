@@ -149,7 +149,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     ${rows.length === 0
       ? html`<div class="empty"><b>${total === 0 && stats.total === 0 ? "No CVEs yet." : "No CVEs match."}</b><p>${stats.total === 0 ? "The NVD source pulls every CVE modified in the last days on its first run; the owner can start it now from the Sources page." : "Loosen a filter or search differently."}</p></div>`
       : html`<div class="table-wrap"><table class="vulns"><caption class="visually-hidden">CVEs</caption>
-          <th scope="col"ead><tr><th scope="col">CVE</th><th scope="col">CVSS</th><th scope="col">EPSS</th><th scope="col">Vendor, product</th><th scope="col">Description</th><th scope="col">Modified</th></tr></thead>
+          <thead><tr><th scope="col">CVE</th><th scope="col">CVSS</th><th scope="col">EPSS</th><th scope="col">Vendor, product</th><th scope="col">Description</th><th scope="col">Modified</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table></div>
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
