@@ -1,3 +1,4 @@
+import { httpGet } from "./http.ts";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { createApp } from "./app.ts";
@@ -5,6 +6,7 @@ import { loadConfig } from "./config.ts";
 import { migrate, openDatabase } from "./db.ts";
 import { maybeRunHousekeeping } from "./housekeeping.ts";
 import { listSources, pullSettings } from "./ingest.ts";
+import { maybeRunExposureScan } from "./exposure.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
@@ -52,7 +54,12 @@ if (config.scheduler) {
     baseUrl: config.baseUrl,
     digest: { period: config.digest, hour: config.digestHour, timeZone: config.timeZone },
     // The LAN scan (M12.3) runs itself daily once the owner has turned it on at /scan/network.
-    network: () => maybeRunNetworkScan(db, { timeZone: config.timeZone, baseUrl: config.baseUrl, transport: parseNotifyUrl(config.notifyUrl), log: (line) => console.log(line) }),
+    network: async () => {
+      const daily = { timeZone: config.timeZone, baseUrl: config.baseUrl, transport: parseNotifyUrl(config.notifyUrl), log: (line: string) => console.log(line) };
+      const network = await maybeRunNetworkScan(db, daily);
+      const exposure = await maybeRunExposureScan(db, { ...daily, http: httpGet });
+      return network || exposure;
+    },
     // The weekly pass (M13): what is past its keep window goes, the store loses the blobs nothing
     // points at any more, and the file is rewritten when it has gone loose.
     housekeeping: () => maybeRunHousekeeping(db, config.dataDir, { log: (line) => console.log(line) }),

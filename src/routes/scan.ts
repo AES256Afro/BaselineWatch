@@ -2,6 +2,7 @@ import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type Domain
 import { httpGet } from "../http.ts";
 import { renderScanDomain } from "../pages/scan-domain.ts";
 import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
+import { exposureKeys, runExposureScan, validRouterUrl } from "../exposure.ts";
 import { privateAddress } from "../http.ts";
 import { isIP } from "node:net";
 import type { TLSSocket } from "node:tls";
@@ -136,6 +137,28 @@ export function mountScan(r: RouteContext): void {
     const counted = (db.prepare("SELECT COUNT(*) AS n FROM net_canaries WHERE scan_id = ?").get(scan.id) as { n: number }).n;
     res.append("Set-Cookie", flashHeader(scan.error && counted === 0 ? `The run found nothing to resolve: ${scan.error}.` : `Ran: ${counted} canaries resolved through ${scan.resolver ?? "no resolver"}.`, secureCookies(req)));
     res.redirect(303, "/scan/network");
+  });
+  // Router and exposure (S4): the owner's switches, and a run on demand.
+  app.post("/scan/exposure/settings", requireOwner, (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const at = now().toISOString();
+    const on = str(body.on) === "1";
+    setSetting(db, exposureKeys.enabled, on ? "1" : null, at);
+    if (str(body.keep) !== "1") {
+      const typed = str(body.router_url, 200);
+      const router = typed ? validRouterUrl(typed) : null;
+      if (typed && !router) return res.status(400).type("text").send("The router address is http or https to a private address or a LAN name, with no credentials.");
+      setSetting(db, exposureKeys.routerUrl, router, at);
+      setSetting(db, exposureKeys.vendor, str(body.vendor, 60)?.toLowerCase().replace(/[^a-z0-9._-]/g, "") || null, at);
+      setSetting(db, exposureKeys.model, str(body.model, 60) ?? null, at);
+    }
+    res.append("Set-Cookie", flashHeader(on ? "Exposure check on; it runs daily, or press Run now." : "Exposure check off. The last run stays.", secureCookies(req)));
+    res.redirect(303, "/scan/network#exposure");
+  });
+  app.post("/scan/exposure/run", requireOwner, async (req, res) => {
+    const run = await runExposureScan(db, { http: ctx.http ?? httpGet, now, transport: parseNotifyUrl(config.notifyUrl), baseUrl: config.baseUrl, log: (line) => console.log(line) });
+    res.append("Set-Cookie", flashHeader(`Ran: ${run.findings.filter((f) => f.state === "bad" || f.state === "warn").length} finding(s), public address ${run.publicIp ?? "unknown"}.`, secureCookies(req)));
+    res.redirect(303, "/scan/network#exposure");
   });
   app.post("/scan/network/settings", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
