@@ -143,6 +143,67 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           certainty.
         </p>
       </section>
+      <section class="box" id="exploits">
+        <h2>Public exploits — and Microsoft's own word</h2>
+        <p>
+          A score says how bad a flaw could be; an <span class="chip exploit">exploit</span> chip
+          says someone has already written the code. The table reads three free indexes once a day
+          — Exploit-DB, Metasploit's modules and the PoC-in-GitHub list — and the CVE page lists
+          each entry under <b>Fix</b>, linking to the index, never to the code. <i>Verified</i> is
+          Exploit-DB's own flag or a Metasploit module ranked good or better; a GitHub repository
+          is a claim. For Microsoft's products the CVE page also carries <b>Microsoft's update</b>:
+          the KB per product from the Security Update Guide, and whether Microsoft itself says the
+          flaw is <span class="chip kev">exploited</span> or publicly disclosed.
+          <a href="/vulnerabilities/microsoft">Patch Tuesday</a> lays each month out by update
+          and product, your own Windows releases first.
+        </p>
+      </section>
+      <section class="box" id="news-chip">
+        <h2>What the News is talking about</h2>
+        <p>
+          A <span class="chip news">news ×3</span> chip means three sources named the CVE this
+          week, whatever its score; the CVE page lists the stories under <b>In the news</b>, and
+          <a href="/today">Today</a> names the most talked-about. It is the one signal that comes
+          from the News itself rather than from NVD, CISA or FIRST.
+        </p>
+      </section>
+      <section class="box" id="feeds">
+        <h2>Feeds, the calendar, search</h2>
+        <p>
+          Everything the pages show can leave with you: the News and the table as RSS under any
+          filter, every source as OPML, CISA's KEV due dates as a calendar you subscribe to, the
+          same facts as JSON under <code>/api/v1/</code>. The <a href="/feeds">Feeds</a> page
+          writes every address out in full. The box in the masthead searches CVEs, the News,
+          every standard's controls, Microsoft's updates and the sources in one go; a CVE id typed
+          whole opens its page.
+        </p>
+      </section>
+      <section class="box" id="scan">
+        <h2>The Scan area — what each check can prove</h2>
+        <p>
+          <a href="/scan">This browser</a> runs in your tab and uploads nothing: whether a blocker
+          hides and stops ads, whether a filtering resolver answers, and what the browser gives
+          away — privacy signals, WebRTC addresses, the fingerprint surface, the referrer. The
+          same page shows what this server learned from your request. <a href="/scan/domain">A
+          domain</a> reads any domain by lookups alone — SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA,
+          HSTS, the certificate — and quotes every record beside its verdict.
+          <a href="/scan/network">Your network</a> is the owner's: the LAN resolver tested with
+          canary names from this server, and once a day what the internet sees of the public
+          address and what the router gives away. <a href="/scan/history">History</a> keeps every
+          run. Signals, not certificates: each row says what it saw, and nothing here contacts an
+          advertising or malware host or sends a packet to a device that did not ask.
+        </p>
+      </section>
+      <section class="box" id="watchlist">
+        <h2>The watchlist, and an SBOM</h2>
+        <p>
+          The <a href="/watchlist">watchlist</a> is how the table knows your stack: products,
+          packages, platforms, keywords. A software bill of materials (CycloneDX or SPDX JSON)
+          turns into package entries in one upload, so the advisories for what a system actually
+          ships mark it as yours. Versions are not kept — the advisory says which — and nothing
+          else from the file is stored.
+        </p>
+      </section>
       <section class="box" id="cat">
         <h2>CAT I, II and III — STIG severities</h2>
         <p>
