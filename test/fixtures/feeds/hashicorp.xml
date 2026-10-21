@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:discourse="http://www.discourse.org/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Security - HashiCorp Discuss</title>
+    <link>https://discuss.hashicorp.com/c/security/52</link>
+    <description>Topics in the &#39;Security&#39; category Security updates for all HashiCorp products and services. Posting to this category is restricted to HashiCorp employees only.</description>
+    
+    <atom:link href="https://discuss.hashicorp.com/c/security/52.rss" rel="self" type="application/rss+xml" />
+    <atom:link href="https://discuss.hashicorp.com/c/security/52.md" rel="alternate" type="text/markdown" />
+      <lastBuildDate>Tue, 13 Oct 2026 09:39:42 +0000</lastBuildDate>
+        <item>
+          <title>HCSEC-2026-45 - Updates to HashiCorp subprocessors</title>
+          <dc:creator><![CDATA[mariajosep.lopez]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-45<br>
+<strong>Publication Date:</strong> October 13, 2026</p>
+<p><strong>Summary</strong><br>
+As part of HashiCorp’s ongoing commitment to privacy and transparency, we have updated our subprocessors list. These updates include details about the following subprocessors:</p>
+<div class="md-table">
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Description</th>
+<th>Action Taken</th>
+<th>Products Affected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shopify</td>
+<td>Cloud-based commerce platform</td>
+<td>Removed</td>
+<td>All Products</td>
+</tr>
+<tr>
+<td>Zendesk</td>
+<td>Customer support</td>
+<td>Removed</td>
+<td>All Products</td>
+</tr>
+</tbody>
+</table>
+</div><p>For customers using IBM branded contracts, a list of HashiCorp’s subprocessors for each product will be available via <a href="https://www.ibm.com/software/reports/compatibility/clarity/index.html">IBMs Software Product Compatibility Reports page</a>. No action is required. You can direct any comments or questions to <a href="mailto:ChiefPrivacyOffice@ca.ibm.com">ChiefPrivacyOffice@ca.ibm.com</a>.</p>
+<p>For customers on legacy HashiCorp branded contracts, you can email <a href="mailto:privacyhashi@ibm.com">privacyhashi@ibm</a>.com for the latest list of subprocessors per product.</p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-45-updates-to-hashicorp-subprocessors/77833">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-45-updates-to-hashicorp-subprocessors/77833</link>
+          <pubDate>Tue, 13 Oct 2026 09:39:42 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77833</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-45-updates-to-hashicorp-subprocessors/77833.rss">HCSEC-2026-45 - Updates to HashiCorp subprocessors</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-44 - Go-getter vulnerable to a path traversal in S3/GCS directory download handling</title>
+          <dc:creator><![CDATA[james.warren]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-44</p>
+<p><strong>Affected Products / Versions:</strong> Go-getter up to 1.8.9 and 2.2.4; fixed in go-getter 1.8.10 and 2.2.5</p>
+<p><strong>Publication Date:</strong> October 8, 2026</p>
+<p><strong>Summary</strong></p>
+<p>HashiCorp go-getter versions before 1.8.10 and go-getter/v2 versions before 2.2.5 are vulnerable to path traversal during S3 and GCS directory downloads, which may allow files to be written outside the requested destination. This vulnerability (CVE-2026-19585) is fixed in go-getter 1.8.10 and go-getter/v2 2.2.5.</p>
+<p><strong>Background</strong></p>
+<p>Go-getter is a Go library for downloading files and directories from sources including Amazon S3 and Google Cloud Storage. In directory mode, it downloads objects under a requested prefix into a local destination directory.</p>
+<p><strong>Details</strong></p>
+<p>S3 and GCS directory downloads did not ensure that each listed object’s destination remained within the requested directory. An attacker who can influence an object name in a bucket that an application retrieves in directory mode may cause files to be written outside that destination, subject to the downloader’s filesystem permissions. Single-object downloads are not affected.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to go-getter 1.8.10 or go-getter/v2 2.2.5.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by Kris Kennaway.</p>
+<p><em>We deeply appreciate any effort to coordinate disclosure of security vulnerabilities. For information about security at HashiCorp and the reporting of security vulnerabilities, please see <a href="https://hashicorp.com/security">https://hashicorp.com/security</a>.</em></p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-44-go-getter-vulnerable-to-a-path-traversal-in-s3-gcs-directory-download-handling/77819">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-44-go-getter-vulnerable-to-a-path-traversal-in-s3-gcs-directory-download-handling/77819</link>
+          <pubDate>Thu, 08 Oct 2026 15:16:21 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77819</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-44-go-getter-vulnerable-to-a-path-traversal-in-s3-gcs-directory-download-handling/77819.rss">HCSEC-2026-44 - Go-getter vulnerable to a path traversal in S3/GCS directory download handling</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-43 - Vault Inconsistent ACL Policy Evaluation May Allow Bypass of Deny Restrictions</title>
+          <dc:creator><![CDATA[mariajosep.lopez]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-43</p>
+<p><strong>Affected Products / Versions:</strong> Vault Community Edition up to 2.1.1; fixed in Vault Community Edition 2.1.2. Vault Enterprise up to 2.1.1; fixed in Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Publication Date:</strong> October 7, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Vault and Vault Enterprise did not consistently evaluate ACL policies against the canonical form of resource and policy names. This may allow an authenticated user with delegated permissions to bypass an explicit deny restriction and access a protected resource or assign a denied policy, potentially leading to privilege escalation. This vulnerability (CVE-2026-89322) is fixed in Vault Community Edition 2.1.2, and Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Background</strong></p>
+<p>Vault ACL policies grant or deny capabilities on request paths, where a more specific rule takes precedence over a broader wildcard rule, and can use <code>denied_parameters</code> to prevent a principal from setting specific values in a request. Operators commonly combine these controls to delegate management of auth method roles, users, tokens, and identities while protecting specific resources and higher-privilege policies. Many Vault components, including several auth methods, ACL policies, and identity entities and groups, treat resource and policy names as case-insensitive.</p>
+<p><strong>Details</strong></p>
+<p>Vault evaluated ACL policies against resource and policy names as supplied in a request, while the receiving component later normalized those names into their canonical form, for example by disregarding letter case or surrounding whitespace. A request that referred to a protected resource or policy using a non-canonical name could therefore avoid a restriction during policy evaluation and still be applied to the protected resource or denied policy. This may allow a delegated user to access or modify a resource protected by a more specific rule, such as obtaining credentials for an explicitly denied auth method role, or to assign an explicitly denied policy to a token, role, user, or identity. In Vault Enterprise, Sentinel policies evaluated against the request path were similarly affected. Exploitation requires an authenticated principal holding broad delegated permissions on an affected endpoint, and a policy that relies either on a more specific rule to deny or limit access alongside a broader allow rule, or on value-specific <code>denied_parameters</code> to restrict assignable policy names. Assigning a denied policy also requires that the policy already exists and that the principal can obtain a token carrying it. Root and internal policies cannot be assigned through this issue, and token creation without sudo remains limited to the caller’s own policies. Deployments that do not combine broad allow rules with more specific restrictions on these resources, do not use non-canonical casing in policy names, and do not use <code>denied_parameters</code> to restrict policy names, are not affected.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Vault Community Edition 2.1.2, or Vault Enterprise 2.1.2, 1.21.12, 1.20.17, or 1.19.23. After upgrading, ACL policy rules and Vault Enterprise Sentinel policies for affected resources are evaluated against the lowercase resource name, so existing rules that reference mixed-case resource names, including deny rules, will no longer match and should be rewritten in lowercase before upgrading. The Okta, LDAP, and RADIUS auth methods, and Vault Enterprise SCIM clients, are not covered by this fix; operators should avoid combining broad allow rules with more specific deny rules on those resources.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by Han Sang-Kyung (HAN-BAMBO) and by additional internal and external parties.</p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-43-vault-inconsistent-acl-policy-evaluation-may-allow-bypass-of-deny-restrictions/77815">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-43-vault-inconsistent-acl-policy-evaluation-may-allow-bypass-of-deny-restrictions/77815</link>
+          <pubDate>Wed, 07 Oct 2026 22:00:11 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77815</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-43-vault-inconsistent-acl-policy-evaluation-may-allow-bypass-of-deny-restrictions/77815.rss">HCSEC-2026-43 - Vault Inconsistent ACL Policy Evaluation May Allow Bypass of Deny Restrictions</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-42 - Vault Enterprise ACL Policy Cache Vulnerable to Cross-Namespace Policy Resolution</title>
+          <dc:creator><![CDATA[mariajosep.lopez]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-42</p>
+<p><strong>Affected Products / Versions:</strong> Vault Enterprise up to 2.1.1; fixed in Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Publication Date:</strong> October 7, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Vault’s ACL policy cache allowed namespace traversal when policy names contained path traversal constructs. This may allow a token assigned specially crafted policy names to use the capabilities of policies defined in other namespaces, including the root namespace. This vulnerability (CVE-2026-105820) is fixed in Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23. Vault Community Edition does not support namespaces, and is not affected.</p>
+<p><strong>Background</strong></p>
+<p>Vault Enterprise namespaces provide isolated environments within a single Vault cluster, each with its own policies, authentication methods, and secrets engines. Policies attached to a token are resolved within the token’s namespace, so a token’s access is limited to the namespaces it is authorized for. Vault caches policies in memory to avoid reading them from storage on every request. See the <a href="https://developer.hashicorp.com/vault/docs/enterprise/namespaces">Namespaces documentation</a> for more information.</p>
+<p><strong>Details</strong></p>
+<p>Vault did not prevent policy names from referencing other namespaces via path traversal constructs, and its in-memory policy cache could resolve such a policy belonging to a different namespace. A token assigned such a policy name could then be granted that policy’s capabilities within the policy’s own namespace, allowing the token to act across namespace boundaries. Exploitation requires an authenticated user able to assign arbitrary policy names to a token, for example through token creation or an auth method role. The referenced policy must be present in Vault’s policy cache both when the token is created and when it is used. When the referenced policy is the root policy of another namespace, its capabilities are granted only within the token’s own namespace.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Vault Enterprise 2.1.2, 1.21.12, 1.20.17, or 1.19.23. Because namespaces are a Vault Enterprise feature, the Vault Community Edition is not affected, but includes these changes as defense-in-depth hardening. After upgrading, policy names containing <code>.</code> or <code>..</code> path segments are rejected for new policies and assignments, and are ignored for existing tokens and identities, which may reduce their effective permissions; operators should audit and rename any such policies before upgrading.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was identified by an external party.</p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-42-vault-enterprise-acl-policy-cache-vulnerable-to-cross-namespace-policy-resolution/77814">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-42-vault-enterprise-acl-policy-cache-vulnerable-to-cross-namespace-policy-resolution/77814</link>
+          <pubDate>Wed, 07 Oct 2026 21:46:47 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77814</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-42-vault-enterprise-acl-policy-cache-vulnerable-to-cross-namespace-policy-resolution/77814.rss">HCSEC-2026-42 - Vault Enterprise ACL Policy Cache Vulnerable to Cross-Namespace Policy Resolution</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-41 - Vault Vulnerable to Arbitrary Code Execution via Plugin Catalog Entries Restored From Raft Snapshots</title>
+          <dc:creator><![CDATA[mariajosep.lopez]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-41</p>
+<p><strong>Affected Products / Versions:</strong> Vault Community Edition and Vault Enterprise up to 2.1.1; fixed in Vault Community Edition 2.1.2, and Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Publication Date:</strong> October 7, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Vault and Vault Enterprise did not consistently verify that stored plugin catalog entries reference binaries within the configured plugin directory. When Vault uses Shamir seals and has an external plugin directory configured, a privileged operator able to restore an Integrated Storage (Raft) snapshot may be able to execute arbitrary code on the Vault host. This vulnerability (CVE-2026-105816) is fixed in Vault Community Edition 2.1.2, and Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Background</strong></p>
+<p>Vault supports external plugins, which are registered in the plugin catalog and executed from the directory configured by <code>plugin_directory</code>. Vault restricts plugin registration so that execution of registered plugin binaries resolves within this directory, limiting executables to the operator-configured plugin directory. Integrated Storage supports saving and restoring snapshots of Vault’s data, including the plugin catalog.</p>
+<p><strong>Details</strong></p>
+<p>Vault verified that the executable resolved within the configured plugin directory (directly and after following symbolic links) when a plugin was registered, but not when a stored catalog entry was later used to run a plugin. A plugin catalog entry introduced without going through registration, such as through a restored snapshot, could reference a binary outside the plugin directory. Vault could then execute that binary as the Vault service user when the plugin was used, including during unseal for existing mounts. Exploitation requires a privileged operator able to restore snapshots. This issue only affects clusters using Shamir seals with an external plugin directory configured. Clusters using auto-unseal, or without a configured plugin directory, are not affected.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Vault Community Edition 2.1.2, or Vault Enterprise 2.1.2, 1.21.12, 1.20.17, or 1.19.23, upgrading every node, including standbys and, for Vault Enterprise, performance and disaster recovery (DR) secondaries. After upgrading, plugin catalog entries that resolve outside the plugin directory, including through symbolic links, are refused and their mounts are skipped at startup; such plugins must be registered again with their binary inside the plugin directory.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was identified by an external party.</p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-41-vault-vulnerable-to-arbitrary-code-execution-via-plugin-catalog-entries-restored-from-raft-snapshots/77813">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-41-vault-vulnerable-to-arbitrary-code-execution-via-plugin-catalog-entries-restored-from-raft-snapshots/77813</link>
+          <pubDate>Wed, 07 Oct 2026 21:34:25 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77813</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-41-vault-vulnerable-to-arbitrary-code-execution-via-plugin-catalog-entries-restored-from-raft-snapshots/77813.rss">HCSEC-2026-41 - Vault Vulnerable to Arbitrary Code Execution via Plugin Catalog Entries Restored From Raft Snapshots</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-40 - Vault PKI ACME Default Directory Policy May Issue Certificates With Unverified Identities</title>
+          <dc:creator><![CDATA[mariajosep.lopez]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-40</p>
+<p><strong>Affected Products / Versions:</strong> Vault Community Edition 1.14.0 up to 2.1.1; fixed in Vault Community Edition 2.1.2. Vault Enterprise 1.14.0 up to 2.1.1; fixed in Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Publication Date:</strong> October 7, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Vault’s PKI secrets engine ACME server did not restrict certificate identities that ACME challenges do not validate when issuing certificates under the default directory policy. This may allow an ACME client to obtain a certificate containing unverified identity claims, potentially enabling impersonation toward systems that trust certificates issued by the affected Vault PKI mount. This vulnerability (CVE-2026-105818) is fixed in Vault Community Edition 2.1.2, and Vault Enterprise 2.1.2, 1.21.12, 1.20.17, and 1.19.23.</p>
+<p><strong>Background</strong></p>
+<p>Vault’s PKI secrets engine can act as an ACME server, allowing clients to request certificates automatically after proving control of the requested identifiers through ACME challenges. ACME challenges verify control of DNS names and IP addresses. Requests that are not associated with a specific role are governed by the <code>default_directory_policy</code> setting, which defaults to <code>sign-verbatim</code>. See the <a href="https://developer.hashicorp.com/vault/api-docs/secret/pki#set-acme-configuration">PKI ACME documentation</a> for more information.</p>
+<p><strong>Details</strong></p>
+<p>When the <code>default_directory_policy</code> was set to <code>sign-verbatim</code> (the default, which also applies if the setting is not configured), Vault could include subject alternative name types other than DNS names and IP addresses from the certificate signing request in the issued certificate, even though these identities are never verified by ACME challenges. An ACME client that completes validation for an identifier it controls could therefore obtain a certificate that also asserts other identities. This issue only affects PKI mounts with ACME enabled and using the <code>sign-verbatim</code> default directory policy, either explicitly or by default. Mounts that disable the default directory or set it to a role that constrains these subject alternative name types are not affected. Where external account binding is required, exploitation is limited to clients holding a valid binding.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Vault Community Edition 2.1.2, or Vault Enterprise 2.1.2, 1.21.12, 1.20.17, or 1.19.23. After upgrading, the <code>sign-verbatim</code> policy rejects certificate requests containing these unverified subject alternative name types. Operators who require the previous behavior can opt in with the new <code>sign-verbatim-unsafe</code> policy, accepting that issued certificates may contain unverified identity claims. Until upgrading, configuring the default directory policy to use a role that restricts these subject alternative name types, or disabling the default directory, mitigates this issue.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was identified by an external party.</p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-40-vault-pki-acme-default-directory-policy-may-issue-certificates-with-unverified-identities/77812">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-40-vault-pki-acme-default-directory-policy-may-issue-certificates-with-unverified-identities/77812</link>
+          <pubDate>Wed, 07 Oct 2026 21:18:47 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77812</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-40-vault-pki-acme-default-directory-policy-may-issue-certificates-with-unverified-identities/77812.rss">HCSEC-2026-40 - Vault PKI ACME Default Directory Policy May Issue Certificates With Unverified Identities</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-39 - Go-getter vulnerable to a privilege escalation issue in its archive decompression handling</title>
+          <dc:creator><![CDATA[james.warren]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-39</p>
+<p><strong>Affected Products / Versions:</strong> Go-getter up to 1.8.8 and 2.2.3; fixed in go-getter 1.8.9 and 2.2.4</p>
+<p><strong>Publication Date:</strong> September 15, 2026</p>
+<p><strong>Summary</strong></p>
+<p>The go-getter library up to versions 1.8.8 and 2.2.3 is vulnerable to a privilege escalation issue in its archive decompression handling that may allow a crafted archive to cause extracted files to be created with elevated permission bits. Where extraction is performed by a privileged user, this may allow a local actor to obtain the privileges of the extracting process. This vulnerability (CVE-2026-88922) is fixed in go-getter 1.8.9 and 2.2.4.</p>
+<p><strong>Background</strong></p>
+<p>Go-getter is a library for downloading files and directories from a variety of sources, and is used to retrieve artifacts such as modules, plugins, and job artifacts. When a downloaded artifact is an archive, go-getter detects the archive format and extracts its contents into a destination directory, recreating the files, directories, and file metadata that the archive describes.</p>
+<p><strong>Details</strong></p>
+<p>Go-getter applied the permission metadata recorded in archive entries to the files it extracted, without restricting that metadata to standard read, write, and execute permissions. An archive from an untrusted or attacker influenced source could therefore cause files to be created with elevated permission bits, which a local actor with access to the destination path may be able to use to obtain the privileges of the account that performed the extraction. Applications that extract only trusted archives, or that extract as an unprivileged user into a destination other local users cannot reach, are not meaningfully exposed.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to go-getter 1.8.9 or 2.2.4. Following the upgrade, files extracted from archives retain only standard read, write, and execute permissions, so applications that relied on archives supplying additional permission bits will observe a change in behavior.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by Kris Kennaway.</p>
+<p><em>We deeply appreciate any effort to coordinate disclosure of security vulnerabilities. For information about security at HashiCorp and the reporting of security vulnerabilities, please see <a href="https://hashicorp.com/security">https://hashicorp.com/security</a>.</em></p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-39-go-getter-vulnerable-to-a-privilege-escalation-issue-in-its-archive-decompression-handling/77752">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-39-go-getter-vulnerable-to-a-privilege-escalation-issue-in-its-archive-decompression-handling/77752</link>
+          <pubDate>Tue, 15 Sep 2026 19:42:55 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77752</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-39-go-getter-vulnerable-to-a-privilege-escalation-issue-in-its-archive-decompression-handling/77752.rss">HCSEC-2026-39 - Go-getter vulnerable to a privilege escalation issue in its archive decompression handling</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-38 - Consul-template vulnerable to an information disclosure issue in error handling</title>
+          <dc:creator><![CDATA[james.warren]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-38</p>
+<p><strong>Affected Products / Versions:</strong> consul-template 0.27.2 through 0.42.1; fixed in consul-template 0.43.0</p>
+<p><strong>Publication Date:</strong> September 10, 2026</p>
+<p><strong>Summary</strong></p>
+<p>The consul-template library is vulnerable to an information disclosure issue in its error handling path that may allow Vault secret values to appear in template error messages, log output, and downstream surfaces such as Nomad task events. This vulnerability (CVE-2026-87993) is fixed in consul-template 0.43.0.</p>
+<p><strong>Background</strong></p>
+<p>Consul-template renders Vault secrets into configuration files using a templating engine. When a template expression encounters an error, consul-template attempts to redact any known secret values from the error message before writing it to logs or returning it to the caller. This redaction mechanism is intended to prevent secret values from appearing in error output even when a template fails to render.</p>
+<p><strong>Details</strong></p>
+<p>The secret redaction mechanism did not correctly handle all Vault secret response shapes, causing certain secret field values to escape redaction and appear verbatim in template error messages. These messages may be written to logs and, when consul-template is used with Nomad, may be included in task events accessible to callers with job-read permissions.</p>
+<p>Deployments using only Vault KV v1 secrets are not affected by this issue.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to consul-template 0.43.0.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by Ali Firas (thesmartshadow).</p>
+<p><em>We deeply appreciate any effort to coordinate disclosure of security vulnerabilities. For information about security at HashiCorp and the reporting of security vulnerabilities, please see <a href="https://hashicorp.com/security">https://hashicorp.com/security</a>.</em></p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-38-consul-template-vulnerable-to-an-information-disclosure-issue-in-error-handling/77740">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-38-consul-template-vulnerable-to-an-information-disclosure-issue-in-error-handling/77740</link>
+          <pubDate>Thu, 10 Sep 2026 18:51:37 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77740</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-38-consul-template-vulnerable-to-an-information-disclosure-issue-in-error-handling/77740.rss">HCSEC-2026-38 - Consul-template vulnerable to an information disclosure issue in error handling</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-37 - Consul vulnerable to an authorization bypass in the Connect service mesh</title>
+          <dc:creator><![CDATA[james.warren]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-37</p>
+<p><strong>Affected Products / Versions:</strong> Consul and Consul Enterprise 1.9.0 through 2.0.3; fixed in Consul 2.0.4 and Consul Enterprise 1.21.18, 1.22.12, and 2.0.4.</p>
+<p><strong>Publication Date:</strong> September 10, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Consul and Consul Enterprise are vulnerable to an authorization bypass in the Connect service mesh that may allow a service to reach a destination it is not authorized to access. When building Envoy RBAC rules to enforce Connect intentions, Consul did not correctly escape certain characters in service names, namespaces, and partitions, causing the generated authorization rules to match more broadly than intended. This vulnerability (CVE-2026-88021) is fixed in Consul 2.0.4 and Consul Enterprise 1.21.18, 1.22.12 and 2.0.4.</p>
+<p><strong>Background</strong></p>
+<p>Consul’s Connect service mesh uses intentions to define which services are allowed to communicate with each other. When a Connect proxy is configured, Consul generates Envoy RBAC rules that enforce these intentions by matching the caller’s SPIFFE identity against the permitted identities for the destination service. These patterns are derived from service names, namespaces, and partitions registered in the Consul catalog.</p>
+<p><strong>Details</strong></p>
+<p>The authorization rules Consul generated for Connect service mesh intention enforcement did not correctly handle certain characters that may appear in service names, namespaces, and partitions. This could cause the generated rules to match a broader set of service identities than the operator intended, potentially allowing a caller to reach a destination service through an existing intention that was not created for them. This issue requires Connect service mesh to be enabled with active intentions. Deployments where catalog names do not contain the affected characters are not impacted in practice.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Consul 2.0.4 or Consul Enterprise 1.21.18, 1.22.12, or 2.0.4.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by ThanhDN of MBBank.</p>
+<p><em>We deeply appreciate any effort to coordinate disclosure of security vulnerabilities. For information about security at HashiCorp and the reporting of security vulnerabilities, please see <a href="https://hashicorp.com/security">https://hashicorp.com/security</a>.</em></p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-37-consul-vulnerable-to-an-authorization-bypass-in-the-connect-service-mesh/77739">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-37-consul-vulnerable-to-an-authorization-bypass-in-the-connect-service-mesh/77739</link>
+          <pubDate>Thu, 10 Sep 2026 18:49:49 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77739</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-37-consul-vulnerable-to-an-authorization-bypass-in-the-connect-service-mesh/77739.rss">HCSEC-2026-37 - Consul vulnerable to an authorization bypass in the Connect service mesh</source>
+        </item>
+        <item>
+          <title>HCSEC-2026-36 - Consul vulnerable to an authorization bypass in the catalog deregistration path</title>
+          <dc:creator><![CDATA[james.warren]]></dc:creator>
+          <category>Security</category>
+          <description><![CDATA[
+            <p><strong>Bulletin ID:</strong> HCSEC-2026-36</p>
+<p><strong>Affected Products / Versions:</strong> Consul and Consul Enterprise 1.21.0 through 2.0.3; fixed in Consul 2.0.4 and Consul Enterprise 1.21.18, 1.22.12, and 2.0.4.</p>
+<p><strong>Publication Date:</strong> September 10, 2026</p>
+<p><strong>Summary</strong></p>
+<p>Consul and Consul Enterprise are vulnerable to an authorization bypass in the catalog deregistration path that may allow a local ACL token to delete peer-imported catalog objects. A caller with <code>service:write</code> or <code>node:write</code> permission may exploit this issue to remove services, checks, or nodes imported from a peered cluster without holding authority over the peer origin. This vulnerability (CVE-2026-87107) is fixed in Consul 2.0.4 and Consul Enterprise 1.21.18, 1.22.12 and 2.0.4.</p>
+<p><strong>Background</strong></p>
+<p>Consul cluster peering allows two independent Consul clusters to establish a trusted relationship and share service catalog data. Services exported by one cluster become visible in the importing cluster’s catalog and can be used for cross-cluster service discovery and routing. Access to catalog operations is governed by ACL policies, and peer-imported objects are expected to be managed only through the peering replication path rather than by direct local writes.</p>
+<p><strong>Details</strong></p>
+<p>The catalog deregistration endpoint did not fully enforce the ownership boundary between locally registered catalog objects and objects imported through cluster peering. A caller with limited write access could submit a crafted deregistration request that affected peer-imported catalog data outside the scope of their local authorization. This could result in peer-imported services, health checks, or nodes being removed from the importing cluster’s catalog, potentially disrupting service discovery and routing. The exporting cluster’s authoritative state is not modified, and affected data may be restored after a subsequent replication update. Exploiting this issue requires an active cluster peering relationship and a local ACL token with write access to catalog resources. Deployments that do not use Consul cluster peering are not affected.</p>
+<p><strong>Remediation</strong></p>
+<p>Customers should evaluate the risk associated with this issue and consider upgrading to Consul 2.0.4 or Consul Enterprise 1.21.18, 1.22.12, or 2.0.4.</p>
+<p><strong>Acknowledgement</strong></p>
+<p>This issue was reported to HashiCorp by Yazdan Soltani.</p>
+<p><em>We deeply appreciate any effort to coordinate disclosure of security vulnerabilities. For information about security at HashiCorp and the reporting of security vulnerabilities, please see <a href="https://hashicorp.com/security">https://hashicorp.com/security</a>.</em></p>
+            <p><small>1 post - 1 participant</small></p>
+            <p><a href="https://discuss.hashicorp.com/t/hcsec-2026-36-consul-vulnerable-to-an-authorization-bypass-in-the-catalog-deregistration-path/77738">Read full topic</a></p>
+          ]]></description>
+          <link>https://discuss.hashicorp.com/t/hcsec-2026-36-consul-vulnerable-to-an-authorization-bypass-in-the-catalog-deregistration-path/77738</link>
+          <pubDate>Thu, 10 Sep 2026 18:47:55 +0000</pubDate>
+          <discourse:topicPinned>No</discourse:topicPinned>
+          <discourse:topicClosed>No</discourse:topicClosed>
+          <discourse:topicArchived>No</discourse:topicArchived>
+          <guid isPermaLink="false">discuss.hashicorp.com-topic-77738</guid>
+          <source url="https://discuss.hashicorp.com/t/hcsec-2026-36-consul-vulnerable-to-an-authorization-bypass-in-the-catalog-deregistration-path/77738.rss">HCSEC-2026-36 - Consul vulnerable to an authorization bypass in the catalog deregistration path</source>
+        </item>
+</channel></rss>

@@ -1,3 +1,4 @@
+import { appleSecurityAdapter } from "./apple-security.ts";
 import { adfectionAdblockAdapter, adfectionDnsAdapter, adfectionIndicatorsAdapter, canaryAdsAdapter, canaryMalwareAdapter, canaryPhishingAdapter, canaryTrackersAdapter } from "./blocklists.ts";
 import { cciAdapter } from "./cci.ts";
 import { cisAdapter } from "./cis.ts";
@@ -14,6 +15,8 @@ import { feedAdapter } from "./feed.ts";
 import { hnAdapter } from "./hn.ts";
 import { kevAdapter } from "./kev.ts";
 import { metasploitAdapter } from "./metasploit.ts";
+import { mozillaMfsaAdapter } from "./mozilla-mfsa.ts";
+import { msrcAdapter } from "./msrc.ts";
 import { mscpAdapter } from "./mscp.ts";
 import { nasaPolicyAdapter } from "./nasa-policy.ts";
 import { nvdAdapter } from "./nvd.ts";
@@ -38,6 +41,9 @@ const byId: Record<string, Adapter> = {
   "exploit-db": exploitDbAdapter,
   metasploit: metasploitAdapter,
   "poc-in-github": pocInGithubAdapter,
+  msrc: msrcAdapter,
+  "apple-security": appleSecurityAdapter,
+  "mozilla-mfsa": mozillaMfsaAdapter,
   osv: osvAdapter,
   "nist-sp-800-53": nistCatalogAdapter,
   "nist-sp-800-53b": nistBaselinesAdapter,
