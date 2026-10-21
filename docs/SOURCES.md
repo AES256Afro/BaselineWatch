@@ -408,6 +408,21 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
 The Wire's "Vendor advisories" filter shows these apart from news. CVE ids in their text are
 picked up as signals.
 
+### Public exploit indexes (added 2026-10-21, N5)
+Three free, keyless indexes answer "is there a public exploit" on every CVE page and as a chip
+in the table (`?exploit=1` filters to them). Each is read whole once a day; the bytes' hash is
+kept in `app_settings` and an unchanged file is not parsed again. Rows live in `exploits`
+(migration 0035): id, title, date, link to the index entry — never the exploit itself.
+| Source | What is read | Licence |
+| --- | --- | --- |
+| Exploit Database (OffSec) | `files_exploits.csv` from the GitLab mirror: id, title, date, platform, verified flag, CVE ids (the `codes` column) | GPL-2.0; only the index, never an exploit's contents |
+| Metasploit Framework (Rapid7) | `db/modules_metadata_base.json`: every module whose references cite a CVE; rank ≥ good counts as verified | BSD-3-Clause |
+| PoC-in-GitHub (nomi-sec) | the README's `### CVE-…` headings and the repositories under each; a claim, never marked verified | MIT (the list) |
+The adapters are `src/adapters/exploitdb.ts`, `metasploit.ts` and `poc-in-github.ts`; the
+fixtures under `test/fixtures/exploits/` are the real files as served on 2026-10-21, trimmed.
+Not added: VulnCheck XDB (needs a key; the plan keeps it behind an optional one), GitHub's
+search API (rate-limited, and PoC-in-GitHub already does the search).
+
 ### Also planned
 - OSV.dev `https://api.osv.dev/v1/`; GitHub Security Advisories (REST `/advisories`); MSRC
   CVRF `https://api.msrc.microsoft.com/cvrf/v3.0/updates`; Cisco openVuln; Red Hat CSAF/VEX;
