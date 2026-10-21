@@ -1547,19 +1547,23 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | N7 S2 what this page learned | #19: the request's facts, Tor exits as a source (0037), InternetDB on request | merged |
 | N7 S1 browser 2.0 | #19: GPC/DNT, WebRTC, fingerprint surface, referrer as received, transport; `/scan/echo` | merged |
 | N8 usability | #20: skip link, captions and scopes on 18 tables, description/OpenGraph/canonical, a test that holds them; phone width checked | merged |
-| 0.41.0 | tagged, image published, BoxPilot catalog #555 opened | in flight at the end |
-| N7 S4 router and exposure | #21: public address, InternetDB daily, the router's admin page, firmware against the table and KEV, alerts on change only | open |
-| API | #22: exploits and Microsoft's update on `/api/v1/vulns/<id>` | open |
+| 0.41.0 | tagged, image published | superseded by 0.42.0 before the catalog carried it |
+| N7 S4 router and exposure | #21: public address, InternetDB daily, the router's admin page, firmware against the table and KEV, alerts on change only | merged |
+| API | #22: exploits and Microsoft's update on `/api/v1/vulns/<id>` | merged |
+| Fix | #23: the sweep's header-scope pass had broken every `<thead>` (shipped in 0.41.0); put back, the test now insists on a real one | merged |
+| N5 endoflife.date | #24: the vendor's end beside the owner's date on the Fleet page, one Wire item per release near its end (migration 0038) | merged |
+| N7 S3 CT watch | #25: crt.sh for the owner's domains, one Wire item per new certificate (migration 0039), the newest on the domain page | merged |
+| 0.42.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
 
-**Left, and why.** The certificate-transparency watch (S3): crt.sh answered 502 all evening and
-the fixture rule wants a real capture. S5 devices seen: passive mDNS/SSDP needs the container on
+**Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
 night's change. S6 beyond what S4 and the network check already store (two runs kept, alerts on
 change): a page of runs over time. Dependency majors (decision 8) untouched. The SMTP digest
 needs a mail client the product does not carry.
 
-**Found on the way.** The MSRC monthly document counts far more than Microsoft's own release note
-(October 2026: 2,574 rows, 1,457 outside the Chromium and Azure Linux republishing); the page
-states its figures as counts of Microsoft's rows and says so. BoxPilot's catalog PR carries no CI
+**Found on the way.** The MSRC monthly document is large (October 2026: 2,574 rows, 1,457 of
+them Microsoft's own, every one first published that month); the page states its figures as
+counts of Microsoft's rows and says so. crt.sh answered 502 for most of the evening and came back
+at the end, which is when the CT watch landed. BoxPilot's catalog PR carries no CI
 of its own (workflow token); CI is started by hand on its branch, and a flaked UI test cost one
 rerun. `tags-resolve` moved once more (speedtest-tracker), re-pinned with the labels as evidence.
