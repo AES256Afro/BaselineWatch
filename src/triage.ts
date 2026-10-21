@@ -3,6 +3,10 @@ import { csvLine } from "./csv.ts";
 import { withheldLabel } from "./register.ts";
 import { parseJson } from "./json.ts";
 
+/**
+ * Triage: the owner's state on any item, CVE or control-in-a-release — new, reviewing, affects us,
+ * done, not ours — with a note and a due date, the board's counts and inbox, and the CSV of it all.
+ */
 export type TriageKind = "item" | "vuln" | "control";
 export type TriageState = "new" | "reviewing" | "affects" | "done" | "dismissed";
 export const triageStates: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];

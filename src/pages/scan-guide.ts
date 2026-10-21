@@ -9,7 +9,6 @@ import { macosSections } from "./scan-guide/macos.ts";
 import { guidePlatforms, isGuidePlatform, src, type GuidePlatform, type GuidePlatformInfo, type Section, type Source, type Step } from "./scan-guide/shared.ts";
 import { windowsSections } from "./scan-guide/windows.ts";
 
-export { guidePlatforms, isGuidePlatform, type GuidePlatform, type GuidePlatformInfo };
 
 export function guideSections(platform: GuidePlatform): Section[] {
   switch (platform) {
@@ -49,6 +48,7 @@ function renderSection(section: Section, n: number): Html {
 }
 
 /** The download box: each script for the platform, its sum, and how to verify and run it. */
+export { guidePlatforms, isGuidePlatform, type GuidePlatform, type GuidePlatformInfo };
 function scriptBox(scripts: readonly ScanScript[], platform: ScriptPlatform | null, heading = "The script"): Html {
   if (!platform) {
     return html`<div class="box">

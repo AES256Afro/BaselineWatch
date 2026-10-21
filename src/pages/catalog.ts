@@ -8,6 +8,10 @@ import { latestDocument, loadRequirements } from "../register.ts";
 import { relativeTime } from "../time.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The all-standards catalog at /standards: per operating system the current, new and draft standards
+ * tracked, the NIST publications with CSRC's drafts open for comment, and NASA's document set.
+ */
 interface Who {
   owner: boolean;
   open: boolean;

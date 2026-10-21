@@ -2,6 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+/**
+ * The database: open with the pragmas every connection needs, apply the migrations in src/migrations
+ * in name order once each, and the two figures /health reports — a table's row count and the file's size.
+ */
 const migrationsDir = path.join(import.meta.dirname, "migrations");
 
 /** Opens (or creates) the database with the pragmas every connection needs. */

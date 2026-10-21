@@ -8,6 +8,10 @@ import { areas, planAreas, planFormats, planPlatformName, type Area, type PlanIt
 import { reportStyles } from "../report.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The test-plan page: what to test on a release so the baseline still holds, by area, with the
+ * release and hardware selects, the areas chosen, and the exports in seven formats.
+ */
 interface Who {
   owner: boolean;
   open: boolean;

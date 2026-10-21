@@ -4,6 +4,11 @@ import { diffRequirements, summarizeChanges, type ChangeSummary, type Requiremen
 import type { NormalizedRequirement } from "./oscal.ts";
 import { parseJson } from "./json.ts";
 
+/**
+ * The Register's data layer: documents and their requirements, storing a parsed version and linking
+ * it to the one before, the changes and explanations of a release, and what is withheld from whom
+ * when a source's licence restricts its entries.
+ */
 export interface DocumentRow {
   id: number;
   source_id: string;

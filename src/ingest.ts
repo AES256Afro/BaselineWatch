@@ -12,6 +12,11 @@ import { adoptRationale, changeSummaryText, getDocument, storeDocument, type Sto
 
 export { upsertItems } from "./items.ts";
 
+/**
+ * The one pipeline every source goes through: fetch, snapshot the exact bytes, normalise, store, diff
+ * against the version before, explain, and post what matters to the timeline. A parsing adapter gets
+ * all of that done for it here; a pulling adapter runs its own requests and reports back.
+ */
 export interface DocumentOutcome {
   key: string;
   status: "ok" | "unchanged" | "error";

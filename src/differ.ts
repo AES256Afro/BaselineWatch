@@ -1,5 +1,10 @@
 import type { NormalizedRequirement } from "./oscal.ts";
 
+/**
+ * The differ: two normalised versions of a requirement set in, field-level change rows out — added,
+ * removed, modified, with the before and after text — and the substantive-or-editorial call that keeps
+ * a reflowed paragraph from reading as a changed control.
+ */
 export type ChangeField = "title" | "statement" | "guidance" | "params" | "related" | "status" | "extra";
 
 export interface RequirementChange {

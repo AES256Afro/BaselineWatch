@@ -4,6 +4,10 @@ import { html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Atlas page: every standard's releases on one timeline and SP 800-53's change intensity by
+ * control family, drawn as inline SVG with positions as attributes so the strict CSP stands.
+ */
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function quarterLabel(d: Date): string {

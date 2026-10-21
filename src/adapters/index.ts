@@ -22,6 +22,10 @@ import { sansNewsbitesAdapter } from "./sans-newsbites.ts";
 import { sctAdapter } from "./sct.ts";
 import type { Adapter, SourceRow } from "./types.ts";
 
+/**
+ * The adapter registry: a source id or format to the module that reads it, and whether that module
+ * can run on a schedule or only by upload.
+ */
 const byId: Record<string, Adapter> = {
   "cisa-kev": kevAdapter,
   "hn-algolia": hnAdapter,

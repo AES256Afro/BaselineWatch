@@ -1,6 +1,10 @@
 import { applyKev } from "../vulns.ts";
 import { isoDate, plainText, type Adapter, type ParsedItem } from "./types.ts";
 
+/**
+ * CISA's Known Exploited Vulnerabilities catalog: every entry as a KEV item, and the join onto the
+ * CVEs this instance already holds.
+ */
 interface KevEntry {
   cveID: string;
   vendorProject: string;

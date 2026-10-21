@@ -36,6 +36,11 @@ import { mountVulnerabilities } from "./routes/vulnerabilities.ts";
 import { storageReport } from "./housekeeping.ts";
 import { metricsText, pipelineHealth } from "./pipeline.ts";
 
+/**
+ * The Express app, assembled: security headers and body limits, the MCP endpoint, the assets, the
+ * read-only API, health and metrics, sign-in and the look switch, the read gate that decides who is
+ * asking, and then one mount call per area under src/routes/. Nothing about a page lives here.
+ */
 export interface AppContext {
   config: Config;
   db: DatabaseSync;

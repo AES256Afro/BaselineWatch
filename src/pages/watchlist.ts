@@ -4,6 +4,10 @@ import { loadWatchlist } from "../vulns.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
+/**
+ * The Watchlist page: the products, packages, platforms, baselines and keywords the owner runs,
+ * each with the count of CVEs it marks, and the form to add one.
+ */
 export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; open: boolean; notice?: string | undefined; look: LookState }): string {
   const { db, owner, open, notice, look } = options;
   const entries = loadWatchlist(db);

@@ -4,6 +4,10 @@ import { lookAttributes, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
+/**
+ * The page frame every page is drawn in: the masthead and its two menus built from the ladder, the
+ * Register ribbon, the footer with the attributions, and the look attributes the stylesheet reads.
+ */
 export type Area =
   | "today"
   | "register"

@@ -13,6 +13,10 @@ import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { triageButtons } from "./triage.ts";
 import { parseJson } from "../json.ts";
 
+/**
+ * The Today page: what to do next, the window's CVEs by the platform they affect, the figures that
+ * matter, two charts, and what needs a person, built for a phone first.
+ */
 const dayMs = 24 * 60 * 60 * 1000;
 /** The day, as YYYY-MM-DD in UTC, `days` days before `now`. */
 const dayOf = (now: Date, days: number): string => new Date(now.getTime() - days * dayMs).toISOString().slice(0, 10);
