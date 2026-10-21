@@ -8,8 +8,8 @@ steps:
     expect: SecureBoot enabled.
     fail: Disabled means firmware lets unsigned kernels boot; enable Secure Boot in firmware and confirm the distribution's shim is enrolled (a host with third-party kernel modules needs its MOK key enrolled first).
     source:
-      title: Ubuntu, "UEFI Secure Boot"
-      url: https://wiki.ubuntu.com/UEFI/SecureBoot
+      title: Ubuntu security documentation, "UEFI Secure Boot"
+      url: https://documentation.ubuntu.com/security/security-features/platform-protections/secure-boot/
   - do: Run ls /sys/class/tpm and tpm2_getcap properties-fixed.
     expect: tpm0 exists and the family indicator is 2.0; the manufacturer and firmware version go into the inventory.
     fail: No tpm0 means the TPM is off in firmware or the host is a VM without a vTPM; LUKS keys and measured boot then have nothing to bind to, so record the exception against the STIG.
