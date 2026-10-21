@@ -147,6 +147,52 @@ function checkRows(probeOrigin: string | null): CheckRow[] {
   ];
 }
 
+/** The rows of what this browser gives away (S1): read in the same run, nothing uploaded, each with its why. */
+function privacyRows(): CheckRow[] {
+  return [
+    {
+      id: "signals",
+      n: "06",
+      title: "Privacy signals",
+      chip: "GPC, DNT",
+      what: html`Reads <code>navigator.globalPrivacyControl</code> and <code>navigator.doNotTrack</code>: whether this browser tells sites not to sell or share, in a form the law in several US states obliges them to honour.`,
+      why: html`Global Privacy Control is the one browser signal with legal weight; a browser that sends it opts you out of sale and sharing on every site that must listen.`,
+    },
+    {
+      id: "webrtc",
+      n: "07",
+      title: "WebRTC addresses",
+      chip: "no STUN",
+      what: html`Opens a peer connection with no servers at all and reads the candidates it offers. Nothing is sent anywhere; the question is what the browser would hand a site that asked.`,
+      why: html`WebRTC can reveal the LAN address and, with a VPN on, the real public one. Current browsers hide the LAN address behind an mDNS name; an old or oddly configured one does not.`,
+    },
+    {
+      id: "fingerprint",
+      n: "08",
+      title: "Fingerprint surface",
+      chip: "canvas, fonts, screen",
+      what: html`Draws a canvas twice and hashes it, measures a dozen common fonts, and reads the screen, time zone, languages, cores and touch points: the surface a tracker reads to recognise a browser without a cookie.`,
+      why: html`A stable, wide surface is an identifier that no cookie setting clears. Brave randomises the canvas; Firefox and the Tor Browser blur the rest; this row says which case this browser is.`,
+    },
+    {
+      id: "referrer",
+      n: "09",
+      title: "Referrer",
+      chip: "as received",
+      what: html`Asks this server (and the second origin, when one is configured) what <code>Referer</code> it received from this page, and compares it with this page's policy.`,
+      why: html`The referrer tells the next site where you came from, sometimes down to the page. The modern default sends the origin only across sites; a page can ask for more or less, and this row shows what actually arrived.`,
+    },
+    {
+      id: "transport",
+      n: "10",
+      title: "Transport",
+      chip: "IPv4/6, HTTP, TLS",
+      what: html`What the server saw of this connection: the address family, the HTTP version, and the TLS version when this server ended TLS itself.`,
+      why: html`Whether a connection arrives over IPv6, and over which HTTP and TLS versions, says what the path between this browser and the site is capable of; it is also what every site you visit can see.`,
+    },
+  ];
+}
+
 function row(check: CheckRow): Html {
   return html`<article class="check" data-check="${check.id}" id="check-${check.id}">
   <span class="n">${check.n}</span>
@@ -163,6 +209,7 @@ function row(check: CheckRow): Html {
 
 export function renderScan({ owner, open, look, probeOrigin, network, seen, exposure, exposureError }: ScanPageOptions): string {
   const rows = checkRows(probeOrigin).map(row);
+  const privacy = privacyRows().map(row);
   const content = html`<section class="scan" id="scan" data-probe-origin="${probeOrigin ?? ""}">
   <p class="crumbs"><a href="/">Home</a><span>›</span><b>Scan</b></p>
   <h1>Scan <span class="arrow">this browser: ads and filtering DNS</span></h1>
@@ -177,6 +224,7 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
     <p class="tally"><b id="scan-verdict-count">0</b><span>of 3 protections seen</span></p>
     <h2 id="scan-verdict-title"></h2>
     <p id="scan-verdict-text"></p>
+    <p class="small" id="scan-privacy" hidden></p>
   </div>
   <div class="cols">
     <div class="main">
@@ -202,6 +250,10 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
             ? html`<span class="state ${network.resolved === 0 && network.sinkholed > 0 ? "ok" : "warn"}">${network.sinkholed} / ${network.total} sinkholed</span>`
             : html`<span class="state na">Not run from this server</span>`}
         </article>
+      </div>
+      <h2 class="rows-head">What this browser gives away <span class="count">read in the same run; nothing uploaded</span></h2>
+      <div class="checks" id="privacy-rows">
+        ${privacy}
       </div>
       <div class="scan-run">
         <button type="button" class="primary" id="scan-run" disabled>Run the check</button>
@@ -276,6 +328,11 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     ["bypass", "DNS bypass and interception"],
     ["device", "Reading the device itself"],
     ["harden", "Hardening, in order"],
+    ["signals", "Privacy signals"],
+    ["webrtc", "WebRTC addresses"],
+    ["fingerprint", "The fingerprint surface"],
+    ["referrer", "The referrer"],
+    ["transport", "Transport"],
   ];
   const content = html`<section class="scan-why">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>Why these checks</b></p>
@@ -386,6 +443,45 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     <section class="box">
       <h2>How this page is written</h2>
       <p class="small">Each section rests on a primary document and links to it. Where a sentence is this product's reading rather than the source's words, it says "the check" or "this product". Nothing here is generated by a model. The router, exposure and bypass checks this server will run itself arrive later; the <a href="/scan/guide">guide</a> does them by hand today.</p>
+    </section>
+    <section class="box" id="signals">
+      <h2>Privacy signals</h2>
+      <p>Global Privacy Control is a header and a script property that says "do not sell or share my data". Unlike Do Not Track before it, several US privacy laws oblige a site to treat it as a valid opt-out, and regulators have fined sites that ignored it. The row reads whether this browser sends it; a browser that cannot yet (Chrome, Safari) gets no mark against it, only the fact.</p>
+      <ul class="sources">
+        ${source("https://globalprivacycontrol.org/", "Global Privacy Control", "the specification and the browsers that send it")}
+        ${source("https://oag.ca.gov/privacy/ccpa", "California Attorney General, CCPA", "the opt-out preference signal rules")}
+      </ul>
+    </section>
+    <section class="box" id="webrtc">
+      <h2>WebRTC addresses</h2>
+      <p>To set up a call, a browser gathers the addresses it can be reached at and offers them to the other side. A script can start that gathering without a call and read what is offered: historically the LAN address, and through a VPN the real public one. Every current browser now hides local addresses behind an mDNS name unless the user has granted camera or microphone access. This row gathers with no STUN server at all, so nothing leaves this tab, and reports which case this browser is.</p>
+      <ul class="sources">
+        ${source("https://www.rfc-editor.org/rfc/rfc8828", "RFC 8828, WebRTC IP address handling requirements")}
+        ${source("https://datatracker.ietf.org/doc/draft-ietf-mmusic-mdns-ice-candidates/", "mDNS ICE candidates", "the mechanism that hides the LAN address")}
+      </ul>
+    </section>
+    <section class="box" id="fingerprint">
+      <h2>The fingerprint surface</h2>
+      <p>A tracker that cannot set a cookie reads what the browser reveals about itself — the exact rendering of a canvas, which fonts are installed, the screen, the time zone, the languages, the cores — and from enough of these recognises the same browser again. The surface is not a leak of any one fact; it is the stability and width of all of them together. Brave adds noise to the canvas on every draw; Firefox's resistFingerprinting and the Tor Browser round the rest to common values. The row draws the canvas twice: two different hashes mean the browser is randomising, which is the good answer.</p>
+      <ul class="sources">
+        ${source("https://coveryourtracks.eff.org/", "EFF, Cover Your Tracks", "the test this row is a small version of")}
+        ${source("https://brave.com/privacy-updates/4-fingerprinting-defenses-2.0/", "Brave, fingerprinting defenses", "the farbling the canvas row detects")}
+      </ul>
+    </section>
+    <section class="box" id="referrer">
+      <h2>The referrer</h2>
+      <p>The Referer header tells the next site where you came from. Under the default every current browser now uses, strict-origin-when-cross-origin, another site learns the origin only and a plain-HTTP site learns nothing; a page can ask for more with a policy of its own. This row asks this server what it received, and the second origin when one is configured, so the answer is what arrived rather than what the policy says.</p>
+      <ul class="sources">
+        ${source("https://www.w3.org/TR/referrer-policy/", "W3C, Referrer Policy")}
+        ${source("https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy", "MDN, Referrer-Policy", "the defaults by browser")}
+      </ul>
+    </section>
+    <section class="box" id="transport">
+      <h2>Transport</h2>
+      <p>Whether this connection arrived over IPv6, and over which HTTP and TLS versions, is what the path between this browser and the site can do. None of it is a flaw in itself; it is what every site you visit can see, and the IPv6 answer in particular is one most people have never been shown.</p>
+      <ul class="sources">
+        ${source("https://test-ipv6.com/", "test-ipv6.com", "the fuller IPv6 test, which needs its own dual-stack hosts")}
+      </ul>
     </section>
   </div>
 </section>`;
