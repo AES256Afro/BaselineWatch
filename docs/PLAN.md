@@ -1529,3 +1529,37 @@ check. 8. Dependency majors wait for a quieter day. 9. Nothing off limits.
    each breaks fixed, or leave them for a quieter day?
 9. **Anything off limits** overnight: schema changes, deleting data, touching BoxPilot, anything
    on BigBox beyond the two update clicks?
+
+### What landed — the ledger, written as the night ended
+
+Every item below is on `main`, released, or named as left. Times are CDT.
+
+| Step | Landed as | State |
+| --- | --- | --- |
+| N1 0.39.0 to live | BoxPilot 1.207.0 published with the pin; the two BigBox clicks are the owner's | superseded by 0.41.0 below |
+| N2 security sweep | #12: publisher-derived URLs fetched from public hosts only | merged |
+| N3 bug sweep | #13: a client's fault answers with its own status (413, not 500) | merged |
+| N4 readability | #14: `app.ts` into route modules by area, the scan guide by platform, one JSON reader, a header on every module, exports pruned | merged |
+| N5 sources | #15 Exploit-DB, Metasploit, PoC-in-GitHub (migration 0035); #16 Microsoft's Security Update Guide (0036), Apple, Mozilla, ZDI ×2, HashiCorp, AWS, Talos | merged |
+| N6 quality of life | #17 feeds out (RSS, OPML, KEV calendar, sitemap, robots), trending, Patch Tuesday, Vulnerabilities as a menu; #18 masthead search, one card per story, SBOM into the watchlist | merged |
+| 0.40.0 | tagged, image published, BoxPilot catalog #554 merged (with a speedtest-tracker re-pin, ls175→ls176, evidence in the commit) | released |
+| N7 S3 check a domain | #19: `/scan/domain`, every verdict quoting its record; Scan as a menu | merged |
+| N7 S2 what this page learned | #19: the request's facts, Tor exits as a source (0037), InternetDB on request | merged |
+| N7 S1 browser 2.0 | #19: GPC/DNT, WebRTC, fingerprint surface, referrer as received, transport; `/scan/echo` | merged |
+| N8 usability | #20: skip link, captions and scopes on 18 tables, description/OpenGraph/canonical, a test that holds them; phone width checked | merged |
+| 0.41.0 | tagged, image published, BoxPilot catalog #555 opened | in flight at the end |
+| N7 S4 router and exposure | #21: public address, InternetDB daily, the router's admin page, firmware against the table and KEV, alerts on change only | open |
+| API | #22: exploits and Microsoft's update on `/api/v1/vulns/<id>` | open |
+
+**Left, and why.** The certificate-transparency watch (S3): crt.sh answered 502 all evening and
+the fixture rule wants a real capture. S5 devices seen: passive mDNS/SSDP needs the container on
+the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
+night's change. S6 beyond what S4 and the network check already store (two runs kept, alerts on
+change): a page of runs over time. Dependency majors (decision 8) untouched. The SMTP digest
+needs a mail client the product does not carry.
+
+**Found on the way.** The MSRC monthly document counts far more than Microsoft's own release note
+(October 2026: 2,574 rows, 1,457 outside the Chromium and Azure Linux republishing); the page
+states its figures as counts of Microsoft's rows and says so. BoxPilot's catalog PR carries no CI
+of its own (workflow token); CI is started by hand on its branch, and a flaked UI test cost one
+rerun. `tags-resolve` moved once more (speedtest-tracker), re-pinned with the labels as evidence.
