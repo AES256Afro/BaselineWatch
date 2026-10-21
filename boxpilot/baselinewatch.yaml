@@ -60,7 +60,7 @@ env:
     label: Notification URL (optional)
     type: password
     secret: true
-    description: "ntfy://<this server>:8093/baselinewatch, gotify://<this server>:8080/<token>, or an https:// webhook. Receives KEV additions, changes to CVEs in your watchlist, standard releases and the digest. Kept secret: a webhook URL or an ntfy topic is the credential."
+    description: "ntfy://<this server>:8093/baselinewatch, gotify://<this server>:8080/<token>, an https:// webhook, or mailto://user:pass@smtp.example.org:587/you@example.org (mailtos:// for port 465). Receives KEV additions, changes to CVEs in your watchlist, standard releases and the digest. Kept secret: a webhook URL or an ntfy topic is the credential."
     default: ""
   - name: BW_DIGEST
     label: Digest

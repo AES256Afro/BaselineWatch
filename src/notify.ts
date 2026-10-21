@@ -1,12 +1,15 @@
 import type { DatabaseSync } from "node:sqlite";
 import { HttpError, httpGet, type HttpGet } from "./http.ts";
+import { parseMailUrl, sendMail, SmtpError, type MailDeps, type MailTransport } from "./smtp.ts";
 
 /**
- * One notification URL, Apprise-style, three transports:
- *   ntfy://host[:port]/topic     (ntfys:// for TLS)
- *   gotify://host[:port]/token   (gotifys:// for TLS)
- *   https://... or http://...    a webhook that receives {title, body, url, kind} as JSON
- * Email goes through one of these (ntfy and Apprise both forward to mail) rather than SMTP here.
+ * One notification URL, Apprise-style, four transports:
+ *   ntfy://host[:port]/topic                       (ntfys:// for TLS)
+ *   gotify://host[:port]/token                     (gotifys:// for TLS)
+ *   https://... or http://...                      a webhook that receives {title, body, url, kind} as JSON
+ *   mailto://user:pass@host[:port]/to@example.org  (mailtos:// for TLS from the first byte; ?from= to set the sender)
+ * Mail goes by the small SMTP client in src/smtp.ts: STARTTLS when offered, AUTH PLAIN when a
+ * password is given, never a password in the clear.
  */
 export interface Notification {
   kind: "kev" | "release" | "watch" | "directive" | "digest" | "network" | "source" | "test";
@@ -16,13 +19,17 @@ export interface Notification {
 }
 
 export interface Transport {
-  scheme: "ntfy" | "gotify" | "webhook";
+  scheme: "ntfy" | "gotify" | "webhook" | "mail";
+  /** Where it goes; for mail, the recipient's address (the host and credentials sit in `mail`). */
   endpoint: string;
   token?: string;
+  mail?: MailTransport;
 }
 
 export function parseNotifyUrl(value: string | null): Transport | null {
   if (!value) return null;
+  const mail = parseMailUrl(value);
+  if (mail) return { scheme: "mail", endpoint: mail.to, mail };
   const m = /^(ntfys?|gotifys?|https?):\/\/(.+)$/i.exec(value.trim());
   if (!m) return null;
   const scheme = m[1]!.toLowerCase();
@@ -58,13 +65,22 @@ function headerValue(value: string): string {
  */
 function failureText(error: unknown): string {
   if (error instanceof HttpError) return `HTTP ${error.status}`;
+  if (error instanceof SmtpError) return `SMTP ${error.code}`;
   if (error instanceof Error) return error.name === "TimeoutError" || error.name === "AbortError" ? "timed out" : `send failed (${error.name})`;
   return "send failed";
 }
 
 /** Sends one notification; never throws. Returns what happened for the alerts log. */
-export async function send(transport: Transport | null, n: Notification, http: HttpGet = httpGet): Promise<{ status: "sent" | "failed" | "unconfigured"; error: string | null }> {
+export async function send(transport: Transport | null, n: Notification, http: HttpGet = httpGet, mailDeps: MailDeps = {}): Promise<{ status: "sent" | "failed" | "unconfigured"; error: string | null }> {
   if (!transport) return { status: "unconfigured", error: null };
+  if (transport.scheme === "mail" && transport.mail) {
+    try {
+      await sendMail(transport.mail, { subject: n.title, text: n.url ? `${n.body}\n\n${n.url}` : n.body }, mailDeps);
+      return { status: "sent", error: null };
+    } catch (error) {
+      return { status: "failed", error: failureText(error) };
+    }
+  }
   // A redirect is refused: the token or the body must not be re-sent to wherever a 3xx points.
   const post = { method: "POST" as const, timeoutMs: 20_000, redirect: "manual" as const };
   try {
