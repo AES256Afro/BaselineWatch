@@ -84,8 +84,33 @@ function featuredCards(items: WireItem[]): Html {
   return html`<div class="feat" aria-label="Latest, featured">${cards}</div>`;
 }
 
+/** What makes two articles one story: the same address once canonical, or the same headline (a short one proves nothing). */
+function storyKeys(item: WireItem): string[] {
+  if (item.kind !== "article") return [];
+  const keys: string[] = [];
+  if (item.canonical_url) keys.push(`u:${item.canonical_url}`);
+  const headline = item.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().slice(0, 80);
+  if (headline.length >= 24) keys.push(`t:${headline}`);
+  return keys;
+}
+
 export function renderNews({ db, filters, owner, open, now, look }: NewsPageOptions): string {
-  const items = listWire(db, { ...filters, limit: 50 });
+  // Copies of one address are fetched here so the other sources can be named; the clustering below folds them.
+  const fetched = listWire(db, { ...filters, limit: 50 }, { copies: true });
+  // One story from several sources is one card: the first by date, the others named on it.
+  const alsoOn = new Map<number, WireItem[]>();
+  const firstByKey = new Map<string, WireItem>();
+  const items: WireItem[] = [];
+  for (const item of fetched) {
+    const keys = storyKeys(item);
+    const first = keys.map((k) => firstByKey.get(k)).find((f) => f !== undefined && f.source_id !== item.source_id);
+    if (first) {
+      alsoOn.set(first.id, [...(alsoOn.get(first.id) ?? []), item]);
+      continue;
+    }
+    for (const k of keys) if (!firstByKey.has(k)) firstByKey.set(k, item);
+    items.push(item);
+  }
   const counts = sourceCounts(db).filter((c) => c.total > 0 || c.source_id === filters.source);
   const triageState = new Map<number, TriageState>();
   if (items.length) {
@@ -95,7 +120,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
   }
   const totalUnread = counts.reduce((n, c) => n + (c.unread ?? 0), 0);
   const current = query(filters, {});
-  const last = items[items.length - 1];
+  const last = fetched[fetched.length - 1];
   // The front page leads with image cards; a filtered or paged view is the plain list.
   const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before;
   const featured = plain ? items.slice(0, 4) : [];
@@ -124,7 +149,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
       ${item.summary ? html`<p class="wi-sum">${item.summary}</p>` : ""}
       ${fixLine(item)}
       <div class="wi-foot">
-        <div class="chips">${chips(item)}</div>
+        <div class="chips">${chips(item)}${(alsoOn.get(item.id) ?? []).map((d) => html`<a class="chip also" href="${d.url ?? "#"}" ${newTabIf(d.url)}>also on ${d.source_name}</a>`)}</div>
         ${owner
           ? html`<div class="acts">
               <form method="post" action="/items/${item.id}/${item.read ? "unread" : "read"}">${back}<button type="submit">${item.read ? "Mark unread" : "Mark read"}</button></form>

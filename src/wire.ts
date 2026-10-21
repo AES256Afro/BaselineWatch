@@ -27,6 +27,7 @@ export interface WireItem {
   external_id: string;
   title: string;
   url: string | null;
+  canonical_url: string | null;
   summary: string | null;
   published_at: string | null;
   fetched_at: string;
@@ -93,8 +94,9 @@ function build(filters: WireFilters, options: { copies?: boolean } = {}): Built 
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }
 
-export function listWire(db: DatabaseSync, filters: WireFilters = {}): WireItem[] {
-  const { where, params } = build(filters);
+/** The page's items; with `copies`, later copies of one address come too, for a page that names the other sources. */
+export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: { copies?: boolean } = {}): WireItem[] {
+  const { where, params } = build(filters, options);
   const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
   return db
     .prepare(
