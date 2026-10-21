@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isBuilderPlatform } from "../baselines.ts";
+import { eolFor, eolWord } from "../eol.ts";
 import { endingSupport, fleetPlatforms, hardwareOf, loadFleet, releasesOf, type Fleet, type Release } from "../fleet.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
@@ -60,7 +61,10 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
                 <td><b>${r.label}</b>${r.models ? html`<div class="note">${r.models}</div>` : ""}${r.notes.length ? html`<ul class="note">${r.notes.map((n) => html`<li>${n}</li>`)}</ul>` : ""}</td>
                 <td><span class="state ${r.status === "current" || r.status === "supported" ? "ok" : r.status === "ended" ? "err" : "wait"}">${statusLabel[r.status]}</span></td>
                 <td>${r.released ?? "—"}</td>
-                <td class="small">${soon(r)}${r.supportEnds ?? "—"}</td>
+                <td class="small">${soon(r)}${r.supportEnds ?? "—"}${(() => {
+                  const cycles = eolFor(db, p.id, r.id);
+                  return cycles.length ? html`<div class="note">endoflife.date: ${cycles.map((c, i) => html`${i ? " · " : ""}${c.edition ? `${c.edition} ` : ""}${eolWord(c.eol)}${c.support && c.support !== c.eol && c.support !== "true" ? ` (support ${eolWord(c.support)})` : ""}${c.latest ? ` · latest ${c.latest}` : ""}`)}</div>` : "";
+                })()}</td>
                 <td class="small">${r.hardware.length ? r.hardware.map((h) => hardware.find((x) => x.id === h)?.label ?? h).join("; ") : "every family"}</td>
                 <td class="small">${held(db, r).map((h, i) => html`${i ? " · " : ""}${h}`)}${r.baselines.length ? html`<details><summary>Published baselines</summary><ul class="note">${r.baselines.map((b) => html`<li>${b}</li>`)}</ul></details>` : ""}</td>
                 <td><a href="/baselines/${p.id}/tests?version=${encodeURIComponent(r.id)}">Plan</a>${r.sources.length ? html`<div class="note">${r.sources.map((s, i) => html`${i ? " · " : ""}<a href="${s.url}" ${newTabIf(s.url)}>source</a>`)}</div>` : ""}</td>

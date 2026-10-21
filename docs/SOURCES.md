@@ -451,6 +451,14 @@ adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes, A
 MSRC blog (HTML or bot walls at the documented feed paths), Oracle (refuses non-browser clients),
 the Azure blog (marketing), Google Cloud (404 at the security feed path).
 
+### endoflife.date (added 2026-10-21, N5)
+`https://endoflife.date/api/<product>.json` for windows, macos, ios, ipados, android, rhel and
+ubuntu (JSON, daily, MIT data): each product's cycles with release, support and end-of-life
+dates, swapped whole into `eol_cycles` (migration 0038). The Fleet page shows the vendor's end
+beside the owner's date (Windows has two per version: Home/Pro and Enterprise); a cycle inside
+ninety days of its end, or past it within the month, is one Wire item. Adapter
+`src/adapters/endoflife.ts`; fixtures `test/fixtures/endoflife/` as served 2026-10-21.
+
 ### Lookups on request (not pulled)
 - **Check a domain** (`/scan/domain`, Scan 2.0 S3) asks this server's resolver about the name a
   visitor typed, asks Cloudflare's resolver over DoH (`cloudflare-dns.com`, already the network
