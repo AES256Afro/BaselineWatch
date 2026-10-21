@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { isPlatformKey, platformName, platformsOf } from "./platforms.ts";
+import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
 
 /** A CVE in the shape BaselineWatch keeps, whatever it came from. */
 export interface NormalizedVuln {
@@ -262,15 +262,16 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   db.prepare(
     `INSERT INTO vulns (cve_id, source_identifier, published_at, last_modified_at, vuln_status, description,
         cvss_version, cvss_score, cvss_severity, cvss_vector, cvss_source, ssvc_json, cwes_json, cpes_json, vendors_json, products_json,
-        references_json, kev, kev_date_added, kev_due_date, watch_hit, watch_labels_json, first_seen_at, last_seen_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        references_json, kev, kev_date_added, kev_due_date, watch_hit, watch_labels_json, platforms_json, first_seen_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (cve_id) DO UPDATE SET
         source_identifier = excluded.source_identifier, published_at = excluded.published_at, last_modified_at = excluded.last_modified_at,
         vuln_status = excluded.vuln_status, description = excluded.description, cvss_version = excluded.cvss_version, cvss_score = excluded.cvss_score,
         cvss_severity = excluded.cvss_severity, cvss_vector = excluded.cvss_vector, cvss_source = excluded.cvss_source, ssvc_json = excluded.ssvc_json,
         cwes_json = excluded.cwes_json, cpes_json = excluded.cpes_json, vendors_json = excluded.vendors_json, products_json = excluded.products_json,
         references_json = excluded.references_json, kev = excluded.kev, kev_date_added = excluded.kev_date_added, kev_due_date = excluded.kev_due_date,
-        watch_hit = excluded.watch_hit, watch_labels_json = excluded.watch_labels_json, last_seen_at = excluded.last_seen_at`,
+        watch_hit = excluded.watch_hit, watch_labels_json = excluded.watch_labels_json, platforms_json = excluded.platforms_json,
+        last_seen_at = excluded.last_seen_at`,
   ).run(
     n.cveId,
     n.sourceIdentifier,
@@ -294,6 +295,7 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
     kevDueDate,
     watchLabels.length ? 1 : 0,
     watchLabels.length ? JSON.stringify(watchLabels) : null,
+    JSON.stringify(platformsOf({ cpes: n.cpes, vendors: n.vendors, products: n.products, description: n.description })),
     existing?.first_seen_at ?? observedAt,
     observedAt,
   );
@@ -482,6 +484,35 @@ export function applyEpss(db: DatabaseSync, scores: Iterable<EpssScore>, scoreDa
 }
 
 /** Re-evaluates every CVE against the watchlist after it changes. */
+/**
+ * Fills platforms_json for rows that predate migration 0032 (or an upsert that could not read a
+ * platform). Called once at start while any row is missing it, the way the Register relinks.
+ */
+export function recomputePlatforms(db: DatabaseSync, limit = 100_000): number {
+  const rows = db
+    .prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description FROM vulns WHERE platforms_json IS NULL LIMIT ?")
+    .all(limit) as { cve_id: string; cpes_json: string | null; vendors_json: string | null; products_json: string | null; description: string | null }[];
+  if (rows.length === 0) return 0;
+  const update = db.prepare("UPDATE vulns SET platforms_json = ? WHERE cve_id = ?");
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    for (const row of rows) {
+      const platforms = platformsOf({
+        cpes: parseJson<string[]>(row.cpes_json, []),
+        vendors: parseJson<string[]>(row.vendors_json, []),
+        products: parseJson<string[]>(row.products_json, []),
+        description: row.description,
+      });
+      update.run(JSON.stringify(platforms), row.cve_id);
+    }
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return rows.length;
+}
+
 export function recomputeWatchHits(db: DatabaseSync): number {
   const entries = loadWatchlist(db);
   const rows = db.prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description, watch_hit, watch_labels_json, packages_json FROM vulns").all() as {
@@ -527,6 +558,8 @@ export function recomputeWatchHits(db: DatabaseSync): number {
 export interface VulnFilters {
   watch?: boolean;
   kev?: boolean;
+  /** One of src/platforms.ts' ids: the CVEs whose CPEs, vendors, products or description put them on that platform. */
+  platform?: PlatformKey | undefined;
   minCvss?: number | undefined;
   /** One CVSS severity as NVD words it, or "unscored" for a CVE without one, the way the Today page bands them. */
   severity?: "critical" | "high" | "medium" | "low" | "unscored" | undefined;
@@ -553,6 +586,11 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
   const clauses: string[] = [];
   const params: (string | number)[] = [];
   if (filters.watch) clauses.push("v.watch_hit = 1");
+  if (filters.platform) {
+    // The column holds a JSON array of platform ids, so one quoted id matches exactly one platform.
+    clauses.push("v.platforms_json LIKE ?");
+    params.push(`%"${filters.platform}"%`);
+  }
   if (filters.kev) clauses.push("v.kev = 1");
   if (filters.minCvss !== undefined) {
     clauses.push("v.cvss_score >= ?");

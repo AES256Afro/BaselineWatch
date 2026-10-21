@@ -126,7 +126,7 @@ describe("the baseline builder", () => {
     expect(page).toMatch(/<dt>Kept<\/dt><dd><a href="\/baselines\/windows\?[^"]+">\d+ of \d+<\/a>/);
     expect(page).toContain("Microsoft&#39;s baseline adds");
     expect(page).toContain("SP 800-53 High baseline controls");
-    expect(page).toContain('aria-current="page">Baselines</a>');
+    expect(page).toContain('aria-current="page"><b>Baselines</b>');
     const cat2 = await (await fetch(`${base}/baselines/windows?section=cat2`)).text();
     expect(cat2).toContain('name="shown" value="cat2"');
     expect(cat2).toContain('name="keep" value="stig:v-253287" checked');

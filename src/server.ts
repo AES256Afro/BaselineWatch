@@ -8,6 +8,7 @@ import { listSources } from "./ingest.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
+import { recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 
@@ -25,6 +26,9 @@ for (const source of listSources(db)) {
   const out = relinkSource(db, source, new Date().toISOString());
   if (out.relinked > 0) console.log(`[register] ${source.id}: ${out.relinked} version(s) relinked into publication order`);
 }
+// Migration 0032 added the platform a CVE affects; rows that predate it are filled once here.
+const platformed = recomputePlatforms(db);
+if (platformed > 0) console.log(`[vulns] read the platform of ${platformed} CVE(s)`);
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");
 }
