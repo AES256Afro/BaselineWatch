@@ -2,6 +2,18 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.49.0 — 2026-10-22
+
+- **Mail from this site is named by this site.** The notifier's SMTP client gave EHLO and its
+  Message-ID the container's hostname, which under Docker is the container id; it now gives the
+  host of the site's own address, read from the notification's link. After STARTTLS the plain
+  socket's reader is detached before the secure one takes over.
+- **The InternetDB lookup says what happened in plain words**: "InternetDB answered 503", or "no
+  answer from InternetDB", never the URL asked or the error's own text.
+- The deploy notes describe the release chain as it is actually run: the catalog pull request's
+  checks started by hand, the local tag check before them, the two tools that answer a moved pin,
+  and the owner's two clicks.
+
 ## 0.48.0 — 2026-10-22
 
 - **Housekeeping knows the night's tables.** The weekly pass (M13) had seven tables it had never

@@ -1571,14 +1571,17 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | Guide | #37: `/guide#devices` teaches the device check; the page points at it | merged |
 | Security read | #38: a fresh-eyes read of the day's code — the domain check's TLS probe reached the LAN, the public rate windows were bypassable, a Linux device report was refused at 16 kB, the LAN resolver's address was public, the router model was a LIKE pattern, an SBOM could nest without end; all closed with tests. #39: a public-only fetch connects to the address it vetted (DNS rebinding) | merged |
 | Metrics | #40: the four new tables as rows, scans and readings freed in the housekeeping gauge | merged |
-| 0.48.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
+| 0.48.0 | tagged, image published; BoxPilot catalog #561 | superseded by 0.49.0 |
+| Deploy notes | #41: the Upgrading section is the seven-step chain as run nine times tonight, with the tools and timings | merged |
+| Polish | #42: the mail client named by the site's host, the plain reader detached after STARTTLS, the InternetDB lookup's wording | merged |
+| 0.49.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
 night's change. S6 beyond what S4 and the network check already store (two runs kept, alerts on
 change): a page of runs over time. Dependency majors (decision 8) untouched.
 
-**Found on the way.** The MSRC monthly document is large (October 2026: 2,574 rows, 1,457 of
+**Found on the way.** Docker Hub rebuilt its Alpine-based official images through the evening of 2026-10-21 (memcached, redis, then postgres for eleven apps), each move failing BoxPilot's image check on a later run; the deploy notes now say to run that check locally first. A fresh-eyes security read of the day's code found six things, two of them real (the domain check's TLS probe reaching the LAN; the public rate windows), and one bug in the device check that only a Linux report would have shown. The MSRC monthly document is large (October 2026: 2,574 rows, 1,457 of
 them Microsoft's own, every one first published that month); the page states its figures as
 counts of Microsoft's rows and says so. crt.sh answered 502 for most of the evening and came back
 at the end, which is when the CT watch landed. BoxPilot's catalog PR carries no CI
