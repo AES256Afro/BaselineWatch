@@ -133,6 +133,7 @@ export function renderScanDevices(options: ScanDevicesOptions): string {
           <li>Linux: OSV compares the installed version with each advisory's range by the distribution's own rules. A backported fix that OSV knows about is not flagged; one it does not know about is.</li>
           <li>Not read: applications other than browsers, Windows apps, Homebrew, and distributions OSV does not carry.</li>
         </ul>
+        <p class="small"><a href="/guide#devices">The guide</a> says what each verdict rests on.</p>
       </div>
     </aside>
   </div>
