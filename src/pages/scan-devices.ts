@@ -1,5 +1,7 @@
 import { html, newTab, type Html } from "../html.ts";
+import type { DeviceReading } from "../devices.ts";
 import type { DeviceFinding, InventoryReport } from "../inventory.ts";
+import { relativeTime } from "../time.ts";
 import type { LookState } from "../look.ts";
 import { scriptsFor, sumsFile, type ScanScript } from "../scan-scripts.ts";
 import { page } from "./layout.ts";
@@ -19,6 +21,33 @@ export interface ScanDevicesOptions {
   report?: InventoryReport | null;
   findings?: DeviceFinding[];
   problem?: string | null;
+  /** The newest reading of each device the owner has read, newest first; the owner alone sees them. */
+  devices?: DeviceReading[];
+  /** One device's readings when the page is opened on it. */
+  history?: { device: string; readings: DeviceReading[] } | null;
+  /** The name this reading was recorded under, and what moved since the device's last reading. */
+  recorded?: { device: string; appeared: string[]; cleared: string[] } | null;
+  now: Date;
+}
+
+const worstWord: Record<DeviceReading["worst"], string> = { ok: "Up to date", warn: "Behind", bad: "Exposed", na: "Not read" };
+
+function devicesBox(devices: DeviceReading[], now: Date): Html {
+  if (devices.length === 0) return html`<div class="box"><h2>Your devices</h2><p class="small">Each reading is kept by the device's name — its verdicts and CVE ids, never the report — so the next reading says what moved.</p></div>`;
+  return html`<div class="box" id="devices">
+    <h2>Your devices <span class="count">${devices.length}</span></h2>
+    <ul class="refs">${devices.map((d) => html`<li><a href="/scan/devices?device=${encodeURIComponent(d.device)}"><b>${d.device}</b></a> <span class="state ${d.worst}">${worstWord[d.worst]}</span> <span class="small">${d.os_label ?? d.os} · read ${relativeTime(d.read_at, now)}</span></li>`)}</ul>
+  </div>`;
+}
+
+function historyBox(history: { device: string; readings: DeviceReading[] }, owner: boolean, now: Date): Html {
+  return html`<section class="box wide" id="history">
+    <h2>${history.device} <span class="count">${history.readings.length} reading(s)</span></h2>
+    ${history.readings.length
+      ? html`<ul class="refs">${history.readings.map((r) => html`<li><span class="state ${r.worst}">${worstWord[r.worst]}</span> ${r.os_label ?? r.os} <span class="small">· ${r.read_at.slice(0, 16).replace("T", " ")} UTC · ${relativeTime(r.read_at, now)}</span>${r.findings.filter((f) => f.state === "bad" || f.state === "warn").map((f) => html`<div class="small">${f.title}: ${f.text}</div>`)}</li>`)}</ul>`
+      : html`<p class="small">No reading under that name.</p>`}
+    ${owner && history.readings.length ? html`<form method="post" action="/scan/devices/forget" class="inline"><input type="hidden" name="device" value="${history.device}"><button type="submit" class="link">Forget this device</button></form>` : ""}
+  </section>`;
 }
 
 const stateWord: Record<DeviceFinding["state"], string> = { ok: "Up to date", warn: "Behind", bad: "Exposed", na: "Not read" };
@@ -54,19 +83,29 @@ function scriptBox(scripts: readonly ScanScript[]): Html {
 }
 
 export function renderScanDevices(options: ScanDevicesOptions): string {
-  const { owner, open, look, scripts, report, findings, problem } = options;
+  const { owner, open, look, scripts, report, findings, problem, now } = options;
+  const devices = options.devices ?? [];
+  const recorded = options.recorded ?? null;
   const results = findings?.length
     ? html`<section class="box wide" id="reading">
-        <h2>What applies to this device <span class="count">${report?.os.name ?? report?.os.family ?? ""} ${report?.os.version ?? ""}${report?.os.build ? ` · build ${report.os.build}` : ""}</span></h2>
+        <h2>What applies to ${recorded ? recorded.device : "this device"} <span class="count">${report?.os.name ?? report?.os.family ?? ""} ${report?.os.version ?? ""}${report?.os.build ? ` · build ${report.os.build}` : ""}</span></h2>
+        ${recorded && (recorded.appeared.length || recorded.cleared.length)
+          ? html`<p class="small"><b>Since the last reading:</b> ${recorded.appeared.length ? html`${recorded.appeared.length} newly applying (${recorded.appeared.slice(0, 6).join(", ")}${recorded.appeared.length > 6 ? ", …" : ""})` : ""}${recorded.appeared.length && recorded.cleared.length ? "; " : ""}${recorded.cleared.length ? html`${recorded.cleared.length} cleared (${recorded.cleared.slice(0, 6).join(", ")}${recorded.cleared.length > 6 ? ", …" : ""})` : ""}.</p>`
+          : recorded
+            ? html`<p class="small">Recorded under <b>${recorded.device}</b>; the next reading under that name will say what moved.</p>`
+            : ""}
         <div class="checks">${findings.map((f, i) => findingRow(i + 1, f))}</div>
         <p class="small">Read once from the report you pasted and kept nowhere. Windows builds are judged against the Security Update Guide's fixed builds, browsers and macOS against the vendors' announced releases, Linux packages by OSV's own version comparison for the distribution; a row marked <i>Not read</i> says what was missing.</p>
       </section>`
     : "";
   const form = owner
     ? html`<form method="post" action="/scan/devices" class="stack" id="paste">
+        <label for="device">Device name</label>
+        <input type="text" id="device" name="device" maxlength="60" placeholder="laptop" value="${recorded?.device ?? ""}" required>
         <label for="report">Paste the script's whole output</label>
         <textarea id="report" name="report" rows="8" required spellcheck="false" placeholder="BW-REPORT-BEGIN&#10;{&quot;bw&quot;:1, …}&#10;BW-REPORT-END"></textarea>
         <button type="submit" class="primary">Read it</button>
+        <p class="small">The reading's verdicts and CVE ids are kept under the device's name, never the report itself; a name used before continues that device's history.</p>
       </form>`
     : html`<p class="small"><a href="/login">Sign in</a> to paste a report; a device's software list is the owner's to show.</p>`;
   const content = html`<section class="scan">
@@ -77,11 +116,13 @@ export function renderScanDevices(options: ScanDevicesOptions): string {
   </p>
   ${problem ? html`<div class="notice">${problem}</div>` : ""}
   ${results}
+  ${options.history ? historyBox(options.history, owner, now) : ""}
   <div class="cols">
     <div class="main">
       ${form}
     </div>
     <aside class="side">
+      ${owner ? devicesBox(devices, now) : ""}
       ${scriptBox(scripts)}
       <div class="box">
         <h2>What it can and cannot say</h2>
