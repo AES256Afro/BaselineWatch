@@ -1,5 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { rehearsalLine, storageLine, storageReport } from "./housekeeping.ts";
+import { latestReadings } from "./devices.ts";
+import { latestExposure } from "./exposure.ts";
 import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 import { parseJson } from "./json.ts";
@@ -83,6 +85,34 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
     lines.push(`This network: ${netChanges} change(s) ${baseUrl}/scan/network`);
     lines.push(...netLines);
     if (netChanges > netLines.length) lines.push(`- …and ${netChanges - netLines.length} more`);
+    lines.push("");
+  }
+
+  // The owner's devices (S7): the ones whose last reading left something open, by name.
+  const devices = latestReadings(db).filter((r) => r.worst === "bad" || r.worst === "warn");
+  if (devices.length) {
+    lines.push(`Devices: ${devices.length} with something open ${baseUrl}/scan/devices`);
+    for (const d of devices.slice(0, 10)) {
+      const open = d.findings.filter((f) => f.state === "bad" || f.state === "warn");
+      lines.push(`- ${d.device} (${d.worst === "bad" ? "exposed" : "behind"}): ${open.map((f) => f.title).join(", ")}; read ${day(d.read_at)}`);
+    }
+    lines.push("");
+  }
+
+  // Router and exposure (S4): the last run's findings, when any is open; an all-clear says nothing here.
+  const exposure = latestExposure(db);
+  const exposed = exposure?.findings.filter((f) => f.state === "bad" || f.state === "warn") ?? [];
+  if (exposed.length) {
+    lines.push(`Exposure: ${exposed.length} finding(s) on the last run ${baseUrl}/scan/network#exposure`);
+    for (const f of exposed) lines.push(`- ${f.title}: ${f.text}`);
+    lines.push("");
+  }
+
+  // Certificates the transparency logs showed for the owner's domains in the window (S3): each one is worth a look.
+  const certs = db.prepare("SELECT domain, names, issuer, not_before FROM ct_certs WHERE seen_at > ? AND seen_at <= ? ORDER BY not_before DESC LIMIT 20").all(from, to) as { domain: string; names: string; issuer: string | null; not_before: string | null }[];
+  if (certs.length) {
+    lines.push(`Certificates logged: ${certs.length} for your domains ${baseUrl}/scan/domain`);
+    for (const c of certs.slice(0, 10)) lines.push(`- ${c.names.split("\n").join(", ")}${c.issuer ? ` by ${c.issuer}` : ""}${c.not_before ? `, from ${c.not_before.slice(0, 10)}` : ""}`);
     lines.push("");
   }
 
