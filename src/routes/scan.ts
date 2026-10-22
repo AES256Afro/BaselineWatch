@@ -16,7 +16,7 @@ import { renderScan, renderScanWhy } from "../pages/scan.ts";
 import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages/scan-guide.ts";
 import { renderScanDevices } from "../pages/scan-devices.ts";
 import { renderScanHistory } from "../pages/scan-history.ts";
-import { latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
+import { isReleaseLine, latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
 import { deleteDevice, deviceName, latestReadings, readingChanges, readingsOf, recordReading } from "../devices.ts";
 import { renderScanNetwork } from "../pages/scan-network.ts";
 import { netScanEnabled, netSettingKeys, networkSummary, runNetworkScan, setSetting } from "../netscan.ts";
@@ -163,9 +163,9 @@ export function mountScan(r: RouteContext): void {
     const browser = str(query.browser, 20)?.toLowerCase();
     const version = str(query.version, 40) ?? null;
     res.setHeader("Cache-Control", "no-store");
-    if (browser !== "chrome" && browser !== "firefox" && browser !== "safari" && browser !== "edge") return res.status(400).json({ error: "browser is chrome, firefox, safari or edge" });
+    if (!isReleaseLine(browser)) return res.status(400).json({ error: "browser is chrome, firefox, safari, edge, ios or ipados" });
     const latest: LatestRelease | null = latestBrowser(db, browser, version);
-    res.json(latest ? { browser, latest: latest.version, newer: latest.newer.slice(0, 8).map((n) => ({ title: n.title, url: n.url, version: n.version, published: n.published_at })) } : { browser, latest: null, newer: [] });
+    res.json(latest ? { browser, latest: latest.version, newerLine: latest.newerLine, newer: latest.newer.slice(0, 8).map((n) => ({ title: n.title, url: n.url, version: n.version, published: n.published_at })) } : { browser, latest: null, newerLine: null, newer: [] });
   });
   app.get("/scan/history", (req, res) => {
     res.setHeader("Cache-Control", "no-store");

@@ -59,6 +59,7 @@ function findingRow(n: number, f: DeviceFinding): Html {
     <div class="t">${f.title}</div>
     <p class="d">${f.text}</p>
     ${f.quoted.length ? html`<ul class="ev">${f.quoted.map((q) => html`<li><code>${q}</code></li>`)}</ul>` : ""}
+    ${f.links?.length ? html`<p class="small">${f.links.map((l, i) => html`${i ? " · " : ""}<a href="${l.href}">${l.label}</a>`)}</p>` : ""}
     ${f.refs.length
       ? html`<ul class="refs device-refs">${f.refs.slice(0, 60).map((r) => html`<li>${/^https?:\/\//.test(r.href) ? html`<a href="${r.href}" ${newTab}>${r.id}</a>` : html`<a href="${r.href}">${r.id}</a>`}${r.note ? html` <span class="small">${r.note}</span>` : ""}</li>`)}${f.refs.length > 60 ? html`<li class="small">and ${f.refs.length - 60} more</li>` : ""}</ul>`
       : ""}

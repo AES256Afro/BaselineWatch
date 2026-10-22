@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { msrcApi } from "../src/adapters/msrc.ts";
 import { migrate, openDatabase } from "../src/db.ts";
 import { getSource, ingestSource } from "../src/ingest.ts";
-import { latestBrowser, matchOs, matchPackages, matchWindows, osvBatchUrl, osvEcosystem, queryOsv, readReport, windowsProduct } from "../src/inventory.ts";
+import { judgeBrowser, latestBrowser, matchOs, matchPackages, matchWindows, osvBatchUrl, osvEcosystem, queryOsv, readReport, windowsProduct } from "../src/inventory.ts";
 import { upsertItems } from "../src/items.ts";
 import { compareDotted, newestVersion } from "../src/versions.ts";
 import { cookieFrom, fakeHttp, fixture, formPost, startTestApp } from "./helpers.ts";
@@ -91,6 +91,24 @@ describe("browsers and the OS", () => {
     expect(latestBrowser(db, "firefox", "158.0")!.newer.length).toBe(1);
     expect(latestBrowser(db, "safari", "26.1")!.newer).toEqual([]);
     expect(latestBrowser(db, "edge", "1.0")?.version).toBe("156.0.8078.47");
+    upsertItems(db, "apple-security", [
+      { kind: "article", externalId: "149226", title: "iOS 26.7.1 and iPadOS 26.7.1", url: "https://support.apple.com/en-us/149226", summary: null, publishedAt: "2026-09-28T12:00:00.000Z", signals: { line: "iOS" } },
+      { kind: "article", externalId: "149227", title: "iOS 27.0.1 and iPadOS 27.0.1", url: "https://support.apple.com/en-us/149227", summary: null, publishedAt: "2026-09-28T12:00:00.000Z", signals: { line: "iOS" } },
+      { kind: "article", externalId: "149100", title: "iOS 26.7 and iPadOS 26.7", url: "https://support.apple.com/en-us/149100", summary: null, publishedAt: "2026-09-15T12:00:00.000Z", signals: { line: "iOS" } },
+    ], at);
+    // A phone on its own line is judged within it, and told the next line exists.
+    const olderLine = latestBrowser(db, "ios", "26.7")!;
+    expect(olderLine).toMatchObject({ version: "26.7.1", newerLine: "27.0.1" });
+    expect(olderLine.newer.map((n) => n.version)).toEqual(["26.7.1"]);
+    const current = latestBrowser(db, "ios", "27.0.1")!;
+    expect(current).toMatchObject({ version: "27.0.1", newerLine: null, newer: [] });
+    expect(latestBrowser(db, "ipados", "26.7.1")!).toMatchObject({ version: "26.7.1", newerLine: "27.0.1", newer: [] });
+    const phone = judgeBrowser("iOS", "26.7", olderLine);
+    expect(phone.state).toBe("warn");
+    expect(phone.text).toContain("1 newer release with security fixes");
+    expect(phone.text).toContain("iOS 27.0.1 exists for devices that support it");
+    expect(judgeBrowser("iOS", "26.7.1", latestBrowser(db, "ios", "26.7.1")).text).toBe("Nothing newer than 26.7.1 is announced for iOS 26 (newest: 26.7.1). iOS 27.0.1 exists for devices that support it.");
+    expect(judgeBrowser("Firefox", "158.0", latestBrowser(db, "firefox", "158.0")).text).toContain("1 newer advisory with security fixes");
     const base = { bw: 1 as const, browsers: [] as { name: string; version: string }[], packages: [] as { name: string; version: string }[], packageSource: null };
     const mac = matchOs(db, { ...base, os: { family: "macos", name: "macOS", version: "26.7", build: "25G100", display: null, id: null, versionId: null } });
     expect(mac).toMatchObject({ state: "warn", text: expect.stringContaining("behind 26.7.1") });
@@ -158,6 +176,7 @@ describe("the page", () => {
       expect(text).toContain("KB5127648");
       expect(text).toContain('<a href="/vulnerabilities/CVE-2026-100200">CVE-2026-100200</a>');
       expect(text).toContain('<span class="state bad">Exposed</span>');
+      expect(text).toContain('<a href="/vulnerabilities/microsoft?q=5127648">KB5127648 on Patch Tuesday</a>');
       expect(text).toContain("What applies to laptop");
       expect(text).toContain("Recorded under <b>laptop</b>");
       // The reading is kept as verdicts and ids, never the report; a second reading says what moved.
@@ -183,8 +202,9 @@ describe("the page", () => {
       expect(sums).toContain("bw-inventory.sh");
       // The browser check's answer.
       const check = await (await fetch(`${app.base}/scan/browser-check?browser=chrome&version=1.0`)).json();
-      expect(check).toEqual({ browser: "chrome", latest: null, newer: [] });
+      expect(check).toEqual({ browser: "chrome", latest: null, newerLine: null, newer: [] });
       expect((await fetch(`${app.base}/scan/browser-check?browser=netscape`)).status).toBe(400);
+      expect(await (await fetch(`${app.base}/scan/browser-check?browser=ios&version=26.7`)).json()).toEqual({ browser: "ios", latest: null, newerLine: null, newer: [] });
     } finally {
       await app.close();
     }
