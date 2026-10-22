@@ -96,6 +96,7 @@ src/smtp.ts          the notifier's mail transport: one message, STARTTLS or TLS
 src/saved.ts         saved searches: a named list page with its filters, kept on the desk and on Today
 src/inventory.ts     is this device affected: the inventory script's report read against the guide, the vendors, endoflife.date and OSV
 src/versions.ts      dotted version numbers compared as people read them
+src/devices.ts       the owner's devices over time: each reading's verdicts and CVE ids, never the report
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation

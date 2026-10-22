@@ -17,6 +17,7 @@ import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages
 import { renderScanDevices } from "../pages/scan-devices.ts";
 import { renderScanHistory } from "../pages/scan-history.ts";
 import { latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
+import { deleteDevice, deviceName, latestReadings, readingChanges, readingsOf, recordReading } from "../devices.ts";
 import { renderScanNetwork } from "../pages/scan-network.ts";
 import { netScanEnabled, netSettingKeys, networkSummary, runNetworkScan, setSetting } from "../netscan.ts";
 import { probeGif, probePaths, resolverCheckSources } from "../scan.ts";
@@ -127,19 +128,34 @@ export function mountScan(r: RouteContext): void {
   const scripts = readScanScripts(path.join(publicDir, "scan"));
   app.get("/scan/devices", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.type("html").send(renderScanDevices({ ...who(req, res), scripts }));
+    const w = who(req, res);
+    const device = deviceName((req.query as Record<string, unknown>).device);
+    const history = w.owner && device ? { device, readings: readingsOf(db, device) } : null;
+    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: w.owner ? latestReadings(db) : [], history }));
   });
   app.post("/scan/devices", requireOwner, async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    const text = str(((req.body ?? {}) as Record<string, unknown>).report, 2_000_000) ?? "";
+    const w = who(req, res);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const text = str(body.report, 2_000_000) ?? "";
+    const device = deviceName(body.device);
+    if (!device) return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: "Name the device: letters, digits, spaces, a dot or a dash, up to sixty characters." }));
     let report;
     try {
       report = readReport(text);
     } catch (error) {
-      return res.status(400).type("html").send(renderScanDevices({ ...who(req, res), scripts, problem: error instanceof Error ? error.message : String(error) }));
+      return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: error instanceof Error ? error.message : String(error) }));
     }
     const findings = await readDevice(db, ctx.http ?? httpGet, report);
-    res.type("html").send(renderScanDevices({ ...who(req, res), scripts, report, findings }));
+    const previous = readingsOf(db, device, 1)[0] ?? null;
+    const reading = recordReading(db, device, report, findings, now().toISOString());
+    const changes = readingChanges(previous, reading);
+    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), report, findings, devices: latestReadings(db), recorded: { device, ...changes } }));
+  });
+  app.post("/scan/devices/forget", requireOwner, (req, res) => {
+    const device = deviceName(((req.body ?? {}) as Record<string, unknown>).device);
+    if (!device || deleteDevice(db, device) === 0) return res.status(404).type("text").send("No readings under that name.");
+    res.redirect(303, "/scan/devices");
   });
   // The browser check's version row asks what the vendor feeds say is newest (S1).
   app.get("/scan/browser-check", (req, res) => {
