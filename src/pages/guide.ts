@@ -14,7 +14,9 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
       This site does two jobs: it gathers security news in one timeline, and it keeps a change
       register for the security standards themselves. The ladder below is the frame for all of
       it — standard, baseline, control, setting — and the terms after it appear all over both
-      jobs; each one links to the page where you can see it in use.
+      jobs; each one links to the page where you can see it in use. Where those rulebooks come from
+      in the first place — the law, the policy and the publishers behind each one — is
+      <a href="/learn">Learn</a>.
     </p>
     <div class="guide">
       <section class="box wide" id="ladder">
@@ -88,6 +90,17 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           the quarterly <a href="/standards/nasa-cyber-ref">NASA Cybersecurity Policy Reference</a>,
           which lists every NASA cybersecurity document with its dates and status, and diffs like
           any other standard.
+        </p>
+        <h3>Where the rulebook itself came from</h3>
+        <p>
+          The ladder starts at the standard, but the standard did not start there. A law obliges
+          somebody to act, a policy says what acting looks like, a framework structures the work,
+          and only then is there a catalogue to pick a baseline out of — and below the setting there
+          is a check that proves it. <a href="/learn">Learn</a> draws that whole chain, names every
+          publisher on it (NIST, CISA, DISA, CNSS, NASA, CIS, Microsoft, the NSA, the ACSC, the
+          NCSC), links each one's own address with what it takes to read it, and traces the same
+          control three ways: down a federal system's ladder, a DoD system's, and a private
+          company's.
         </p>
       </section>
       <section class="box" id="areas">

@@ -31,6 +31,7 @@ to be installed from the BoxPilot catalog on BigBox.
 | 2026-10-19 | **M12 Scan** (planned): the ad, DNS, router and firewall checks, keeping a public scan page's browser technique and adding what a LAN-resident server can see; one page with a self-hosted script under its own CSP; nothing fetched from ad or malware domains; ten mockups in `docs/mockups/scan/`. |
 | 2026-10-19 | **M11 Platform engineering**: the fleet (each OS release, its support dates and the hardware it runs on) drives the test plans; templates carry success and failure branches and apply by release and hardware; areas are chosen per run; exports add LaTeX, Word and PDF; iOS, iPadOS, Android and the Samsung meeting rooms get template plans. NIST's PIV and platform-security publications join the Register. |
 | 2026-10-20 | **All standards in one place** (`/standards`, "All standards" in the Standards menu, 0.36.0): per operating system the current, new and draft standards from the sources already tracked; the NIST publications with CSRC's drafts open for comment; and NASA's cybersecurity document set. Chris's "CSET" is NASA OCIO's Cybersecurity Standards and Engineering Team: its ASCS standards are NASA-internal, so the public layer — the quarterly Cybersecurity Policy Reference on nasa.gov, which lists every NASA cybersecurity document with dates and status notes — joins the Register as source `nasa-cyber-ref` and is diffed like any standard. |
+| 2026-10-22 | **Learn** (`/learn`, last in the Standards menu under "Where it all comes from"): the ladder says what a standard, baseline, control and setting are; Learn says where the rulebook itself came from. Seven rungs — law and contract, policy, framework, control catalogue, baseline, configuration setting, check and evidence — drawn as a strip, then a matrix whose rows are those rungs and whose columns are who the publisher writes for (US federal civilian, US defense, NASA, private business, outside the US), so reading across one row gives the same job as NIST, DISA, CNSS, NASA, CIS, Microsoft, the NSA, the ACSC and the NCSC each answer it. Thirty-five publishers in `src/authorities.ts` (committed knowledge, not a fetched source), each with what it derives from, what derives from it, every address its own words live at and the access that address asks for (public, free account, agency sign-in, your own licence) — an agency-only link is public knowledge of where a document lives, never the document. Where this instance tracks a body, its card shows the version held. The same control (a device locking after inactivity) is traced three ways — federal, DoD, private — and the private chain's empty policy rung is the lesson. A standard's own page gains "Where this comes from", which names its publisher, its derivation and the other bodies answering the same step. A "names that collide" box settles CSET (NASA OCIO / CISA's tool / Georgetown), FISMA against FISA, CSI against CIS, NIST against CSRC against NVD, and 800-53 against 53A against 53B. |
 | 2026-10-17 | **M9 Baselines** turns the tracked standards into guidance: STIG pages per operating system, a baseline builder per platform with exports for Jamf, Intune and Linux, test plans for a new OS release, platform alerts and a Fix panel. No generative AI in that path: every line derives from DISA, NIST, Microsoft and CISA text and refreshes with the sources. CIS stays upload-only. Survey of comparable tools in [COMPETITION.md](COMPETITION.md). |
 | 2026-10-21 | **The forward plan**: every open item of M10, M11 and M12 is re-homed in a ledger (end of section 5) and the work from here is M13 to M19, ending at a 1.0 a stranger can install and run for a week. M13 comes first because two of its items are losses rather than gaps: nothing in the code prunes anything (138 MB in five days), and three tags shipped with no changelog entry. A milestone is finished when its "Done when" can be shown on the live instance; the dates are the least load-bearing part of the plan, and each milestone names the thin slice that ships if a week slips. Multi-user waits for a second person to need it, and because that may never happen, 1.0 does not wait for multi-user: M18 is off the 1.0 path and ships as 1.1. The plan's claims about the code were verified against it on the day it was written. |
 
@@ -1086,6 +1087,12 @@ The plans export beautifully and prove nothing. A plan that ends in a signed PDF
 
 ### M17: The teaching site earns the name
 
+> The Learning section has its own plan from 2026-10-22: **[LEARN.md](LEARN.md)**, L1 to L6 —
+> the section's shape, the glossary, traces drawn from loaded data rather than written by hand, a
+> searchable and tool-readable chain, a nightly probe over the registry's addresses, and the
+> handout and accessibility pass that close M17's last two items. This milestone keeps the gate;
+> that document holds the detail.
+
 cybercard.net is the public mission and its audience is people learning. `/guide` shipped and is
 good; the rest of the site still assumes the reader knows what OSCAL, a CCI, CAT II, EPSS and a
 baseline are. The accessibility pass promised in M10 never happened, and eleven looks across two
@@ -1097,12 +1104,21 @@ colour schemes is a lot of contrast to leave unchecked.
   titles and text alternatives on the inline SVG charts; a test that fails on a missing label.
 - **Reading**: the FTS5 search promoted into the masthead; a short explainer beside each area's
   first heading, linking into `/guide`; `/guide` extended with CCIs, OSCAL, SSVC, the severity
-  scales and what a baseline is; and a plain "what this is not" line — it does not scan your
+  scales and what a baseline is (CCIs, OSCAL and SCAP landed on `/learn` instead, 2026-10-22); and a plain "what this is not" line — it does not scan your
   systems and it does not tell you whether you comply.
 - **Weight and cache**: a page-weight and render budget for the heaviest pages (the builder, a
   release's change list, Vulnerabilities), measured and recorded; the Cloudflare cache rules for
   `/img/<hash>` and `/assets/` written into DEPLOY.md; `robots.txt`, a sitemap and per-page
   canonical and OpenGraph tags, which a public teaching site needs and this one has none of.
+*Shipped 2026-10-22, because the owner asked where the standards themselves come from:* **Learn**
+at `/learn` — the chain from law to check, the matrix of rungs against audiences, thirty-five
+publishers with their own addresses and access levels, the same control traced down a federal, a
+DoD and a private ladder, a "names that collide" box, and a "Where this comes from" block on every
+standard's own page. `src/authorities.ts` holds the registry and `test/learn.test.ts` holds it to
+its invariants: every derivation resolves, nothing is its own ancestor, every address is an https
+link with its access stated, every rung and every audience is filled, and every tracked source is
+one this instance actually has.
+
 *Shipped 2026-10-21, out of order, because the owner asked for it:* the ladder — standard,
 baseline, control, configuration setting — is taught on `/guide#ladder` with a worked example and
 where an agency's own layer (NASA's CSET) fits, and both menus are built from it: Standards is
@@ -1111,8 +1127,9 @@ register and the Atlas under a rule; the Desk holds the owner's fleet and work, 
 then how it is drawn. `/controls` is new (one search across every standard's current version),
 Platforms is renamed Fleet at `/fleet`, and the masthead's look switch moved to an Appearance
 page. Today opens on what to do next and groups the window's CVEs by the platform they affect
-(migration 0032 stores it on the CVE). **Still open here**: the accessibility pass, the masthead
-search, the weight budget, and `robots.txt`, a sitemap and the canonical and OpenGraph tags.
+(migration 0032 stores it on the CVE). **Still open here**: the accessibility pass and the weight
+budget. The masthead search, `robots.txt`, the sitemap and the canonical and OpenGraph tags have
+since shipped, and both remaining items are carried by L6 in [LEARN.md](LEARN.md).
 
 - **Depends on**: nothing, but it is worth taking after M15 so the personalised pages are in the
   pass. **Thin slice**: the accessibility pass and the masthead search.

@@ -15,6 +15,7 @@ export type Area =
   | "controls"
   | "stigs"
   | "baselines"
+  | "learn"
   | "fleet"
   | "wire"
   | "vulnerabilities"
@@ -54,6 +55,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   controls: { label: "Controls", path: "/controls", blurb: "one rule at a time, and what changed" },
   stigs: { label: "STIGs", path: "/stigs", blurb: "a platform's rules, with check and fix" },
   atlas: { label: "Atlas", path: "/atlas", blurb: "the rhythm of releases, and what is due" },
+  learn: { label: "Learn", path: "/learn", blurb: "where every rule comes from, and who derived it from whom" },
   register: { label: "Change register", path: "/register", blurb: "every release, control by control" },
   fleet: { label: "Fleet", path: "/fleet", blurb: "your releases and the hardware they run on" },
   saved: { label: "Saved searches", path: "/saved", blurb: "the lists you come back to" },
@@ -76,9 +78,10 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   search: { label: "Search", path: "/search" },
 };
 
-/** The ladder, in order, then the tools that cut across it. */
+/** The ladder, in order, then the tools that cut across it, then where it all comes from. */
 const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
 const standardsTools: Area[] = ["stigs", "register", "atlas"];
+const standardsLearn: Area[] = ["learn"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
 const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-network", "scan-history", "scan-guide"];
@@ -189,13 +192,16 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
   <div class="mast-inner">
     <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
     <nav aria-label="Areas">
-      ${link("wire")}${link("today")}<details class="group${[...standardsGroup, ...standardsTools].includes(active) ? " on" : ""}">
+      ${link("wire")}${link("today")}<details class="group${[...standardsGroup, ...standardsTools, ...standardsLearn].includes(active) ? " on" : ""}">
         <summary>Standards</summary>
         <div class="menu wide">
           <a class="cap" href="/guide#ladder">A standard is the rulebook · a baseline picks its rules for a system · a control is one rule</a>
           ${standardsGroup.map((a) => entry(a))}
           <hr>
           ${standardsTools.map((a) => entry(a))}
+          <hr>
+          <span class="cap">Where it all comes from</span>
+          ${standardsLearn.map((a) => entry(a))}
         </div>
       </details><details class="group${vulnGroup.includes(active) ? " on" : ""}">
         <summary>Vulnerabilities</summary>
