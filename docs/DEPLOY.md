@@ -138,22 +138,72 @@ https://developers.cloudflare.com/security-center/investigate/change-categorizat
 
 ## Upgrading
 
-A release is a tag; CI publishes the image. From there the version reaches BigBox through the
-catalog: BoxPilot's daily catalog-updates workflow sees the new tag and opens the bump pull
-request against `catalog/baselinewatch.yaml` (or bump `image.reference` and `image.version`
-there by hand), the next BoxPilot release carries it, BigBox takes that release from the System
-page, and BaselineWatch's card then offers the newer image. BoxPilot pulls it and recreates the
-container; the data directory carries over and migrations run at start. Check it from the
-development machine, which asks the address what it is running and compares that with the version
-this tree released:
+A release is a tag; CI publishes the image. From there the version reaches BigBox through
+BoxPilot's catalog, and the chain below is the one that took 0.39.0 to 0.48.0 there on
+2026-10-21 and 22 — nine times, so each step's quirk is known.
 
-```bash
-npm run release -- --verify https://cybercard.net
-```
+1. **The image.** `git push origin main --tags` after the release commit; CI builds
+   `ghcr.io/aes256afro/baselinewatch:<version>` in about four minutes
+   (`gh run list --branch v<version>`).
+2. **The catalog pull request.** BoxPilot's catalog-updates workflow runs daily; run it now:
+
+   ```bash
+   gh workflow run catalog-updates.yml --repo AES256Afro/BoxPilot
+   ```
+
+   It refreshes `catalog/baselinewatch.yaml` on the branch `catalog/image-updates` and opens or
+   updates the pull request ("Update BaselineWatch catalog image to <version>"). The branch is
+   rebuilt from BoxPilot's `main` each run, so anything committed on it that `main` lacks is lost
+   when the next refresh runs: land a re-pin (step 4) before refreshing to a newer version.
+3. **Its checks, started by hand.** The pull request is opened with the workflow token, which
+   GitHub does not let trigger `pull_request` runs, so nothing runs until asked:
+
+   ```bash
+   gh workflow run ci.yml --repo AES256Afro/BoxPilot --ref catalog/image-updates
+   gh workflow run catalog-images.yml --repo AES256Afro/BoxPilot --ref catalog/image-updates
+   ```
+
+   CI takes about five minutes; "Catalog images" about seven. `CatalogPage.test.tsx` has flaked
+   once; rerun before suspecting the change.
+4. **A moved pin.** Every catalog image is pinned `repo:tag@sha256:…` (BoxPilot's ADR-016), and
+   the `tags-resolve` step of "Catalog images" fails when any app's tag has been re-pushed since
+   its pin — linuxserver's weekly rebuilds, and the Docker official images' Alpine base rebuilds,
+   which arrive as a wave over an evening (2026-10-21: memcached, redis, then postgres for eleven
+   apps, each found by a later run). Two tools in BoxPilot's checkout answer it, and both want
+   the sandbox off for the network and for writing outside this tree:
+
+   ```bash
+   node scripts/catalog-check-images.mjs            # the same check CI runs; prints every MOVED line at once, two minutes
+   node scripts/catalog-pin-digests.mjs --refresh --write   # moves each pin whose tag moved
+   ```
+
+   Run the check on the branch before dispatching step 3, so a move costs two minutes rather
+   than a CI round trip. The refresh also pins any image that was tag-only; `git checkout` those
+   files back, since pinning them for the first time is a change of its own to review. Commit the
+   moved digests on the branch with the evidence — both digests' build date and version from the
+   registry's config blob, or linuxserver's `build_version` label — push, and dispatch step 3 again.
+5. **Merge, and the BoxPilot release.** With both checks green, `gh pr merge <n> --repo
+   AES256Afro/BoxPilot --merge`; then in BoxPilot's checkout on `main`:
+
+   ```bash
+   git pull && npm version minor -m "Release %s" && git push origin main --tags
+   ```
+
+6. **The two clicks on BigBox**, which only the owner makes: System → update BoxPilot to that
+   release, then the BaselineWatch card, which offers the newer image. BoxPilot pulls it and
+   recreates the container; the data directory carries over and migrations run at start.
+7. **Check it** from the development machine, which asks the address what it is running and
+   compares that with the version this tree released:
+
+   ```bash
+   npm run release -- --verify https://cybercard.net
+   ```
 
 After a version that adds a standard, the standard loads itself on its first scheduled fetch; to
 load it at once, run the `backfill` command above with the source id. Package advisories start
-once a package is on the watchlist.
+once a package is on the watchlist. A version that adds an owner-only area (the domain list, the
+exposure check, a notifier transport) needs the owner's setup on its page once live; the
+CHANGELOG entry says which.
 
 ## Backups
 
