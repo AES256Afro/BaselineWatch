@@ -136,6 +136,9 @@ describe("/metrics", () => {
       expect(text).toContain('baselinewatch_build_info{version=');
       expect(text).toContain("baselinewatch_sources{state=\"enabled\"}");
       expect(text).toContain("baselinewatch_rows{table=\"vulns\"} 0");
+      app.db.prepare("INSERT INTO device_readings (device, os, read_at, worst, findings_json) VALUES ('laptop', 'windows', ?, 'ok', '[]')").run(now.toISOString());
+      expect(await (await fetch(`${app.base}/metrics`)).text()).toContain("baselinewatch_rows{table=\"device_readings\"} 1");
+      for (const table of ["exploits", "msrc_vulns", "ct_certs"]) expect(text).toContain(`baselinewatch_rows{table="${table}"} 0`);
       expect(text).toContain("baselinewatch_cve_age_seconds 3600");
       expect(text).toContain("baselinewatch_pipeline_state 0");
       // Prometheus wants a HELP and a TYPE above every metric; a dashboard refuses the file without them.
