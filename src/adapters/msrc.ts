@@ -87,15 +87,20 @@ const severityRank: Record<string, number> = { critical: 4, important: 3, modera
 const maxFixes = 24;
 const maxProducts = 24;
 
-/** Vendor fixes (type 2) grouped by KB, with each product's per-architecture names folded into one. */
+/**
+ * Vendor fixes (type 2) grouped by KB and the build it produces, with each product's
+ * per-architecture names folded into one. One KB serves several Windows versions with different
+ * builds (KB5127648 is 10.0.26100.x on 24H2 and 10.0.26200.x on 25H2), so the build is part of
+ * the key: a device's build is only ever compared with the build for its own version.
+ */
 function fixesOf(remediations: Remediation[], names: Map<string, string>): MsrcFix[] {
   const byKey = new Map<string, MsrcFix>();
   for (const r of remediations) {
     if (r.Type !== 2) continue;
     const label = r.Description?.Value?.trim() || null;
     const kb = label && /^\d{5,8}$/.test(label) ? label : null;
-    const key = kb ?? r.URL ?? label ?? "";
-    if (!key) continue;
+    const key = `${kb ?? r.URL ?? label ?? ""}|${r.FixedBuild?.trim() ?? ""}`;
+    if (key === "|") continue;
     const fix = byKey.get(key) ?? {
       kb,
       url: kb ? kbUrl(kb) : (r.URL ?? null),

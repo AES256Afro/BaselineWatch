@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 /**
- * The downloadable scripts of the Scan area (M12.2): one PowerShell file for Windows and one
- * POSIX sh file for macOS and Linux, each doing by itself what the manual guide does by hand.
+ * The downloadable scripts of the Scan area (M12.2): a check script per platform doing by itself
+ * what the manual guide does by hand, and an inventory script per platform whose report the
+ * owner pastes into /scan/devices to learn which CVEs apply to what the device runs (S7).
  * They are static files under public/scan/, served as plain text at /scan/scripts/<name> with
  * their SHA-256 shown beside every link, and public/scan/SHA256SUMS records the same sums in the
  * format `sha256sum -c` reads. The sums shown are computed from the bytes served, so they cannot
@@ -44,6 +45,22 @@ const metadata: readonly Omit<ScanScript, "sha256" | "bytes" | "content">[] = [
     shell: "POSIX sh: macOS's /bin/sh, dash, bash or zsh",
     run: "sh ./bw-check.sh",
     verify: "shasum -a 256 bw-check.sh (macOS) or sha256sum bw-check.sh (Linux)",
+    platforms: ["macos", "linux"],
+  },
+  {
+    file: "bw-inventory.ps1",
+    label: "Windows — what this PC runs, for /scan/devices",
+    shell: "Windows PowerShell 5.1 or PowerShell 7",
+    run: "powershell -ExecutionPolicy Bypass -File .\\bw-inventory.ps1",
+    verify: "Get-FileHash .\\bw-inventory.ps1",
+    platforms: ["windows"],
+  },
+  {
+    file: "bw-inventory.sh",
+    label: "macOS and Linux — what this computer runs, for /scan/devices",
+    shell: "POSIX sh: macOS's /bin/sh, dash, bash or zsh",
+    run: "sh ./bw-inventory.sh",
+    verify: "shasum -a 256 bw-inventory.sh (macOS) or sha256sum bw-inventory.sh (Linux)",
     platforms: ["macos", "linux"],
   },
 ];

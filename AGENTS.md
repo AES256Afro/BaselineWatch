@@ -94,6 +94,8 @@ src/ct.ts            the certificates the transparency logs hold for the owner's
 src/scanhistory.ts   the scans over time: every network run with its tallies and changes, Today's tile for the area
 src/smtp.ts          the notifier's mail transport: one message, STARTTLS or TLS, AUTH PLAIN
 src/saved.ts         saved searches: a named list page with its filters, kept on the desk and on Today
+src/inventory.ts     is this device affected: the inventory script's report read against the guide, the vendors, endoflife.date and OSV
+src/versions.ts      dotted version numbers compared as people read them
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
 src/decisions.ts     the owner's decision on each baseline item beside the publisher's recommendation

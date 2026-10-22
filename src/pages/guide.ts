@@ -190,7 +190,9 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           <a href="/scan/network">Your network</a> is the owner's: the LAN resolver tested with
           canary names from this server, and once a day what the internet sees of the public
           address and what the router gives away. <a href="/scan/history">History</a> keeps every
-          run. Signals, not certificates: each row says what it saw, and nothing here contacts an
+          run. <a href="/scan/devices">A device</a> reads what a computer runs from a script's
+          report you paste — the Windows build, the browsers, the packages — and says which CVEs
+          apply to those versions. Signals, not certificates: each row says what it saw, and nothing here contacts an
           advertising or malware host or sends a packet to a device that did not ask.
         </p>
       </section>
