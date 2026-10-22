@@ -83,6 +83,10 @@ describe("pages", () => {
     expect(text).toContain('href="/vulnerabilities?min_epss=0.5"');
     expect(text).toContain('href="/vulnerabilities?min_cvss=9"');
     expect(text).toContain('href="/stigs"');
+    expect(text).toContain('id="devices"');
+    expect(text).toContain("<code>bw-inventory.ps1</code>");
+    const devices = await (await fetch(`${app.base}/scan/devices`)).text();
+    expect(devices).toContain('href="/guide#devices"');
     const home = await (await fetch(`${app.base}/`)).text();
     expect(home).toContain('<a class="cap" href="/guide#ladder">');
     // The Standards menu is the ladder, each rung with the line that says what it is.

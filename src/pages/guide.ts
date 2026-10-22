@@ -196,6 +196,34 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           advertising or malware host or sends a packet to a device that did not ask.
         </p>
       </section>
+      <section class="box" id="devices">
+        <h2>Is this device affected? — what a reading can say</h2>
+        <p>
+          No web page can see what a computer runs, and this site installs nothing, so
+          <a href="/scan/devices">a device</a> is read by a script you run on it —
+          <code>bw-inventory.ps1</code> on Windows, <code>bw-inventory.sh</code> on macOS and Linux,
+          served with their sums beside the check scripts — and the script prints version numbers
+          and nothing else: the Windows build, the macOS or distribution release, each browser's
+          version, a Linux distribution's packages. You paste that report. What the owner pastes is
+          kept as verdicts and CVE ids under the device's name, never the report itself.
+        </p>
+        <p>
+          Each line is read against a source that can answer it. A Windows build is compared with
+          the fixed build Microsoft's Security Update Guide names for each update on that Windows
+          version, so a missing update is listed with the CVEs it fixes and which of them Microsoft
+          says are exploited. A browser and macOS are compared with the vendor's newest announced
+          release, a release with endoflife.date, and a Linux distribution's packages go to OSV in
+          one question, where versions are compared by the distribution's own rules — a Debian
+          package whose number reads older than the upstream fix can still be fixed, because the
+          distribution backported it and OSV knows the version that did.
+        </p>
+        <p>
+          What a reading cannot say: whether an application outside those lists is current, whether
+          a setting is wrong, or whether anything is running. "Up to date" means no newer release
+          is known to the sources this instance reads, as of their last read — not that nothing is
+          wrong with the machine. Read it again after patching; the page says what moved.
+        </p>
+      </section>
       <section class="box" id="watchlist">
         <h2>The watchlist, and an SBOM</h2>
         <p>
