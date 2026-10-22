@@ -130,7 +130,7 @@ function nistSection(db: DatabaseSync, now: Date): Html {
   for (const row of latest) if (row.version_label) tracked.set(baseNumber(row.version_label), row);
   const drafts = openDrafts(db);
   return html`<section class="std" id="nist">
-    <div class="std-head"><b><a href="#nist">NIST publications</a></b><span class="small">${latest.length} tracked · <a href="/register">Register</a></span></div>
+    <div class="std-head"><b><a href="#nist">NIST publications</a></b><span class="small">${latest.length} tracked · <a href="/learn#body-sp-800-53">where it comes from</a> · <a href="/register">Register</a></span></div>
     ${latest.length
       ? html`<div class="table-wrap"><table><caption class="visually-hidden">Publications tracked</caption>
           <thead><tr><th scope="col">Publication</th><th scope="col">Set</th><th scope="col">Current version</th><th scope="col">Published</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
@@ -211,7 +211,7 @@ function nasaSection(db: DatabaseSync): Html {
       : html`<h3 id="nasa-${family.toLowerCase().replace(/[^a-z0-9]+/g, "-")}">${family} (${rows.length})</h3>${table(rows)}`,
   );
   return html`<section class="std" id="nasa">
-    <div class="std-head"><b><a href="#nasa">NASA (CSET / OCIO)</a></b><span class="small">${doc.version_label ?? ""} · <a href="/standards/nasa-cyber-ref">versions and changes</a></span></div>
+    <div class="std-head"><b><a href="#nasa">NASA (CSET / OCIO)</a></b><span class="small">${doc.version_label ?? ""} · <a href="/learn#body-nasa-ascs">where it comes from</a> · <a href="/standards/nasa-cyber-ref">versions and changes</a></span></div>
     ${intro}
     ${sections}
   </section>`;
@@ -229,7 +229,9 @@ export function renderCatalog(options: { db: DatabaseSync; now?: Date; fleet?: F
           Every standard this instance follows, in one place: per operating system the hardening standards and their current versions,
           the NIST publications with the drafts open for comment, and NASA's cybersecurity document set as OCIO publishes it. A
           <span class="chip ok">new</span> version is one published in the last ${newForDays} days; a <span class="chip na">draft</span>
-          is not yet the standard.
+          is not yet the standard. For where each of these comes from — the law, the policy and the
+          catalogue above it, and the other bodies that answer the same step —
+          <a href="/learn">Learn</a> draws the whole chain.
         </p>
         <h2 id="by-os"><a href="#by-os">By operating system</a></h2>
         ${osSection(db, fleet, now)}
@@ -247,6 +249,9 @@ export function renderCatalog(options: { db: DatabaseSync; now?: Date; fleet?: F
             ASCS technical standards and IT handbooks: <a href="https://cset.nasa.gov" ${newTab}>CSET</a> (NASA access only).
             DISA STIGs: <a href="https://www.cyber.mil/stigs/downloads/" ${newTab}>cyber.mil</a>.
           </p>
+          <p class="small"><a href="/learn">Learn</a> lists every publisher on the chain — NIST, CISA,
+          DISA, CNSS, NASA, CIS, Microsoft, the NSA, the ACSC and the NCSC — each with the address its
+          own words live at, what it takes to read them, and what it derives from.</p>
         </section>
         <section class="box">
           <h2><a href="/register">In the Register</a></h2>

@@ -30,6 +30,7 @@ import { relativeTime, shortStamp } from "../time.ts";
 import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
 import type { LookState } from "../look.ts";
+import { authorityBox } from "./learn.ts";
 import { page } from "./layout.ts";
 import { mappingLine } from "./stigs.ts";
 import { triageForm } from "./triage.ts";
@@ -109,6 +110,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
     <h1>${source.name}</h1>
     <p class="lede">${source.notes ?? ""} <a href="${source.url}" ${newTabIf(source.url)}>Source</a>${source.licence ? html` · ${source.licence}` : ""}.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
+    ${authorityBox(sourceId)}
     ${upload}
     ${withheldFrom(source, owner) ? withheldBox(source, open) : ""}
     ${documents.length === 0
