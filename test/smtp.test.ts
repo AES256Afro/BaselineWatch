@@ -74,8 +74,9 @@ describe("the mail URL", () => {
 describe("the message on the wire", () => {
   it("has the headers a receiver wants, CRLF line ends, a doubled leading dot and a terminating dot", () => {
     const t = { host: "h", port: 25, secure: false, user: null, pass: null, from: "a@x", to: "b@y" };
-    const wire = wireMessage(t, { subject: "Digest — today", text: "line one\n.starts with a dot\nend" }, now, "id1");
+    const wire = wireMessage(t, { subject: "Digest — today", text: "line one\n.starts with a dot\nend" }, now, "id1", "news.example");
     expect(wire).toContain("Subject: =?UTF-8?B?");
+    expect(wire).toContain("Message-ID: <id1@news.example>\r\n");
     expect(wire).toContain("From: a@x\r\nTo: b@y\r\n");
     expect(wire).toContain("Date: Wed, 21 Oct 2026 22:00:00 GMT\r\n");
     expect(wire).toContain("\r\n\r\nline one\r\n..starts with a dot\r\nend\r\n.\r\n");
@@ -99,8 +100,12 @@ describe("sending", () => {
     const tls = await fakeSmtp({ auth, starttls: true });
     try {
       const t = { host: "127.0.0.1", port: tls.port, secure: false, user: "bw@example.org", pass: "secret", from: "bw@example.org", to: "you@example.org" };
-      await sendMail(t, { subject: "KEV: CVE-2026-1", text: "Added today.\n.hidden line" }, { now: () => now, upgrade: async (socket) => socket });
+      await sendMail(t, { subject: "KEV: CVE-2026-1", text: "Added today.\n.hidden line" }, { now: () => now, upgrade: async (socket) => socket, clientName: "news.example" });
       expect(tls.commands.map((c) => c.split(" ")[0])).toEqual(["EHLO", "STARTTLS", "EHLO", "AUTH", "MAIL", "RCPT", "DATA", "QUIT"]);
+      // The site's own host names the client, not the container's id.
+      expect(tls.commands[0]).toBe("EHLO news.example");
+      expect(tls.commands[2]).toBe("EHLO news.example");
+      expect(tls.received[0]).toMatch(/Message-ID: <[^>]+@news\.example>/);
       expect(tls.commands).toContain(`AUTH PLAIN ${auth}`);
       expect(tls.commands).toContain("MAIL FROM:<bw@example.org>");
       expect(tls.commands).toContain("RCPT TO:<you@example.org>");

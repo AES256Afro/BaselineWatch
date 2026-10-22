@@ -43,12 +43,19 @@ export interface MailDeps {
   upgrade?: (socket: MailSocket, host: string) => Promise<MailSocket>;
   now?: () => Date;
   timeoutMs?: number;
+  /** The name this client gives in EHLO and in its Message-ID: the site's own host when known. */
+  clientName?: string;
 }
 
-/** The client's name in EHLO, and the domain of its Message-ID: the local host as the OS names it, else a fixed word. */
-const clientName = (): string => {
+/**
+ * The client's name in EHLO, and the domain of its Message-ID: the site's own host when the
+ * caller knows it, else the local host as the OS names it (in a container, its id), else a word.
+ */
+const clientName = (preferred?: string): string => {
+  const clean = (value: string | undefined): string => (value ?? "").replace(/[^A-Za-z0-9.-]/g, "");
+  if (clean(preferred)) return clean(preferred);
   try {
-    return (process.env.HOSTNAME || "baselinewatch").replace(/[^A-Za-z0-9.-]/g, "") || "baselinewatch";
+    return clean(process.env.HOSTNAME) || "baselinewatch";
   } catch {
     return "baselinewatch";
   }
@@ -60,14 +67,14 @@ function headerText(value: string): string {
 }
 
 /** The message as the wire wants it: CRLF line ends, a leading dot doubled, headers first. */
-export function wireMessage(t: MailTransport, m: MailMessage, now: Date, id: string): string {
+export function wireMessage(t: MailTransport, m: MailMessage, now: Date, id: string, name: string = clientName()): string {
   const body = m.text.replace(/\r?\n/g, "\r\n").replace(/^\./gm, "..");
   const headers = [
     `From: ${t.from}`,
     `To: ${t.to}`,
     `Subject: ${headerText(m.subject)}`,
     `Date: ${now.toUTCString()}`,
-    `Message-ID: <${id}@${clientName()}>`,
+    `Message-ID: <${id}@${name}>`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=utf-8",
     "Content-Transfer-Encoding: 8bit",
@@ -81,6 +88,8 @@ class Reader {
   private buffer = "";
   private waiting: { resolve: (lines: string[]) => void; reject: (e: Error) => void } | null = null;
   private closed: Error | null = null;
+  /** Set once STARTTLS wraps the socket: the plain reader's listeners stay, but it answers nobody. */
+  private detached = false;
   constructor(socket: MailSocket, timeoutMs: number) {
     socket.setEncoding("utf8");
     socket.on("data", (chunk: string) => {
@@ -91,7 +100,11 @@ class Reader {
     socket.on("close", () => this.fail(new Error("the server closed the connection")));
     socket.setTimeout(timeoutMs, () => this.fail(new Error("the server went quiet")));
   }
+  detach(): void {
+    this.detached = true;
+  }
   private fail(error: Error): void {
+    if (this.detached) return;
     this.closed = error;
     if (this.waiting) {
       this.waiting.reject(error);
@@ -99,7 +112,7 @@ class Reader {
     }
   }
   private deliver(): void {
-    if (!this.waiting) return;
+    if (this.detached || !this.waiting) return;
     const lines = this.buffer.split("\r\n");
     const end = lines.findIndex((l) => /^\d{3}(\s|$)/.test(l));
     if (end < 0) return;
@@ -142,13 +155,15 @@ export async function sendMail(t: MailTransport, m: MailMessage, deps: MailDeps 
     return expect(step, ok);
   };
   try {
+    const name = clientName(deps.clientName);
     await expect("greeting", [220]);
-    let ehlo = await say(`EHLO ${clientName()}`, "EHLO", [250]);
+    let ehlo = await say(`EHLO ${name}`, "EHLO", [250]);
     if (!t.secure && ehlo.some((l) => /^250[- ]STARTTLS/i.test(l))) {
       await say("STARTTLS", "STARTTLS", [220]);
+      reader.detach();
       socket = await (deps.upgrade ?? defaultUpgrade)(socket, t.host);
       reader = new Reader(socket, timeoutMs);
-      ehlo = await say(`EHLO ${clientName()}`, "EHLO after STARTTLS", [250]);
+      ehlo = await say(`EHLO ${name}`, "EHLO after STARTTLS", [250]);
     } else if (!t.secure && t.pass) {
       throw new SmtpError("STARTTLS", 0, "the server offers no STARTTLS, and a password is not sent in the clear");
     }
@@ -160,7 +175,7 @@ export async function sendMail(t: MailTransport, m: MailMessage, deps: MailDeps 
     await say(`RCPT TO:<${t.to}>`, "RCPT TO", [250, 251]);
     await say("DATA", "DATA", [354]);
     const id = `${now().getTime().toString(36)}.${Math.random().toString(36).slice(2, 10)}`;
-    socket.write(wireMessage(t, m, now(), id));
+    socket.write(wireMessage(t, m, now(), id, name));
     await expect("message", [250]);
     // The message is accepted; a QUIT the server never answers is not a failure.
     await say("QUIT", "QUIT", [221]).catch(() => undefined);
