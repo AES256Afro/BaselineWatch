@@ -14,7 +14,9 @@ import { flashHeader, flashText } from "../flash.ts";
 
 import { renderScan, renderScanWhy } from "../pages/scan.ts";
 import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages/scan-guide.ts";
+import { renderScanDevices } from "../pages/scan-devices.ts";
 import { renderScanHistory } from "../pages/scan-history.ts";
+import { latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
 import { renderScanNetwork } from "../pages/scan-network.ts";
 import { netScanEnabled, netSettingKeys, networkSummary, runNetworkScan, setSetting } from "../netscan.ts";
 import { probeGif, probePaths, resolverCheckSources } from "../scan.ts";
@@ -120,6 +122,34 @@ export function mountScan(r: RouteContext): void {
   app.get("/scan/network", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(renderScanNetwork({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) }));
+  });
+  // Is this device affected? (S7): the owner pastes the inventory script's report; it is read and answered, never stored.
+  const scripts = readScanScripts(path.join(publicDir, "scan"));
+  app.get("/scan/devices", (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.type("html").send(renderScanDevices({ ...who(req, res), scripts }));
+  });
+  app.post("/scan/devices", requireOwner, async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const text = str(((req.body ?? {}) as Record<string, unknown>).report, 2_000_000) ?? "";
+    let report;
+    try {
+      report = readReport(text);
+    } catch (error) {
+      return res.status(400).type("html").send(renderScanDevices({ ...who(req, res), scripts, problem: error instanceof Error ? error.message : String(error) }));
+    }
+    const findings = await readDevice(db, ctx.http ?? httpGet, report);
+    res.type("html").send(renderScanDevices({ ...who(req, res), scripts, report, findings }));
+  });
+  // The browser check's version row asks what the vendor feeds say is newest (S1).
+  app.get("/scan/browser-check", (req, res) => {
+    const query = req.query as Record<string, unknown>;
+    const browser = str(query.browser, 20)?.toLowerCase();
+    const version = str(query.version, 40) ?? null;
+    res.setHeader("Cache-Control", "no-store");
+    if (browser !== "chrome" && browser !== "firefox" && browser !== "safari" && browser !== "edge") return res.status(400).json({ error: "browser is chrome, firefox, safari or edge" });
+    const latest: LatestRelease | null = latestBrowser(db, browser, version);
+    res.json(latest ? { browser, latest: latest.version, newer: latest.newer.slice(0, 8).map((n) => ({ title: n.title, url: n.url, version: n.version, published: n.published_at })) } : { browser, latest: null, newer: [] });
   });
   app.get("/scan/history", (req, res) => {
     res.setHeader("Cache-Control", "no-store");

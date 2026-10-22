@@ -11,6 +11,9 @@ interface PrivacyScript {
   describeReferrer(same: { referer: string | null } | null, cross: { referer: string | null } | null, policy: string, pageUrl: string): Row;
   describeTransport(echo: Record<string, unknown> | null, nav: Record<string, unknown>): Row;
   privacyLine(sig: { state: string }, rtc: { state: string }, fp: { state: string }, ref: { state: string }): { seen: number; text: string };
+  compareDotted(a: string, b: string): number;
+  browserVersion(nav: Record<string, unknown>): Promise<{ family: string | null; version: string | null }>;
+  describeVersion(who: { family: string | null; version: string | null }, answer: Record<string, unknown> | null): Row;
 }
 let s: PrivacyScript;
 beforeAll(async () => {
@@ -98,5 +101,23 @@ describe("the echo", () => {
     } finally {
       await app.close();
     }
+  });
+});
+
+describe("this browser's version", () => {
+  it("reads the fullest version the browser gives, and judges it against the vendor's newest", async () => {
+    const chrome = { userAgent: "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.8059.85 Safari/537.36", userAgentData: { getHighEntropyValues: async () => ({ fullVersionList: [{ brand: "Not;A=Brand", version: "99.0.0.0" }, { brand: "Google Chrome", version: "155.0.8059.85" }] }) } };
+    expect(await s.browserVersion(chrome)).toEqual({ family: "chrome", version: "155.0.8059.85" });
+    expect(await s.browserVersion({ userAgent: "Mozilla/5.0 (X11; Linux) Gecko/20100101 Firefox/158.0" })).toEqual({ family: "firefox", version: "158.0" });
+    expect(await s.browserVersion({ userAgent: "Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 Version/26.1 Safari/605.1.15" })).toEqual({ family: "safari", version: "26.1" });
+    expect(await s.browserVersion({ userAgent: "Mozilla/5.0 (Windows) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.3351.55" })).toEqual({ family: "edge", version: "156.0.3351.55" });
+    expect(await s.browserVersion({ userAgent: "Mozilla/5.0 (Linux; Android) Chrome/156.0.0.0 SamsungBrowser/28.0" })).toMatchObject({ family: null });
+    expect(s.compareDotted("156.0.8078.47", "156.0.8078.46")).toBeGreaterThan(0);
+    expect(s.compareDotted("26.7", "26.7.1")).toBeLessThan(0);
+    expect(s.describeVersion({ family: "chrome", version: "155.0.8059.85" }, { latest: "156.0.8078.47", newer: [{ version: "156.0.8078.47", title: "Stable Channel Update for Desktop", published: "2026-10-20T20:09:05.710Z" }, { version: "155.0.8059.130", title: "Stable Channel Update for Desktop", published: "2026-10-15" }] })).toMatchObject({ state: "bad", text: "Behind by 2" });
+    expect(s.describeVersion({ family: "firefox", version: "158.0" }, { latest: "158.0.1", newer: [{ version: "158.0.1", title: "MFSA 2026-111", published: null }] })).toMatchObject({ state: "warn", text: "Behind by 1" });
+    expect(s.describeVersion({ family: "safari", version: "26.1" }, { latest: "26.1", newer: [] })).toMatchObject({ state: "ok", text: "Current" });
+    expect(s.describeVersion({ family: null, version: null }, null).state).toBe("na");
+    expect(s.describeVersion({ family: "chrome", version: "1.0" }, { latest: null, newer: [] })).toMatchObject({ state: "na", text: "Unknown" });
   });
 });

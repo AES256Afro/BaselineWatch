@@ -13,7 +13,7 @@ afterAll(async () => {
 });
 
 describe("the manual guide", () => {
-  it("lists the five platforms and both scripts with their sums on /scan/guide", async () => {
+  it("lists the five platforms and the four scripts with their sums on /scan/guide", async () => {
     const response = await fetch(`${app.base}/scan/guide`);
     expect(response.status).toBe(200);
     const text = await response.text();
@@ -22,7 +22,8 @@ describe("the manual guide", () => {
     expect(text).toContain('href="/scan/scripts/bw-check.ps1" download');
     expect(text).toContain('href="/scan/scripts/bw-check.sh" download');
     expect(text).toContain('href="/scan/scripts/SHA256SUMS"');
-    expect(text.match(/<code class="sum">[0-9a-f]{64}<\/code>/g)).toHaveLength(2);
+    // Two check scripts and two inventory scripts, each with its sum.
+    expect(text.match(/<code class="sum">[0-9a-f]{64}<\/code>/g)).toHaveLength(4);
     expect(text).toContain('<a class="entry" href="/scan/guide" aria-current="page"><b>By hand</b>');
     expect(text).toContain('href="/scan/why"');
     expect(text).not.toMatch(/<script/);

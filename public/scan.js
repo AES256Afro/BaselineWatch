@@ -584,6 +584,58 @@ export function privacyLine(sig, rtc, fp, ref) {
   return { seen, text: `Privacy: ${seen} of ${marks.length} — ${marks.map(([on, name]) => `${name} ${on ? "✓" : "✗"}`).join(", ")}.` };
 }
 
+// --------------------------------------------------------- this browser's version (S1)
+
+/** Dotted versions compared as numbers, a missing part counting as zero. */
+export function compareDotted(a, b) {
+  const parts = (v) => (String(v || "").match(/^\d+(\.\d+)*/) || [""])[0].split(".").filter((p) => p !== "").map(Number);
+  const x = parts(a);
+  const y = parts(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
+    const d = (x[i] || 0) - (y[i] || 0);
+    if (d !== 0) return d;
+  }
+  return 0;
+}
+
+/** The browser family the vendor feeds know, and the fullest version this browser will say: client hints where they exist, else the user agent. */
+export async function browserVersion(nav) {
+  const ua = String(nav.userAgent || "");
+  const family = /Edg\//.test(ua) ? "edge" : /OPR\/|SamsungBrowser\//.test(ua) ? null : /(?:Firefox|FxiOS)\//.test(ua) ? "firefox" : /(?:Chrome|CriOS)\//.test(ua) ? "chrome" : /Version\/\d+[^)]*Safari\//.test(ua) ? "safari" : null;
+  let version = null;
+  try {
+    if (nav.userAgentData && typeof nav.userAgentData.getHighEntropyValues === "function") {
+      const hints = await nav.userAgentData.getHighEntropyValues(["fullVersionList"]);
+      const brands = (hints && hints.fullVersionList) || [];
+      const want = family === "edge" ? /Microsoft Edge/i : family === "chrome" ? /Google Chrome|Chromium/i : null;
+      const hit = want ? brands.find((b) => want.test(String(b.brand))) : null;
+      if (hit && hit.version) version = String(hit.version);
+    }
+  } catch {
+    version = null;
+  }
+  if (!version) {
+    const m = family === "edge" ? /Edg\/(\d+(?:\.\d+)*)/.exec(ua) : family === "firefox" ? /(?:Firefox|FxiOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "chrome" ? /(?:Chrome|CriOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "safari" ? /Version\/(\d+(?:\.\d+)*)/.exec(ua) : null;
+    version = m ? m[1] : null;
+  }
+  return { family, version };
+}
+
+/** This browser's version against what the server says the vendor has announced. */
+export function describeVersion(who, answer) {
+  const name = who.family ? who.family.charAt(0).toUpperCase() + who.family.slice(1) : "This browser";
+  if (!who.family) return { state: "na", text: "Not judged", lines: ["No vendor feed for this browser is read here, so its version is not judged."] };
+  if (!who.version) return { state: "na", text: "Unreadable", lines: [`${name} did not say its version.`] };
+  if (!answer || !answer.latest) return { state: "na", text: "Unknown", lines: [`${name} ${who.version}: the sources hold no release of ${name} yet.`] };
+  const behind = compareDotted(who.version, answer.latest) < 0;
+  const lines = [`Running ${name} ${who.version}; the newest the vendor has announced is ${answer.latest}.`];
+  if (!behind) return { state: "ok", text: "Current", lines };
+  for (const n of (answer.newer || []).slice(0, 4)) lines.push(`${n.version}: ${n.title}${n.published ? ` (${String(n.published).slice(0, 10)})` : ""}.`);
+  lines.push("Update the browser, then relaunch it: the fixes are not in effect until the new version is the one running.");
+  const count = (answer.newer || []).length;
+  return { state: count >= 2 ? "bad" : "warn", text: `Behind by ${count}`, lines };
+}
+
 // ------------------------------------------------------- verdict and fixes
 
 /**
@@ -693,7 +745,7 @@ export function wire(doc, view) {
   async function run() {
     button.disabled = true;
     const started = view.performance.now();
-    for (const id of ["hiding", "requests", "dns", "signals", "webrtc", "fingerprint", "referrer", "transport"]) setRow(doc, root, id, "run", "Running", []);
+    for (const id of ["hiding", "requests", "dns", "signals", "webrtc", "fingerprint", "referrer", "transport", "version"]) setRow(doc, root, id, "run", "Running", []);
 
     const env = environment(nav);
     const brave = await isBrave(nav);
@@ -753,6 +805,19 @@ export function wire(doc, view) {
     setRow(doc, root, "referrer", ref.state, ref.text, ref.lines);
     const tr = describeTransport(echoSame, nav);
     setRow(doc, root, "transport", tr.state, tr.text, tr.lines);
+    status.textContent = "Running: browser version…";
+    const who = await browserVersion(nav);
+    let answer = null;
+    if (who.family && who.version) {
+      try {
+        const r = await fetchFn(`/scan/browser-check?browser=${who.family}&version=${encodeURIComponent(who.version)}`, { cache: "no-store" });
+        if (r.ok) answer = await r.json();
+      } catch {
+        answer = null;
+      }
+    }
+    const ver = describeVersion(who, answer);
+    setRow(doc, root, "version", ver.state, ver.text, ver.lines);
     const privacy = doc.getElementById("scan-privacy");
     if (privacy) {
       privacy.textContent = privacyLine(sig, rtc, fp, ref).text;
