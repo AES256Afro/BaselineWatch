@@ -1,4 +1,6 @@
 import { lookup } from "node:dns/promises";
+import http from "node:http";
+import https from "node:https";
 import { isIP } from "node:net";
 import { productVersion } from "./version.ts";
 
@@ -119,8 +121,13 @@ export function privateAddress(ip: string): boolean {
   return false;
 }
 
-/** Refuses a URL that is not http(s) to a public host; the host is resolved and every address checked. */
-export async function assertPublicUrl(url: string): Promise<void> {
+/**
+ * Refuses a URL that is not http(s) to a public host; the host is resolved and every address
+ * checked. Answers the addresses, so the request can go to one of them rather than resolve the
+ * name again: a name with a short TTL that answers public once and private the next time would
+ * otherwise slip a LAN address past the check (DNS rebinding).
+ */
+export async function assertPublicUrl(url: string): Promise<string[]> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -132,6 +139,92 @@ export async function assertPublicUrl(url: string): Promise<void> {
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) throw new Error(`refusing ${host}: not a public host`);
   const addresses = isIP(host) ? [host] : (await lookup(host, { all: true })).map((a) => a.address);
   if (addresses.length === 0 || addresses.some(privateAddress)) throw new Error(`refusing ${host}: not a public host`);
+  return addresses;
+}
+
+/** What one hop answered, from either transport: the status, the headers, and the body on request, capped. */
+interface Reply {
+  status: number;
+  headers: Record<string, string>;
+  header(name: string): string | null;
+  body(maxBytes: number, url: string): Promise<Uint8Array>;
+  discard(): Promise<void>;
+}
+
+/** fetch, for a publisher the owner chose: it follows redirects itself when asked and decompresses. */
+async function viaFetch(target: string, init: { method: string; headers: Record<string, string>; body?: string; redirect: "follow" | "manual"; signal: AbortSignal }): Promise<Reply> {
+  const response = await fetch(target, { method: init.method, headers: init.headers, ...(init.body !== undefined ? { body: init.body } : {}), redirect: init.redirect, signal: init.signal });
+  return {
+    status: response.status,
+    headers: headersOf(response),
+    header: (name) => response.headers.get(name),
+    body: (maxBytes, url) => readCapped(response, maxBytes, url),
+    discard: async () => {
+      await response.body?.cancel().catch(() => {});
+    },
+  };
+}
+
+/**
+ * One request to a host whose address was already vetted: the socket goes to that address and
+ * the name stays on the wire — the Host header, the SNI and the certificate check all use it —
+ * so the bytes come from the host the check approved and not from a second resolution. Used for
+ * every `publicOnly` hop; a test hands in a loopback address under a name that resolves nowhere.
+ */
+export function pinnedRequest(target: string, address: string, init: { method: string; headers: Record<string, string>; body?: string; timeoutMs: number }): Promise<Reply> {
+  const parsed = new URL(target);
+  const family = isIP(address);
+  // net.connect asks for one address or, with `all`, a list; both forms answer the vetted one.
+  const pinned = (_hostname: string, options: { all?: boolean }, callback: (error: Error | null, address: string | { address: string; family: number }[], family?: number) => void): void => {
+    if (options.all) callback(null, [{ address, family }]);
+    else callback(null, address, family);
+  };
+  const transport = parsed.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const request = transport.request(parsed, { method: init.method, headers: init.headers, lookup: pinned as never, timeout: init.timeoutMs }, (response) => {
+      clearTimeout(deadline);
+      const headers: Record<string, string> = {};
+      for (const [name, value] of Object.entries(response.headers)) {
+        if (value !== undefined) headers[name.toLowerCase()] = Array.isArray(value) ? value.join(", ") : value;
+      }
+      resolve({
+        status: response.statusCode ?? 0,
+        headers,
+        header: (name) => headers[name.toLowerCase()] ?? null,
+        body: (maxBytes, url) =>
+          new Promise((ok, fail) => {
+            const chunks: Buffer[] = [];
+            let total = 0;
+            response.on("data", (chunk: Buffer) => {
+              total += chunk.length;
+              if (total > maxBytes) {
+                request.destroy();
+                fail(new Error(`response from ${url} exceeds the ${maxBytes} byte limit`));
+                return;
+              }
+              chunks.push(chunk);
+            });
+            response.on("end", () => ok(Buffer.concat(chunks)));
+            response.on("error", fail);
+          }),
+        discard: async () => {
+          response.resume();
+        },
+      });
+    });
+    const fail = (): void => {
+      request.destroy(Object.assign(new Error(`no answer from ${parsed.host} within ${init.timeoutMs} ms`), { code: "timeout" }));
+    };
+    // `timeout` is the socket's idle limit; the deadline bounds the whole request.
+    const deadline = setTimeout(fail, init.timeoutMs);
+    request.on("timeout", fail);
+    request.on("error", (error) => {
+      clearTimeout(deadline);
+      reject(error);
+    });
+    if (init.body !== undefined) request.write(init.body);
+    request.end();
+  });
 }
 
 /** Reads a body while counting, so a chunked or compressed reply cannot grow past the cap in memory. */
@@ -179,19 +272,18 @@ export const httpGet: HttpGet = async (url, options = {}) => {
 
   let target = url;
   for (let hop = 0; ; hop += 1) {
-    if (options.publicOnly) await assertPublicUrl(target);
-    const response = await fetch(target, {
-      method,
-      headers,
-      ...(body !== undefined ? { body } : {}),
-      redirect: byHand ? "manual" : "follow",
-      signal,
-    });
+    let response: Reply;
+    if (options.publicOnly) {
+      const addresses = await assertPublicUrl(target);
+      response = await pinnedRequest(target, addresses[0]!, { method, headers, ...(body !== undefined ? { body } : {}), timeoutMs: options.timeoutMs ?? 30_000 });
+    } else {
+      response = await viaFetch(target, { method, headers, ...(body !== undefined ? { body } : {}), redirect: byHand ? "manual" : "follow", signal });
+    }
 
     if (byHand && redirectStatus.has(response.status)) {
-      const location = response.headers.get("location");
-      await response.body?.cancel().catch(() => {});
-      if (options.redirect === "manual" || !location || hop >= maxRedirects) throw new HttpError(target, response.status, headersOf(response));
+      const location = response.header("location");
+      await response.discard();
+      if (options.redirect === "manual" || !location || hop >= maxRedirects) throw new HttpError(target, response.status, response.headers);
       target = new URL(location, target).toString();
       // A 303, or a 301/302 answered to a POST, continues as a GET without the body, as browsers do.
       if (response.status === 303 || (method === "POST" && response.status !== 307 && response.status !== 308)) {
@@ -201,24 +293,24 @@ export const httpGet: HttpGet = async (url, options = {}) => {
       continue;
     }
 
-    const etag = response.headers.get("etag");
-    const lastModified = response.headers.get("last-modified");
-    const contentType = response.headers.get("content-type");
+    const etag = response.header("etag");
+    const lastModified = response.header("last-modified");
+    const contentType = response.header("content-type");
 
     if (response.status === 304) {
-      await response.body?.cancel().catch(() => {});
-      return { url, status: 304, notModified: true, bytes: new Uint8Array(0), etag, lastModified, contentType, headers: headersOf(response) };
+      await response.discard();
+      return { url, status: 304, notModified: true, bytes: new Uint8Array(0), etag, lastModified, contentType, headers: response.headers };
     }
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
-      throw new HttpError(target, response.status, headersOf(response));
+    if (response.status < 200 || response.status >= 300) {
+      await response.discard();
+      throw new HttpError(target, response.status, response.headers);
     }
-    const declared = Number(response.headers.get("content-length") ?? 0);
+    const declared = Number(response.header("content-length") ?? 0);
     if (declared > maxBytes) {
-      await response.body?.cancel().catch(() => {});
+      await response.discard();
       throw new Error(`response from ${target} declares ${declared} bytes, over the ${maxBytes} limit`);
     }
-    const bytes = await readCapped(response, maxBytes, target);
-    return { url, status: response.status, notModified: false, bytes, etag, lastModified, contentType, headers: headersOf(response) };
+    const bytes = await response.body(maxBytes, target);
+    return { url, status: response.status, notModified: false, bytes, etag, lastModified, contentType, headers: response.headers };
   }
 };
