@@ -33,6 +33,8 @@ export interface DeviceFinding {
   /** CVEs or advisories, each linking somewhere: a CVE page here, or OSV. */
   refs: { id: string; href: string; note: string | null }[];
   quoted: string[];
+  /** Where to go next: the KB on the Patch Tuesday page, the vendor's note. */
+  links?: { label: string; href: string }[];
 }
 
 const markerStart = "BW-REPORT-BEGIN";
@@ -96,23 +98,36 @@ export function matchWindows(db: DatabaseSync, report: InventoryReport): DeviceF
     text: `${list.length} CVE(s) fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} are not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
     refs: list.slice(0, 60).map((m) => ({ id: m.cve_id, href: `/vulnerabilities/${m.cve_id}`, note: `${m.severity ?? ""}${m.exploited ? " · exploited" : ""} · ${m.kb ? `KB${m.kb}` : m.fixedBuild} (${m.release_id})` })),
     quoted: [...quoted, `Newest fixed build the guide names: ${newestVersion(list.map((m) => m.fixedBuild)) ?? "?"}`],
+    links: kbs.filter((k) => k.startsWith("KB")).slice(0, 6).map((k) => ({ label: `${k} on Patch Tuesday`, href: `/vulnerabilities/microsoft?q=${k.slice(2)}` })),
   };
 }
 
 // ------------------------------------------------------------------ browsers, from the vendors
 
+export type ReleaseLine = "chrome" | "firefox" | "safari" | "edge" | "ios" | "ipados";
+
 export interface LatestRelease {
-  browser: "chrome" | "firefox" | "safari" | "edge";
+  browser: ReleaseLine;
   version: string;
-  /** Items carrying a newer version than the one asked about, newest first. */
+  /** Items carrying a newer version than the one asked about, newest first; for iOS and iPadOS, within the device's own major line. */
   newer: { title: string; url: string | null; version: string; published_at: string | null }[];
+  /** For iOS and iPadOS: a newer major line exists (27 beside 26.x), which a device that supports it should move to. */
+  newerLine: string | null;
+}
+
+export function isReleaseLine(value: unknown): value is ReleaseLine {
+  return value === "chrome" || value === "firefox" || value === "safari" || value === "edge" || value === "ios" || value === "ipados";
 }
 
 const chromeVersion = (text: string): string | null => /\b(\d{2,3}\.\d+\.\d{3,5}\.\d+)\b/.exec(text)?.[1] ?? /\bChrome (?:Stable )?(\d{2,3})\b/.exec(text)?.[1] ?? null;
 
 /** What the vendor feeds say is the newest release of a browser, and which releases are newer than `version`. */
-export function latestBrowser(db: DatabaseSync, browser: LatestRelease["browser"], version: string | null): LatestRelease | null {
+export function latestBrowser(db: DatabaseSync, browser: ReleaseLine, version: string | null): LatestRelease | null {
   const rows = (() => {
+    if (browser === "ios" || browser === "ipados") {
+      const re = browser === "ios" ? /\biOS (\d+(?:\.\d+)*)/ : /\biPadOS (\d+(?:\.\d+)*)/;
+      return (db.prepare("SELECT title, url, published_at FROM items WHERE source_id = 'apple-security' AND (title LIKE 'iOS %' OR title LIKE 'iPadOS %') ORDER BY published_at DESC LIMIT 60").all() as { title: string; url: string | null; published_at: string | null }[]).map((r) => ({ ...r, version: re.exec(r.title)?.[1] ?? null }));
+    }
     if (browser === "chrome" || browser === "edge") {
       return (db.prepare("SELECT title, url, summary, published_at FROM items WHERE source_id = 'chrome-releases' AND title LIKE '%Stable Channel Update for Desktop%' ORDER BY published_at DESC LIMIT 40").all() as { title: string; url: string | null; summary: string | null; published_at: string | null }[]).map((r) => ({ ...r, version: chromeVersion(`${r.summary ?? ""}`) }));
     }
@@ -124,22 +139,34 @@ export function latestBrowser(db: DatabaseSync, browser: LatestRelease["browser"
   })().filter((r): r is typeof r & { version: string } => r.version !== null);
   if (rows.length === 0) return null;
   const latest = newestVersion(rows.map((r) => r.version))!;
-  const newer = version ? rows.filter((r) => compareDotted(r.version, version) > 0).map((r) => ({ title: r.title, url: r.url, version: r.version, published_at: r.published_at })) : [];
-  return { browser, version: latest, newer };
+  // A phone stays on its own line (26.7.x) when it cannot run the next (27); it is judged within that line, and told the next exists.
+  const lineOf = (v: string): string => v.split(".")[0]!;
+  const sameLine = (browser === "ios" || browser === "ipados") && version ? rows.filter((r) => lineOf(r.version) === lineOf(version)) : rows;
+  const newer = version ? sameLine.filter((r) => compareDotted(r.version, version) > 0).map((r) => ({ title: r.title, url: r.url, version: r.version, published_at: r.published_at })) : [];
+  const newerLine = (browser === "ios" || browser === "ipados") && version && lineOf(latest) !== lineOf(version) && compareDotted(latest, version) > 0 ? latest : null;
+  return { browser, version: newerVersionWithin(sameLine, latest, version), newer, newerLine };
+}
+
+/** The newest version of the device's own line when it has one, else the newest overall. */
+function newerVersionWithin(rows: { version: string }[], latest: string, version: string | null): string {
+  if (!version || rows.length === 0) return latest;
+  return newestVersion(rows.map((r) => r.version)) ?? latest;
 }
 
 export function judgeBrowser(name: string, version: string, latest: LatestRelease | null): DeviceFinding {
   const id = `browser-${name.toLowerCase().replace(/[^a-z]+/g, "-")}`;
   if (!latest) return { id, title: name, state: "na", text: `No release of ${name} is in the sources yet, so ${version} cannot be judged.`, refs: [], quoted: [`${name} ${version}`] };
   const behind = compareDotted(version, latest.version) < 0;
-  if (!behind) return { id, title: name, state: "ok", text: `${version} is the newest release the vendor has announced (${latest.version}).`, refs: [], quoted: [`${name} ${version}`] };
-  const word = latest.browser === "firefox" ? "advisor(y/ies)" : "release(s)";
+  const line = latest.newerLine ? ` ${name} ${latest.newerLine} exists for devices that support it.` : "";
+  if (!behind) return { id, title: name, state: "ok", text: `Nothing newer than ${version} is announced for ${name}${latest.newerLine ? ` ${version.split(".")[0]}` : ""} (newest: ${latest.version}).${line}`, refs: [], quoted: [`${name} ${version}`] };
+  const n = latest.newer.length;
+  const what = latest.browser === "firefox" ? (n === 1 ? "advisory" : "advisories") : n === 1 ? "release" : "releases";
   return {
     id,
     title: name,
-    state: latest.newer.length >= 2 ? "bad" : "warn",
-    text: `${version} is behind ${latest.version}: ${latest.newer.length} newer ${word} with security fixes since. Update, then relaunch.`,
-    refs: latest.newer.slice(0, 8).map((n) => ({ id: n.version, href: n.url ?? "#", note: `${n.title}${n.published_at ? ` · ${n.published_at.slice(0, 10)}` : ""}` })),
+    state: n >= 2 ? "bad" : "warn",
+    text: `${version} is behind ${latest.version}: ${n} newer ${what} with security fixes since. Update, then relaunch.${line}`,
+    refs: latest.newer.slice(0, 8).map((r) => ({ id: r.version, href: r.url ?? "#", note: `${r.title}${r.published_at ? ` · ${r.published_at.slice(0, 10)}` : ""}` })),
     quoted: [`${name} ${version}`, `Newest announced: ${latest.version}`],
   };
 }

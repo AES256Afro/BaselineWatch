@@ -618,7 +618,21 @@ export async function browserVersion(nav) {
     const m = family === "edge" ? /Edg\/(\d+(?:\.\d+)*)/.exec(ua) : family === "firefox" ? /(?:Firefox|FxiOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "chrome" ? /(?:Chrome|CriOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "safari" ? /Version\/(\d+(?:\.\d+)*)/.exec(ua) : null;
     version = m ? m[1] : null;
   }
-  return { family, version };
+  // An iPhone says its iOS version plainly ("CPU iPhone OS 26_7_1"); an iPad has called itself a Mac since iPadOS 13, so its line is unread.
+  const ios = /iPhone OS (\d+(?:_\d+)*)/.exec(ua);
+  return { family, version, os: ios ? { line: "ios", version: ios[1].replace(/_/g, ".") } : null };
+}
+
+/** The phone's iOS against Apple's releases: within its own line, and told when a newer line exists. */
+export function describeOs(os, answer) {
+  if (!os) return null;
+  const name = os.line === "ios" ? "iOS" : os.line;
+  if (!answer || !answer.latest) return { state: "na", text: `${name} ${os.version}: the sources hold no release of it yet.` };
+  const behind = compareDotted(os.version, answer.latest) < 0;
+  const line = answer.newerLine ? ` ${name} ${answer.newerLine} exists for devices that support it.` : "";
+  if (!behind) return { state: "ok", text: `${name} ${os.version} is the newest of its line (${answer.latest}).${line}` };
+  const n = (answer.newer || []).length;
+  return { state: n >= 2 ? "bad" : "warn", text: `${name} ${os.version} is behind ${answer.latest}: ${n} newer release${n === 1 ? "" : "s"} with security content. Settings → General → Software Update.${line}` };
 }
 
 /** This browser's version against what the server says the vendor has announced. */
@@ -817,6 +831,24 @@ export function wire(doc, view) {
       }
     }
     const ver = describeVersion(who, answer);
+    if (who.os) {
+      let osAnswer = null;
+      try {
+        const r = await fetchFn(`/scan/browser-check?browser=${who.os.line}&version=${encodeURIComponent(who.os.version)}`, { cache: "no-store" });
+        if (r.ok) osAnswer = await r.json();
+      } catch {
+        osAnswer = null;
+      }
+      const os = describeOs(who.os, osAnswer);
+      if (os) {
+        ver.lines.push(os.text);
+        const worse = { ok: 0, na: 0, warn: 1, bad: 2 };
+        if (worse[os.state] > worse[ver.state]) {
+          ver.state = os.state;
+          ver.text = os.state === "bad" ? "Behind on iOS" : "iOS behind";
+        }
+      }
+    }
     setRow(doc, root, "version", ver.state, ver.text, ver.lines);
     const privacy = doc.getElementById("scan-privacy");
     if (privacy) {
