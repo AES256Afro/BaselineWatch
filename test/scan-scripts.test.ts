@@ -42,7 +42,7 @@ afterAll(async () => {
 
 describe("the device scripts", () => {
   it("exist as plain ASCII with LF endings and say what they do and that they upload nothing", () => {
-    expect(scripts.map((s) => s.file)).toEqual(["bw-check.ps1", "bw-check.sh"]);
+    expect(scripts.map((s) => s.file)).toEqual(["bw-check.ps1", "bw-check.sh", "bw-inventory.ps1", "bw-inventory.sh"]);
     for (const script of scripts) {
       const text = script.content.toString("latin1");
       expect(text, script.file).not.toContain("\r");
@@ -54,7 +54,8 @@ describe("the device scripts", () => {
       expect(text, script.file).toContain("WHAT IT DOES");
       expect(text, script.file).toContain("uploads nothing");
       expect(text, script.file).toContain("No advertising domain is fetched");
-      expect(script.bytes, script.file).toBeGreaterThan(4000);
+      // A check script runs to hundreds of lines; an inventory script is short by nature. Either is far more than a stub.
+      expect(script.bytes, script.file).toBeGreaterThan(script.file.startsWith("bw-inventory") ? 2500 : 4000);
     }
     expect(scripts[0]!.content.toString("latin1")).toMatch(/^#Requires -Version 5\.1\n/);
     expect(scripts[1]!.content.toString("latin1")).toMatch(/^#!\/bin\/sh\n/);
@@ -97,7 +98,7 @@ describe("the device scripts", () => {
     const sums = await fetch(`${app.base}/scan/scripts/${sumsFile}`);
     expect(sums.status).toBe(200);
     expect(await sums.text()).toBe(sumsText(scripts));
-    expect(scanScriptFiles).toEqual(["bw-check.ps1", "bw-check.sh", sumsFile]);
+    expect(scanScriptFiles).toEqual(["bw-check.ps1", "bw-check.sh", "bw-inventory.ps1", "bw-inventory.sh", sumsFile]);
     for (const missing of ["/scan/scripts/app.css", "/scan/scripts/bw-check.zsh", "/scan/scripts/"]) {
       expect((await fetch(`${app.base}${missing}`)).status, missing).toBe(404);
     }
