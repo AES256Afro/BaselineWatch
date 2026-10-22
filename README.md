@@ -8,35 +8,57 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Status**: M9 in progress. The STIGs area (`/stigs`) shows, per platform, every followed
-STIG's rules by CAT with check and fix text, the NIST SP 800-53 controls each rule maps to
-through DISA's CCI list (and, on each control's page, the rules that implement it), what changed
-in the latest release, and CISA's known-exploited entries and directives for that platform. The
-Baselines area (`/baselines`) builds the strictest published profile per platform (STIG rules,
-Microsoft's baseline or NIST's macOS rules, DISA's Intune definitions and checklist, the SP
-800-53 High controls), lets you untick what you cannot do, and exports the rest as HTML,
-Markdown, CSV or JSON in a Jamf, Intune, Linux or plain flavour; its test plans
-(`/baselines/<platform>/tests`) say what to test on a new OS release, by area, from the same
-checks plus the owner's YAML templates. A watchlist entry can name a platform (apple, windows,
-linux, android, chrome, firefox, edge, network) so every CVE on it is your stack, and every CVE
-page carries a Fix panel: the patch, advisory, KEV action, fixed package version and mitigating
-STIG rule already published, or "nothing published yet". The M9 plan is in
-[docs/PLAN.md](docs/PLAN.md); what comparable tools do is in [docs/COMPETITION.md](docs/COMPETITION.md).
-Before that: triage any item, CVE or control change (New, Reviewing, Affects us, Done), get
-alerts through ntfy, Gotify or a webhook for KEV additions, watched CVE changes and standard
-releases, and a daily or weekly digest. The Register tracks NIST SP 800-53 and its 800-53B baselines (OSCAL), NIST SP 800-171 Rev 3 (the CMMC Level 2 set), FedRAMP's Consolidated Rules for 2026, the
-DISA STIGs you follow (XCCDF, rule by rule) and every Microsoft Security Baseline in the
-Security Compliance Toolkit (setting by setting). Every release is kept as a snapshot and diffed
-against the last with a word-level redline, and the publisher's own reason sits beside it: NIST's
-Planning Note from the publication page, DISA's Revision History read out of the PDF and attached
-rule by rule, Microsoft's announcement from the zip. A local model can add a short summary, always
-badged as generated. The Wire (M1) carries news feeds, Reddit, Hacker News, CISA advisories and
-the KEV catalog; the Vulnerabilities page (M2) pulls every CVE NVD modifies with EPSS, KEV and
-your watchlist, and the advisories OSV and GitHub publish for the packages you watch. All five
-mockup directions are now pages: the Register (home), the Wire, the Board (Triage), the Console
-(Today, phone-first) and the Atlas (release timeline and the SP 800-53 family heatmap). The
-public instance is https://cybercard.net; the BoxPilot catalog entry is proposed.
-Public home will be https://cybercard.net, a read-only information and teaching site.
+**Public home**: https://cybercard.net, a read-only information and teaching site; writes are the
+owner's, behind a sign-in. The plan and the ledger of what shipped are in
+[docs/PLAN.md](docs/PLAN.md); every source with its terms is in [docs/SOURCES.md](docs/SOURCES.md).
+
+## What it does today
+
+**Reading.** [News](https://cybercard.net/) is the timeline: the feeds, Reddit, Hacker News, the
+vendor advisories, CISA's advisories and the KEV catalog, and the CVEs worth an entry of their
+own, one card per story however many sources carry it. [Today](https://cybercard.net/today) is the
+last day in one glance: what to do next, CVEs by the platform they touch, what the News is
+talking about, the pipeline's own health. [Vulnerabilities](https://cybercard.net/vulnerabilities)
+is every CVE NVD modifies with CVSS, EPSS, KEV, the platform it touches, whether a **public
+exploit** exists (Exploit-DB, Metasploit, PoC-in-GitHub), and on each CVE page a **Fix** panel:
+the patch, advisory, KEV action, fixed package version, mitigating STIG rule and **Microsoft's
+update** (the KB per product from the Security Update Guide) already published, or "nothing
+published yet". [Patch Tuesday](https://cybercard.net/vulnerabilities/microsoft) lays each month
+out by update and product, your own Windows releases first. One search from the masthead covers
+CVEs, the News, every standard's controls, Microsoft's updates and the sources.
+
+**The standards themselves.** A *standard* is the rulebook, a *baseline* the set of its rules
+chosen for a kind of system, a *control* one rule in that set, a *configuration setting* how the
+control is enforced on a device — the ladder the [guide](https://cybercard.net/guide#ladder)
+teaches and the menu is built from. The Register keeps every release of NIST SP 800-53 and its
+800-53B baselines (OSCAL), SP 800-171, FedRAMP's rules, the DISA STIGs you follow (rule by rule),
+every Microsoft Security Baseline (setting by setting), NIST's macOS rules and the CIS Benchmarks
+from your own copy, diffs each against the last with a word-level redline, and sets the
+publisher's own reason beside it; a local model may add a summary, always badged as generated.
+The Baselines area builds the strictest published profile per platform and exports it; the test
+plans say what to test on a new release; the Fleet page holds each release with the vendor's
+support dates and endoflife.date's beside them.
+
+**Scan.** What a page can honestly test and what a server on the LAN can: *this browser* (ad
+hiding, ad requests, filtering DNS, the privacy signals it sends, WebRTC addresses, the
+fingerprint surface, the referrer as received, its own version against the vendor's newest, and
+what this server learned from the request); *a domain* (SPF, DMARC, DKIM, MTA-STS, TLS-RPT,
+DNSSEC, CAA, HSTS, the certificate, `security.txt`, every record quoted beside its verdict, with
+a certificate-transparency watch on your own domains); *a device* (an inventory script's report,
+pasted, read against the Security Update Guide's builds, the vendors' releases, endoflife.date
+and OSV, kept as verdicts and CVE ids per device so the next reading says what moved); *your
+network* (canary names through the LAN resolver daily, and once a day what the internet sees of
+your public address and what the router gives away); *history*; and the manual guide with the
+scripts, each served with its sum. Nothing here contacts an advertising or malware host, and no
+packet goes to a device that did not ask.
+
+**The desk.** Triage any item, CVE or control change; a watchlist of products, packages (an SBOM
+in one upload), platforms, baselines and control families that marks the table as your stack;
+saved searches; alerts through ntfy, Gotify, a webhook or mail for KEV additions, watched CVE
+changes, standard releases and the Scan area's changes; a daily or weekly digest.
+
+**What leaves with you.** RSS for the News and the table under any filter, OPML of every source,
+the KEV due dates as a calendar, `/api/v1/` as JSON, `/mcp` as tools, `/metrics` for a dashboard.
 
 ## Run it
 
@@ -89,7 +111,7 @@ source immediately from that page.
 | `BW_SCHEDULER` | `true` | Fetch sources in-process on their schedule. Set false to run `npm run fetch -- due` from cron instead. |
 | `BW_NVD_API_KEY` | unset | Free from nvd.nist.gov/developers; 50 requests per 30 s instead of 5. |
 | `BW_NVD_BACKFILL_DAYS` | `7` | How many days of NVD modifications the first pull loads. Later pulls continue from the stored cursor. |
-| `BW_NOTIFY_URL` | unset | `ntfy://host/topic`, `gotify://host/token` or an `https://` webhook. Receives KEV additions, watched CVE changes, standard releases and the digest. Email goes through ntfy or Apprise rather than SMTP here. |
+| `BW_NOTIFY_URL` | unset | `ntfy://host/topic`, `gotify://host/token`, an `https://` webhook, or `mailto://user:pass@host:587/you@example.org` (`mailtos://` for TLS from the first byte, `?from=` to set the sender). Receives KEV additions, watched CVE changes, standard releases, the Scan area's changes and the digest. |
 | `BW_DIGEST` | `daily` | `daily`, `weekly` (Mondays) or `off`. |
 | `BW_DIGEST_HOUR` | `7` | Local hour, in `TZ`, at which the digest is written. |
 | `BW_LOOK` | `console` | How pages are drawn unless a browser chooses otherwise: `console` (dense panels and charts) or `register` (paper). |
