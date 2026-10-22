@@ -7,7 +7,8 @@ Read this before changing anything. It applies to humans and coding agents alike
 One page that keeps a security practitioner in tune: news, advisories and CVEs in a timeline,
 and a **change register for the standards themselves** (NIST SP 800-53, DISA STIGs, Microsoft
 baselines, CIS by upload): each control or setting before and after, what changed, and the
-publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`.
+publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`; the
+Learning section has its own plan in `docs/LEARN.md`.
 
 Decisions so far (2026-10-19): News is the home page at `/` (the Wire renamed; the Register at
 `/register`, `/wire` a 301), with the top grouped as News · Today · Standards ▾ · Vulnerabilities
@@ -122,5 +123,5 @@ src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1
 boxpilot/            the BoxPilot catalog manifest; scripts/validate-manifest.mjs checks it
-docs/                plan, sources, mockups
+docs/                plan, the Learning section's plan (LEARN.md), sources, mockups
 ```
