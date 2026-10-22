@@ -99,11 +99,22 @@ describe("what the instance keeps", () => {
     const alert = db.prepare("INSERT INTO alerts (kind, title, sent_at, status) VALUES ('kev', 't', ?, 'sent')");
     alert.run(daysBefore(200));
     alert.run(daysBefore(1));
+    // The laptop was read three times: twice over a year ago, once this month. The old desk PC
+    // was read once, two years ago, and never since: its one reading is its newest and stays.
+    const reading = db.prepare("INSERT INTO device_readings (device, os, read_at, worst, findings_json) VALUES (?, 'windows', ?, 'ok', '[]')");
+    reading.run("laptop", daysBefore(500));
+    reading.run("laptop", daysBefore(400));
+    reading.run("laptop", daysBefore(10));
+    reading.run("old desk PC", daysBefore(730));
 
-    expect(sweepRuns(db, now)).toEqual({ networkScans: 1, alerts: 1 });
+    expect(sweepRuns(db, now)).toEqual({ networkScans: 1, deviceReadings: 2, alerts: 1 });
     expect(db.prepare("SELECT COUNT(*) AS n FROM net_scans").get()).toEqual({ n: 1 });
     expect(db.prepare("SELECT COUNT(*) AS n FROM net_canaries").get()).toEqual({ n: 1 });
     expect(db.prepare("SELECT COUNT(*) AS n FROM alerts").get()).toEqual({ n: 1 });
+    expect(db.prepare("SELECT device, read_at FROM device_readings ORDER BY device").all()).toEqual([
+      { device: "laptop", read_at: daysBefore(10) },
+      { device: "old desk PC", read_at: daysBefore(730) },
+    ]);
   });
 });
 
@@ -227,6 +238,7 @@ describe("what it reports", () => {
     expect(before).toContain('id="storage"');
     expect(before).toContain("What this instance keeps");
     expect(before).toContain("the rest go after 14 days");
+    expect(before).toContain("a device's readings 365, except its newest, which stays");
     expect(before).toContain("not yet; the pass runs weekly");
     runHousekeeping(db, dataDir, { now: () => now });
     expect(renderSources({ db, owner: false, open: true, notice: null, look })).toContain("2026-11-20 03:00");

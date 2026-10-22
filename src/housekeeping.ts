@@ -14,7 +14,12 @@ import { databaseBytes } from "./db.ts";
  * document is kept — enough to re-parse and to diff against — the older ones are weight.
  *
  * Nothing here deletes a timeline item, a CVE, a requirement, a change or an explanation. Those
- * are the record; only the raw deliveries, the scan runs and the alert log are trimmed.
+ * are the record; only the raw deliveries, the scan runs, the device readings and the alert log
+ * are trimmed. The night of 2026-10-21 added seven tables, and each has its rule: Microsoft's
+ * Security Update Guide rows, the exploit indexes, the certificates seen for the owner's domains
+ * and the saved searches are kept; the Tor exit list and endoflife.date's cycles are swapped
+ * whole on each read, so they never grow; a device's readings are history, kept a year, except
+ * that each device's newest stays for good so the next reading can say what moved.
  */
 
 /** Source kinds whose snapshots are the Register's evidence and are never swept. */
@@ -25,6 +30,8 @@ export interface Retention {
   feedSnapshotDays: number;
   /** Network scan runs older than this go, with their canary rows. */
   networkScanDays: number;
+  /** A device's readings older than this go, except its newest, which the next reading diffs against. */
+  deviceReadingDays: number;
   /** The alert log says what was sent, not what is true; it is trimmed. */
   alertDays: number;
   /** A blob nothing references is left alone until it is this old: a fetch may be mid-flight. */
@@ -44,6 +51,7 @@ export interface Retention {
 export const defaultRetention: Retention = {
   feedSnapshotDays: 14,
   networkScanDays: 180,
+  deviceReadingDays: 365,
   alertDays: 180,
   blobGraceHours: 24,
   vacuumFreeShare: 0.1,
@@ -57,6 +65,8 @@ export interface HousekeepingResult {
   blobsDeleted: number;
   blobBytesFreed: number;
   networkScansDeleted: number;
+  /** Absent in results recorded before 0.48.0; read it as 0. */
+  deviceReadingsDeleted?: number;
   alertsDeleted: number;
   vacuumed: boolean;
   bytesBefore: number;
@@ -180,14 +190,29 @@ export function sweepSnapshots(db: DatabaseSync, now: Date, retention: Retention
   return rows.length;
 }
 
-/** Scan runs and the alert log past their windows. Both are history, not evidence. */
-export function sweepRuns(db: DatabaseSync, now: Date, retention: Retention = defaultRetention): { networkScans: number; alerts: number } {
+/**
+ * Scan runs, device readings and the alert log past their windows. All three are history, not
+ * evidence. A device keeps its newest reading whatever its age: it is what the next reading is
+ * compared with, and the device list would otherwise lose a machine that has not been read in a year.
+ */
+export function sweepRuns(
+  db: DatabaseSync,
+  now: Date,
+  retention: Retention = defaultRetention,
+): { networkScans: number; deviceReadings: number; alerts: number } {
   const scanBefore = new Date(now.getTime() - retention.networkScanDays * 86_400_000).toISOString();
+  const readingBefore = new Date(now.getTime() - retention.deviceReadingDays * 86_400_000).toISOString();
   const alertBefore = new Date(now.getTime() - retention.alertDays * 86_400_000).toISOString();
   // The canary rows go with their scan: net_canaries references net_scans ON DELETE CASCADE.
   const scans = db.prepare("DELETE FROM net_scans WHERE started_at < ?").run(scanBefore);
+  const readings = db
+    .prepare(
+      `DELETE FROM device_readings WHERE read_at < ?
+         AND id <> (SELECT n.id FROM device_readings n WHERE n.device = device_readings.device ORDER BY n.read_at DESC, n.id DESC LIMIT 1)`,
+    )
+    .run(readingBefore);
   const alerts = db.prepare("DELETE FROM alerts WHERE sent_at < ?").run(alertBefore);
-  return { networkScans: Number(scans.changes), alerts: Number(alerts.changes) };
+  return { networkScans: Number(scans.changes), deviceReadings: Number(readings.changes), alerts: Number(alerts.changes) };
 }
 
 /** Every blob hash something still points at: a snapshot, an article image, or the owner's branding. */
@@ -289,6 +314,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
     blobsDeleted: blobs.deleted,
     blobBytesFreed: blobs.bytesFreed,
     networkScansDeleted: runs.networkScans,
+    deviceReadingsDeleted: runs.deviceReadings,
     alertsDeleted: runs.alerts,
     vacuumed,
     bytesBefore,
@@ -299,7 +325,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   setSetting(db, lastResultKey, JSON.stringify(result), result.ranAt);
   log(
     `[housekeeping] ${result.snapshotsDeleted} snapshot(s), ${result.blobsDeleted} blob(s) (${formatBytes(result.blobBytesFreed)}), ` +
-      `${result.networkScansDeleted} scan(s), ${result.alertsDeleted} alert(s); database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
+      `${result.networkScansDeleted} scan(s), ${result.deviceReadingsDeleted} reading(s), ${result.alertsDeleted} alert(s); database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
       `${result.vacuumed ? " (rewritten)" : ""} in ${result.durationMs} ms`,
   );
   return result;
@@ -317,7 +343,7 @@ export function storageLine(report: StorageReport, baseUrl: string): string {
   const parts = [`${formatBytes(report.databaseBytes)} database`, `${report.snapshots} snapshot(s) (${formatBytes(report.snapshotBytes)})`];
   if (report.lastRun) {
     const r = report.lastRun;
-    const freed = r.snapshotsDeleted + r.blobsDeleted + r.networkScansDeleted + r.alertsDeleted;
+    const freed = r.snapshotsDeleted + r.blobsDeleted + r.networkScansDeleted + (r.deviceReadingsDeleted ?? 0) + r.alertsDeleted;
     parts.push(freed === 0 ? `nothing to let go on ${r.ranAt.slice(0, 10)}` : `${r.snapshotsDeleted} snapshot(s) and ${r.blobsDeleted} blob(s) let go on ${r.ranAt.slice(0, 10)}`);
   } else {
     parts.push("no housekeeping pass yet");
