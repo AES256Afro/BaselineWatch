@@ -125,10 +125,10 @@ export function markAlerted(db: DatabaseSync, id: string, at: string): void {
 interface MetricsInput {
   health: PipelineHealth;
   now: Date;
-  counts: { sources: number; items: number; vulns: number; changes: number; snapshots: number };
+  counts: { sources: number; items: number; vulns: number; changes: number; snapshots: number; exploits: number; msrcVulns: number; certificates: number; deviceReadings: number };
   bytes: { database: number; snapshots: number };
   images: number;
-  housekeeping: { ranAt: string; snapshotsDeleted: number; blobsDeleted: number; vacuumed: boolean } | null;
+  housekeeping: { ranAt: string; snapshotsDeleted: number; blobsDeleted: number; networkScansDeleted: number; deviceReadingsDeleted: number; vacuumed: boolean } | null;
   uptimeSeconds: number;
 }
 
@@ -157,6 +157,10 @@ export function metricsText(input: MetricsInput): string {
       `baselinewatch_rows{table="vulns"} ${counts.vulns}`,
       `baselinewatch_rows{table="changes"} ${counts.changes}`,
       `baselinewatch_rows{table="snapshots"} ${counts.snapshots}`,
+      `baselinewatch_rows{table="exploits"} ${counts.exploits}`,
+      `baselinewatch_rows{table="msrc_vulns"} ${counts.msrcVulns}`,
+      `baselinewatch_rows{table="ct_certs"} ${counts.certificates}`,
+      `baselinewatch_rows{table="device_readings"} ${counts.deviceReadings}`,
     ]),
     metric("baselinewatch_bytes", "Bytes on the volume, by what holds them.", "gauge", [
       `baselinewatch_bytes{store="database"} ${bytes.database}`,
@@ -175,6 +179,8 @@ export function metricsText(input: MetricsInput): string {
       metric("baselinewatch_housekeeping_last", "What the last pass let go, and whether it rewrote the file.", "gauge", [
         `baselinewatch_housekeeping_last{freed="snapshots"} ${h.snapshotsDeleted}`,
         `baselinewatch_housekeeping_last{freed="blobs"} ${h.blobsDeleted}`,
+        `baselinewatch_housekeeping_last{freed="network_scans"} ${h.networkScansDeleted}`,
+        `baselinewatch_housekeeping_last{freed="device_readings"} ${h.deviceReadingsDeleted}`,
         `baselinewatch_housekeeping_last{freed="vacuumed"} ${h.vacuumed ? 1 : 0}`,
       ]),
     );
