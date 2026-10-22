@@ -136,6 +136,8 @@ export function createApp(ctx: AppContext): Express {
   }
   // The baseline builder's form carries one checkbox per rule, a few hundred fields; everything else stays small.
   app.use("/baselines", express.urlencoded({ extended: false, limit: "1mb", parameterLimit: 5000 }));
+  // The device report is one field holding a package list; a Linux one runs to a hundred kilobytes or two.
+  app.use("/scan/devices", express.urlencoded({ extended: false, limit: "2mb" }));
   app.use(express.urlencoded({ extended: false, limit: "16kb" }));
 
   // The MCP endpoint: the read-only API as tools for agents. It sits before the same-origin guard
