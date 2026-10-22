@@ -92,7 +92,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
   const release = knownRelease(db);
   const storageSection = html`<section id="storage">
       <h2>What this instance keeps <span class="count">${formatBytes(storage.databaseBytes)}</span></h2>
-      <p class="note">A standard's snapshot is the product: the exact bytes NIST, DISA or Microsoft served, kept for good, because they are the "before" in every diff. A news or vulnerability feed's bytes are a delivery: the items are normalised out of them on arrival, so each document's newest fetch is kept and the rest go after ${defaultRetention.feedSnapshotDays} days. Network scans are kept ${defaultRetention.networkScanDays} days and the alert log ${defaultRetention.alertDays}. Nothing deletes a timeline item, a CVE, a requirement, a change or an explanation.</p>
+      <p class="note">A standard's snapshot is the product: the exact bytes NIST, DISA or Microsoft served, kept for good, because they are the "before" in every diff. A news or vulnerability feed's bytes are a delivery: the items are normalised out of them on arrival, so each document's newest fetch is kept and the rest go after ${defaultRetention.feedSnapshotDays} days. Network scans are kept ${defaultRetention.networkScanDays} days and the alert log ${defaultRetention.alertDays}; a device's readings ${defaultRetention.deviceReadingDays}, except its newest, which stays. Microsoft's update rows, the exploit indexes, the certificates seen for your domains and the vendors' end dates are kept; the Tor exit list is swapped whole each day. Nothing deletes a timeline item, a CVE, a requirement, a change or an explanation.</p>
       <div class="table-wrap"><table><caption class="visually-hidden">What this instance keeps</caption>
         <tbody>
           <tr><th scope="row">Database</th><td class="n">${formatBytes(storage.databaseBytes)}</td></tr>
@@ -109,7 +109,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
             ? html` <form method="post" action="/sources/check-version" class="inline"><button type="submit">Check now</button></form>`
             : ""}</td></tr>
           <tr><th scope="row">Last housekeeping</th><td class="n">${last
-            ? html`${shortStamp(last.ranAt)}: ${last.snapshotsDeleted} snapshot(s), ${last.blobsDeleted} blob(s) (${formatBytes(last.blobBytesFreed)}), ${last.networkScansDeleted} scan(s), ${last.alertsDeleted} alert(s)${last.vacuumed ? ", file rewritten" : ""}`
+            ? html`${shortStamp(last.ranAt)}: ${last.snapshotsDeleted} snapshot(s), ${last.blobsDeleted} blob(s) (${formatBytes(last.blobBytesFreed)}), ${last.networkScansDeleted} scan(s), ${last.deviceReadingsDeleted ?? 0} reading(s), ${last.alertsDeleted} alert(s)${last.vacuumed ? ", file rewritten" : ""}`
             : html`<span class="state wait">not yet; the pass runs weekly</span>`}</td></tr>
         </tbody>
       </table></div>
