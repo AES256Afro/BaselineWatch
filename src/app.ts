@@ -238,11 +238,22 @@ export function createApp(ctx: AppContext): Express {
           vulns: countRows(db, "vulns"),
           changes: countRows(db, "changes"),
           snapshots: countRows(db, "snapshots"),
+          exploits: countRows(db, "exploits"),
+          msrcVulns: countRows(db, "msrc_vulns"),
+          certificates: countRows(db, "ct_certs"),
+          deviceReadings: countRows(db, "device_readings"),
         },
         bytes: { database: storage.databaseBytes, snapshots: storage.snapshotBytes },
         images: storage.imageBlobs,
         housekeeping: storage.lastRun
-          ? { ranAt: storage.lastRun.ranAt, snapshotsDeleted: storage.lastRun.snapshotsDeleted, blobsDeleted: storage.lastRun.blobsDeleted, vacuumed: storage.lastRun.vacuumed }
+          ? {
+              ranAt: storage.lastRun.ranAt,
+              snapshotsDeleted: storage.lastRun.snapshotsDeleted,
+              blobsDeleted: storage.lastRun.blobsDeleted,
+              networkScansDeleted: storage.lastRun.networkScansDeleted,
+              deviceReadingsDeleted: storage.lastRun.deviceReadingsDeleted ?? 0,
+              vacuumed: storage.lastRun.vacuumed,
+            }
           : null,
         uptimeSeconds: Math.round((Date.now() - ctx.startedAt) / 1000),
       }),
