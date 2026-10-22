@@ -183,6 +183,14 @@ function privacyRows(): CheckRow[] {
       why: html`The referrer tells the next site where you came from, sometimes down to the page. The modern default sends the origin only across sites; a page can ask for more or less, and this row shows what actually arrived.`,
     },
     {
+      id: "version",
+      n: "11",
+      title: "This browser's version",
+      chip: "against the vendor's releases",
+      what: html`Reads this browser's version from what it says of itself (Chromium browsers give the full version through client hints; Firefox and Safari their major and minor) and asks this server what the vendor feeds say is the newest release with security fixes.`,
+      why: html`Every browser release fixes flaws, and the ones it fixes are published the day it ships. A browser two releases behind is running code with known, documented holes; relaunching is usually all it takes.`,
+    },
+    {
       id: "transport",
       n: "10",
       title: "Transport",
@@ -234,7 +242,7 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
           <span class="n">04</span>
           <div>
             <div class="t">Other apps on this device</div>
-            <p class="d">Not measured by a browser. The <a href="/scan/guide">manual guide</a> says how to read the system resolver, the hosts file and the firewall by hand on <a href="/scan/guide/windows">Windows</a>, <a href="/scan/guide/macos">macOS</a>, <a href="/scan/guide/linux">Linux</a>, <a href="/scan/guide/ios">iPhone and iPad</a> and <a href="/scan/guide/android">Android</a>, and one plain script per computer reads them in one go, uploading nothing.</p>
+            <p class="d">Not measured by a browser. <a href="/scan/devices">Is this device affected?</a> reads what the device runs from a script's report and says which CVEs apply to those versions. The <a href="/scan/guide">manual guide</a> says how to read the system resolver, the hosts file and the firewall by hand on <a href="/scan/guide/windows">Windows</a>, <a href="/scan/guide/macos">macOS</a>, <a href="/scan/guide/linux">Linux</a>, <a href="/scan/guide/ios">iPhone and iPad</a> and <a href="/scan/guide/android">Android</a>, and one plain script per computer reads them in one go, uploading nothing.</p>
           </div>
           <span class="state na">Not a page's to test</span>
         </article>
@@ -333,6 +341,7 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
     ["fingerprint", "The fingerprint surface"],
     ["referrer", "The referrer"],
     ["transport", "Transport"],
+    ["version", "This browser's version"],
   ];
   const content = html`<section class="scan-why">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>Why these checks</b></p>
@@ -474,6 +483,15 @@ export function renderScanWhy(options: { owner: boolean; open: boolean; look: Lo
       <ul class="sources">
         ${source("https://www.w3.org/TR/referrer-policy/", "W3C, Referrer Policy")}
         ${source("https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy", "MDN, Referrer-Policy", "the defaults by browser")}
+      </ul>
+    </section>
+    <section class="box" id="version">
+      <h2>This browser's version</h2>
+      <p>A browser release is mostly security fixes, and the vendor publishes which flaws it closed the day it ships: Chrome's release notes, Mozilla's advisories, Apple's security content. A browser behind the newest release is running code with documented holes, and an exploit for a browser flaw arrives through an ordinary page. The row reads the version this browser gives of itself — the full one through client hints on Chromium browsers, the major and minor from the user agent on Firefox and Safari — and asks this server what the vendor feeds hold. Updating is not enough: the fixes run only after the relaunch.</p>
+      <ul class="sources">
+        ${source("https://chromereleases.googleblog.com/", "Chrome Releases", "the stable channel updates the row reads")}
+        ${source("https://www.mozilla.org/security/advisories/", "Mozilla Foundation Security Advisories")}
+        ${source("https://support.apple.com/100100", "Apple security releases")}
       </ul>
     </section>
     <section class="box" id="transport">

@@ -477,6 +477,11 @@ Labs (8 MB, 306 posts, every read), Sophos News (redirects away from its feed), 
 Threat Intelligence (HTML at the feed path).
 
 ### Lookups on request (not pulled)
+- **Is this device affected?** (`/scan/devices`, S7) reads the inventory script's pasted report.
+  Windows builds are judged against the Security Update Guide rows already held; browsers and
+  macOS against the vendor release items already held; Linux packages by one request to OSV's
+  `https://api.osv.dev/v1/querybatch` (a thousand packages a request, OSV comparing versions by
+  the distribution's rules), owner-only, on the owner's say-so. The report is not stored.
 - **Check a domain** (`/scan/domain`, Scan 2.0 S3) asks this server's resolver about the name a
   visitor typed, asks Cloudflare's resolver over DoH (`cloudflare-dns.com`, already the network
   check's probe host) for the DNSSEC AD flag, and GETs the domain's own front page, its
