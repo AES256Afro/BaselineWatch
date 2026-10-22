@@ -1087,6 +1087,12 @@ The plans export beautifully and prove nothing. A plan that ends in a signed PDF
 
 ### M17: The teaching site earns the name
 
+> The Learning section has its own plan from 2026-10-22: **[LEARN.md](LEARN.md)**, L1 to L6 —
+> the section's shape, the glossary, traces drawn from loaded data rather than written by hand, a
+> searchable and tool-readable chain, a nightly probe over the registry's addresses, and the
+> handout and accessibility pass that close M17's last two items. This milestone keeps the gate;
+> that document holds the detail.
+
 cybercard.net is the public mission and its audience is people learning. `/guide` shipped and is
 good; the rest of the site still assumes the reader knows what OSCAL, a CCI, CAT II, EPSS and a
 baseline are. The accessibility pass promised in M10 never happened, and eleven looks across two
@@ -1121,8 +1127,9 @@ register and the Atlas under a rule; the Desk holds the owner's fleet and work, 
 then how it is drawn. `/controls` is new (one search across every standard's current version),
 Platforms is renamed Fleet at `/fleet`, and the masthead's look switch moved to an Appearance
 page. Today opens on what to do next and groups the window's CVEs by the platform they affect
-(migration 0032 stores it on the CVE). **Still open here**: the accessibility pass, the masthead
-search, the weight budget, and `robots.txt`, a sitemap and the canonical and OpenGraph tags.
+(migration 0032 stores it on the CVE). **Still open here**: the accessibility pass and the weight
+budget. The masthead search, `robots.txt`, the sitemap and the canonical and OpenGraph tags have
+since shipped, and both remaining items are carried by L6 in [LEARN.md](LEARN.md).
 
 - **Depends on**: nothing, but it is worth taking after M15 so the personalised pages are in the
   pass. **Thin slice**: the accessibility pass and the masthead search.
