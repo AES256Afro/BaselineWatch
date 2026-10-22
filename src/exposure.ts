@@ -142,12 +142,15 @@ export async function readRouter(http: HttpGet, url: string): Promise<RouterRead
 
 /** CVEs in the table whose vendor is the router's and, when a model is named, that name the model; the KEV ones first. */
 export function matchFirmware(db: DatabaseSync, vendor: string, model: string | null): FirmwareMatch {
-  const v = vendor.trim().toLowerCase().replace(/\s+/g, "");
+  // What the owner typed is matched as letters: a % or _ in a model name is not a wildcard.
+  const plain = (s: string): string => s.replace(/[\\%_]/g, "\\$&");
+  const v = plain(vendor.trim().toLowerCase().replace(/\s+/g, ""));
   const like = `%"${v}"%`;
+  const m = model ? `%${plain(model.trim().toLowerCase())}%` : null;
   const rows = (
-    model
-      ? db.prepare("SELECT cve_id, cvss_score, kev, description FROM vulns WHERE lower(vendors_json) LIKE ? AND (lower(products_json) LIKE ? OR lower(description) LIKE ?) ORDER BY kev DESC, cvss_score DESC LIMIT 40").all(like, `%${model.trim().toLowerCase()}%`, `%${model.trim().toLowerCase()}%`)
-      : db.prepare("SELECT cve_id, cvss_score, kev, description FROM vulns WHERE lower(vendors_json) LIKE ? AND kev = 1 ORDER BY cvss_score DESC LIMIT 40").all(like)
+    m
+      ? db.prepare("SELECT cve_id, cvss_score, kev, description FROM vulns WHERE lower(vendors_json) LIKE ? ESCAPE '\\' AND (lower(products_json) LIKE ? ESCAPE '\\' OR lower(description) LIKE ? ESCAPE '\\') ORDER BY kev DESC, cvss_score DESC LIMIT 40").all(like, m, m)
+      : db.prepare("SELECT cve_id, cvss_score, kev, description FROM vulns WHERE lower(vendors_json) LIKE ? ESCAPE '\\' AND kev = 1 ORDER BY cvss_score DESC LIMIT 40").all(like)
   ) as { cve_id: string; cvss_score: number | null; kev: number; description: string | null }[];
   return { vendor: vendor.trim(), model: model?.trim() || null, kev: rows.filter((r) => r.kev === 1).map((r) => r.cve_id), cves: rows };
 }

@@ -5,6 +5,7 @@ import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
 import { exposureKeys, runExposureScan, validRouterUrl } from "../exposure.ts";
 import { recentCerts } from "../ct.ts";
 import { privateAddress } from "../http.ts";
+import { RateWindow, throttleKey } from "../auth.ts";
 import { isIP } from "node:net";
 import type { TLSSocket } from "node:tls";
 import type { Request, Response } from "express";
@@ -62,14 +63,11 @@ export function mountScan(r: RouteContext): void {
   });
   // One InternetDB lookup, of a public address, when the visitor asks; a visitor may ask about
   // their own address a few times, not about the internet.
-  const lookedUp = new Map<string, number[]>();
+  const lookedUp = new RateWindow(6, 10 * 60_000);
   app.post("/scan/exposure", async (req, res) => {
     const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
     if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
-    const t = now().getTime();
-    const recent = (lookedUp.get(req.ip ?? "?") ?? []).filter((at) => t - at < 10 * 60_000);
-    if (recent.length >= 6) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
-    lookedUp.set(req.ip ?? "?", [...recent, t]);
+    if (!lookedUp.allow(throttleKey(req.ip), now().getTime())) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
     try {
       scanPage(req, res, { exposure: await lookUpExposure(ctx.http ?? httpGet, ip) });
     } catch (error) {
@@ -80,8 +78,8 @@ export function mountScan(r: RouteContext): void {
   // so each answer is kept ten minutes and each address gets a dozen checks in that time.
   const domainDeps = { dns: ctx.dns ?? nodeDns(), tls: ctx.tls ?? nodeTls(), http: ctx.http ?? httpGet, now };
   const reports = new Map<string, { at: number; report: DomainReport }>();
-  const asked = new Map<string, number[]>();
   const tenMinutes = 10 * 60_000;
+  const asked = new RateWindow(12, tenMinutes);
   const ownDomains = (): string[] => ((db.prepare("SELECT value FROM app_settings WHERE key = 'scan.domains'").get() as { value: string } | undefined)?.value ?? "").split(",").map((d) => d.trim()).filter((d) => d);
   app.get("/scan/domain", async (req, res) => {
     const query = req.query as Record<string, unknown>;
@@ -99,9 +97,7 @@ export function mountScan(r: RouteContext): void {
     const t = now().getTime();
     const cached = reports.get(key);
     if (cached && t - cached.at < tenMinutes) return res.type("html").send(renderScanDomain({ ...base, domain, report: cached.report, problem: null, certs }));
-    const recent = (asked.get(req.ip ?? "?") ?? []).filter((at) => t - at < tenMinutes);
-    if (recent.length >= 12) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
-    asked.set(req.ip ?? "?", [...recent, t]);
+    if (!asked.allow(throttleKey(req.ip), t)) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
     const report = await checkDomain(domain, domainDeps, { selectors });
     if (reports.size >= 200) reports.delete(reports.keys().next().value as string);
     reports.set(key, { at: t, report });

@@ -29,8 +29,8 @@ export function renderScanHistory(options: { db: DatabaseSync; owner: boolean; o
         <thead><tr><th scope="col">Run</th><th scope="col">Resolver</th><th scope="col" class="n">Sinkholed</th><th scope="col" class="n">Resolved</th><th scope="col">Since the run before</th><th scope="col" class="n">Clients</th></tr></thead>
         <tbody>${scans.map(
           (s) => html`<tr class="${s.resolved > 0 ? "hit" : ""}">
-            <td class="id" title="${s.started_at}">${s.started_at.slice(0, 10)} <span class="small">${relativeTime(s.started_at, now)}</span>${s.error ? html`<div class="small">${s.error}</div>` : ""}</td>
-            <td class="who"><code>${s.resolver ?? "—"}</code>${s.upstream ? html` <span class="small">via ${s.upstream}</span>` : ""}${s.doh ? html` <span class="small">· DoH ${s.doh}</span>` : ""}</td>
+            <td class="id" title="${s.started_at}">${s.started_at.slice(0, 10)} <span class="small">${relativeTime(s.started_at, now)}</span>${owner && s.error ? html`<div class="small">${s.error}</div>` : ""}</td>
+            <td class="who">${owner ? html`<code>${s.resolver ?? "—"}</code>${s.upstream ? html` <span class="small">via ${s.upstream}</span>` : ""}` : s.resolver ? "the LAN's" : "—"}${s.doh ? html` <span class="small">· DoH ${s.doh}</span>` : ""}</td>
             <td class="n">${s.sinkholed}<span class="small">/${s.total}</span></td>
             <td class="n">${s.resolved ? html`<b>${s.resolved}</b>` : "0"}${s.timeout ? html` <span class="small">+${s.timeout} silent</span>` : ""}</td>
             <td class="desc">${changeWords(s)}</td>
