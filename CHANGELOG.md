@@ -2,6 +2,35 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.48.0 — 2026-10-22
+
+- **Housekeeping knows the night's tables.** The weekly pass (M13) had seven tables it had never
+  heard of. Six need no sweep and the Sources page's policy now says why: Microsoft's update rows,
+  the exploit indexes, the certificates seen for your domains and the saved searches are kept; the
+  Tor exit list and endoflife.date's cycles are swapped whole on each read. A device's readings
+  are history, one row per paste, and grew without bound: they go after a year, except each
+  device's newest, which the next reading is compared with and which keeps a long-silent machine
+  on the list. The pass reports the count.
+- **The guide teaches "Is this device affected?"** at `/guide#devices`: what the script reads,
+  which source answers each line and by what rule, and what a reading cannot say — "up to date"
+  is the sources' last word, not the machine's health. The device page points at it.
+- **A security read of the night's additions, closed.** The public domain check's TLS probe
+  handshook with whatever address the typed name resolved to — a name pointed at a LAN address
+  had this server, on the owner's LAN, read port 443 of that host and quote its certificate. The
+  probe now resolves first, answers a private address without a packet, and connects to the
+  address it vetted. The InternetDB lookup and the domain check share one rate window keyed by
+  the visitor's /64, swept so many addresses cannot grow it. The LAN resolver's address, its
+  upstream and a run's error text are the owner's to see; a visitor reads that there is one. The
+  router model is matched as letters, not a pattern; a bill of materials is read 32 levels deep.
+- **Fixed**: a real Linux device report was refused before it was read — the form limit was
+  16 kB and a dpkg list is a hundred — so `/scan/devices` takes two megabytes; the other forms
+  keep theirs.
+- **A public-only fetch connects to the address that was vetted.** The name was resolved and
+  refused if private, then resolved again by the fetch itself; a short-lived name answering
+  public once and private the next slipped through (DNS rebinding). The socket now goes where
+  the check looked, with the name kept on the wire for the Host header, the SNI and the
+  certificate.
+
 ## 0.47.0 — 2026-10-22
 
 - **A phone's iOS, judged on its own line.** The browser check's version row reads an iPhone's

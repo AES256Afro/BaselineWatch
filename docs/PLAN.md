@@ -1565,7 +1565,13 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | S7 is this device affected | #31: the inventory scripts and `/scan/devices` — Windows builds against the guide, browsers and macOS against the vendors, Linux packages by OSV's batch; the browser's version row. #32: readings kept per device (migration 0042), what moved, a Today tile | merged |
 | 0.46.0 | tagged, image published; BoxPilot catalog #559 | superseded by 0.47.0 |
 | Phones, digest, README | #33: iOS judged on its own line, plainer wording, KB links; #34: the digest's Scan sections; #35: the README's five sections | merged |
-| 0.47.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
+| 0.47.0 | tagged, image published; BoxPilot catalog #560 | superseded by 0.48.0 |
+| 0.47.0 to BoxPilot | catalog #559 (0.46.0) stalled twice on Docker Hub's Alpine rebuild wave (redis, then postgres for eleven apps), each re-pinned with the registry's build dates and layer counts as evidence; merged, BoxPilot 1.211.0; #560 refreshed to 0.47.0 | 1.211.0 released; #560 in flight |
+| Housekeeping | #36: the seven new tables each given a rule; device readings go after a year, each device's newest kept | merged |
+| Guide | #37: `/guide#devices` teaches the device check; the page points at it | merged |
+| Security read | #38: a fresh-eyes read of the day's code — the domain check's TLS probe reached the LAN, the public rate windows were bypassable, a Linux device report was refused at 16 kB, the LAN resolver's address was public, the router model was a LIKE pattern, an SBOM could nest without end; all closed with tests. #39: a public-only fetch connects to the address it vetted (DNS rebinding) | merged |
+| Metrics | #40: the four new tables as rows, scans and readings freed in the housekeeping gauge | merged |
+| 0.48.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
