@@ -1563,7 +1563,9 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | N5 more feeds | #30: CERT/CC notes and six research blogs, each replaying its real file (migration 0041) | merged |
 | 0.45.0 | tagged, image published; BoxPilot 1.210.0 | superseded by 0.46.0 |
 | S7 is this device affected | #31: the inventory scripts and `/scan/devices` — Windows builds against the guide, browsers and macOS against the vendors, Linux packages by OSV's batch; the browser's version row. #32: readings kept per device (migration 0042), what moved, a Today tile | merged |
-| 0.46.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
+| 0.46.0 | tagged, image published; BoxPilot catalog #559 | superseded by 0.47.0 |
+| Phones, digest, README | #33: iOS judged on its own line, plainer wording, KB links; #34: the digest's Scan sections; #35: the README's five sections | merged |
+| 0.47.0 | tagged; BoxPilot catalog refreshed to it and released | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a

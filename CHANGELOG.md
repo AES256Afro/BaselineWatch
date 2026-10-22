@@ -2,6 +2,18 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.47.0 — 2026-10-22
+
+- **A phone's iOS, judged on its own line.** The browser check's version row reads an iPhone's
+  iOS from the user agent and asks Apple's releases about it: a phone kept on 26.x is told
+  26.7.1 is newest for it and that 27 exists for devices that support it; the row's verdict is
+  the worse of the browser's and the OS's. The device page's wording is plainer, and each
+  missing Windows KB links to its Patch Tuesday page.
+- **The digest carries the Scan area's open findings**: devices whose last reading left
+  something open, the exposure run's findings, and the certificates the transparency logs showed
+  for your domains in the window — each absent when there is nothing to say.
+- The README says what the site does today, in five short sections.
+
 ## 0.46.0 — 2026-10-22
 
 - **Is this device affected?** (`/scan/devices`). No web page can see what a computer runs and
