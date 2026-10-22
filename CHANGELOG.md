@@ -2,6 +2,25 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.46.0 — 2026-10-22
+
+- **Is this device affected?** (`/scan/devices`). No web page can see what a computer runs and
+  this site installs nothing, so an inventory script per platform (`bw-inventory.ps1`,
+  `bw-inventory.sh`, served with sums beside the check scripts) reads version numbers only — the
+  Windows build, the macOS or distribution release, the browsers, the packages — and prints one
+  report; the owner pastes it and sees which CVEs apply to those versions: the Windows build
+  against the Security Update Guide's fixed build per KB for its own version (the CVEs the
+  missing updates fix, and which of them Microsoft says are exploited), browsers and macOS
+  against the vendors' newest releases, the version against endoflife.date, and a Linux
+  distribution's packages by one batch question to OSV, which compares the installed version
+  with each advisory's range by the distribution's own rules. Each reading is kept under the
+  device's name as its verdicts and CVE ids, never the report (migration 0042), so the next one
+  says what moved; Today counts the devices with something open.
+- **This browser's version** is the browser check's eleventh row: the full version through
+  client hints on Chromium browsers, against the vendor's newest announced release.
+- The Security Update Guide's fixes are now keyed by KB **and** build, since one KB is a
+  different build on each Windows version.
+
 ## 0.45.0 — 2026-10-21
 
 - **Seven more feeds**, from what the security aggregators carry: CERT/CC Vulnerability Notes
