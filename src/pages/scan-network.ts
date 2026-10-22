@@ -152,7 +152,7 @@ function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, owner: boolean, e
     scan?.clients_seen !== null && scan?.clients_seen !== undefined
       ? html`<dl class="kv"><dt>Clients seen</dt><dd>${scan.clients_seen} in the last day, per the ${scan.clients_source === "pihole" ? "Pi-hole" : "AdGuard Home"} API</dd></dl>
         <p class="small">Devices missing from the resolver's log either use another resolver (a VPN, DNS-over-HTTPS in the browser, a hard-coded public one) or were off. The browser check catches those one device at a time.</p>`
-      : html`<p class="small">With a Pi-hole or AdGuard Home token saved${owner ? html` below` : html` by the owner`}, this box counts the clients the resolver answered for, so devices that bypass it stand out.${scan?.error ? html` Last read: ${scan.error}.` : ""}</p>`;
+      : html`<p class="small">With a Pi-hole or AdGuard Home token saved${owner ? html` below` : html` by the owner`}, this box counts the clients the resolver answered for, so devices that bypass it stand out.${owner && scan?.error ? html` Last read: ${scan.error}.` : ""}</p>`;
   return html`<div class="box">
       <h2>Who uses this resolver</h2>
       ${clients}
@@ -170,8 +170,8 @@ function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, owner: boolean, e
     ${scan ? html`<div class="box">
       <h2>Also tested from here</h2>
       <dl class="kv">
-        <dt>Resolver</dt><dd>${scan.resolver ?? "none found"}${scan.resolver_source ? html` (${scan.resolver_source})` : ""}</dd>
-        <dt>Upstream seen</dt><dd>${scan.upstream ?? "no answer from the control name"}</dd>
+        <dt>Resolver</dt><dd>${owner ? html`${scan.resolver ?? "none found"}${scan.resolver_source ? html` (${scan.resolver_source})` : ""}` : scan.resolver ? "the one this network hands out (its address is the owner's to see)" : "none found"}</dd>
+        <dt>Upstream seen</dt><dd>${owner ? (scan.upstream ?? "no answer from the control name") : scan.upstream ? "answered (shown to the owner)" : "no answer from the control name"}</dd>
         <dt>DoH from this LAN</dt><dd>${scan.doh === "reachable" ? html`<span class="warn-t">reachable: a browser can bypass this resolver</span>` : scan.doh === "blocked" ? html`<span class="ok-t">blocked or unreachable</span>` : "not tested"}</dd>
       </dl>
     </div>` : ""}
@@ -210,7 +210,7 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
       : "";
 
   const body = scan
-    ? html`${scan.error && rows.length === 0 ? html`<div class="notice">The last run found nothing to resolve: ${scan.error}.</div>` : ""}
+    ? html`${scan.error && rows.length === 0 ? html`<div class="notice">The last run found nothing to resolve${owner ? html`: ${scan.error}` : " (the owner sees why)"}.</div>` : ""}
   ${tiles}
   <div class="cols">
     <div class="main">
@@ -244,7 +244,7 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
   ${notice ? html`<div class="notice">${notice}</div>` : ""}
   <p class="lede">
     ${scan?.resolver
-      ? html`The resolver this network hands out is <code>${scan.resolver}</code> (read from ${scan.resolver_source ?? "this server"}). The canary names below were resolved through it from this server${scan.finished_at ? html` ${relativeTime(scan.finished_at, now)}` : ""}; a name that returns <code>0.0.0.0</code>, a loopback address or NXDOMAIN is blocked for every device using that resolver.`
+      ? html`The resolver this network hands out is ${owner ? html`<code>${scan.resolver}</code> (read from ${scan.resolver_source ?? "this server"})` : "the one tested here; its address is the owner's to see"}. The canary names below were resolved through it from this server${scan.finished_at ? html` ${relativeTime(scan.finished_at, now)}` : ""}; a name that returns <code>0.0.0.0</code>, a loopback address or NXDOMAIN is blocked for every device using that resolver.`
       : html`This server sits on the LAN, so it can test the row no web page can: it resolves canary names through the resolver the router hands out, and a sinkholed answer covers every device that uses it.`}
     A phone on a VPN, or a browser with its own DNS-over-HTTPS, does not use that resolver; the <a href="/scan">browser check</a> catches those.
   </p>

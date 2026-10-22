@@ -1,6 +1,6 @@
-import { Resolver } from "node:dns/promises";
+import { Resolver, lookup } from "node:dns/promises";
 import tls from "node:tls";
-import { HttpError, type HttpGet } from "./http.ts";
+import { HttpError, privateAddress, type HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
 
 /**
@@ -120,17 +120,38 @@ export function nodeDns(): DnsLookup {
 /** A certificate field, which Node types as one string or several. */
 const one = (value: string | string[] | undefined): string | null => (Array.isArray(value) ? (value[0] ?? null) : (value ?? null));
 
-/** One TLS handshake with the domain's own name, reading the protocol, the cipher and the certificate; nothing is sent after. */
-export function nodeTls(): TlsProbe {
-  return (host) =>
-    new Promise((resolve) => {
+/** The addresses a name resolves to; the real one is the system resolver, a test hands in its own. */
+export type AddressLookup = (host: string) => Promise<{ address: string }[]>;
+
+/** What the probe answers for a name that points inside a private network: it is not touched. */
+export const privateAddressError = "private address";
+
+/**
+ * One TLS handshake with the domain's own name, reading the protocol, the cipher and the
+ * certificate; nothing is sent after. The name is resolved first and the handshake goes to the
+ * address that was vetted: a visitor can point any public name at a LAN address, and this server
+ * sits on the owner's LAN, so a name that resolves to a private address is answered without a
+ * packet, and the address the HTTP legs vetted is the one connected to, not a second resolution.
+ */
+export function nodeTls(resolveAddresses: AddressLookup = (host) => lookup(host, { all: true })): TlsProbe {
+  return async (host) => {
+    let addresses: { address: string }[];
+    try {
+      addresses = await resolveAddresses(host);
+    } catch (error) {
+      return { error: (error as NodeJS.ErrnoException).code ?? "ENOTFOUND" };
+    }
+    if (addresses.length === 0) return { error: "ENOTFOUND" };
+    if (addresses.some((a) => privateAddress(a.address))) return { error: privateAddressError };
+    const address = addresses[0]!.address;
+    return new Promise((resolve) => {
       let settled = false;
       const done = (facts: TlsFacts | { error: string }): void => {
         if (settled) return;
         settled = true;
         resolve(facts);
       };
-      const socket = tls.connect({ host, port: 443, servername: host, timeout: 8000, rejectUnauthorized: false }, () => {
+      const socket = tls.connect({ host: address, port: 443, servername: host, timeout: 8000, rejectUnauthorized: false }, () => {
         const cert = socket.getPeerCertificate(false);
         const names = (cert.subjectaltname ?? "").split(",").map((s) => s.trim().replace(/^DNS:/, "")).filter((s) => s);
         done({
@@ -151,6 +172,7 @@ export function nodeTls(): TlsProbe {
       });
       socket.on("error", (error: NodeJS.ErrnoException) => done({ error: error.code ?? error.message }));
     });
+  };
 }
 
 interface Fetched {
@@ -242,6 +264,7 @@ export function judgeHeaders(headers: Record<string, string>, reached: boolean):
 
 /** The certificate and the handshake: TLS 1.3, a trusted chain, the name covered, not about to expire. */
 export function judgeTls(facts: TlsFacts | { error: string }, domain: string, now: Date): Finding {
+  if ("error" in facts && facts.error === privateAddressError) return { id: "tls", group: "web", title: "TLS", state: "na", text: "The name points at a private address, which this check does not touch.", quoted: [] };
   if ("error" in facts) return { id: "tls", group: "web", title: "TLS", state: facts.error === "ECONNREFUSED" || facts.error === "ENOTFOUND" ? "na" : "bad", text: `No TLS handshake on 443: ${facts.error}.`, quoted: [] };
   const quoted = [`${facts.protocol ?? "?"} · ${facts.cipher ?? "?"}`, `Issuer: ${facts.issuer ?? "?"} · Subject: ${facts.subject ?? "?"}`, `Valid to: ${facts.validTo?.slice(0, 10) ?? "?"}`, `Names: ${facts.names.slice(0, 8).join(", ")}${facts.names.length > 8 ? ` and ${facts.names.length - 8} more` : ""}`];
   const covers = facts.names.some((n) => n === domain || (n.startsWith("*.") && domain.endsWith(n.slice(1)) && domain.split(".").length === n.split(".").length));

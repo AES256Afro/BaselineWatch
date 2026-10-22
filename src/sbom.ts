@@ -97,14 +97,17 @@ export function readSbom(text: string): SbomReading {
     packages.push({ value, name: (name ?? value.split(":").pop() ?? value).slice(0, 60) });
   };
   if (doc.bomFormat === "CycloneDX" && Array.isArray(doc.components)) {
-    const walk = (list: unknown[]): void => {
+    // Components nest (an application's libraries, a library's); thirty-two levels is more than any real
+    // document and a hostile one cannot run the stack out.
+    const walk = (list: unknown[], depth: number): void => {
+      if (depth > 32) return;
       for (const raw of list) {
         const c = raw as { name?: string; purl?: string; components?: unknown[] };
         add(c.purl, c.name);
-        if (Array.isArray(c.components)) walk(c.components);
+        if (Array.isArray(c.components)) walk(c.components, depth + 1);
       }
     };
-    walk(doc.components);
+    walk(doc.components, 0);
     return { name: doc.metadata?.component?.name ?? null, format: "cyclonedx", packages, skipped };
   }
   if (typeof doc.spdxVersion === "string" && Array.isArray(doc.packages)) {
