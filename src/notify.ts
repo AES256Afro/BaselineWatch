@@ -75,7 +75,14 @@ export async function send(transport: Transport | null, n: Notification, http: H
   if (!transport) return { status: "unconfigured", error: null };
   if (transport.scheme === "mail" && transport.mail) {
     try {
-      await sendMail(transport.mail, { subject: n.title, text: n.url ? `${n.body}\n\n${n.url}` : n.body }, mailDeps);
+      // The site's own host names the client in EHLO and the Message-ID; the notification's link carries it.
+      let clientName: string | undefined;
+      try {
+        clientName = n.url ? new URL(n.url).hostname : undefined;
+      } catch {
+        clientName = undefined;
+      }
+      await sendMail(transport.mail, { subject: n.title, text: n.url ? `${n.body}\n\n${n.url}` : n.body }, { ...(clientName ? { clientName } : {}), ...mailDeps });
       return { status: "sent", error: null };
     } catch (error) {
       return { status: "failed", error: failureText(error) };

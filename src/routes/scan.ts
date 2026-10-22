@@ -1,5 +1,5 @@
 import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type DomainReport } from "../domaincheck.ts";
-import { httpGet } from "../http.ts";
+import { HttpError, httpGet } from "../http.ts";
 import { renderScanDomain } from "../pages/scan-domain.ts";
 import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
 import { exposureKeys, runExposureScan, validRouterUrl } from "../exposure.ts";
@@ -71,7 +71,9 @@ export function mountScan(r: RouteContext): void {
     try {
       scanPage(req, res, { exposure: await lookUpExposure(ctx.http ?? httpGet, ip) });
     } catch (error) {
-      scanPage(req, res, { exposureError: error instanceof Error ? error.message : String(error) });
+      // What went wrong, in the visitor's terms: never the URL asked or the error's own text.
+      const code = (error as { code?: string; cause?: { code?: string } }).cause?.code ?? (error as { code?: string }).code;
+      scanPage(req, res, { exposureError: error instanceof HttpError ? `InternetDB answered ${error.status}` : code ? `no answer from InternetDB (${code})` : "no answer from InternetDB" });
     }
   });
   // Check a domain (S3): lookups only, from this server. A visitor may ask about any public name,
