@@ -28,6 +28,7 @@ describe("normalizeNvd", () => {
     expect(n.cpes.length).toBeGreaterThan(0);
     expect(n.cpes.every((c) => c.startsWith("cpe:2.3:"))).toBe(true);
     expect(n.vendors).toContain("siemens");
+    expect(n.cpeMatches).toContainEqual(expect.objectContaining({ vendor: "siemens", version: "*", versionStart: null, versionEnd: "2.7.0", endInclusive: false, vulnerable: true }));
     expect(n.references).toHaveLength(5);
     expect(n.references[0]?.tags).toContain("Third Party Advisory");
     expect(n.kev).toMatchObject({ dateAdded: "2021-12-10" });
@@ -202,6 +203,13 @@ describe("NVD and EPSS pulls", () => {
     const later = new Date("2026-10-15T00:30:00Z");
     await ingestSource(db, dataDir, getSource(db, "nvd-cves")!, { http: scripted, now: () => later, settings: { nvdApiKey: "k", nvdBackfillDays: 2 }, log: () => {} });
     expect(seen[0]).toContain("lastModStartDate=2026-10-14T23:29:00.000");
+
+    // The backfill command forgets the cursor, and the next pull starts the window over.
+    nvdAdapter.rewind!(db);
+    expect(db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get()).toBeUndefined();
+    seen.length = 0;
+    await ingestSource(db, dataDir, getSource(db, "nvd-cves")!, { http: scripted, now: () => later, settings: { nvdApiKey: "k", nvdBackfillDays: 2 }, log: () => {} });
+    expect(seen[0]).toContain("lastModStartDate=2026-10-13T00:30:00.000");
   });
 
   it("applies a gzipped EPSS file through the source", async () => {

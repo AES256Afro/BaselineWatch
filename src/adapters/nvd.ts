@@ -1,3 +1,4 @@
+import { cpeMatchesOf, type NvdConfiguration } from "../cpematches.ts";
 import { isNotable, loadWatchlist, recordVulnItem, upsertVuln, type NormalizedVuln } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 
@@ -15,7 +16,7 @@ export interface NvdCve {
   cisaRequiredAction?: string;
   cisaVulnerabilityName?: string;
   weaknesses?: { source?: string; description?: { lang: string; value: string }[] }[];
-  configurations?: { nodes?: { cpeMatch?: { vulnerable?: boolean; criteria?: string }[] }[] }[];
+  configurations?: NvdConfiguration[];
   references?: { url: string; tags?: string[] }[];
 }
 
@@ -97,6 +98,7 @@ export function normalizeNvd(cve: NvdCve): NormalizedVuln {
     ssvc,
     cwes,
     cpes,
+    cpeMatches: cpeMatchesOf(cve.configurations ?? []),
     vendors: [...vendors],
     products: [...products],
     references: (cve.references ?? []).slice(0, 150).map((r) => ({ url: r.url, tags: r.tags ?? [] })),
@@ -173,6 +175,10 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
  */
 export const nvdAdapter: Adapter = {
   id: "nvd",
+  /** Forgets the cursor, so the next pull starts the backfill window over and normalises every record in it afresh. */
+  rewind(db) {
+    db.prepare("DELETE FROM app_settings WHERE key = ?").run(cursorKey);
+  },
   async pull(ctx): Promise<PullOutcome> {
     const now = ctx.now();
     const cursor = readSetting(ctx, cursorKey);
