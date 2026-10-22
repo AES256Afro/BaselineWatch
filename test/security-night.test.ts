@@ -117,6 +117,17 @@ describe("on the pages", () => {
     }
   });
 
+  it("tells a visitor what the InternetDB lookup did, never the URL asked or the error's own words", async () => {
+    const app = await startTestApp({ now: () => now, http: fakeHttp({ "https://internetdb.shodan.io/1.1.1.1": { status: 503, text: "busy" } }) });
+    try {
+      const page = await (await formPost(app.base, "/scan/exposure", { ip: "1.1.1.1" })).text();
+      expect(page).toContain("The lookup did not answer: InternetDB answered 503.");
+      expect(page).not.toContain("internetdb.shodan.io/1.1.1.1");
+    } finally {
+      await app.close();
+    }
+  });
+
   it("shows the LAN resolver's address and a run's error to the owner alone", async () => {
     const app = await startTestApp({ env: { BW_ADMIN_PASSWORD: "hunter2hunter2" }, now: () => now });
     try {
