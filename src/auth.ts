@@ -106,6 +106,42 @@ export function sameOriginOnly(req: Request, res: Response, next: NextFunction):
   res.status(403).type("text").send("Refused: this request did not come from BaselineWatch's own pages.");
 }
 
+/**
+ * A small in-memory allowance for a public route that costs this server a request of its own:
+ * at most `limit` hits per key in `windowMs`. Key it with `throttleKey`, so an IPv6 visitor is
+ * their /64 and cannot rotate past it; the map is swept once it is large, as the login throttle's is.
+ */
+export class RateWindow {
+  private readonly hits = new Map<string, number[]>();
+  private readonly limit: number;
+  private readonly windowMs: number;
+  constructor(limit: number, windowMs: number) {
+    this.limit = limit;
+    this.windowMs = windowMs;
+  }
+  /** Counts a hit and says whether it is within the allowance; a refused hit is not counted. */
+  allow(key: string, nowMs: number): boolean {
+    if (this.hits.size >= 10_000) {
+      for (const [k, at] of this.hits) if (at.every((t) => nowMs - t >= this.windowMs)) this.hits.delete(k);
+      for (const k of this.hits.keys()) {
+        if (this.hits.size < 10_000) break;
+        this.hits.delete(k);
+      }
+    }
+    const recent = (this.hits.get(key) ?? []).filter((t) => nowMs - t < this.windowMs);
+    if (recent.length >= this.limit) {
+      this.hits.set(key, recent);
+      return false;
+    }
+    recent.push(nowMs);
+    this.hits.set(key, recent);
+    return true;
+  }
+  get size(): number {
+    return this.hits.size;
+  }
+}
+
 /** A small in-memory brake on password guessing: after `limit` failures an address waits `windowMs`. */
 export class LoginThrottle {
   private readonly failures = new Map<string, { count: number; until: number }>();
