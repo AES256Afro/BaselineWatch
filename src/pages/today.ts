@@ -9,6 +9,7 @@ import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
+import { devicesTile } from "../devices.ts";
 import { listSaved } from "../saved.ts";
 import { scanTile } from "../scanhistory.ts";
 import { trendingCves } from "../trending.ts";
@@ -118,6 +119,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
   const scan = scanTile(db);
   const saved = owner ? listSaved(db) : [];
+  const devices = owner ? devicesTile(db) : null;
   const digest = latestDigest(db);
   const glance = glanceData(db, now);
   // The fleet's support dates, so a release about to stop getting fixes is a figure here, not a surprise.
@@ -172,6 +174,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile ${counts.affects + counts.reviewing ? "warn" : ""}" href="/triage"><small>Needs you</small><b>${counts.affects + counts.reviewing}</b><span>${inbox.length} not yet placed</span></a>
       <a class="tile ${ending.length ? "warn" : ""}" href="/fleet"><small>Support ending</small><b>${ending.length}</b><span>${ending[0] ? `${ending[0].release.label}: ${ending[0].clause}` : "none within 90 days"}</span></a>
       <a class="tile${scan.state === "warn" ? " warn" : ""}" href="${scan.href}"><small>Network check</small><b>${scan.figure}</b><span>${scan.text}</span></a>
+      ${devices && devices.read ? html`<a class="tile${devices.exposed ? " bad" : devices.behind ? " warn" : ""}" href="/scan/devices"><small>Devices</small><b>${devices.exposed}</b><span>exposed of ${devices.read} read${devices.behind ? `, ${devices.behind} behind` : ""}</span></a>` : ""}
       <a class="tile${pipeline.state === "ok" ? "" : ` ${pipeline.state}`}" href="/sources"><small>Pipeline</small><b>${pipeline.failing.length === 0 ? "ok" : pipeline.failing.length}</b><span>${pipelineSummary(pipeline)}</span></a>
     </div>
     <div class="glance two" aria-label="At a glance">
