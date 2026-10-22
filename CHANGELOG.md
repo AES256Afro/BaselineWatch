@@ -2,6 +2,38 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.50.0 — 2026-10-22
+
+- **Learn, at `/learn`: where a rule comes from.** The ladder says what a standard, baseline,
+  control and setting are; it never said where the rulebook itself came from. A new page draws the
+  whole chain — law and contract, policy, framework, control catalogue, baseline, configuration
+  setting, check and evidence — as a strip and then as a matrix whose rows are those steps and
+  whose columns are who the publisher writes for: US federal civilian, US defense, NASA, private
+  business, outside the US. Reading across one row gives the same job as NIST, DISA, CNSS, NASA's
+  CSET, CIS, Microsoft, the NSA, the ACSC and the NCSC each answer it, and two filters narrow to
+  one audience or one step. Last in the Standards menu, under "Where it all comes from".
+- **Thirty-five publishers, each with its own address and what it takes to read it.** Every body
+  carries what it derives from, what derives from it, and every address its own words live at,
+  marked public, free account, agency sign-in or your own licence. An agency-only link is public
+  knowledge of where a document lives and never the document: NASA's ASCS specifications stay
+  internal, and nothing restricted is reproduced. Where this instance tracks a body, its card
+  shows the version held beside the publisher's own address.
+- **The same control, traced three ways.** A device locking after a period of inactivity, carried
+  down a federal ladder, a DoD ladder and a private-business ladder. The control barely changes;
+  everything above and below it does, and the private chain's empty policy rung is the point.
+- **Every standard's page now says where it comes from**: its publisher, the step it sits on, what
+  it derives from, what derives from it, and — the question the page was silent about — the other
+  bodies answering the same step. The STIG library page now names the GPO and Intune packages,
+  Microsoft's baselines, CIS Benchmarks and the NSA's information sheets as the alternatives.
+- **A names-that-collide box**, because most of the difficulty in learning this field is that
+  several real things share a name: the three CSETs (NASA's standards team, CISA's assessment
+  tool, Georgetown's research centre), FISMA against FISA, CSI against CIS, NIST against CSRC
+  against NVD, and 800-53 against 53A against 53B.
+- The Learning section has a plan of its own, [docs/LEARN.md](docs/LEARN.md), L1 to L6: the
+  section's shape, a glossary, traces drawn from loaded data rather than written by hand, a
+  searchable and tool-readable chain, a nightly probe over the registry's addresses, and the
+  handout and accessibility pass that close M17's last two items.
+
 ## 0.49.0 — 2026-10-22
 
 - **Mail from this site is named by this site.** The notifier's SMTP client gave EHLO and its
