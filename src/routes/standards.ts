@@ -7,6 +7,7 @@ import { flashText } from "../flash.ts";
 import { renderCatalog } from "../pages/catalog.ts";
 import { renderControls } from "../pages/controls.ts";
 import { renderHome } from "../pages/home.ts";
+import { renderLearn } from "../pages/learn.ts";
 
 import { renderBrowse, renderControl, renderRelease, renderStandard } from "../pages/register.ts";
 
@@ -18,7 +19,7 @@ import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
 
 /**
- * Standards: the Register, Controls, every standard's pages and the STIGs. Mounted by createApp in app.ts, which hands over the
+ * Standards: the Register, Controls, every standard's pages, the STIGs and Learn. Mounted by createApp in app.ts, which hands over the
  * app, the config, the database, the clock and the helpers every route shares.
  */
 export function mountStandards(r: RouteContext): void {
@@ -33,6 +34,11 @@ export function mountStandards(r: RouteContext): void {
     const state = authState(req, config, now().getTime());
     const q = typeof req.query.q === "string" ? req.query.q.slice(0, 200) : undefined;
     res.type("html").send(renderControls({ db, q, now: now(), owner: state.owner, open: state.open, look: lookOf(req) }));
+  });
+
+  // Where every rule comes from (M17): the chain from law to setting, and every publisher on it.
+  app.get("/learn", (req, res) => {
+    res.type("html").send(renderLearn({ db, ...who(req, res), now: now(), sector: str(req.query.sector, 20), rung: str(req.query.rung, 20) }));
   });
 
   app.get("/standards", (req, res) => {
