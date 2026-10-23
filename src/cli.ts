@@ -1,6 +1,6 @@
 // Command line entry:
 //   node src/cli.ts fetch <source-id|all|due>     the same ingestion the scheduler runs, then exit
-//   node src/cli.ts backfill <source-id>          load a standard's published history, oldest first, then its current documents
+//   node src/cli.ts backfill <source-id>          load a standard's published history, oldest first, then its current documents; a stream (nvd-cves) forgets its cursor and pulls its window again
 //   node src/cli.ts relink <source-id|all>        put a standard's versions back in publication order and re-diff the ones that were linked wrong
 //   node src/cli.ts images <count|all>            fetch og:image for existing news articles that have none, newest first (new articles get theirs at ingest)
 //   node src/cli.ts netscan <run|due>             the network scan (M12.3): run now, or only when due and turned on, then exit
@@ -50,15 +50,25 @@ if (command === "rehearsal") {
 } else if (command === "backfill") {
   const source = getSource(db, target);
   const adapter = source ? adapterFor(source) : null;
-  if (!source || !adapter?.history) {
+  if (!source || !adapter || (!adapter.history && !adapter.rewind)) {
     console.error(source ? `${target} has no published history to load` : `no such source: ${target}`);
     process.exit(1);
   }
-  const targets = [...adapter.history(source), ...(adapter.documents ? await adapter.documents(source, { db, http: httpGet, now: () => new Date() }) : [])];
-  for (const t of targets) {
-    const outcome = await ingestDocumentTarget(db, config.dataDir, source, adapter, t, { http: httpGet, now: () => new Date() });
-    console.log(`[backfill] ${source.id} ${t.key.padEnd(18)} ${(outcome.versionLabel ?? "").padEnd(8)} ${outcome.status.padEnd(9)} ${outcome.summary ?? outcome.error ?? ""}`);
-    if (outcome.status === "error") failures += 1;
+  if (adapter.rewind) {
+    // A stream has no history to load: forget where the last pull left off and pull the window
+    // again, so every record in it is normalised afresh (how vuln_cpe_matches is filled for CVEs
+    // that predate migration 0043). A first pull raises no alerts, and neither does this.
+    adapter.rewind(db);
+    const result = await ingestSource(db, config.dataDir, source, deps);
+    console.log(formatResult(result));
+    if (result.status === "error") failures += 1;
+  } else {
+    const targets = [...(adapter.history ? adapter.history(source) : []), ...(adapter.documents ? await adapter.documents(source, { db, http: httpGet, now: () => new Date() }) : [])];
+    for (const t of targets) {
+      const outcome = await ingestDocumentTarget(db, config.dataDir, source, adapter, t, { http: httpGet, now: () => new Date() });
+      console.log(`[backfill] ${source.id} ${t.key.padEnd(18)} ${(outcome.versionLabel ?? "").padEnd(8)} ${outcome.status.padEnd(9)} ${outcome.summary ?? outcome.error ?? ""}`);
+      if (outcome.status === "error") failures += 1;
+    }
   }
 } else if (command === "images") {
   if (!config.newsImages) {

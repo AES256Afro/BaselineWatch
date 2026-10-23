@@ -343,6 +343,16 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
 - **Key**: free at `https://nvd.nist.gov/developers/request-an-api-key`, sent as `apiKey`
   header. 5 requests / 30 s without, 50 / 30 s with; sleep between calls anyway.
 - **Shape**: `vulnerability`.
+- **Ranges** (added 2026-10-21): each `cpeMatch` entry of a CVE's configurations is kept as a row
+  of `vuln_cpe_matches` (migration 0043) with the bounds NVD attaches to it, `versionStartIncluding`
+  or `versionStartExcluding` and `versionEndIncluding` or `versionEndExcluding`, and whether the
+  entry is the vulnerable side or the platform it runs on. The rows are replaced whole each time
+  the CVE is normalised again; `cpes_json` keeps the vulnerable criteria strings as before, and
+  nothing that reads it changed. A CVE NVD has not touched since has no rows yet: it gains them on
+  its next pull, or the whole window gains them at once with `npm run backfill -- nvd-cves`, which
+  forgets the cursor and pulls `BW_NVD_BACKFILL_DAYS` again (a re-pull raises no alerts, like a
+  first pull). `rangesFor()` in `src/cpematches.ts` is the one reader; matching an installed
+  application's version against the ranges is a later step.
 - **Licence**: public domain; NVD asks for attribution text in the UI.
 
 ### CVE List V5 (CVE Program)
