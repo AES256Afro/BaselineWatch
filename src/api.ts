@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { latestDigest } from "./digest.ts";
 import { fixContext, fixesFor, fixSummary } from "./fix.ts";
-import { listDocuments } from "./register.ts";
+import { listDocuments, withheldReleaseSummary } from "./register.ts";
 import { listTriage, type TriageState } from "./triage.ts";
 import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
 import { listWire, type WireFilters } from "./wire.ts";
@@ -25,6 +25,13 @@ export interface ApiQuery {
  */
 const licensedSources: readonly string[] = ["cis-benchmarks", "microsoft-sct"];
 export const isLicensedSource = (sourceId: string): boolean => licensedSources.includes(sourceId);
+
+/**
+ * A licensed source's release entry names the settings that moved — for Microsoft's baselines, the
+ * registry paths and policy names. The page may show them; the API and the feeds say they are withheld.
+ */
+export const publicSummary = (item: { kind: string; source_id: string; summary: string | null }): string | null =>
+  item.kind === "release" && isLicensedSource(item.source_id) ? withheldReleaseSummary : item.summary;
 
 const str = (v: unknown, max = 200): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim().slice(0, max) : undefined);
 const limitOf = (v: unknown, fallback = 50): number => {
@@ -61,7 +68,7 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
       externalId: i.external_id,
       title: i.title,
       url: i.url && i.url.startsWith("/") ? `${baseUrl}${i.url}` : i.url,
-      summary: i.summary,
+      summary: publicSummary(i),
       publishedAt: i.published_at,
       fetchedAt: i.fetched_at,
       signals: parseJson<Record<string, unknown>>(i.signals_json, {}),

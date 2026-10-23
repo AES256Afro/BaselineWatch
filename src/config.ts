@@ -18,6 +18,13 @@ export interface Config {
   timeZone: string;
   /** When true anyone who can reach the page may read it; writes still need the owner. */
   publicRead: boolean;
+  /**
+   * Whose X-Forwarded-For is believed, in Express's `trust proxy` words: addresses, CIDRs, or
+   * loopback, linklocal, uniquelocal. The default believes every private address, which is what
+   * lets a tunnel published through Docker's bridge be believed; where LAN visitors also connect
+   * directly, narrow it to the proxy's own address, since a believed peer can forge the header.
+   */
+  trustedProxies: string;
   /** The owner's password. Unset means single-user mode: no sign-in, writes open. */
   adminPassword: string | null;
   /** Signs session cookies. Unset means a fresh secret per start, so sessions end on restart. */
@@ -143,6 +150,7 @@ export function loadConfig(env: Env = process.env): Config {
     baseUrl: text(env, "BW_BASE_URL", `http://localhost:${portNumber}`).replace(/\/+$/, ""),
     timeZone: text(env, "TZ", "Etc/UTC"),
     publicRead: flag(env, "BW_PUBLIC_READ", true),
+    trustedProxies: text(env, "BW_TRUSTED_PROXIES", "loopback, linklocal, uniquelocal"),
     adminPassword: optional(env, "BW_ADMIN_PASSWORD"),
     sessionSecret: optional(env, "BW_SESSION_SECRET") ?? randomBytes(32).toString("hex"),
     scheduler: flag(env, "BW_SCHEDULER", true),

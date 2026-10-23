@@ -204,8 +204,10 @@ function numberHeadings(blocks: Block[], style: ReportStyle): Block[] {
 
 const texEscape = (s: string): string =>
   s
-    .replace(/\\/g, "\\textbackslash{}")
+    // The backslash is parked first, so the braces its replacement brings are not escaped in turn.
+    .replace(/\\/g, "\uE000")
     .replace(/([&%$#_{}])/g, "\\$1")
+    .replace(/\uE000/g, "\\textbackslash{}")
     .replace(/~/g, "\\textasciitilde{}")
     .replace(/\^/g, "\\textasciicircum{}")
     .replace(/[“”„]/g, '"')
