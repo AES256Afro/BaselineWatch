@@ -2,6 +2,21 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.51.0 — 2026-10-23
+
+- **The code audit of 23 October, closed.** A fresh read of the modules the night's security
+  read had not covered found four things worth changing: the sign-in brake could be started
+  afresh from the LAN by forging `X-Forwarded-For`, since every private address was a believed
+  proxy — it now counts the connection's own address too, and the proxies to believe are a
+  setting, `BW_TRUSTED_PROXIES`, with the former behaviour as its default; one malformed NVD
+  record failed its page on every run and stalled the stream — it is skipped and logged; a
+  licensed source's release entry named the settings that moved in the API and the feeds — it
+  is withheld there, as that content already is; the LaTeX escaper doubled up on a backslash.
+- **Dependencies**: express's body-parser (a denial of service through a compressed body) and
+  fast-uri under ajv, both fixed within their declared ranges; the MCP SDK's patch release; the
+  test runner moved to vitest 5, whose predecessor's tool chain carried two critical advisories.
+  `npm audit` reports nothing at any severity.
+
 ## 0.50.0 — 2026-10-22
 
 - **Learn, at `/learn`: where a rule comes from.** The ladder says what a standard, baseline,
