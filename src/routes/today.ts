@@ -4,6 +4,8 @@
 import { renderAtlas } from "../pages/atlas.ts";
 
 import { renderGuide } from "../pages/guide.ts";
+import { renderGuideArticle } from "../pages/guide-article.ts";
+import { guideBySlug } from "../pages/guides/index.ts";
 
 import { renderToday } from "../pages/today.ts";
 
@@ -26,5 +28,11 @@ export function mountReading(r: RouteContext): void {
   });
   app.get("/guide", (req, res) => {
     res.type("html").send(renderGuide(who(req, res)));
+  });
+  // One subject at a time, with the CVEs it is about read from this instance's table (pages/guides/).
+  app.get("/guide/:slug", (req, res, next) => {
+    const article = guideBySlug(String(req.params.slug));
+    if (!article) return next();
+    res.type("html").send(renderGuideArticle({ db, article, ...who(req, res), now: now() }));
   });
 }
