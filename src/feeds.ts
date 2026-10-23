@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { publicSummary } from "./api.ts";
 import { fleetPlatforms } from "./fleet.ts";
 import { html, type Html } from "./html.ts";
 import { parseJson } from "./json.ts";
@@ -57,7 +58,7 @@ export function wireFeed(db: DatabaseSync, baseUrl: string, filters: WireFilters
   const words = [filters.group, filters.source, filters.kind, filters.q ? `“${filters.q}”` : null].filter((w) => w);
   return rssDocument(
     { title: `${productName} · News${words.length ? ` · ${words.join(" · ")}` : ""}`, link: `${baseUrl}/`, description: "News, advisories and CVEs that matter, as BaselineWatch reads them.", self },
-    items.map((i) => ({ title: i.title, link: i.url ?? `${baseUrl}/`, guid: `${i.source_id}:${i.external_id}`, date: i.published_at ?? i.fetched_at, description: i.summary, category: i.source_name })),
+    items.map((i) => ({ title: i.title, link: i.url ?? `${baseUrl}/`, guid: `${i.source_id}:${i.external_id}`, date: i.published_at ?? i.fetched_at, description: publicSummary(i), category: i.source_name })),
   );
 }
 

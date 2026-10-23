@@ -121,11 +121,15 @@ export function createApp(ctx: AppContext): Express {
   const lookOf = (req: Request): LookState => ({ ...lookState(req, config), brand: readBrand(db) });
   const brandMarks = readBrandMarks(path.join(import.meta.dirname, "..", "docs", "mockups", "logo"));
   const throttle = new LoginThrottle();
+  // A second brake on the connection's own address. The default proxy trust believes every
+  // private address, so a LAN host could rotate X-Forwarded-For and start the count afresh each
+  // try; forty failures in ten minutes from one peer end its turn whatever address it claims.
+  const peerThrottle = new LoginThrottle(40, 10 * 60 * 1000);
   const app = express();
   setSiteBase(config.baseUrl);
   app.disable("x-powered-by");
   app.set("etag", "weak");
-  app.set("trust proxy", "loopback, linklocal, uniquelocal");
+  app.set("trust proxy", config.trustedProxies);
   app.use(securityHeaders);
   if (config.baseUrl.startsWith("https://")) {
     // Behind TLS (a tunnel or a proxy), tell browsers to stay on it.
@@ -272,16 +276,19 @@ export function createApp(ctx: AppContext): Express {
     const next = safeBack(((req.body ?? {}) as Record<string, unknown>).next, "/");
     if (state.open) return res.redirect(303, next);
     const key = throttleKey(req.ip);
-    if (throttle.blocked(key, now().getTime())) {
+    const peer = throttleKey(req.socket.remoteAddress ?? undefined);
+    if (throttle.blocked(key, now().getTime()) || peerThrottle.blocked(peer, now().getTime())) {
       return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookOf(req) }));
     }
     const given = ((req.body ?? {}) as Record<string, unknown>).password;
     // The configured password is read trimmed, so the typed one is compared the same way.
     if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given.trim())) {
       throttle.fail(key, now().getTime());
+      peerThrottle.fail(peer, now().getTime());
       return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookOf(req) }));
     }
     throttle.clear(key);
+    peerThrottle.clear(peer);
     res.setHeader("Set-Cookie", sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)));
     res.redirect(303, next);
   });
