@@ -108,6 +108,7 @@ source immediately from that page.
 | `BW_PUBLIC_READ` | `true` | Anyone who can reach the page may read it. Writes need the owner. |
 | `BW_ADMIN_PASSWORD` | unset | The owner's password. Unset means single-user mode: no sign-in, writes open. |
 | `BW_SESSION_SECRET` | random per start | Signs the owner's session cookie. Set it so sessions survive restarts. |
+| `BW_TRUSTED_PROXIES` | `loopback, linklocal, uniquelocal` | Whose `X-Forwarded-For` is believed, in Express's trust-proxy words. The default believes every private address so a tunnel published through Docker's bridge works; where LAN visitors also connect directly, name the proxy's own address. |
 | `BW_SCHEDULER` | `true` | Fetch sources in-process on their schedule. Set false to run `npm run fetch -- due` from cron instead. |
 | `BW_NVD_API_KEY` | unset | Free from nvd.nist.gov/developers; 50 requests per 30 s instead of 5. |
 | `BW_NVD_BACKFILL_DAYS` | `7` | How many days of NVD modifications the first pull loads. Later pulls continue from the stored cursor. |
