@@ -1591,7 +1591,11 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | 0.48.0 | tagged, image published; BoxPilot catalog #561 | superseded by 0.49.0 |
 | Deploy notes | #41: the Upgrading section is the seven-step chain as run nine times tonight, with the tools and timings | merged |
 | Polish | #42: the mail client named by the site's host, the plain reader detached after STARTTLS, the InternetDB lookup's wording | merged |
-| 0.49.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
+| 0.49.0 | tagged, image published; BoxPilot 1.214.0 | superseded by 0.50.0 |
+| Learn | the chain from law to setting at `/learn`, `src/authorities.ts`, the section's plan in `docs/LEARN.md` (a separate session, 2026-10-22) | merged |
+| 0.50.0 | tagged, image published; BoxPilot 1.216.0 (1.215.0 tagged, never published: its release gate failed) | live |
+| Audit 2026-10-23 | #46: seven npm advisories cleared, vitest 5; #47: the sign-in brake on the peer's own address, `BW_TRUSTED_PROXIES`, a malformed NVD record skipped, licensed release summaries withheld from the API and feeds, the LaTeX backslash | merged |
+| 0.51.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
