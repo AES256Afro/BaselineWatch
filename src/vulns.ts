@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
+import { csvLine } from "./csv.ts";
 import { ftsQuery } from "./wire.ts";
 
 /** A CVE in the shape BaselineWatch keeps, whatever it came from. */
@@ -572,7 +573,7 @@ export interface VulnFilters {
   /** Only CVEs the watchlist marked with this label: the figure beside a watchlist entry is counted this way. */
   label?: string | undefined;
   q?: string | undefined;
-  sort?: "modified" | "published" | "cvss" | "epss";
+  sort?: "risk" | "modified" | "published" | "cvss" | "epss";
   offset?: number;
   limit?: number;
 }
@@ -630,7 +631,24 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }
 
+/**
+ * How the table is ordered. "risk" is the default, and it exists because the old default was not
+ * one: ordering twenty-nine thousand CVEs by when NVD last touched them put a page of unscored,
+ * zero-EPSS, single-vendor records at the top — the least useful list the data can produce, on
+ * the page a practitioner opens first. The Wire is already "for what matters" (AGENTS.md); this
+ * is the same rule applied to the table, which still holds every CVE.
+ *
+ * The order is the order a person would read it in: what is known to be exploited, then what is
+ * likely to be, then how bad it is if it is, then how fresh. KEV first because CISA says it is
+ * being used; a public exploit next because the work is done for the attacker; then EPSS, which
+ * is a probability and not a severity; then CVSS; then recency to break the remaining ties.
+ */
 const sortSql: Record<NonNullable<VulnFilters["sort"]>, string> = {
+  risk: `v.kev DESC,
+         EXISTS (SELECT 1 FROM exploits e WHERE e.cve_id = v.cve_id) DESC,
+         COALESCE(v.epss, 0) DESC,
+         COALESCE(v.cvss_score, 0) DESC,
+         v.last_modified_at DESC`,
   modified: "v.last_modified_at DESC",
   published: "v.published_at DESC",
   cvss: "v.cvss_score DESC NULLS LAST, v.last_modified_at DESC",
@@ -643,7 +661,7 @@ export function listVulns(db: DatabaseSync, filters: VulnFilters = {}): { rows: 
   const offset = Math.max(filters.offset ?? 0, 0);
   const total = (db.prepare(`SELECT COUNT(*) AS n FROM vulns v ${where}`).get(...params) as { n: number }).n;
   const rows = db
-    .prepare(`SELECT v.* FROM vulns v ${where} ORDER BY ${sortSql[filters.sort ?? "modified"]} LIMIT ? OFFSET ?`)
+    .prepare(`SELECT v.* FROM vulns v ${where} ORDER BY ${sortSql[filters.sort ?? "risk"]} LIMIT ? OFFSET ?`)
     .all(...params, limit, offset) as unknown as VulnRow[];
   return { rows, total };
 }
@@ -735,4 +753,47 @@ export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChan
       existing.id,
     );
   }
+}
+
+/**
+ * The table as a CSV, under the same filters the page is showing.
+ *
+ * Every comparable tool lets a practitioner carry a filtered CVE list away — into a ticket, a
+ * spreadsheet, a meeting — and this one could export a baseline, a test plan and the triage board
+ * but not the table its own name is about. The rows are the ones on screen in the order on screen,
+ * so "the worst two hundred this morning" is one click rather than a copy and paste.
+ *
+ * Numbers are written as numbers (a CVSS of 9.8, an EPSS as its decimal) rather than as the page
+ * formats them, because the point of a CSV is that something else will do arithmetic on it.
+ */
+export function vulnsCsv(db: DatabaseSync, filters: VulnFilters, baseUrl: string): string {
+  const { rows } = listVulns(db, { ...filters, limit: Math.min(filters.limit ?? 1000, 5000) });
+  const exploited = new Set(
+    rows.length
+      ? (db.prepare(`SELECT DISTINCT cve_id FROM exploits WHERE cve_id IN (${rows.map(() => "?").join(", ")})`).all(...rows.map((r) => r.cve_id)) as { cve_id: string }[]).map((r) => r.cve_id)
+      : [],
+  );
+  const lines = ["cve,published,modified,cvss,severity,epss,epss percentile,kev,kev due,public exploit,vendors,products,watchlist labels,description,link"];
+  for (const v of rows) {
+    lines.push(
+      csvLine([
+        v.cve_id,
+        v.published_at?.slice(0, 10) ?? "",
+        v.last_modified_at.slice(0, 10),
+        v.cvss_score ?? "",
+        v.cvss_severity ?? "",
+        v.epss ?? "",
+        v.epss_percentile ?? "",
+        v.kev ? "yes" : "no",
+        v.kev_due_date ?? "",
+        exploited.has(v.cve_id) ? "yes" : "no",
+        parseJson<string[]>(v.vendors_json, []).join("; "),
+        parseJson<string[]>(v.products_json, []).join("; "),
+        parseJson<string[]>(v.watch_labels_json, []).join("; "),
+        v.description ?? "",
+        `${baseUrl}/vulnerabilities/${v.cve_id}`,
+      ]),
+    );
+  }
+  return `${lines.join("\r\n")}\r\n`;
 }

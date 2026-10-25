@@ -31,7 +31,10 @@ export const hnAdapter: Adapter = {
           externalId: h.objectID,
           title,
           url: h.url ?? thread,
-          summary: plainText(h.story_text, 400) ?? `${h.points ?? 0} points · ${h.num_comments ?? 0} comments`,
+          // A story with no text of its own has no summary. It used to fall back to the score
+          // and the comment count, which the chip beneath the title already says, so every
+          // link-only story printed the same two numbers twice.
+          summary: plainText(h.story_text, 400),
           publishedAt: isoDate(h.created_at),
           signals: { thread, score: h.points ?? 0, comments: h.num_comments ?? 0, ...(cves.length ? { cves } : {}) },
         };
