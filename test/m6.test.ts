@@ -103,7 +103,7 @@ describe("triage", () => {
     db.prepare("INSERT INTO requirements (document_id, ref, label, title, sort_key) VALUES (1, 'sa-24', 'SA-24', 'Design For Cyber Resiliency', 'sa-24')").run();
     setTriage(db, { kind: "control", id: 1, key: "sa-24" }, { state: "reviewing" }, at.toISOString());
 
-    const cards = listTriage(db);
+    const cards = listTriage(db, { notes: true, restrictedLabels: true });
     expect(cards.map((c) => [c.subject_kind, c.state])).toEqual([
       ["item", "affects"],
       ["control", "reviewing"],
@@ -208,12 +208,14 @@ describe("digest", () => {
     db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at) VALUES ('nist-sp-800-53', 'release', 'catalog#9', 'NIST SP 800-53 (controls) 5.2.0: 3 added', '/standards/nist-sp-800-53/9', ?, ?)").run(at.toISOString(), at.toISOString());
     db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at, starred) VALUES ('bleeping', 'article', 'a1', 'Big story', 'https://b/1', ?, ?, 1)").run(at.toISOString(), at.toISOString());
     db.prepare("UPDATE sources SET last_status = 'error' WHERE id = 'krebs'").run();
-    const text = buildDigest(db, { from: "2026-10-14T06:00:00.000Z", to: "2026-10-15T06:00:00.000Z", baseUrl: "https://cybercard.net", period: "daily" });
+    const { text } = buildDigest(db, { from: "2026-10-14T06:00:00.000Z", to: "2026-10-15T06:00:00.000Z", baseUrl: "https://cybercard.net", period: "daily" });
     expect(text).toContain("Known exploited (CISA KEV): 1 added");
     expect(text).toContain("- Vendor Thing: RCE (due 2026-11-01)");
     expect(text).toContain("Standards: 1 release(s)");
     expect(text).toContain("https://cybercard.net/standards/nist-sp-800-53/9");
-    expect(text).toContain("1 new stories, 0 notable CVEs, 1 starred");
+    expect(text).toContain("1 new stories, 0 notable CVEs");
+    // What the owner starred is their own reading, so it sits in the owner's half.
+    expect(text).toContain("Starred: 1");
     expect(text).toContain("Sources failing: Krebs on Security");
 
     expect(localClock(new Date("2026-10-15T06:30:00Z"), "America/New_York")).toMatchObject({ hour: 2, weekday: 4, dateKey: "2026-10-15" });
@@ -283,7 +285,9 @@ describe("triage and digest pages", () => {
     expect((await formPost(app.base, "/triage", { kind: "item", id: String(itemId), state: "affects", due: "soon" }, cookie)).status).toBe(400);
     const noted = await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "reviewing", note: "Two devices.", due: "2026-10-30", back: "/wire" }, cookie);
     expect(noted.headers.get("location")).toBe("/wire");
-    expect(listTriage(app.db)[0]).toMatchObject({ state: "reviewing", note: "Two devices.", due_at: "2026-10-30" });
+    expect(listTriage(app.db, { notes: true })[0]).toMatchObject({ state: "reviewing", note: "Two devices.", due_at: "2026-10-30" });
+    // The owner's own note is theirs: a caller that does not ask as the owner gets the card without it.
+    expect(listTriage(app.db)[0]).toMatchObject({ state: "reviewing", note: null, due_at: "2026-10-30" });
     const csv = await fetch(`${app.base}/triage.csv`, { headers: { cookie } });
     expect(csv.status).toBe(200);
     expect(await csv.text()).toContain("Two devices.");

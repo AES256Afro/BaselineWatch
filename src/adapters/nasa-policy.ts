@@ -60,20 +60,20 @@ function docxParts(bytes: Uint8Array): { xml: string; links: Map<string, string>
   const links = new Map<string, string>();
   const rels = findEntry(entries, /^word\/_rels\/document\.xml\.rels$/);
   if (rels) {
-    for (const m of entryText(rels).matchAll(/Id="(rId\d+)"[^>]*Target="([^"]+)"/g)) {
+    for (const m of entryText(rels).matchAll(/Id="(rId\d+)"[^<>]*Target="([^"]+)"/g)) {
       const target = decodeXmlAttribute(m[2]!);
       if (/^https?:\/\//i.test(target)) links.set(m[1]!, target);
     }
   }
   const xml = entryText(doc)
-    .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g, "")
-    .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g, "");
+    .replace(/<w:instrText[^<>]*>[\s\S]*?<\/w:instrText>/g, "")
+    .replace(/<w:delText[^<>]*>[\s\S]*?<\/w:delText>/g, "");
   return { xml, links };
 }
 
 /** The readable text of one XML fragment: tags stripped, entities decoded, whitespace collapsed. */
 function textOf(xml: string): string {
-  return plainText(xml.replace(/<w:tab[^>]*\/>/g, " "), 4000) ?? "";
+  return plainText(xml.replace(/<w:tab[^<>]*\/>/g, " "), 4000) ?? "";
 }
 
 function cellTexts(rowXml: string): string[] {
@@ -118,7 +118,7 @@ export function parseReference(bytes: Uint8Array): ParsedReference {
       const [titleRaw, ...noteParts] = (memos ? first : (cells[1] ?? "")).split("*");
       const note = noteParts.join("; ").trim() || null;
       const expiry = memos ? null : cells[3]?.trim() || null;
-      const linkId = /<w:hyperlink[^>]*r:id="(rId\d+)"/.exec(row[0]!)?.[1];
+      const linkId = /<w:hyperlink[^<>]*r:id="(rId\d+)"/.exec(row[0]!)?.[1];
       entries.push({
         id: first,
         title: (titleRaw ?? "").trim(),

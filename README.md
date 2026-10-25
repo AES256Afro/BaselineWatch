@@ -129,7 +129,8 @@ Read-only JSON, same read gating as the pages, for BoxPilot's agents and your ow
 | Route | Returns |
 | --- | --- |
 | `/api/v1/items?kind=&source=&q=&since=&limit=` | Timeline items with their signals. |
-| `/api/v1/vulns?watch=1&kev=1&min_cvss=&min_epss=&since=&q=&sort=&limit=&offset=` | CVEs with CVSS, EPSS, KEV, SSVC, vendors and watchlist hits. |
+| `/api/v1/vulns?watch=1&kev=1&exploit=1&severity=&platform=&label=&min_cvss=&min_epss=&max_epss=&epss=none&new=&changed=&since=&q=&sort=&limit=&offset=` | CVEs with CVSS, EPSS, KEV, SSVC, vendors and watchlist hits. Every filter the Vulnerabilities page has: `severity` is critical, high, medium, low or unscored; `platform` and `label` take a fleet platform and a watchlist label; `new` and `changed` take a window in hours; `since` is still "changed since". `sort` is `risk` (the default: known exploited, then a public exploit, then EPSS, then CVSS), `modified`, `published`, `cvss` or `epss`. |
+| `/vulnerabilities.csv?…` | The table as a CSV under the same filters and in the same order, up to a thousand rows: CVSS and EPSS as numbers, one row per CVE. |
 | `/api/v1/vulns/<CVE>` | One CVE with CPEs, references and its change history. |
 | `/api/v1/standards` | Every tracked standard and its loaded versions; one flagged `restricted` yields versions and counts only. |
 | `/api/v1/changes?source=&since=&limit=` | Control-level changes with before/after text and the publisher's note; a restricted source's are left out. |

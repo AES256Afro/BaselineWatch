@@ -2,13 +2,15 @@ import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import type { CtCertRow } from "../ct.ts";
 import type { DomainReport, Finding } from "../domaincheck.ts";
+import { fixFor, fixKindLabel } from "../domainfix.ts";
 import { page } from "./layout.ts";
 
 /**
  * Check a domain (Scan 2.0, S3): the form, and the report as rows in the Scan area's own shape —
  * a verdict per check with the record it rests on quoted, grouped as names, mail and web. A
- * teaching page: each row says what the record means and what the next step is. Server-rendered
- * from one check; no script.
+ * teaching page: each row says what the record means, and — for a row that is not already good —
+ * what to publish or send to put it right, with the caution that goes with it (domainfix.ts).
+ * Server-rendered from one check; no script.
  */
 
 export interface ScanDomainOptions {
@@ -35,13 +37,26 @@ const groups: { id: Finding["group"]; title: string; blurb: string }[] = [
 
 const stateWord: Record<Finding["state"], string> = { ok: "Good", warn: "Could be better", bad: "Missing or wrong", na: "Not applicable" };
 
-function row(n: number, f: Finding): Html {
+function row(n: number, f: Finding, domain: string): Html {
+  // What to do about it, for a row that is not already good. The check used to stop at the
+  // verdict, which left a reader who learns their domain publishes no CAA record to go and find
+  // out what one looks like; this is the record, beside the body that defines it.
+  const fix = fixFor(f, domain);
   return html`<article class="check" id="check-${f.id}">
   <span class="n">${String(n).padStart(2, "0")}</span>
   <div>
     <div class="t">${f.title}</div>
     <p class="d">${f.text}</p>
     ${f.quoted.length ? html`<ul class="ev">${f.quoted.map((q) => html`<li><code>${q}</code></li>`)}</ul>` : ""}
+    ${fix
+      ? html`<details class="fix">
+          <summary>What to do</summary>
+          <p class="d">${fix.text}</p>
+          ${fix.lines.length ? html`<p class="small lab">${fixKindLabel[fix.kind]}</p><pre class="fix-lines">${fix.lines.join("\n")}</pre>` : ""}
+          ${fix.caution ? html`<p class="small caution"><b>Before you do:</b> ${fix.caution}</p>` : ""}
+          <p class="small">The rule: <a href="${fix.source.url}" ${newTab}>${fix.source.label}</a>. These lines are a starting point for this domain, not a finished configuration — read the caution and check them against what you actually run.</p>
+        </details>`
+      : ""}
   </div>
   <span class="state ${f.state}">${stateWord[f.state]}</span>
 </article>`;
@@ -71,7 +86,7 @@ export function renderScanDomain(options: ScanDomainOptions): string {
         (g) => html`<section class="box wide" id="${g.id}">
           <h2>${g.title}</h2>
           <p class="small">${g.blurb}</p>
-          <div class="checks">${report.findings.filter((f) => f.group === g.id).map((f) => row(++n, f))}</div>
+          <div class="checks">${report.findings.filter((f) => f.group === g.id).map((f) => row(++n, f, report.domain))}</div>
         </section>`,
       )}
       <p class="small">Read in ${report.durationMs} ms by DNS questions to this server's resolver, one question to Cloudflare's validating resolver for the DNSSEC flag, and GETs of the domain's own front page and well-known files. No port was probed beyond 443, and 80 to see whether it redirects. Nothing was stored.</p>`

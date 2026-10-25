@@ -32,7 +32,7 @@ export function imageType(bytes: Uint8Array): string | null {
 /** og:image (or twitter:image) out of an article page, however the attributes are ordered. */
 export function extractOgImage(page: string): string | null {
   const head = page.slice(0, 300_000);
-  for (const meta of head.matchAll(/<meta\b[^>]*>/gi)) {
+  for (const meta of head.matchAll(/<meta\b[^<>]*>/gi)) {
     const tag = meta[0];
     const name = /(?:property|name)\s*=\s*["']?(og:image(?::secure_url|:url)?|twitter:image(?::src)?)["'\s/>]/i.exec(tag)?.[1];
     if (!name) continue;

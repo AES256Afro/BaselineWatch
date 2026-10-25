@@ -171,7 +171,7 @@ describe("the network scan", () => {
     expect(db.prepare("SELECT COUNT(*) AS n FROM alerts WHERE kind = 'network'").get()).toEqual({ n: 0 });
 
     // The digest carries the change as a line.
-    const digest = buildDigest(db, { from: at.toISOString(), to: new Date("2026-10-21T09:00:00Z").toISOString(), baseUrl: "https://bw.example", period: "daily" });
+    const digest = buildDigest(db, { from: at.toISOString(), to: new Date("2026-10-21T09:00:00Z").toISOString(), baseUrl: "https://bw.example", period: "daily" }).text;
     expect(digest).toContain("This network: 12 change(s) https://bw.example/scan/network");
     expect(digest).toContain(`- ${changes.newlySinkholed[0]!.name} (adfection) is now sinkholed`);
   });
@@ -199,7 +199,7 @@ describe("the network scan", () => {
     expect(alerts[0]!.url).toBe("https://bw.example/scan/network");
     expect(alerts[0]!.status).toBe("unconfigured"); // no transport in the test; the row is still the audit trail
 
-    const digest = buildDigest(db, { from: at.toISOString(), to: "2026-10-21T09:00:00.000Z", baseUrl: "https://bw.example", period: "daily" });
+    const digest = buildDigest(db, { from: at.toISOString(), to: "2026-10-21T09:00:00.000Z", baseUrl: "https://bw.example", period: "daily" }).text;
     expect(digest).toContain(`- ${ads[0]!} (ads) now resolves; it was sinkholed`);
   });
 

@@ -37,7 +37,7 @@ function cardDate(value: string | null): string | null {
 export function parseNewsbitesIndex(html: string): NewsbitesIssue[] {
   const issues: NewsbitesIssue[] = [];
   const seen = new Set<string>();
-  for (const card of html.matchAll(/<a class="c-resource-card"[^>]*href="\/newsletters\/newsbites\/([a-z0-9-]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+  for (const card of html.matchAll(/<a class="c-resource-card"[^<>]*href="\/newsletters\/newsbites\/([a-z0-9-]+)"[^<>]*>([\s\S]*?)<\/a>/g)) {
     const slug = card[1]!;
     const body = card[2]!;
     const title = plainText(/resource-card__title">([\s\S]*?)<\/h3>/.exec(body)?.[1], 400);
@@ -57,11 +57,11 @@ export function parseNewsbitesIndex(html: string): NewsbitesIssue[] {
 export function parseNewsbitesIssue(html: string, issue: NewsbitesIssue): ParsedItem[] {
   const chunks = html.split('<section class="c-newsletter-news">').slice(1);
   return chunks.flatMap((chunk, index) => {
-    const title = plainText(/<h3[^>]*>([\s\S]*?)<\/h3>/.exec(chunk)?.[1], 300);
+    const title = plainText(/<h3[^<>]*>([\s\S]*?)<\/h3>/.exec(chunk)?.[1], 300);
     if (!title) return [];
     const summary = plainText(/<div class="c-rich-text">([\s\S]*?)<\/div>/.exec(chunk)?.[1], 400);
-    const outbound = /newsletter-news__read-more-list"[\s\S]*?<a[^>]*href="([^"]+)"/.exec(chunk)?.[1]?.trim();
-    const date = cardDate(/newsletter-news__display-date"[^>]*>([^<]*)</.exec(chunk)?.[1] ?? null);
+    const outbound = /newsletter-news__read-more-list"[\s\S]*?<a[^<>]*href="([^"]+)"/.exec(chunk)?.[1]?.trim();
+    const date = cardDate(/newsletter-news__display-date"[^<>]*>([^<]*)</.exec(chunk)?.[1] ?? null);
     const cves = cveIdsIn(`${title} ${summary ?? ""}`);
     return [
       {
@@ -106,7 +106,10 @@ export const sansNewsbitesAdapter: Adapter = {
     const fresh = issues.filter((i) => !seen.has(i.slug) && (cursor === null || (i.publishedAt !== null && i.publishedAt >= cursor))).slice(0, maxIssuesPerPull);
     const items: ParsedItem[] = [];
     for (const issue of fresh) {
-      const response = await ctx.http(issue.url, { headers: { accept: "text/html" }, timeoutMs: 60_000 });
+      // The address came out of the index page, not from the seeded source, so only a public host
+      // will do and every redirect is checked again: a compromised index must not aim this at the
+      // LAN or at a cloud metadata endpoint.
+      const response = await ctx.http(issue.url, { headers: { accept: "text/html" }, timeoutMs: 60_000, maxBytes: 8 * 1024 * 1024, publicOnly: true });
       snapshot(ctx, issue.slug, response.bytes, response.contentType, observedAt);
       const stories = parseNewsbitesIssue(new TextDecoder("utf-8").decode(response.bytes), issue);
       if (stories.length === 0) throw new Error(`the issue page ${issue.slug} had no stories BaselineWatch could read`);

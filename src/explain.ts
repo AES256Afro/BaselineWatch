@@ -62,8 +62,8 @@ export function announcementText(text: string, max = 8000): string {
 
 function stripTags(html: string): string {
   return html
-    .replace(/<\s*(br|p|div|li|h\d|tr)[^>]*>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<\s*(br|p|div|li|h\d|tr)[^<>]*>/gi, "\n")
+    .replace(/<[^<>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -81,8 +81,8 @@ function stripTags(html: string): string {
  * `<span id='pub-planning-note'>…</span>`. Returns the dated note as text, or null.
  */
 export function extractPlanningNote(html: string): { date: string | null; text: string } | null {
-  const date = /id=['"]pub-planning-note-date['"][^>]*>([^<]*)</i.exec(html)?.[1]?.trim() ?? null;
-  const open = /<span[^>]*id=['"]pub-planning-note['"][^>]*>/i.exec(html);
+  const date = /id=['"]pub-planning-note-date['"][^<>]*>([^<]*)</i.exec(html)?.[1]?.trim() ?? null;
+  const open = /<span[^<>]*id=['"]pub-planning-note['"][^<>]*>/i.exec(html);
   if (!open) return null;
   const rest = html.slice(open.index + open[0].length);
   // The note's own span closes right before the paragraph that holds it ends.

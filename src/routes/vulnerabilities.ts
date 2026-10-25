@@ -4,6 +4,8 @@
 import { renderPatchTuesday } from "../pages/patch-tuesday.ts";
 import { renderVulnDetail, renderVulnList } from "../pages/vulnerabilities.ts";
 
+import { safeFilename } from "../paths.ts";
+import { vulnsCsv } from "../vulns.ts";
 import { str, vulnFilters } from "./query.ts";
 import { type RouteContext } from "./context.ts";
 
@@ -12,9 +14,18 @@ import { type RouteContext } from "./context.ts";
  * app, the config, the database, the clock and the helpers every route shares.
  */
 export function mountVulnerabilities(r: RouteContext): void {
-  const { app, db, now, who } = r;
+  const { app, config, db, now, who } = r;
   app.get("/vulnerabilities", (req, res) => {
     res.type("html").send(renderVulnList({ db, filters: vulnFilters(req.query as Record<string, unknown>, now()), ...who(req, res), now: now() }));
+  });
+  // The table as a CSV, under the same filters and in the same order as the page. Registered
+  // before /vulnerabilities/:cve, which would otherwise see "vulnerabilities.csv" as a CVE id and
+  // hand it on; it falls through anyway, but ordering says the intent.
+  app.get("/vulnerabilities.csv", (req, res) => {
+    const filters = vulnFilters(req.query as Record<string, unknown>, now());
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(`baselinewatch-cves-${now().toISOString().slice(0, 10)}.csv`)}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.type("text/csv; charset=utf-8").send(vulnsCsv(db, { ...filters, limit: 1000 }, config.baseUrl));
   });
   app.get("/vulnerabilities/microsoft", (req, res, next) => {
     const query = req.query as Record<string, unknown>;

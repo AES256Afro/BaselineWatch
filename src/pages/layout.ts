@@ -137,7 +137,10 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
     (r, i) =>
       html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount === 0 ? "first version" : html`${r.changeCount} changed`}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
   );
-  return html`<div class="strip"><div class="strip-inner"><a class="lab" href="/register">Register</a> ${entries}</div></div>`;
+  // The strip scrolls sideways when the releases do not fit, which on a phone is always. It is a
+  // labelled, focusable region so a keyboard can reach and scroll it, and it ends in the way out:
+  // before the audit of 25 October the overflow was simply invisible and unreachable.
+  return html`<div class="strip"><div class="strip-inner" role="region" aria-label="Latest standards releases" tabindex="0"><a class="lab" href="/register">Register</a> ${entries}<span class="dot">·</span><a class="all" href="/register">the register</a></div></div>`;
 }
 
 /** The instance's public address, set once by createApp, so canonical and OpenGraph tags can be absolute. */
@@ -215,7 +218,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
         </div>
       </details>
     </nav>
-    <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"></form>
+    <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"><a class="to-search" href="/search">Search</a></form>
     <div class="meta">${meta ?? ""}</div>
     <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
       <summary>Desk</summary>
