@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { latestDigest } from "./digest.ts";
+import { digestTextFor, latestDigest } from "./digest.ts";
 import { fixContext, fixesFor, fixSummary } from "./fix.ts";
 import { listDocuments, withheldReleaseSummary } from "./register.ts";
 import { listTriage, type TriageState } from "./triage.ts";
@@ -227,11 +227,12 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   }));
 }
 
-export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string, owner = false) {
   const state = str(q.state);
   const valid: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
-  // Never as the owner: a restricted source's requirement on the board is named on the page only.
-  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200), owner: false }).map((c) => {
+  // The owner's notes follow who is asking; a restricted source's requirement is never named
+  // here, not even for the owner, because the API is how content would be redistributed.
+  return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200), notes: owner, restrictedLabels: false }).map((c) => {
     // A triaged control of a licensed standard is named by its label alone; its title is the publisher's text.
     const row = c as unknown as Record<string, unknown>;
     const licensed = c.subject_kind === "control" && isLicensedSource(String(row.doc_source ?? ""));
@@ -249,7 +250,12 @@ export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   });
 }
 
-export function apiDigest(db: DatabaseSync) {
+/**
+ * The latest digest, as this caller may read it. `owner` is not a courtesy: the owner's half names
+ * their devices, their domains' certificates and their watchlist's products, and this endpoint is
+ * gated for reading, not for the owner.
+ */
+export function apiDigest(db: DatabaseSync, owner = false) {
   const d = latestDigest(db);
-  return d ? { period: d.period, coversFrom: d.covers_from, coversTo: d.covers_to, generatedAt: d.generated_at, text: d.text } : null;
+  return d ? { period: d.period, coversFrom: d.covers_from, coversTo: d.covers_to, generatedAt: d.generated_at, text: digestTextFor(d, owner), ...(owner ? {} : { note: "The owner's own network, devices, domains and stack are left out of this half." }) } : null;
 }

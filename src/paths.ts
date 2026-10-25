@@ -39,3 +39,17 @@ export function safeHref(value: string | null | undefined): string | null {
   // A path on this site, or the query or fragment of the page being drawn. "//" is another site.
   return /^\/(?!\/)/.test(trimmed) || /^[?#]/.test(trimmed) ? trimmed : null;
 }
+
+/**
+ * A download's file name, safe to put in a `Content-Disposition` header. The stems are built from
+ * data this app did not write — a STIG key out of DISA's listing, a release id — and Node refuses
+ * a header value holding a quote, a newline or a control character, which would turn a download
+ * into a 500. Anything outside the plain set becomes a dash.
+ */
+export function safeFilename(name: string, fallback = "download"): string {
+  const safe = name.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120);
+  // Nothing of the name survived, or all that survived is an extension: a wholly non-ASCII name
+  // ("ü.csv") left ".csv", which is a hidden file rather than a download. The fallback leads.
+  if (safe === "" || /^\.+$/.test(safe)) return fallback;
+  return safe.startsWith(".") ? `${fallback}${safe}` : safe;
+}

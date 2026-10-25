@@ -5,19 +5,39 @@ import { controlLabel } from "./stigs.ts";
 import { productName } from "./version.ts";
 
 /**
- * The profile as a reader who is not the owner may carry it away. Microsoft's baseline values
- * are the owner's own copy, quoted on screen only (AGENTS.md), so a public export leaves out the
- * settings Microsoft adds and the value it names on each STIG rule.
+ * The organisation's own words on a decision, removed; the decision itself kept.
+ *
+ * `decision.reason` is up to two thousand characters of why this organisation departs from the
+ * publisher's recommendation — the risk acceptance, in their words — and `decision.owner` is the
+ * name of the person who signed it. That a rule is modified or not applied is the teaching value
+ * of the board and stays public; why, and by whom, is the organisation's. The audit of 25 October
+ * found both going out on the board, on the decide page and in `decisions.csv`, which was
+ * carefully applying the Microsoft split below and nothing else.
  */
-export function publicProfile(profile: Profile): Profile {
-  if (!profile.components.sct && !profile.items.some((i) => i.kind === "sct" || i.sctValue !== null)) return profile;
-  const items = profile.items.filter((i) => i.kind !== "sct").map((i) => (i.sctValue === null ? i : { ...i, sctValue: null }));
-  const byKind = { ...profile.counts.byKind, sct: 0 };
+export function publicDecisions(profile: Profile): Profile {
+  if (!profile.items.some((i) => i.decision && (i.decision.reason !== null || i.decision.owner !== null))) return profile;
   return {
     ...profile,
-    components: { ...profile.components, sct: null },
+    items: profile.items.map((i) => (i.decision && (i.decision.reason !== null || i.decision.owner !== null) ? { ...i, decision: { ...i.decision, reason: null, owner: null } } : i)),
+  };
+}
+
+/**
+ * The profile as a reader who is not the owner may carry it away: Microsoft's baseline values are
+ * the owner's own copy, quoted on screen only (AGENTS.md), so a public export leaves out the
+ * settings Microsoft adds and the value it names on each STIG rule — and the organisation's own
+ * reason for each decision goes with them.
+ */
+export function publicProfile(profile: Profile): Profile {
+  const base = publicDecisions(profile);
+  if (!base.components.sct && !base.items.some((i) => i.kind === "sct" || i.sctValue !== null)) return base;
+  const items = base.items.filter((i) => i.kind !== "sct").map((i) => (i.sctValue === null ? i : { ...i, sctValue: null }));
+  const byKind = { ...base.counts.byKind, sct: 0 };
+  return {
+    ...base,
+    components: { ...base.components, sct: null },
     items,
-    counts: { ...profile.counts, byKind, included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length },
+    counts: { ...base.counts, byKind, included: items.filter((i) => i.included).length, dropped: items.filter((i) => !i.included).length },
   };
 }
 

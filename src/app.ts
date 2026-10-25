@@ -215,8 +215,8 @@ export function createApp(ctx: AppContext): Express {
   }));
   app.get("/api/v1/standards", apiRead((_req, res) => json(res, { standards: apiStandards(db, config.baseUrl) })));
   app.get("/api/v1/changes", apiRead((req, res) => json(res, { changes: apiChanges(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/digest", apiRead((_req, res) => json(res, { digest: apiDigest(db) })));
+  app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl, authState(req, config, now().getTime()).owner) })));
+  app.get("/api/v1/digest", apiRead((req, res) => json(res, { digest: apiDigest(db, authState(req, config, now().getTime()).owner) })));
 
   // The health answer is public so a monitor can poll it; on an instance closed to readers it says only that the app is up.
   const health = (req: Request, res: Response): void => {
@@ -273,7 +273,30 @@ export function createApp(ctx: AppContext): Express {
     );
   });
 
-  const secureCookies = (req: Request): boolean => req.secure || config.baseUrl.startsWith("https://");
+  // Everything from here on is a page, and a page differs for the owner: their triage notes,
+  // their sources, their branding form, the controls on every list. This app is meant to sit
+  // behind a tunnel or a reverse proxy (BW_TRUSTED_PROXIES, an https base URL), and a shared
+  // cache there would be entitled to store the owner's copy and hand it to the next visitor —
+  // twenty-one pages said nothing at all about caching before the audit of 25 October. The
+  // assets, the branding images, /img and the feeds set their own directives after this and so
+  // keep their long or public caches; `no-cache` means revalidate, not "do not store", so a
+  // private cache in the owner's own browser still works as it did.
+  app.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "private, no-cache");
+    res.setHeader("Vary", "Cookie");
+    next();
+  });
+
+  /**
+   * Whether a cookie may be marked `Secure`, decided from what this instance knows rather than
+   * from a header a peer can write. `req.secure` reads `X-Forwarded-Proto`, which the default
+   * proxy trust believes from every private address — so a LAN host could send
+   * `X-Forwarded-Proto: https` to a plain-HTTP instance, get the session cookie marked `Secure`,
+   * and the browser would then refuse to send it: the owner cannot stay signed in, and nothing
+   * says why. The configured base URL is the owner's own statement, and `encrypted` is the real
+   * socket; neither is forgeable from the outside.
+   */
+  const secureCookies = (req: Request): boolean => config.baseUrl.startsWith("https://") || (req.socket as { encrypted?: boolean }).encrypted === true;
 
   // Sign-in is reachable even when reading is closed.
   app.get("/login", (req, res) => {

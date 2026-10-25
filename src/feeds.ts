@@ -113,20 +113,42 @@ ${list.map((s) => html`<outline text="${s.name}" type="rss" xmlUrl="${s.url}" ht
   return `<?xml version="1.0" encoding="UTF-8"?>\n${body.value}`;
 }
 
-/** iCalendar text: backslashes, semicolons, commas and newlines escaped as RFC 5545 asks. */
+/**
+ * iCalendar text: backslashes, semicolons and commas escaped as RFC 5545 asks, and every kind of
+ * line break folded into `\n` — a lone CR as well as CRLF and LF, since a stored description
+ * holding one would otherwise end the line and the calendar with it.
+ */
 function icsText(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r\n|[\r\n]/g, "\\n")
+    // Nothing else below a space belongs in a calendar property value.
+    .replace(/\p{Cc}/gu, " ");
 }
 
-/** Lines of at most 75 octets, continued with CRLF and a space (RFC 5545 §3.1); long names and descriptions fold here. */
+/**
+ * Lines of at most 75 **octets**, continued with CRLF and a space (RFC 5545 §3.1).
+ *
+ * Octets, not characters: a KEV summary of multi-byte text folded at 74 characters came out at
+ * 140 octets, and slicing by character can cut a surrogate pair in half and put invalid UTF-8 in
+ * the calendar. This walks code points, counts their encoded length, and never splits one.
+ */
 export function foldIcsLine(line: string): string {
+  const octets = (s: string): number => Buffer.byteLength(s, "utf8");
+  if (octets(line) <= 75) return line;
   const out: string[] = [];
-  let rest = line;
-  while (rest.length > 74) {
-    out.push(rest.slice(0, 74));
-    rest = ` ${rest.slice(74)}`;
+  // A continuation line starts with one space, which is itself one of the 75 octets.
+  let current = "";
+  for (const point of line) {
+    if (octets(current) + octets(point) > 75) {
+      out.push(current);
+      current = " ";
+    }
+    current += point;
   }
-  out.push(rest);
+  if (current !== "" && current !== " ") out.push(current);
   return out.join("\r\n");
 }
 
@@ -161,7 +183,13 @@ export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch:
 }
 
 /** The owner's pages, the API and the images: nothing a crawler should index or a search result should land on. */
-const notForCrawlers = ["/login", "/triage", "/watchlist", "/digest", "/sources", "/fleet", "/appearance", "/branding", "/api/", "/mcp", "/img/", "/health", "/metrics", "/items/", "/wire/"];
+const notForCrawlers = [
+  "/login", "/triage", "/watchlist", "/digest", "/saved", "/sources", "/fleet", "/appearance", "/branding",
+  // The Scan area's own pages: each hides the owner's facts from a visitor, so what a crawler
+  // would index is the hedged version — noise in a search result and nothing gained.
+  "/scan/network", "/scan/history", "/scan/devices", "/scan/echo",
+  "/api/", "/mcp", "/img/", "/health", "/metrics", "/items/", "/wire/",
+];
 
 /** A closed instance says so; an open one names what is not for indexing and where the sitemap is. */
 export function robotsText(publicRead: boolean, baseUrl: string): string {

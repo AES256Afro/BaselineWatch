@@ -16,8 +16,27 @@ export class Html {
 
 const escapes: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
+/**
+ * The characters XML 1.0 has no way to carry — the C0 controls but tab, newline and return, and
+ * the two noncharacters — dropped before anything is escaped.
+ *
+ * This template is also the XML writer: feeds.ts draws the RSS, the OPML and the sitemap through
+ * it ("the html helper's escaping is XML's, so it draws this too"). A conformant parser rejects
+ * the *whole document* over one such character, so a single feed title holding `&#1;` — which
+ * `plainText` decodes and its whitespace collapse does not catch — used to break every
+ * subscriber's reader for the entire feed rather than spoiling one item. The audit of 25 October
+ * found it with expat; fast-xml-parser accepts it, which is why no test had.
+ */
+// eslint-disable-next-line no-control-regex
+const forbidden = /[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g;
+
+/** Drops the characters XML 1.0 cannot carry, escaping nothing. The docx writer needs this half alone. */
+export function xmlSafe(text: string): string {
+  return text.replace(forbidden, "");
+}
+
 export function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (c) => escapes[c] ?? c);
+  return xmlSafe(text).replace(/[&<>"']/g, (c) => escapes[c] ?? c);
 }
 
 export type HtmlValue = Html | string | number | boolean | null | undefined | HtmlValue[];

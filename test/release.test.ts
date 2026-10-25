@@ -160,9 +160,9 @@ describe("the rehearsal's record", () => {
   });
 
   it("puts the ask in the digest itself", () => {
-    const text = buildDigest(db, { from: "2026-10-20T07:00:00Z", to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" });
+    const { text } = buildDigest(db, { from: "2026-10-20T07:00:00Z", to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" });
     expect(text).toContain("Restore: no rehearsal recorded yet");
     recordRehearsal(db, now.toISOString());
-    expect(buildDigest(db, { from: "2026-10-20T07:00:00Z", to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" })).not.toContain("Restore:");
+    expect(buildDigest(db, { from: "2026-10-20T07:00:00Z", to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" }).text).not.toContain("Restore:");
   });
 });
