@@ -1,4 +1,4 @@
-import { upsertItems } from "../items.ts";
+import { safeUrl, upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { kbUrl, releaseNoteUrl, upsertMsrcVulns, type MsrcFix, type MsrcVulnDraft } from "../msrc.ts";
 import { plainText, type Adapter, type ParsedItem, type PullOutcome } from "./types.ts";
@@ -103,7 +103,8 @@ function fixesOf(remediations: Remediation[], names: Map<string, string>): MsrcF
     if (key === "|") continue;
     const fix = byKey.get(key) ?? {
       kb,
-      url: kb ? kbUrl(kb) : (r.URL ?? null),
+      // Microsoft's own JSON, but a remote value all the same: it ends up in an href.
+      url: kb ? kbUrl(kb) : safeUrl(r.URL),
       label: kb ? null : label,
       products: [],
       fixedBuild: r.FixedBuild?.trim() || null,

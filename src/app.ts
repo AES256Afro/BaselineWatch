@@ -5,7 +5,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 
 import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
 
-import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
+import { authState, issueSession, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
 
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
@@ -147,10 +147,19 @@ export function createApp(ctx: AppContext): Express {
   // The MCP endpoint: the read-only API as tools for agents. It sits before the same-origin guard
   // because its clients are programs, not pages, and nothing it offers writes. Stateless: one
   // server and transport per POST, no sessions, so GET (a stream) and DELETE (a session) are not.
+  //
+  // It is the one route an anonymous caller can make the database work hard on, and it sits ahead
+  // of the same-origin guard, so it carries its own allowance: generous enough that an agent
+  // working through a question never notices, narrow enough that it is not a free amplifier.
+  const mcpCalls = new RateWindow(120, 60_000);
   app.post("/mcp", async (req, res) => {
     const state = authState(req, config, now().getTime());
     if (!config.publicRead && !state.owner) {
       res.status(401).json({ jsonrpc: "2.0", error: { code: -32001, message: "Reading is not public on this instance; sign in first." }, id: null });
+      return;
+    }
+    if (!state.owner && !mcpCalls.allow(throttleKey(req.ip), now().getTime())) {
+      res.status(429).set("Retry-After", "60").json({ jsonrpc: "2.0", error: { code: -32000, message: "Too many calls from this address; a hundred and twenty a minute is the allowance." }, id: null });
       return;
     }
     try {
@@ -198,7 +207,7 @@ export function createApp(ctx: AppContext): Express {
     handler(req, res);
   };
   app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery))));
+  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now()))));
   app.get("/api/v1/vulns/:cve", apiRead((req, res) => {
     const v = apiVuln(db, String(req.params.cve));
     if (!v) return res.status(404).json({ error: "no such CVE" });

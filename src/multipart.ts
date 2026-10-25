@@ -19,9 +19,15 @@ function indexOf(haystack: Uint8Array, needle: Uint8Array, from = 0): number {
   return Buffer.from(haystack.buffer, haystack.byteOffset, haystack.byteLength).indexOf(Buffer.from(needle.buffer, needle.byteOffset, needle.byteLength), from);
 }
 
+/**
+ * The boundary from a `multipart/form-data` content type, or nothing. The space a client is
+ * allowed to put before the parameter's semicolon is accepted, and a quoted empty boundary
+ * (`boundary=""`) is nothing rather than the two quote characters themselves — a "boundary" no
+ * part can carry, which the old unquoted fallback used to return and the parser then hunted for.
+ */
 export function boundaryOf(contentType: string | undefined): string | null {
   if (!contentType) return null;
-  const m = /multipart\/form-data;.*boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType);
+  const m = /multipart\/form-data\s*;.*boundary=(?:"([^"]*)"|([^;]*))/i.exec(contentType);
   return m ? (m[1] ?? m[2] ?? "").trim() || null : null;
 }
 

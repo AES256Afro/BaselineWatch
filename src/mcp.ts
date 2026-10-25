@@ -232,13 +232,20 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
 }
 
 /**
+ * What a tool call can be. Every input this server takes is a source id, a date, a CVE or a
+ * number, so the longest honest request is a few hundred bytes; the SDK's own default is four
+ * megabytes, which is four megabytes of JSON this endpoint would parse before refusing it.
+ */
+export const maxMcpRequestBytes = 256 * 1024;
+
+/**
  * Answers one POST to /mcp: a fresh server and a stateless transport, torn down when the response
  * closes. The SDK's types leave `| undefined` off their optional members, which this project's
  * `exactOptionalPropertyTypes` insists on, so the transport is handed over through one cast here.
  */
 export async function handleMcpRequest(db: DatabaseSync, baseUrl: string, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const server = buildMcpServer(db, baseUrl);
-  const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
+  const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true, maxRequestBodySize: maxMcpRequestBytes });
   res.on("close", () => {
     void transport.close();
     void server.close();

@@ -154,7 +154,9 @@ describe("downloads", () => {
     expect(csvCell("-1")).toBe("-1");
     expect(csvCell("-0.5")).toBe("-0.5");
     expect(csvCell("-")).toBe("-");
-    expect(csvCell("\t=1+1")).toBe("'=1+1");
+    // The leading tab is kept now rather than dropped: the apostrophe is what makes the cell
+    // text, and silently losing a byte of the data was never part of the job.
+    expect(csvCell("\t=1+1")).toBe("'\t=1+1");
     expect(csvCell('say "hi", twice')).toBe(`"say ""hi"", twice"`);
     expect(csvLine(["a", null, 3])).toBe("a,,3");
   });

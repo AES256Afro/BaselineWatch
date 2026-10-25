@@ -1,3 +1,5 @@
+import { safeHref } from "./paths.ts";
+
 /**
  * A tiny server-side HTML helper. Interpolated strings are escaped; values wrapped in
  * `Html` (the output of another `html` call, or `raw`) pass through; arrays are joined.
@@ -28,11 +30,32 @@ function render(value: HtmlValue): string {
   return escapeHtml(String(value));
 }
 
+/**
+ * A whole attribute value about to be an address: the chunk before the hole opens `href` or `src`
+ * and nothing of the value has been written yet. A hole in the middle of an address (`/img/${hash}`,
+ * `${base}/x`) is not this, and is left alone — its literal prefix already says where it points.
+ */
+const opensAddress = /(?:^|\s)(?:href|src)\s*=\s*["']?$/i;
+
+/**
+ * Where a whole `href` or `src` comes from a string the code did not write, it goes through the
+ * one rule in paths.ts, and an address that is not one becomes "#". Two hundred interpolations
+ * draw a link somewhere in this app; each of them relied on its own author having checked the
+ * scheme, and the audit of 25 October found two that had not (a feed's `/\evil.com`, which a
+ * browser reads as another site, and Microsoft's own `Remediation.URL` taken raw from its JSON).
+ * Doing it here means the next one cannot get it wrong either. A value wrapped in `Html` is the
+ * code's own and passes through, as it always has.
+ */
+function renderValue(chunk: string, value: HtmlValue): string {
+  if (typeof value !== "string" || !opensAddress.test(chunk)) return render(value);
+  return escapeHtml(safeHref(value) ?? "#");
+}
+
 export function html(strings: TemplateStringsArray, ...values: HtmlValue[]): Html {
   let out = "";
   strings.forEach((chunk, i) => {
     out += chunk;
-    if (i < values.length) out += render(values[i]);
+    if (i < values.length) out += renderValue(chunk, values[i]);
   });
   return new Html(out);
 }

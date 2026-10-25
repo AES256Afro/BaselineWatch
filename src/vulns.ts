@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
+import { ftsQuery } from "./wire.ts";
 
 /** A CVE in the shape BaselineWatch keeps, whatever it came from. */
 export interface NormalizedVuln {
@@ -618,13 +619,12 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
     params.push(filters.label);
   }
   if (filters.q) {
-    const words = filters.q
-      .split(/\s+/)
-      .map((w) => w.replace(/["\p{Cc}]/gu, "").trim())
-      .filter(Boolean);
-    if (words.length) {
+    // The same reader the News search uses (wire.ts): two copies of this could come to disagree
+    // about what counts as FTS syntax, and only one of them would be the safe one.
+    const query = ftsQuery(filters.q);
+    if (query) {
       clauses.push("v.id IN (SELECT rowid FROM vulns_fts WHERE vulns_fts MATCH ?)");
-      params.push(words.map((w) => `"${w}"`).join(" "));
+      params.push(query);
     }
   }
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
