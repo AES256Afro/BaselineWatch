@@ -2,6 +2,51 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.52.0 — 2026-10-25
+
+- **The code audit of 25 October, closed.** A fresh read of the whole surface, then a throwaway
+  script that attacked every function that reads input from outside. What it found, in the order
+  it matters: a link of the form `/\example.net` passed the "a path on this site" test, and a
+  browser reads that the way it reads `//example.net` — `new URL("/\\x", "https://site/")` is
+  `https://x/` — so a feed could put a link on the page that looked like one of this instance's
+  own and walked the reader off it. Microsoft's `Remediation.URL` went from its JSON into an
+  `href` with nothing checking the scheme. Two hundred interpolations draw a link somewhere here,
+  and every one of them relied on its author having remembered; now **the `html` template is the
+  gate**: a whole `href` or `src` coming from a string the code did not write goes through one
+  rule in `src/paths.ts`, and an address that is not one becomes `#`. The rule refuses the
+  backslash the way `safeBack` always did, and migration 0043 drops what was already stored.
+- **A repeated cookie name now reads as the first, not the last.** A browser sends the host-only
+  cookie this app set before any a sibling host set for the shared parent domain, so taking the
+  last let a neighbour on the same domain shadow the session, the look or the notice with one of
+  its own. (It could never forge a valid signature; it could sign the owner out.)
+- **The guard on a host this app may fetch** refuses two more of IANA's special-purpose ranges
+  that a network really can carry a host on — protocol assignments (192.0.0.0/24) and
+  benchmarking (198.18.0.0/15) — plus Teredo (2001::/32) and the discard-only 100::/64. The three
+  documentation ranges are deliberately still public: they route nowhere, so refusing them stops
+  nothing, and they are this project's own stand-in for a public address in every test and guide.
+- **A notice too long to carry** is cut until it fits whichever field ran long. The shrink only
+  ever cut `detail`, so a payload without that field ran the loop to nothing and handed the
+  browser a hundred-kilobyte `Set-Cookie` it drops — the notice simply never arrived.
+- **A CSV cell is not a formula behind a leading control character or space.** A spreadsheet skips
+  those on its way to deciding, and only a leading tab or return was being taken off, so
+  `"\u0000=1+1"` from a feed title was written as a formula. The cell keeps every byte it was
+  given now; the apostrophe is what makes it text.
+- **Smaller things**: a report of five thousand packages read the same advisory row three times
+  for each of its findings, once for the link and twice for the note beside it; the scan area read
+  and hashed every downloadable script twice at start; `boundary=""` was taken as a boundary of
+  two quote characters, and the space a client may put before the parameter was refused; a blob
+  hash that is not one reads as nothing instead of throwing out of a route, as `parseJson` already
+  does for a JSON column; the CVE search and the News search now share one FTS reader, which two
+  copies of could have come to disagree about what counts as syntax.
+- **`/mcp` carries its own allowance** — a hundred and twenty calls a minute per address, the
+  owner uncounted — because it is the one route an anonymous caller can make the database work
+  hard on and it sits ahead of the same-origin guard; and it takes a request the size a tool call
+  is (256 KB) rather than the SDK's four megabytes.
+- **`/api/v1/vulns` reaches every filter the page has**: severity, platform, a watchlist label,
+  having a public exploit, an EPSS band, and the "new" and "changed" windows in hours. It reads
+  them through the same validated reader the Vulnerabilities page uses, so the two cannot come to
+  disagree about what a filter means, and a loose second copy of that parsing is gone.
+
 ## 0.51.0 — 2026-10-23
 
 - **The code audit of 23 October, closed.** A fresh read of the modules the night's security

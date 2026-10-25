@@ -300,7 +300,14 @@ export async function matchPackages(db: DatabaseSync, http: HttpGet, report: Inv
   }
   const quoted = [`${report.packages.length} packages as ${ecosystem}, asked of OSV`];
   if (hits.length === 0) return { id: "packages", title: "Installed packages", state: "ok", text: `OSV lists no open advisory for any of the ${report.packages.length} installed versions.`, refs: [], quoted };
-  const refs = hits.flatMap((h) => h.ids.slice(0, 12).map((id) => ({ ...refFor(db, id), note: `${h.name} ${h.version}${refFor(db, id).note ? ` · ${refFor(db, id).note}` : ""}` })));
+  // One lookup per advisory id, not three: a report can carry five thousand packages, and the
+  // same row was being read again inside the note it had just been read for.
+  const refs = hits.flatMap((h) =>
+    h.ids.slice(0, 12).map((id) => {
+      const ref = refFor(db, id);
+      return { ...ref, note: `${h.name} ${h.version}${ref.note ? ` · ${ref.note}` : ""}` };
+    }),
+  );
   const seen = new Set<string>();
   const unique = refs.filter((r) => (seen.has(`${r.id}|${r.note}`) ? false : (seen.add(`${r.id}|${r.note}`), true)));
   const kev = unique.filter((r) => r.note?.includes("KEV")).length;

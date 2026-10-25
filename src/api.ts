@@ -5,6 +5,7 @@ import { listDocuments, withheldReleaseSummary } from "./register.ts";
 import { listTriage, type TriageState } from "./triage.ts";
 import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
 import { listWire, type WireFilters } from "./wire.ts";
+import { vulnFilters } from "./routes/query.ts";
 import { parseJson } from "./json.ts";
 
 /**
@@ -44,11 +45,6 @@ const sinceOf = (v: unknown): string | undefined => {
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 };
-/** A page offset SQLite can bind: a whole number, capped; anything else starts at the top. */
-const offsetOf = (v: unknown): number => {
-  const n = Number(str(v));
-  return Number.isSafeInteger(n) && n >= 0 ? Math.min(n, 1_000_000) : 0;
-};
 
 export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   const kind = str(q.kind);
@@ -77,20 +73,20 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
     }));
 }
 
-export function apiVulns(db: DatabaseSync, q: ApiQuery) {
-  const sort = str(q.sort);
-  const minCvss = Number(str(q.min_cvss));
-  const minEpss = Number(str(q.min_epss));
+/**
+ * The CVE list, through the same reader the Vulnerabilities page uses, so the API can express
+ * every filter the page can — severity, platform, a watchlist label, having a public exploit, an
+ * EPSS band, the "new" and "changed" windows in hours — and the two cannot come to disagree about
+ * what a filter means. `limit` and `since` are this reader's own: a page scrolls, an agent asks.
+ */
+export function apiVulns(db: DatabaseSync, q: ApiQuery, now: Date = new Date()) {
+  const page = vulnFilters(q as Record<string, unknown>, now);
   const filters: VulnFilters = {
-    watch: str(q.watch) === "1",
-    kev: str(q.kev) === "1",
-    minCvss: Number.isFinite(minCvss) ? minCvss : undefined,
-    minEpss: Number.isFinite(minEpss) ? minEpss : undefined,
-    changedSince: sinceOf(q.since),
-    q: str(q.q),
-    sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
+    ...page,
+    // `since` has meant "changed since" on this endpoint since it existed; `changed` (hours) is
+    // the page's way of saying it, and an explicit one wins.
+    ...(page.changedSince === undefined ? { changedSince: sinceOf(q.since) } : {}),
     limit: limitOf(q.limit),
-    offset: offsetOf(q.offset),
   };
   const { rows, total } = listVulns(db, filters);
   return { total, vulns: rows.map(vulnJson) };

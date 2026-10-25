@@ -122,14 +122,16 @@ export function mountScan(r: RouteContext): void {
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(renderScanNetwork({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) }));
   });
+  // The guide's scripts and their sums, read once at mount: the device page lists them to download
+  // and the guide pages link them, and hashing every file twice at start said nothing extra.
+  const scanScripts = readScanScripts(path.join(publicDir, "scan"));
   // Is this device affected? (S7): the owner pastes the inventory script's report; it is read and answered, never stored.
-  const scripts = readScanScripts(path.join(publicDir, "scan"));
   app.get("/scan/devices", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const w = who(req, res);
     const device = deviceName((req.query as Record<string, unknown>).device);
     const history = w.owner && device ? { device, readings: readingsOf(db, device) } : null;
-    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: w.owner ? latestReadings(db) : [], history }));
+    res.type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: w.owner ? latestReadings(db) : [], history }));
   });
   app.post("/scan/devices", requireOwner, async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -137,18 +139,18 @@ export function mountScan(r: RouteContext): void {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const text = str(body.report, 2_000_000) ?? "";
     const device = deviceName(body.device);
-    if (!device) return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: "Name the device: letters, digits, spaces, a dot or a dash, up to sixty characters." }));
+    if (!device) return res.status(400).type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: latestReadings(db), problem: "Name the device: letters, digits, spaces, a dot or a dash, up to sixty characters." }));
     let report;
     try {
       report = readReport(text);
     } catch (error) {
-      return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: error instanceof Error ? error.message : String(error) }));
+      return res.status(400).type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: latestReadings(db), problem: error instanceof Error ? error.message : String(error) }));
     }
     const findings = await readDevice(db, ctx.http ?? httpGet, report);
     const previous = readingsOf(db, device, 1)[0] ?? null;
     const reading = recordReading(db, device, report, findings, now().toISOString());
     const changes = readingChanges(previous, reading);
-    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), report, findings, devices: latestReadings(db), recorded: { device, ...changes } }));
+    res.type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), report, findings, devices: latestReadings(db), recorded: { device, ...changes } }));
   });
   app.post("/scan/devices/forget", requireOwner, (req, res) => {
     const device = deviceName(((req.body ?? {}) as Record<string, unknown>).device);
@@ -250,7 +252,6 @@ export function mountScan(r: RouteContext): void {
   // The manual guide (M12.2) and its scripts: static files under public/scan, read once so the sums
   // shown beside the links are of the bytes served, and served as plain text so a person can read a
   // script in the browser before downloading it. Every one of these pages keeps the strict policy.
-  const scanScripts = readScanScripts(path.join(publicDir, "scan"));
   app.get("/scan/guide", (req, res) => {
     res.type("html").send(renderScanGuideIndex({ ...who(req, res), scripts: scanScripts }));
   });

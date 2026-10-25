@@ -1596,6 +1596,8 @@ Every item below is on `main`, released, or named as left. Times are CDT.
 | 0.50.0 | tagged, image published; BoxPilot 1.216.0 (1.215.0 tagged, never published: its release gate failed) | live |
 | Audit 2026-10-23 | #46: seven npm advisories cleared, vitest 5; #47: the sign-in brake on the peer's own address, `BW_TRUSTED_PROXIES`, a malformed NVD record skipped, licensed release summaries withheld from the API and feeds, the LaTeX backslash | merged |
 | 0.51.0 | tagged; BoxPilot catalog refreshed to it | the owner's two clicks remain |
+| Audit 2026-10-25 | the URL gate moved into the `html` template (`src/paths.ts`): a feed's `/\example.net` and Microsoft's raw `Remediation.URL` both reached an `href`, migration 0043 scrubs what was stored; a repeated cookie name reads as the first; four more special-purpose ranges refused and the documentation ones deliberately kept public; the flash notice fits whichever field ran long; a CSV cell is not a formula behind a leading control character; `/mcp` has an allowance and a 256 KB request; `/api/v1/vulns` reaches every filter the page has, through the page's own reader | merged |
+| 0.52.0 | tagged | — |
 
 **Left, and why.** S5 devices seen: passive mDNS/SSDP needs the container on
 the host network, which the BoxPilot manifest does not give it; a decision for the owner, not a
