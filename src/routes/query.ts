@@ -65,7 +65,7 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
     newHours,
     label: str(query.label, 60),
     q: str(query.q),
-    sort: sort === "published" || sort === "cvss" || sort === "epss" ? sort : "modified",
+    sort: sort === "modified" || sort === "published" || sort === "cvss" || sort === "epss" ? sort : "risk",
     // A whole number SQLite can bind, capped: 1e300 or 1.5 would be a datatype mismatch and a 500.
     offset: offset !== undefined && offset >= 0 && Number.isSafeInteger(Math.floor(offset)) ? Math.min(Math.floor(offset), 1_000_000) : 0,
   };

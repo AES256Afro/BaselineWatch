@@ -97,7 +97,7 @@ describe("hn adapter", () => {
     const { items } = hnAdapter.parse!(fixture("hn.json"), source, now);
     expect(items).toHaveLength(2);
     expect(items[0]?.url).toBe("https://eng.example.test/postmortem-ci-token");
-    expect(items[0]?.summary).toBe("212 points · 87 comments");
+    expect(items[0]?.summary).toBe(null);
     expect(items[1]?.url).toBe("https://news.ycombinator.com/item?id=45900002");
     expect(items[1]?.summary).toBe("Release 5.2.0 added SA-24 and I only found out by accident.");
   });

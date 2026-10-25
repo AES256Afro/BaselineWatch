@@ -252,7 +252,10 @@ describe("vulnerability pages", () => {
     expect(list).toContain('<a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small>');
     expect(list).toContain('<a href="/vulnerabilities?kev=1"><small>In KEV</small>');
     expect(list).toContain('<a href="/vulnerabilities?watch=1"><small>Match watchlist</small>');
-    expect(list).toContain('<a href="/sources#src-first-epss"><small>EPSS scores</small>');
+    // The EPSS date is provenance, not a metric: it sits on the line under the table that
+    // already carries the NVD cursor, not in the row of counts.
+    expect(list).toMatch(/EPSS scores: (<a href="\/sources#src-first-epss">|none pulled yet)/);
+    expect(list).not.toContain('<small>EPSS scores</small>');
     expect(list).toContain('href="/sources#src-nvd-cves"');
     const fresh = await (await fetch(`${app.base}/vulnerabilities?new=1`)).text();
     expect(fresh).toContain("CVE-2021-44228");

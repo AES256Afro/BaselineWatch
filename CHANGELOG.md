@@ -2,6 +2,63 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.53.0 — 2026-10-25
+
+- **The sweeps, closed.** Five security sweeps and five bug sweeps, each on its own ground, then
+  three more rounds until one came back empty. Every finding is in `test/audit-2026-10-25.test.ts`
+  and `test/restricted-channels.test.ts` so it stays found. The two that mattered most were both
+  reachable from a third party: **one control character broke every feed** — `plainText` decoded
+  `&#1;` to a character XML 1.0 cannot carry, and a conformant parser rejects the whole document,
+  so one bad title from one source broke every subscriber's reader for the entire feed — and **a
+  feed could stall the process**, because `/<[^>]+>/g` backtracks at every start position when the
+  `>` never comes: 400 KB of `<` took 49 seconds, against 0.7 ms with `[^<>]`, which means the
+  same thing for a tag. The same shape was in thirty places.
+- **The owner's own words are the owner's.** `/digest` and `/api/v1/digest` are gated for reading,
+  not for the owner, and the digest named the devices with something open on them, the
+  certificates logged for the owner's domains, their watchlist's products and the LAN's sinkhole
+  changes — while the three pages those facts come from each hide them from a visitor. A digest is
+  now written in two halves (migration 0044). A triage note, and a baseline decision's reason and
+  the name of whoever signed it, were public the same way and are not now; the decision itself,
+  which is the teaching value, still is.
+- **Twenty-one pages that differ for the owner said nothing about caching**, on an app built to
+  sit behind a tunnel or a proxy. They are `private, no-cache` and `Vary: Cookie` now; the feeds
+  keep their public cache. The `Secure` flag on the session cookie comes from the owner's
+  configuration rather than an `X-Forwarded-Proto` any believed LAN peer could write.
+- **Smaller**: the two second hops that take a URL from remote content get `publicOnly`; the
+  Pi-hole token no longer follows a redirect; a weekly digest catches up instead of skipping a
+  week when the instance was down on the Monday; the calendar folds at 75 octets without splitting
+  a code point and escapes a lone CR; the two public routes that cost an outbound request have a
+  ceiling as well as a per-address allowance; a download's filename is made header-safe.
+
+- **The Vulnerabilities table opens on what matters.** Ordering twenty-nine thousand CVEs by when
+  NVD last touched them put a page of unscored, zero-EPSS, single-vendor records at the top — the
+  least useful list the data can produce, on the page a practitioner opens first. The default is
+  now **risk**: known exploited, then a public exploit, then EPSS, then CVSS, then recency. The
+  table still holds every CVE and the old order is one click away. On a real instance the first
+  page went from five unscored Chrome records to five KEV'd criticals with public exploits.
+- **Every domain finding now says what to do about it.** The check said what was wrong and quoted
+  the record; a reader who learnt their domain publishes no CAA record was left to go and find out
+  what one looks like. Each row that is not already good carries the record to publish or the
+  header to send, written for the domain that was checked, with the caution that goes with it and
+  a link to the RFC. Three rules: nothing is generated that could break something silently (the
+  SPF fix is a shape with the senders marked as yours to fill, never a finished record), a setting
+  that is not a record says so (DNSSEC and DKIM come from the registrar and the mail provider),
+  and every fix cites the body that defines it.
+- **The table downloads.** `/vulnerabilities.csv` under the same filters and in the same order, up
+  to a thousand rows, with CVSS and EPSS as numbers because something else is going to do
+  arithmetic on them. This instance could already export a baseline, a test plan and the triage
+  board but not the table its own name is about.
+- **Interface**: the News page called itself "a change register for the security standards
+  themselves", which is the Register; the EPSS date was a giant display figure beside six counts,
+  wrapping onto three lines, and is now on the provenance line with the NVD cursor where it
+  belongs; a stat row of seven tiles left five sixths of a row empty on both Today and
+  Vulnerabilities, and now fills it; the Register strip hid the fact that it scrolls, so the
+  releases past the fold were simply gone — it is a labelled, focusable region with a fade and a
+  way out; a Hacker News story with no text of its own printed its score and comment count twice;
+  product names broke mid-word in the table ("adaptive_sec" / "urity_applian"); and on a phone the
+  masthead's search box took a whole row of its own two rows above the page's own search box, and
+  is a link there instead.
+
 ## 0.52.0 — 2026-10-25
 
 - **The code audit of 25 October, closed.** A fresh read of the whole surface, then a throwaway

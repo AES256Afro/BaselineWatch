@@ -114,7 +114,14 @@ h2 { font-size: 19px; }
 
 /* The Register ribbon under the masthead: the latest standards changes ride the page. */
 .strip { background: var(--card); border-bottom: 1px solid var(--rule); }
-.strip-inner { max-width: 1180px; margin: 0 auto; padding: 6px 20px; display: flex; gap: 12px; align-items: baseline; font-size: 12.5px; color: var(--mute); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+/* The strip scrolls sideways, and used to hide that it did: `scrollbar-width: none` with no
+   other affordance meant the releases past the fold were simply gone — nothing said to swipe,
+   nothing took keyboard focus, and on a phone it was one truncated line. The fade says there is
+   more, the region is focusable so a keyboard can scroll it, and the trailing link is the way
+   out for anyone who would rather read the whole thing. */
+.strip-inner { max-width: 1180px; margin: 0 auto; padding: 6px 20px; display: flex; gap: 12px; align-items: baseline; font-size: 12.5px; color: var(--mute); overflow-x: auto; white-space: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+.strip-inner:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
+.strip .all { flex: none; color: var(--mute); text-decoration: underline; }
 .strip .lab { font: 600 10.5px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--warn); text-decoration: none; flex: none; }
 .strip a { color: var(--ink); text-decoration: none; }
 .strip a:hover { text-decoration: underline; }
@@ -122,7 +129,11 @@ h2 { font-size: 19px; }
 .strip .when { color: var(--mute); font-size: 11.5px; }
 
 /* Totals strip */
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 22px 0 24px; }
+/* Flex, not grid: a grid of auto-fit tracks leaves the last row's tiles at one track's width,
+   so seven tiles across six columns left five sixths of a row empty — which both Today and
+   Vulnerabilities did. Flex-wrap lets whatever is on the last row grow to fill it. */
+.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 24px; }
+.stats > div, .stats > a { flex: 1 1 140px; }
 .stats > div, .stats > a { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .stats small { display: block; color: var(--mute); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .stats b { display: block; font: 500 24px var(--mono); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -314,7 +325,15 @@ main:focus { outline: none; }
 .mast-search { margin-left: auto; }
 .mast-search input { width: 150px; font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); color: var(--ink); }
 .mast-search input:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-color: var(--acc); }
-@media (max-width: 720px) { .mast-search { margin-left: 0; width: 100%; } .mast-search input { width: 100%; } }
+/* On a phone the masthead's search box took a whole row of its own, and most pages carry their
+   own search box two rows below it: a reader met two search fields within a couple of hundred
+   pixels, doing different things, looking the same. It becomes a link to the search page there —
+   one tap instead of a row, and the page's own box is the one in front of them. */
+/* The link comes first: a later rule of the same specificity beats one inside a media query,
+   so `display: none` written after the query would hide the link at every width. */
+.mast-search .to-search { display: none; color: var(--mute); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+.mast-search .to-search:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
+@media (max-width: 720px) { .mast-search { margin-left: auto; width: auto; } .mast-search input { display: none; } .mast-search .to-search { display: inline; } }
 .feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .feeds li { display: grid; gap: 2px; }
 .feeds code { font-size: 12px; overflow-wrap: anywhere; }
@@ -335,7 +354,11 @@ table.vulns td.id a { font-family: var(--mono); font-size: 12.5px; font-weight: 
 table.vulns td.id .chip { margin-left: 6px; }
 table.vulns td.desc { max-width: 42ch; }
 table.vulns td.desc span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--mute); }
-table.vulns td.who { max-width: 18ch; overflow-wrap: anywhere; }
+/* Vendor and product names are long and full of underscores ("adaptive_security_appliance",
+   "goanywhere_managed_file_transfer"). `anywhere` broke them mid-token — "adaptive_sec" /
+   "urity_applian" — which is harder to read than a wider column; `break-word` keeps a token whole
+   where it can and only breaks one that would overflow on its own. */
+table.vulns td.who { max-width: 22ch; overflow-wrap: break-word; word-break: normal; hyphens: none; }
 table.vulns td.when { white-space: nowrap; color: var(--mute); }
 table.vulns tr.hit td.id a { color: var(--acc); }
 .sort { margin-left: auto; font-size: 12.5px; color: var(--mute); display: flex; gap: 6px; align-items: center; }
@@ -398,7 +421,7 @@ details.box summary { cursor: pointer; }
 
 /* Today */
 .wire-top h1 small { display: block; font: 400 13.5px var(--sans); color: var(--mute); margin-top: 2px; }
-.stats.today { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.stats.today > div, .stats.today > a { flex-basis: 150px; }
 .stats.today .tile { text-decoration: none; color: var(--ink); }
 .stats.today .tile span { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
 .stats.today .tile.bad b { color: var(--del); }
@@ -1062,3 +1085,13 @@ dl.collide ul.plain > li { padding: 3px 0; line-height: 1.55; color: var(--ink);
   .flow { display: none; }
   .rung-list { margin-top: 0; }
 }
+
+/* What to do about a domain finding (domainfix.ts): collapsed, so a clean report stays a clean
+   report, and the lines to copy set in mono with their own border so a reader can see at a glance
+   where the record begins and ends. */
+.check .fix { margin: 8px 0 0; border-top: 1px dashed var(--rule); padding-top: 6px; }
+.check .fix > summary { cursor: pointer; font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--acc); }
+.check .fix > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.check .fix .lab { margin: 8px 0 2px; color: var(--mute); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+.fix-lines { margin: 0 0 6px; padding: 8px 10px; background: var(--card-2, var(--card)); border: 1px solid var(--rule); border-radius: 6px; font: 12px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.check .fix .caution { border-left: 2px solid var(--warn); padding-left: 8px; margin: 6px 0; }
