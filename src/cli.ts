@@ -57,7 +57,7 @@ if (command === "rehearsal") {
   if (adapter.rewind) {
     // A stream has no history to load: forget where the last pull left off and pull the window
     // again, so every record in it is normalised afresh (how vuln_cpe_matches is filled for CVEs
-    // that predate migration 0043). A first pull raises no alerts, and neither does this.
+    // that predate migration 0045). A first pull raises no alerts, and neither does this.
     adapter.rewind(db);
     const result = await ingestSource(db, config.dataDir, source, deps);
     console.log(formatResult(result));

@@ -113,7 +113,7 @@ export async function publicAddress(http: HttpGet): Promise<string | null> {
 export async function readRouter(http: HttpGet, url: string): Promise<RouterRead> {
   const read: RouterRead = { url, plainStatus: null, redirectsToHttps: false, tlsStatus: null, server: null, title: null, error: null };
   const origin = new URL(url);
-  const titleOf = (bytes: Uint8Array): string | null => /<title[^>]*>([\s\S]*?)<\/title>/i.exec(new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 65536)))?.[1]?.replace(/\s+/g, " ").trim().slice(0, 120) ?? null;
+  const titleOf = (bytes: Uint8Array): string | null => /<title[^<>]*>([\s\S]*?)<\/title>/i.exec(new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 65536)))?.[1]?.replace(/\s+/g, " ").trim().slice(0, 120) ?? null;
   try {
     const plain = await http(`http://${origin.host}/`, { timeoutMs: 8000, maxBytes: 256 * 1024, redirect: "manual", headers: { accept: "text/html" } });
     read.plainStatus = plain.status;

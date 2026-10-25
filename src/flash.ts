@@ -14,14 +14,22 @@ const attributes = (secure: boolean): string => `Path=/; HttpOnly; SameSite=Lax$
 /** The Set-Cookie header that carries `payload` (a string or a small JSON object) to the next page. */
 export function flashHeader(payload: unknown, secure: boolean): string {
   // A fetch's detail can run long; it is cut until the encoded cookie fits, since a browser drops one over 4 KB.
-  const encode = (p: unknown): string => encodeURIComponent(JSON.stringify(p));
-  let keep = 1200;
+  const encode = (p: unknown): string => encodeURIComponent(JSON.stringify(p) ?? "");
+  // Every string in the payload shrinks, not just `detail`: a payload whose long field is some
+  // other one (or which has no `detail` at all) used to run the loop down to nothing and then
+  // return the oversized cookie anyway, which a browser drops — the notice never arrives.
+  const shorten = (p: unknown, keep: number): unknown => {
+    if (typeof p === "string") return p.length > keep ? `${p.slice(0, keep)}…` : p;
+    if (p === null || typeof p !== "object" || Array.isArray(p)) return p;
+    return Object.fromEntries(Object.entries(p as Record<string, unknown>).map(([k, v]) => [k, shorten(v, keep)]));
+  };
   let value = encode(payload);
-  while (value.length > maxLength && keep > 0) {
-    const shortened = typeof payload === "string" ? `${payload.slice(0, keep)}…` : { ...(payload as Record<string, unknown>), detail: `${String((payload as Record<string, unknown>).detail ?? "").slice(0, keep)}…` };
-    value = encode(shortened);
-    keep = Math.floor(keep / 2);
+  for (let keep = 1200; value.length > maxLength && keep > 0; keep = Math.floor(keep / 2)) {
+    value = encode(shorten(payload, keep));
   }
+  // Whatever happened above, the header that goes out fits: a cookie a browser drops is a notice
+  // that never arrives, which is worse than one cut short.
+  if (value.length > maxLength) value = encode("That worked, but the notice was too long to carry here.");
   return `${cookieName}=${value}; ${attributes(secure)}; Max-Age=120`;
 }
 

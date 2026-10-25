@@ -182,12 +182,29 @@ const entities: Record<string, string> = {
   laquo: "«", raquo: "»", times: "×", deg: "°", euro: "€", pound: "£",
 };
 
-/** Strips tags, decodes the common entities, collapses whitespace and trims to `max` characters. */
+/**
+ * The most a field is read before it is cut: a summary of six hundred characters does not need a
+ * megabyte of source, and one feed serving a megabyte is one feed holding the single-threaded
+ * process while it works. Generous enough that no real title, summary or policy paragraph is
+ * touched, bounded so a hostile one cannot cost more than a tenth of a second.
+ */
+const maxPlainTextInput = 256 * 1024;
+
+/**
+ * Strips tags, decodes the common entities, collapses whitespace and trims to `max` characters.
+ *
+ * The character classes exclude `<` as well as `>`. A tag cannot contain an unescaped `<`, so the
+ * meaning is the same, but `[^>]+` before a required `>` backtracks at every start position when
+ * the `>` never comes: 400 KB of `<` took **49 seconds** before this, which one feed was enough
+ * to do, and takes 0.7 ms after. The audit of 25 October found it; the input bound above is the
+ * belt to that brace.
+ */
 export function plainText(htmlOrText: string | null | undefined, max = 600): string | null {
   if (!htmlOrText) return null;
   const text = htmlOrText
-    .replace(/<\s*(br|p|div|li|h\d)[^>]*>/gi, " ")
-    .replace(/<[^>]+>/g, "")
+    .slice(0, maxPlainTextInput)
+    .replace(/<\s*(br|p|div|li|h\d)[^<>]*>/gi, " ")
+    .replace(/<[^<>]+>/g, "")
     .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (whole, name: string) => {
       const lower = name.toLowerCase();
       // A numeric reference past U+10FFFF is not a character; left as written rather than thrown at.
@@ -196,6 +213,9 @@ export function plainText(htmlOrText: string | null | undefined, max = 600): str
       if (lower.startsWith("#")) return codePoint(Number(lower.slice(1)));
       return entities[lower] ?? whole;
     })
+    // `&#1;` decodes to a character XML 1.0 cannot carry, and the whitespace collapse below does
+    // not catch it. The feeds drop it at render too, but a field is better stored clean.
+    .replace(/\p{Cc}/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (text === "") return null;

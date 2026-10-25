@@ -7,7 +7,8 @@ Read this before changing anything. It applies to humans and coding agents alike
 One page that keeps a security practitioner in tune: news, advisories and CVEs in a timeline,
 and a **change register for the standards themselves** (NIST SP 800-53, DISA STIGs, Microsoft
 baselines, CIS by upload): each control or setting before and after, what changed, and the
-publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`.
+publisher's stated reason. The plan is `docs/PLAN.md`; the sources are `docs/SOURCES.md`; the
+Learning section has its own plan in `docs/LEARN.md`.
 
 Decisions so far (2026-10-19): News is the home page at `/` (the Wire renamed; the Register at
 `/register`, `/wire` a 301), with the top grouped as News · Today · Standards ▾ · Vulnerabilities
@@ -30,6 +31,17 @@ formerly called Platforms, now at `/fleet`, `/platforms` a 301 — Triage, Watch
 instance (Sources, Digest), then how it is drawn (Appearance, which the masthead's look switch
 moved into, and Branding). Use those words in that sense everywhere; do not reintroduce
 "Platforms" for the fleet, and do not put a bare label in a menu without its line.
+
+**Where the rulebook came from** (2026-10-22) is the rung above the ladder, taught at `/learn` and
+held in `src/authorities.ts`: law and contract → policy → framework → control catalogue → baseline →
+configuration setting → check and evidence, with every publisher placed on a rung and against an
+audience (US federal civilian, US defense, NASA, private business, outside the US), so the same step
+can be read across the bodies that answer it. A body carries what it derives from, every address its
+own words live at, and the access that address asks for — `public`, `registration`, `agency`,
+`licence`. An `agency` link is public knowledge of where a document lives and never the document:
+NASA's ASCS specifications stay internal, and nothing restricted is reproduced. Add a publisher by
+adding one entry to that registry — rung, audiences, `derivesFrom`, links, and `tracked` when this
+instance follows it as a source — never by writing a second list of links into a page.
 
 The forward plan (2026-10-21) is the last part of `docs/PLAN.md`: a ledger that re-homes every
 open item of M10 to M12, then M13 to M19 ending at 1.0. Take M13 first — retention and a weekly
@@ -84,9 +96,11 @@ src/db.ts            open, migrate, counts
 src/blobs.ts         content-addressed snapshot store
 src/html.ts          html`` template with escaping
 src/pages/           server-rendered pages (layout, home, sources, not-found); pages/scan-guide/ holds the manual guide's prose, one module per platform
+src/authorities.ts   where a rule comes from: the publishers, the rung each sits on, what derives from what (/learn)
 src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
 src/netscan.ts       the network check: canaries through the LAN resolver, daily, opt-in (M12.3)
 src/domaincheck.ts   check a domain: DNS, mail and web posture by lookups alone, each record quoted (Scan 2.0)
+src/domainfix.ts     what to do about a domain finding: the record to publish or the header to send, with its caution
 src/seen.ts          what this page learned about you: the request's facts, Tor exits, an InternetDB lookup on request
 src/exposure.ts      router and exposure: the public address, what Shodan sees of it, the router's admin page and firmware, daily, owner-only
 src/eol.ts           endoflife.date's cycles, and which of them a fleet release is
@@ -111,5 +125,5 @@ src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1
 boxpilot/            the BoxPilot catalog manifest; scripts/validate-manifest.mjs checks it
-docs/                plan, sources, mockups
+docs/                plan, the Learning section's plan (LEARN.md), sources, mockups
 ```

@@ -344,7 +344,7 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   header. 5 requests / 30 s without, 50 / 30 s with; sleep between calls anyway.
 - **Shape**: `vulnerability`.
 - **Ranges** (added 2026-10-21): each `cpeMatch` entry of a CVE's configurations is kept as a row
-  of `vuln_cpe_matches` (migration 0043) with the bounds NVD attaches to it, `versionStartIncluding`
+  of `vuln_cpe_matches` (migration 0045) with the bounds NVD attaches to it, `versionStartIncluding`
   or `versionStartExcluding` and `versionEndIncluding` or `versionEndExcluding`, and whether the
   entry is the vulnerable side or the platform it runs on. The rows are replaced whole each time
   the CVE is normalised again; `cpes_json` keeps the vulnerable criteria strings as before, and

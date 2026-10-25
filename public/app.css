@@ -114,7 +114,14 @@ h2 { font-size: 19px; }
 
 /* The Register ribbon under the masthead: the latest standards changes ride the page. */
 .strip { background: var(--card); border-bottom: 1px solid var(--rule); }
-.strip-inner { max-width: 1180px; margin: 0 auto; padding: 6px 20px; display: flex; gap: 12px; align-items: baseline; font-size: 12.5px; color: var(--mute); overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+/* The strip scrolls sideways, and used to hide that it did: `scrollbar-width: none` with no
+   other affordance meant the releases past the fold were simply gone — nothing said to swipe,
+   nothing took keyboard focus, and on a phone it was one truncated line. The fade says there is
+   more, the region is focusable so a keyboard can scroll it, and the trailing link is the way
+   out for anyone who would rather read the whole thing. */
+.strip-inner { max-width: 1180px; margin: 0 auto; padding: 6px 20px; display: flex; gap: 12px; align-items: baseline; font-size: 12.5px; color: var(--mute); overflow-x: auto; white-space: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch; mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+.strip-inner:focus-visible { outline: 2px solid var(--acc); outline-offset: -2px; }
+.strip .all { flex: none; color: var(--mute); text-decoration: underline; }
 .strip .lab { font: 600 10.5px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--warn); text-decoration: none; flex: none; }
 .strip a { color: var(--ink); text-decoration: none; }
 .strip a:hover { text-decoration: underline; }
@@ -122,7 +129,11 @@ h2 { font-size: 19px; }
 .strip .when { color: var(--mute); font-size: 11.5px; }
 
 /* Totals strip */
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 22px 0 24px; }
+/* Flex, not grid: a grid of auto-fit tracks leaves the last row's tiles at one track's width,
+   so seven tiles across six columns left five sixths of a row empty — which both Today and
+   Vulnerabilities did. Flex-wrap lets whatever is on the last row grow to fill it. */
+.stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 24px; }
+.stats > div, .stats > a { flex: 1 1 140px; }
 .stats > div, .stats > a { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; min-width: 0; }
 .stats small { display: block; color: var(--mute); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .stats b { display: block; font: 500 24px var(--mono); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -314,7 +325,15 @@ main:focus { outline: none; }
 .mast-search { margin-left: auto; }
 .mast-search input { width: 150px; font: inherit; font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); color: var(--ink); }
 .mast-search input:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-color: var(--acc); }
-@media (max-width: 720px) { .mast-search { margin-left: 0; width: 100%; } .mast-search input { width: 100%; } }
+/* On a phone the masthead's search box took a whole row of its own, and most pages carry their
+   own search box two rows below it: a reader met two search fields within a couple of hundred
+   pixels, doing different things, looking the same. It becomes a link to the search page there —
+   one tap instead of a row, and the page's own box is the one in front of them. */
+/* The link comes first: a later rule of the same specificity beats one inside a media query,
+   so `display: none` written after the query would hide the link at every width. */
+.mast-search .to-search { display: none; color: var(--mute); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+.mast-search .to-search:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
+@media (max-width: 720px) { .mast-search { margin-left: auto; width: auto; } .mast-search input { display: none; } .mast-search .to-search { display: inline; } }
 .feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .feeds li { display: grid; gap: 2px; }
 .feeds code { font-size: 12px; overflow-wrap: anywhere; }
@@ -335,7 +354,11 @@ table.vulns td.id a { font-family: var(--mono); font-size: 12.5px; font-weight: 
 table.vulns td.id .chip { margin-left: 6px; }
 table.vulns td.desc { max-width: 42ch; }
 table.vulns td.desc span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--mute); }
-table.vulns td.who { max-width: 18ch; overflow-wrap: anywhere; }
+/* Vendor and product names are long and full of underscores ("adaptive_security_appliance",
+   "goanywhere_managed_file_transfer"). `anywhere` broke them mid-token — "adaptive_sec" /
+   "urity_applian" — which is harder to read than a wider column; `break-word` keeps a token whole
+   where it can and only breaks one that would overflow on its own. */
+table.vulns td.who { max-width: 22ch; overflow-wrap: break-word; word-break: normal; hyphens: none; }
 table.vulns td.when { white-space: nowrap; color: var(--mute); }
 table.vulns tr.hit td.id a { color: var(--acc); }
 .sort { margin-left: auto; font-size: 12.5px; color: var(--mute); display: flex; gap: 6px; align-items: center; }
@@ -398,7 +421,7 @@ details.box summary { cursor: pointer; }
 
 /* Today */
 .wire-top h1 small { display: block; font: 400 13.5px var(--sans); color: var(--mute); margin-top: 2px; }
-.stats.today { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.stats.today > div, .stats.today > a { flex-basis: 150px; }
 .stats.today .tile { text-decoration: none; color: var(--ink); }
 .stats.today .tile span { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
 .stats.today .tile.bad b { color: var(--del); }
@@ -979,3 +1002,96 @@ form.decide button { justify-self: start; }
 }
 /* A sentence, not a label: the wide menus' captions keep their case. */
 .mast .menu.wide .cap { text-transform: none; letter-spacing: 0.01em; font-size: 11.5px; line-height: 1.45; padding-bottom: 6px; }
+
+/* Learn (/learn): where a rule comes from. The flow strip is the chain in one picture; the matrix
+   is the same chain read across the bodies that answer each step; a body card carries what it
+   derives from, what derives from it, and every address its own words live at with the access that
+   address asks for. Seven rungs tinted along the same scale the charts use: the upper rungs are
+   authority (mute to cyan), the catalogue and baseline the accent, a setting amber, a check purple. */
+.flow { width: 100%; height: auto; display: block; margin: 4px 0 14px; }
+.flow-box { fill: var(--card); stroke: var(--rule-2); stroke-width: 1; }
+.flow-box.r-framework { stroke: var(--cyan); }
+.flow-box.r-catalog, .flow-box.r-baseline { stroke: var(--acc); }
+.flow-box.r-setting { stroke: var(--amber); }
+.flow-box.r-check { stroke: var(--purple); }
+.flow-t { fill: var(--ink); font: 600 12px var(--sans); text-anchor: middle; }
+.flow-n { fill: var(--mute); font: 500 10px var(--mono); }
+.flow-c { fill: var(--mute); font: 400 10.5px var(--sans); text-anchor: middle; }
+.flow-arrow { stroke: var(--rule-2); stroke-width: 1.4; fill: none; }
+.rung-list { margin: 10px 0 12px; padding-left: 20px; }
+.rung-list > li { margin: 0 0 4px; }
+.rung-list > li > b a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-2); }
+.rung-list .rung { color: var(--mute); font-size: 13px; }
+.rung-list .rung::before { content: "— "; }
+.learn-filters .cap { font: 600 10px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--mute); margin-left: 8px; }
+.learn-filters .cap:first-child { margin-left: 0; }
+
+/* The matrix: rungs down, audiences across, each cell the bodies that answer there. */
+table.matrix { table-layout: fixed; }
+table.matrix th { vertical-align: top; text-align: left; }
+table.matrix th small, table.matrix th a { display: block; }
+table.matrix th small { color: var(--mute); font-weight: 400; font-size: 11px; line-height: 1.35; margin-top: 2px; text-transform: none; letter-spacing: 0; }
+table.matrix th[scope="row"] { width: 13em; }
+table.matrix td { vertical-align: top; }
+table.matrix .chips { gap: 4px; }
+table.matrix .chip { white-space: normal; }
+
+/* The three traced chains, side by side where there is room. */
+.traces { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.trace .ladder { margin-top: 8px; }
+.trace .ladder > li { margin-bottom: 10px; }
+.trace .ladder > li > b { font-size: 13.5px; }
+.trace .ladder > li > p { font-size: 13px; line-height: 1.55; }
+.trace h3 { margin: 0; }
+.trace h3 a { color: var(--ink); text-decoration: none; }
+
+/* A body's card: the head, the publisher, then the derivation and the addresses. */
+.bodies { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+.rung-band { margin: 0 0 22px; }
+.rung-band .std-head { margin-bottom: 8px; }
+.box.body { margin: 0; }
+.body-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+.body-head h3 { margin: 0; font-size: 16px; }
+.body-head h3 a { color: var(--ink); text-decoration: none; }
+.body-pub { margin: 2px 0 8px; color: var(--mute); font-size: 12px; font-family: var(--mono); }
+.body .why { color: var(--mute); }
+dl.derive { margin: 10px 0 0; font-size: 13px; }
+dl.derive dt { font: 600 10px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--mute); margin-top: 8px; }
+dl.derive dd { margin: 2px 0 0; }
+ul.srcs { list-style: none; margin: 2px 0 0; padding: 0; }
+ul.srcs > li { padding: 2px 0; line-height: 1.5; }
+.chip.acc-public { color: var(--ins); background: var(--ins-bg); border-color: transparent; }
+.chip.acc-registration { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
+.chip.acc-agency { color: var(--mute); background: var(--panel-2); border-color: var(--rule-2); }
+.chip.acc-licence { color: var(--gen); background: var(--panel-2); border-color: transparent; }
+.chip.sect, .chip.rung-chip { text-decoration: none; }
+.chip.rung-chip { color: var(--acc); border-color: var(--acc); background: transparent; }
+
+ul.normal { margin: 8px 0 0; padding-left: 20px; }
+ul.normal > li { margin: 0 0 10px; line-height: 1.6; }
+dl.collide dt { font-weight: 600; font-family: var(--mono); font-size: 13px; margin-top: 10px; }
+dl.collide dd { margin: 2px 0 0; }
+dl.collide ul.plain { list-style: none; margin: 0; padding: 0; }
+dl.collide ul.plain > li { padding: 3px 0; line-height: 1.55; color: var(--ink); }
+[data-look="console"] .flow-box { fill: var(--panel-2); }
+[data-look="console"] .box.body, [data-look="console"] .trace { border-radius: 6px; }
+@media (max-width: 760px) {
+  table.matrix th[scope="row"] { width: auto; }
+  .learn-filters .cap { margin-left: 0; }
+}
+/* Seven boxes squeezed into a phone are seven boxes nobody can read; the numbered list under the
+   strip says the same thing in words, so the picture steps aside rather than shrinking to noise. */
+@media (max-width: 700px) {
+  .flow { display: none; }
+  .rung-list { margin-top: 0; }
+}
+
+/* What to do about a domain finding (domainfix.ts): collapsed, so a clean report stays a clean
+   report, and the lines to copy set in mono with their own border so a reader can see at a glance
+   where the record begins and ends. */
+.check .fix { margin: 8px 0 0; border-top: 1px dashed var(--rule); padding-top: 6px; }
+.check .fix > summary { cursor: pointer; font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--acc); }
+.check .fix > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.check .fix .lab { margin: 8px 0 2px; color: var(--mute); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
+.fix-lines { margin: 0 0 6px; padding: 8px 10px; background: var(--card-2, var(--card)); border: 1px solid var(--rule); border-radius: 6px; font: 12px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.check .fix .caution { border-left: 2px solid var(--warn); padding-left: 8px; margin: 6px 0; }

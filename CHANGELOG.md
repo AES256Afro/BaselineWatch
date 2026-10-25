@@ -2,6 +2,155 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.53.0 — 2026-10-25
+
+- **The sweeps, closed.** Five security sweeps and five bug sweeps, each on its own ground, then
+  three more rounds until one came back empty. Every finding is in `test/audit-2026-10-25.test.ts`
+  and `test/restricted-channels.test.ts` so it stays found. The two that mattered most were both
+  reachable from a third party: **one control character broke every feed** — `plainText` decoded
+  `&#1;` to a character XML 1.0 cannot carry, and a conformant parser rejects the whole document,
+  so one bad title from one source broke every subscriber's reader for the entire feed — and **a
+  feed could stall the process**, because `/<[^>]+>/g` backtracks at every start position when the
+  `>` never comes: 400 KB of `<` took 49 seconds, against 0.7 ms with `[^<>]`, which means the
+  same thing for a tag. The same shape was in thirty places.
+- **The owner's own words are the owner's.** `/digest` and `/api/v1/digest` are gated for reading,
+  not for the owner, and the digest named the devices with something open on them, the
+  certificates logged for the owner's domains, their watchlist's products and the LAN's sinkhole
+  changes — while the three pages those facts come from each hide them from a visitor. A digest is
+  now written in two halves (migration 0044). A triage note, and a baseline decision's reason and
+  the name of whoever signed it, were public the same way and are not now; the decision itself,
+  which is the teaching value, still is.
+- **Twenty-one pages that differ for the owner said nothing about caching**, on an app built to
+  sit behind a tunnel or a proxy. They are `private, no-cache` and `Vary: Cookie` now; the feeds
+  keep their public cache. The `Secure` flag on the session cookie comes from the owner's
+  configuration rather than an `X-Forwarded-Proto` any believed LAN peer could write.
+- **Smaller**: the two second hops that take a URL from remote content get `publicOnly`; the
+  Pi-hole token no longer follows a redirect; a weekly digest catches up instead of skipping a
+  week when the instance was down on the Monday; the calendar folds at 75 octets without splitting
+  a code point and escapes a lone CR; the two public routes that cost an outbound request have a
+  ceiling as well as a per-address allowance; a download's filename is made header-safe.
+
+- **The Vulnerabilities table opens on what matters.** Ordering twenty-nine thousand CVEs by when
+  NVD last touched them put a page of unscored, zero-EPSS, single-vendor records at the top — the
+  least useful list the data can produce, on the page a practitioner opens first. The default is
+  now **risk**: known exploited, then a public exploit, then EPSS, then CVSS, then recency. The
+  table still holds every CVE and the old order is one click away. On a real instance the first
+  page went from five unscored Chrome records to five KEV'd criticals with public exploits.
+- **Every domain finding now says what to do about it.** The check said what was wrong and quoted
+  the record; a reader who learnt their domain publishes no CAA record was left to go and find out
+  what one looks like. Each row that is not already good carries the record to publish or the
+  header to send, written for the domain that was checked, with the caution that goes with it and
+  a link to the RFC. Three rules: nothing is generated that could break something silently (the
+  SPF fix is a shape with the senders marked as yours to fill, never a finished record), a setting
+  that is not a record says so (DNSSEC and DKIM come from the registrar and the mail provider),
+  and every fix cites the body that defines it.
+- **The table downloads.** `/vulnerabilities.csv` under the same filters and in the same order, up
+  to a thousand rows, with CVSS and EPSS as numbers because something else is going to do
+  arithmetic on them. This instance could already export a baseline, a test plan and the triage
+  board but not the table its own name is about.
+- **Interface**: the News page called itself "a change register for the security standards
+  themselves", which is the Register; the EPSS date was a giant display figure beside six counts,
+  wrapping onto three lines, and is now on the provenance line with the NVD cursor where it
+  belongs; a stat row of seven tiles left five sixths of a row empty on both Today and
+  Vulnerabilities, and now fills it; the Register strip hid the fact that it scrolls, so the
+  releases past the fold were simply gone — it is a labelled, focusable region with a fade and a
+  way out; a Hacker News story with no text of its own printed its score and comment count twice;
+  product names broke mid-word in the table ("adaptive_sec" / "urity_applian"); and on a phone the
+  masthead's search box took a whole row of its own two rows above the page's own search box, and
+  is a link there instead.
+
+## 0.52.0 — 2026-10-25
+
+- **The code audit of 25 October, closed.** A fresh read of the whole surface, then a throwaway
+  script that attacked every function that reads input from outside. What it found, in the order
+  it matters: a link of the form `/\example.net` passed the "a path on this site" test, and a
+  browser reads that the way it reads `//example.net` — `new URL("/\\x", "https://site/")` is
+  `https://x/` — so a feed could put a link on the page that looked like one of this instance's
+  own and walked the reader off it. Microsoft's `Remediation.URL` went from its JSON into an
+  `href` with nothing checking the scheme. Two hundred interpolations draw a link somewhere here,
+  and every one of them relied on its author having remembered; now **the `html` template is the
+  gate**: a whole `href` or `src` coming from a string the code did not write goes through one
+  rule in `src/paths.ts`, and an address that is not one becomes `#`. The rule refuses the
+  backslash the way `safeBack` always did, and migration 0043 drops what was already stored.
+- **A repeated cookie name now reads as the first, not the last.** A browser sends the host-only
+  cookie this app set before any a sibling host set for the shared parent domain, so taking the
+  last let a neighbour on the same domain shadow the session, the look or the notice with one of
+  its own. (It could never forge a valid signature; it could sign the owner out.)
+- **The guard on a host this app may fetch** refuses two more of IANA's special-purpose ranges
+  that a network really can carry a host on — protocol assignments (192.0.0.0/24) and
+  benchmarking (198.18.0.0/15) — plus Teredo (2001::/32) and the discard-only 100::/64. The three
+  documentation ranges are deliberately still public: they route nowhere, so refusing them stops
+  nothing, and they are this project's own stand-in for a public address in every test and guide.
+- **A notice too long to carry** is cut until it fits whichever field ran long. The shrink only
+  ever cut `detail`, so a payload without that field ran the loop to nothing and handed the
+  browser a hundred-kilobyte `Set-Cookie` it drops — the notice simply never arrived.
+- **A CSV cell is not a formula behind a leading control character or space.** A spreadsheet skips
+  those on its way to deciding, and only a leading tab or return was being taken off, so
+  `"\u0000=1+1"` from a feed title was written as a formula. The cell keeps every byte it was
+  given now; the apostrophe is what makes it text.
+- **Smaller things**: a report of five thousand packages read the same advisory row three times
+  for each of its findings, once for the link and twice for the note beside it; the scan area read
+  and hashed every downloadable script twice at start; `boundary=""` was taken as a boundary of
+  two quote characters, and the space a client may put before the parameter was refused; a blob
+  hash that is not one reads as nothing instead of throwing out of a route, as `parseJson` already
+  does for a JSON column; the CVE search and the News search now share one FTS reader, which two
+  copies of could have come to disagree about what counts as syntax.
+- **`/mcp` carries its own allowance** — a hundred and twenty calls a minute per address, the
+  owner uncounted — because it is the one route an anonymous caller can make the database work
+  hard on and it sits ahead of the same-origin guard; and it takes a request the size a tool call
+  is (256 KB) rather than the SDK's four megabytes.
+- **`/api/v1/vulns` reaches every filter the page has**: severity, platform, a watchlist label,
+  having a public exploit, an EPSS band, and the "new" and "changed" windows in hours. It reads
+  them through the same validated reader the Vulnerabilities page uses, so the two cannot come to
+  disagree about what a filter means, and a loose second copy of that parsing is gone.
+
+## 0.51.0 — 2026-10-23
+
+- **The code audit of 23 October, closed.** A fresh read of the modules the night's security
+  read had not covered found four things worth changing: the sign-in brake could be started
+  afresh from the LAN by forging `X-Forwarded-For`, since every private address was a believed
+  proxy — it now counts the connection's own address too, and the proxies to believe are a
+  setting, `BW_TRUSTED_PROXIES`, with the former behaviour as its default; one malformed NVD
+  record failed its page on every run and stalled the stream — it is skipped and logged; a
+  licensed source's release entry named the settings that moved in the API and the feeds — it
+  is withheld there, as that content already is; the LaTeX escaper doubled up on a backslash.
+- **Dependencies**: express's body-parser (a denial of service through a compressed body) and
+  fast-uri under ajv, both fixed within their declared ranges; the MCP SDK's patch release; the
+  test runner moved to vitest 5, whose predecessor's tool chain carried two critical advisories.
+  `npm audit` reports nothing at any severity.
+
+## 0.50.0 — 2026-10-22
+
+- **Learn, at `/learn`: where a rule comes from.** The ladder says what a standard, baseline,
+  control and setting are; it never said where the rulebook itself came from. A new page draws the
+  whole chain — law and contract, policy, framework, control catalogue, baseline, configuration
+  setting, check and evidence — as a strip and then as a matrix whose rows are those steps and
+  whose columns are who the publisher writes for: US federal civilian, US defense, NASA, private
+  business, outside the US. Reading across one row gives the same job as NIST, DISA, CNSS, NASA's
+  CSET, CIS, Microsoft, the NSA, the ACSC and the NCSC each answer it, and two filters narrow to
+  one audience or one step. Last in the Standards menu, under "Where it all comes from".
+- **Thirty-five publishers, each with its own address and what it takes to read it.** Every body
+  carries what it derives from, what derives from it, and every address its own words live at,
+  marked public, free account, agency sign-in or your own licence. An agency-only link is public
+  knowledge of where a document lives and never the document: NASA's ASCS specifications stay
+  internal, and nothing restricted is reproduced. Where this instance tracks a body, its card
+  shows the version held beside the publisher's own address.
+- **The same control, traced three ways.** A device locking after a period of inactivity, carried
+  down a federal ladder, a DoD ladder and a private-business ladder. The control barely changes;
+  everything above and below it does, and the private chain's empty policy rung is the point.
+- **Every standard's page now says where it comes from**: its publisher, the step it sits on, what
+  it derives from, what derives from it, and — the question the page was silent about — the other
+  bodies answering the same step. The STIG library page now names the GPO and Intune packages,
+  Microsoft's baselines, CIS Benchmarks and the NSA's information sheets as the alternatives.
+- **A names-that-collide box**, because most of the difficulty in learning this field is that
+  several real things share a name: the three CSETs (NASA's standards team, CISA's assessment
+  tool, Georgetown's research centre), FISMA against FISA, CSI against CIS, NIST against CSRC
+  against NVD, and 800-53 against 53A against 53B.
+- The Learning section has a plan of its own, [docs/LEARN.md](docs/LEARN.md), L1 to L6: the
+  section's shape, a glossary, traces drawn from loaded data rather than written by hand, a
+  searchable and tool-readable chain, a nightly probe over the registry's addresses, and the
+  handout and accessibility pass that close M17's last two items.
+
 ## 0.49.0 — 2026-10-22
 
 - **Mail from this site is named by this site.** The notifier's SMTP client gave EHLO and its
