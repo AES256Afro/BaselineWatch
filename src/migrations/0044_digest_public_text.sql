@@ -1,0 +1,11 @@
+-- The audit of 25 October: the digest names the owner's devices and what is open on them, the
+-- certificates the transparency logs hold for their domains, their watchlist's products and the
+-- LAN's sinkhole changes — and `/digest` and `/api/v1/digest` are gated for reading, not for the
+-- owner, so on a read-open instance everyone could fetch it. The three pages those facts come
+-- from each hide them from a visitor; the digest was handing all three over in one block.
+--
+-- A digest is now written twice: `text` as it always was, for the owner and for the notifier that
+-- goes to their own endpoint, and `public_text` with the owner's own network left out. Rows
+-- written before this version have no public half, and NULL is read as "the owner's" — a visitor
+-- is told the digest is theirs rather than shown a guess at which lines were safe.
+ALTER TABLE digests ADD COLUMN public_text TEXT;

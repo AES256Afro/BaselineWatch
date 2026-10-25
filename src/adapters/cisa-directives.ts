@@ -44,10 +44,10 @@ export function parseDirectivesPage(html: string): { directives: Directive[]; to
     const body = row[1] ?? "";
     const href = /<a\s+href="(\/news-events\/directives\/[^"]+)"/.exec(body)?.[1];
     if (!href) continue;
-    const rawTitle = /<a\s+href="\/news-events\/directives\/[^"]+"[^>]*>\s*(?:<span>)?([\s\S]*?)(?:<\/span>)?\s*<\/a>/.exec(body)?.[1] ?? "";
+    const rawTitle = /<a\s+href="\/news-events\/directives\/[^"]+"[^<>]*>\s*(?:<span>)?([\s\S]*?)(?:<\/span>)?\s*<\/a>/.exec(body)?.[1] ?? "";
     const title = plainText(rawTitle, 300);
     if (!title) continue;
-    const datetime = /<time[^>]*datetime="([^"]+)"/.exec(body)?.[1];
+    const datetime = /<time[^<>]*datetime="([^"]+)"/.exec(body)?.[1];
     const meta = plainText(/c-teaser__meta">([\s\S]*?)<\/div>/.exec(body)?.[1], 100);
     const code = /\b(BOD|ED)\s+(\d{2}-\d{2})\b/.exec(title);
     const date = datetime ? new Date(datetime) : null;

@@ -1,4 +1,5 @@
 import { strToU8, zipSync } from "fflate";
+import { xmlSafe } from "./html.ts";
 
 /**
  * One document, three typeset forms. A report is a list of blocks (title, headings, paragraphs,
@@ -331,9 +332,6 @@ export function renderLatex(input: Block[], style: ReportStyle = plainStyle): st
 // ---------------------------------------------------------------------------------------------
 // Word
 
-/** Drops the characters XML 1.0 cannot carry: the C0 controls but tab, newline and return. */
-// eslint-disable-next-line no-control-regex
-const xmlSafe = (s: string): string => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, "");
 const xml = (s: string): string => xmlSafe(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function docxRun(r: Inline, options: { mono?: string | null; color?: string | null } = {}): string {

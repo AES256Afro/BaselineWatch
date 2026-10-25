@@ -14,7 +14,11 @@ export function mountFeeds(r: RouteContext): void {
   const { app, config, db, now, who } = r;
   const send = (res: Response, type: string, body: string): void => {
     res.setHeader("Content-Type", type);
+    // A feed is the same for everyone — `publicSummary` withholds a licensed summary and the
+    // reader's own unread marks are not in it — so it overrides the pages' private default and
+    // drops the Vary a shared cache would otherwise key on.
     res.setHeader("Cache-Control", "public, max-age=300");
+    res.removeHeader("Vary");
     res.send(body);
   };
   const self = (path: string): string => `${config.baseUrl}${path}`;

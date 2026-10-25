@@ -137,12 +137,12 @@ export function parsePublicationPage(html: string, url: string): PublicationPage
   };
   const links = (prefix: string): PublicationLink[] => {
     const out: PublicationLink[] = [];
-    const re = new RegExp(`<a href="([^"]*)"\\s+id="pub-${prefix}-\\d+"[^>]*>([\\s\\S]*?)</a>`, "gi");
+    const re = new RegExp(`<a href="([^"]*)"\\s+id="pub-${prefix}-\\d+"[^<>]*>([\\s\\S]*?)</a>`, "gi");
     for (const m of html.matchAll(re)) out.push({ url: resolve(m[1]!, url), text: plainText(m[2], 200) ?? "" });
     return out;
   };
   const history: PublicationPage["history"] = [];
-  for (const m of html.matchAll(/<(a|span)\s+(?:href="([^"]*)"\s+)?id="pub-history-link-\d+"\s+data-current-document='(true|false)'[^>]*>([\s\S]*?)<\/\1>/gi)) {
+  for (const m of html.matchAll(/<(a|span)\s+(?:href="([^"]*)"\s+)?id="pub-history-link-\d+"\s+data-current-document='(true|false)'[^<>]*>([\s\S]*?)<\/\1>/gi)) {
     history.push({ url: m[2] ? resolve(m[2], url) : url, text: plainText(m[4], 200) ?? "", current: m[3] === "true" });
   }
   const pdf = /<a href="([^"]*)"\s+id="pub-local-download-link"/i.exec(html)?.[1];

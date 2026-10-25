@@ -30,11 +30,11 @@ export function appleLine(name: string): string | null {
 
 export function parseAppleReleases(html: string, limit = appleReleaseLimit): ParsedItem[] {
   const items: ParsedItem[] = [];
-  for (const row of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
-    const cells = [...row[1]!.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((c) => c[1]!);
+  for (const row of html.matchAll(/<tr[^<>]*>([\s\S]*?)<\/tr>/g)) {
+    const cells = [...row[1]!.matchAll(/<td[^<>]*>([\s\S]*?)<\/td>/g)].map((c) => c[1]!);
     if (cells.length < 3) continue;
-    const link = /<a\s[^>]*href="(https:\/\/support\.apple\.com\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(cells[0]!);
-    const name = plainText(link ? link[2] : (/<p[^>]*>([\s\S]*?)<\/p>/.exec(cells[0]!)?.[1] ?? cells[0]), 200);
+    const link = /<a\s[^<>]*href="(https:\/\/support\.apple\.com\/[^"]+)"[^<>]*>([\s\S]*?)<\/a>/.exec(cells[0]!);
+    const name = plainText(link ? link[2] : (/<p[^<>]*>([\s\S]*?)<\/p>/.exec(cells[0]!)?.[1] ?? cells[0]), 200);
     if (!name) continue;
     const note = link ? null : plainText(/<div class="note[^"]*">([\s\S]*?)<\/div>/.exec(cells[0]!)?.[1], 300);
     const devices = plainText(cells[1], 400);
