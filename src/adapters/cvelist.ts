@@ -219,7 +219,9 @@ export const cvelistAdapter: Adapter = {
       const delta = (release.assets ?? []).find((a) => deltaName.test(a.name));
       if (delta) {
         if (zips > 0) await sleep(pauseMs);
-        const zip = await ctx.http(delta.browser_download_url, { timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024 });
+        // The release names its own asset URL, so this is a remote-supplied address like any
+        // other: a public host only, as the msrc adapter's second hop already insists.
+        const zip = await ctx.http(delta.browser_download_url, { timeoutMs: 180_000, maxBytes: 100 * 1024 * 1024, publicOnly: true });
         zips += 1;
         const entries = unzipAll(zip.bytes).filter((e) => recordName.test(e.name));
         const records = entries.map((e) => JSON.parse(new TextDecoder("utf-8").decode(e.bytes)) as CveRecord);

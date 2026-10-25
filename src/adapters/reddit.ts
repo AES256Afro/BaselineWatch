@@ -71,7 +71,7 @@ function fromJson(listing: RedditListing): ParsedItem[] {
 
 /** The outbound link in a Reddit Atom entry's HTML: the anchor whose text is "[link]". */
 function outboundLink(contentHtml: string): string | null {
-  const match = /href="([^"]+)"[^>]*>\s*\[link\]/i.exec(contentHtml);
+  const match = /href="([^"]+)"[^<>]*>\s*\[link\]/i.exec(contentHtml);
   if (!match?.[1]) return null;
   return match[1].replace(/&amp;/g, "&");
 }

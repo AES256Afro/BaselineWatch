@@ -39,7 +39,13 @@ export function putBlob(dataDir: string, bytes: Uint8Array): StoredBlob {
   return { sha256, bytes: bytes.byteLength, relativePath, absolutePath, created: true };
 }
 
+/**
+ * The bytes behind a hash, or nothing. A value that is not a sha256 digest reads as nothing
+ * rather than throwing: every caller is a route asking whether a blob is there, and a row written
+ * by an older version is not a reason for a 500 — the same rule json.ts keeps for a JSON column.
+ */
 export function getBlob(dataDir: string, sha256: string): Buffer | null {
+  if (!/^[0-9a-f]{64}$/.test(sha256)) return null;
   const absolutePath = path.join(dataDir, blobRelativePath(sha256));
   return existsSync(absolutePath) ? readFileSync(absolutePath) : null;
 }

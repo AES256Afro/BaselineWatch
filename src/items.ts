@@ -1,11 +1,14 @@
 import type { DatabaseSync } from "node:sqlite";
 import { canonicalUrl, type ParsedItem } from "./adapters/types.ts";
+import { safeHref } from "./paths.ts";
 
-/** A link worth keeping: http(s), or one of this site's own paths. A feed's javascript: or data: "link" is dropped. */
+/**
+ * A link worth keeping: http(s), mailto, or one of this site's own paths. A feed's `javascript:`
+ * or `data:` "link" is dropped, and so is the `/\evil.com` form a browser reads as another site.
+ * The rule itself lives in paths.ts, because the pages apply the same one as they draw.
+ */
 export function safeUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const trimmed = url.trim();
-  return /^https?:\/\/./i.test(trimmed) || /^\/(?!\/)/.test(trimmed) ? trimmed : null;
+  return safeHref(url);
 }
 
 /** Inserts new timeline items and updates changed ones; read and starred flags are never touched. */

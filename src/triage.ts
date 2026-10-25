@@ -82,7 +82,21 @@ export interface TriageCard extends TriageRow {
  * Every triaged subject, newest first, joined to its item, CVE or requirement. A requirement of a
  * licence-restricted source is named only when the owner is asking (`owner`); the API never is.
  */
-export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number; owner?: boolean } = {}): TriageCard[] {
+/**
+ * The board's cards. Two different things may be withheld, and conflating them on one `owner`
+ * flag is what let the second one out until the audit of 25 October:
+ *
+ * - `notes`: the owner's own note on a card — their working text, up to two thousand characters of
+ *   what they think about a CVE or a control. `/triage` and `/api/v1/triage` are gated for
+ *   *reading*, not for the owner, so on a read-open instance it was public. It follows who is
+ *   asking: the owner's own agent reads their notes through the API, a visitor does not.
+ * - `restrictedLabels`: a restricted standard's requirement label and text. This is a licence
+ *   term, not a privacy one, so it is false for the API and the feeds **even for the owner** —
+ *   the API is how content would get redistributed — and true only where a page draws it.
+ *
+ * The state, the subject and the due date stay public either way: those are what the board teaches.
+ */
+export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number; notes?: boolean; restrictedLabels?: boolean } = {}): TriageCard[] {
   const params: (string | number)[] = [];
   let where = "";
   if (options.state) {
@@ -108,24 +122,28 @@ export function listTriage(db: DatabaseSync, options: { state?: TriageState | un
     )
     .all(...params, Math.min(options.limit ?? 200, 500)) as unknown as (TriageRow & Record<string, unknown>)[];
 
+  // The owner's own note, kept or dropped once rather than at each of the places that draw it.
+  const note = (r: { note: string | null }): string | null => (options.notes ? r.note : null);
   return rows.map((r) => {
     if (r.subject_kind === "item") {
       const signals = parseJson<Record<string, unknown>>(r.item_signals as string | null, {});
-      return { ...r, title: (r.item_title as string) ?? "(item removed)", url: (r.item_url as string) ?? "/", detail: (r.item_summary as string | null) ?? null, signals: { ...signals, itemKind: r.item_kind } };
+      return { ...r, note: note(r), title: (r.item_title as string) ?? "(item removed)", url: (r.item_url as string) ?? "/", detail: (r.item_summary as string | null) ?? null, signals: { ...signals, itemKind: r.item_kind } };
     }
     if (r.subject_kind === "vuln") {
       const vendors = parseJson<string[]>(r.vuln_vendors as string | null, []);
       return {
         ...r,
+        note: note(r),
         title: `${r.vuln_cve ?? "CVE"}${vendors.length ? ` · ${vendors.slice(0, 2).join(", ")}` : ""}`,
         url: `/vulnerabilities/${r.vuln_cve}`,
         detail: (r.vuln_description as string | null) ?? null,
         signals: { cvss: r.vuln_cvss, epss: r.vuln_epss, kev: r.vuln_kev === 1 },
       };
     }
-    const withheld = r.doc_restricted === 1 && !options.owner;
+    const withheld = r.doc_restricted === 1 && !options.restrictedLabels;
     return {
       ...r,
+      note: note(r),
       subject_key: withheld ? "" : r.subject_key,
       title: `${withheld ? withheldLabel : `${r.req_label ?? r.subject_key.toUpperCase()} ${r.req_title ?? ""}`} (${r.doc_standard ?? r.doc_source ?? "standard"} ${r.doc_version ?? ""})`.trim(),
       url: withheld ? `/standards/${r.doc_source}/${r.subject_id}` : `/standards/${r.doc_source}/${r.subject_id}/${r.subject_key}`,
@@ -157,7 +175,7 @@ export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: 
 
 /** The owner's download, so every card is named. */
 export function triageCsv(db: DatabaseSync): string {
-  const cards = listTriage(db, { limit: 500, owner: true });
+  const cards = listTriage(db, { limit: 500, notes: true, restrictedLabels: true });
   const lines = ["state,kind,title,url,note,due,updated"];
   for (const c of cards) lines.push(csvLine([c.state, c.subject_kind, c.title, c.url, c.note ?? "", c.due_at ?? "", c.updated_at]));
   return `${lines.join("\n")}\n`;

@@ -334,7 +334,9 @@ async function clientCount(db: DatabaseSync, http: HttpGet): Promise<{ count: Cl
   const piholeToken = getSetting(db, netSettingKeys.piholeToken);
   if (piholeUrl && piholeToken) {
     try {
-      const response = await http(`${piholeUrl.replace(/\/+$/, "")}/admin/api.php?summaryRaw&auth=${encodeURIComponent(piholeToken)}`, { timeoutMs: 10_000 });
+      // Pi-hole's API takes the token in the query string, so a redirect must not be followed:
+      // the credential would travel to wherever the 3xx points. The notifier keeps the same rule.
+      const response = await http(`${piholeUrl.replace(/\/+$/, "")}/admin/api.php?summaryRaw&auth=${encodeURIComponent(piholeToken)}`, { timeoutMs: 10_000, maxBytes: 1024 * 1024, redirect: "manual" });
       const summary = JSON.parse(new TextDecoder().decode(response.bytes)) as { unique_clients?: unknown };
       const clients = Number(summary.unique_clients);
       if (Number.isFinite(clients)) return { count: { clients, source: "pihole" }, note: null };
@@ -348,7 +350,9 @@ async function clientCount(db: DatabaseSync, http: HttpGet): Promise<{ count: Cl
   if (adguardUrl && adguardToken) {
     try {
       const auth = Buffer.from(adguardToken, "utf8").toString("base64");
-      const response = await http(`${adguardUrl.replace(/\/+$/, "")}/control/stats`, { timeoutMs: 10_000, headers: { authorization: `Basic ${auth}` } });
+      // fetch strips an Authorization header across origins, but a redirect to another path on
+      // the same host would still carry it; this API answers directly or not at all.
+      const response = await http(`${adguardUrl.replace(/\/+$/, "")}/control/stats`, { timeoutMs: 10_000, maxBytes: 1024 * 1024, redirect: "manual", headers: { authorization: `Basic ${auth}` } });
       const stats = JSON.parse(new TextDecoder().decode(response.bytes)) as { top_clients?: unknown };
       if (Array.isArray(stats.top_clients)) return { count: { clients: stats.top_clients.length, source: "adguard" }, note: null };
       return { count: null, note: "adguard: no client list in the answer" };

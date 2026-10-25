@@ -5,7 +5,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 
 import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
 
-import { authState, issueSession, LoginThrottle, passwordMatches, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
+import { authState, issueSession, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
 
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
@@ -121,11 +121,15 @@ export function createApp(ctx: AppContext): Express {
   const lookOf = (req: Request): LookState => ({ ...lookState(req, config), brand: readBrand(db) });
   const brandMarks = readBrandMarks(path.join(import.meta.dirname, "..", "docs", "mockups", "logo"));
   const throttle = new LoginThrottle();
+  // A second brake on the connection's own address. The default proxy trust believes every
+  // private address, so a LAN host could rotate X-Forwarded-For and start the count afresh each
+  // try; forty failures in ten minutes from one peer end its turn whatever address it claims.
+  const peerThrottle = new LoginThrottle(40, 10 * 60 * 1000);
   const app = express();
   setSiteBase(config.baseUrl);
   app.disable("x-powered-by");
   app.set("etag", "weak");
-  app.set("trust proxy", "loopback, linklocal, uniquelocal");
+  app.set("trust proxy", config.trustedProxies);
   app.use(securityHeaders);
   if (config.baseUrl.startsWith("https://")) {
     // Behind TLS (a tunnel or a proxy), tell browsers to stay on it.
@@ -143,10 +147,19 @@ export function createApp(ctx: AppContext): Express {
   // The MCP endpoint: the read-only API as tools for agents. It sits before the same-origin guard
   // because its clients are programs, not pages, and nothing it offers writes. Stateless: one
   // server and transport per POST, no sessions, so GET (a stream) and DELETE (a session) are not.
+  //
+  // It is the one route an anonymous caller can make the database work hard on, and it sits ahead
+  // of the same-origin guard, so it carries its own allowance: generous enough that an agent
+  // working through a question never notices, narrow enough that it is not a free amplifier.
+  const mcpCalls = new RateWindow(120, 60_000);
   app.post("/mcp", async (req, res) => {
     const state = authState(req, config, now().getTime());
     if (!config.publicRead && !state.owner) {
       res.status(401).json({ jsonrpc: "2.0", error: { code: -32001, message: "Reading is not public on this instance; sign in first." }, id: null });
+      return;
+    }
+    if (!state.owner && !mcpCalls.allow(throttleKey(req.ip), now().getTime())) {
+      res.status(429).set("Retry-After", "60").json({ jsonrpc: "2.0", error: { code: -32000, message: "Too many calls from this address; a hundred and twenty a minute is the allowance." }, id: null });
       return;
     }
     try {
@@ -194,7 +207,7 @@ export function createApp(ctx: AppContext): Express {
     handler(req, res);
   };
   app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery))));
+  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now()))));
   app.get("/api/v1/vulns/:cve", apiRead((req, res) => {
     const v = apiVuln(db, String(req.params.cve));
     if (!v) return res.status(404).json({ error: "no such CVE" });
@@ -202,8 +215,8 @@ export function createApp(ctx: AppContext): Express {
   }));
   app.get("/api/v1/standards", apiRead((_req, res) => json(res, { standards: apiStandards(db, config.baseUrl) })));
   app.get("/api/v1/changes", apiRead((req, res) => json(res, { changes: apiChanges(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/digest", apiRead((_req, res) => json(res, { digest: apiDigest(db) })));
+  app.get("/api/v1/triage", apiRead((req, res) => json(res, { triage: apiTriage(db, req.query as ApiQuery, config.baseUrl, authState(req, config, now().getTime()).owner) })));
+  app.get("/api/v1/digest", apiRead((req, res) => json(res, { digest: apiDigest(db, authState(req, config, now().getTime()).owner) })));
 
   // The health answer is public so a monitor can poll it; on an instance closed to readers it says only that the app is up.
   const health = (req: Request, res: Response): void => {
@@ -260,7 +273,30 @@ export function createApp(ctx: AppContext): Express {
     );
   });
 
-  const secureCookies = (req: Request): boolean => req.secure || config.baseUrl.startsWith("https://");
+  // Everything from here on is a page, and a page differs for the owner: their triage notes,
+  // their sources, their branding form, the controls on every list. This app is meant to sit
+  // behind a tunnel or a reverse proxy (BW_TRUSTED_PROXIES, an https base URL), and a shared
+  // cache there would be entitled to store the owner's copy and hand it to the next visitor —
+  // twenty-one pages said nothing at all about caching before the audit of 25 October. The
+  // assets, the branding images, /img and the feeds set their own directives after this and so
+  // keep their long or public caches; `no-cache` means revalidate, not "do not store", so a
+  // private cache in the owner's own browser still works as it did.
+  app.use((_req, res, next) => {
+    res.setHeader("Cache-Control", "private, no-cache");
+    res.setHeader("Vary", "Cookie");
+    next();
+  });
+
+  /**
+   * Whether a cookie may be marked `Secure`, decided from what this instance knows rather than
+   * from a header a peer can write. `req.secure` reads `X-Forwarded-Proto`, which the default
+   * proxy trust believes from every private address — so a LAN host could send
+   * `X-Forwarded-Proto: https` to a plain-HTTP instance, get the session cookie marked `Secure`,
+   * and the browser would then refuse to send it: the owner cannot stay signed in, and nothing
+   * says why. The configured base URL is the owner's own statement, and `encrypted` is the real
+   * socket; neither is forgeable from the outside.
+   */
+  const secureCookies = (req: Request): boolean => config.baseUrl.startsWith("https://") || (req.socket as { encrypted?: boolean }).encrypted === true;
 
   // Sign-in is reachable even when reading is closed.
   app.get("/login", (req, res) => {
@@ -272,16 +308,19 @@ export function createApp(ctx: AppContext): Express {
     const next = safeBack(((req.body ?? {}) as Record<string, unknown>).next, "/");
     if (state.open) return res.redirect(303, next);
     const key = throttleKey(req.ip);
-    if (throttle.blocked(key, now().getTime())) {
+    const peer = throttleKey(req.socket.remoteAddress ?? undefined);
+    if (throttle.blocked(key, now().getTime()) || peerThrottle.blocked(peer, now().getTime())) {
       return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookOf(req) }));
     }
     const given = ((req.body ?? {}) as Record<string, unknown>).password;
     // The configured password is read trimmed, so the typed one is compared the same way.
     if (typeof given !== "string" || !config.adminPassword || !passwordMatches(config.adminPassword, given.trim())) {
       throttle.fail(key, now().getTime());
+      peerThrottle.fail(peer, now().getTime());
       return res.status(401).type("html").send(renderLogin({ next, open: false, error: "That password is not right.", look: lookOf(req) }));
     }
     throttle.clear(key);
+    peerThrottle.clear(peer);
     res.setHeader("Set-Cookie", sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)));
     res.redirect(303, next);
   });

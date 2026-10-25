@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 /**
  * NVD's CPE match criteria with their version ranges: one row per cpeMatch entry of a CVE's
- * configurations, in vuln_cpe_matches (migration 0043). vulns.cpes_json keeps the vulnerable
+ * configurations, in vuln_cpe_matches (migration 0045). vulns.cpes_json keeps the vulnerable
  * criteria strings as before; this table adds the bounds NVD attaches to a criterion, so a later
  * change can ask whether version X of vendor:product falls inside any of them. Nothing matches an
  * installed application against them yet; rangesFor() is the one reader.

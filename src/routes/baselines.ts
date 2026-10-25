@@ -8,10 +8,11 @@ import { renderTestPlan } from "../pages/testplans.ts";
 import { renderPlatforms } from "../pages/platforms.ts";
 import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, type PlanOptions } from "../testplans.ts";
 import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "../baselines.ts";
-import { exportProfile, isExportFormat, isFlavour, publicProfile, type Flavour } from "../exports.ts";
+import { exportProfile, isExportFormat, isFlavour, publicDecisions, publicProfile, type Flavour } from "../exports.ts";
 
 import { productVersion } from "../version.ts";
 
+import { safeFilename } from "../paths.ts";
 import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
 
@@ -64,7 +65,7 @@ export function mountBaselines(r: RouteContext): void {
     const profile = buildProfile(db, profileOptions(platform, fields));
     // A reader who is not the owner takes the profile without Microsoft's values: on screen only, never in bulk.
     const out = exportProfile(who(req, res).owner ? profile : publicProfile(profile), format, flavourOf(fields), { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
-    res.setHeader("Content-Disposition", `attachment; filename="${out.filename}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(out.filename)}"`);
     res.setHeader("Cache-Control", "no-store");
     res.type(out.contentType).send(out.body);
   };
@@ -73,37 +74,46 @@ export function mountBaselines(r: RouteContext): void {
   // Decisions: the owner's answer to each item's recommendation (apply, modify, exclude), stored.
   // The board lists them per platform (and as CSV); the decide page shows one item against its
   // recommendation. CAT III rules are included so a decision on one is always reachable.
-  const decisionProfile = (platform: ProfileOptions["platform"], fields: Record<string, unknown>) => buildProfile(db, { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), sct: str(fields.sct, 160), cat3: true });
+  // A page may quote Microsoft's values (licence) but not the organisation's reason for a
+  // decision or the name of whoever signed it (theirs), so the pages take publicDecisions and the
+  // downloads take publicProfile, which does both.
+  const decisionProfile = (platform: ProfileOptions["platform"], fields: Record<string, unknown>, owner: boolean) => {
+    const profile = buildProfile(db, { platform, stig: str(fields.stig, 160), mscp: str(fields.mscp, 160), sct: str(fields.sct, 160), cat3: true });
+    return owner ? profile : publicDecisions(profile);
+  };
   app.get("/baselines/:platform/decisions", (req, res, next) => {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
     const saved = Number(str(req.query.saved, 6) ?? "");
-    res.type("html").send(renderDecisionBoard({ profile: decisionProfile(platform, req.query as Record<string, unknown>), ...(Number.isInteger(saved) && saved >= 0 && req.query.saved !== undefined ? { saved } : {}), ...who(req, res) }));
+    const w = who(req, res);
+    res.type("html").send(renderDecisionBoard({ profile: decisionProfile(platform, req.query as Record<string, unknown>, w.owner), ...(Number.isInteger(saved) && saved >= 0 && req.query.saved !== undefined ? { saved } : {}), ...w }));
   });
   app.get("/baselines/:platform/decisions.csv", (req, res, next) => {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
-    const profile = decisionProfile(platform, req.query as Record<string, unknown>);
-    res.setHeader("Content-Disposition", `attachment; filename="baselinewatch-${platform}-decisions.csv"`);
+    const w = who(req, res);
+    const profile = decisionProfile(platform, req.query as Record<string, unknown>, w.owner);
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(`baselinewatch-${platform}-decisions.csv`)}"`);
     res.setHeader("Cache-Control", "no-store");
     // Microsoft's values are quoted on screen only: a reader who is not the owner downloads the decisions without them.
-    res.type("text/csv; charset=utf-8").send(decisionsCsv(who(req, res).owner ? profile : publicProfile(profile), config.baseUrl));
+    res.type("text/csv; charset=utf-8").send(decisionsCsv(w.owner ? profile : publicProfile(profile), config.baseUrl));
   });
   app.get("/baselines/:platform/decide", (req, res, next) => {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
     const id = str(req.query.item, 300);
-    const profile = decisionProfile(platform, req.query as Record<string, unknown>);
+    const w = who(req, res);
+    const profile = decisionProfile(platform, req.query as Record<string, unknown>, w.owner);
     const item = id ? profile.items.find((i) => i.id === id) : undefined;
     if (!item) return next();
-    res.type("html").send(renderDecide({ profile, item, saved: str(req.query.saved) === "1", ...who(req, res) }));
+    res.type("html").send(renderDecide({ profile, item, saved: str(req.query.saved) === "1", ...w }));
   });
   app.post("/baselines/:platform/decide", requireOwner, (req, res, next) => {
     const platform = String(req.params.platform);
     if (!isBuilderPlatform(platform)) return next();
     const fields = (req.body ?? {}) as Record<string, unknown>;
     const id = str(fields.item, 300);
-    const item = id ? decisionProfile(platform, fields).items.find((i) => i.id === id) : undefined;
+    const item = id ? decisionProfile(platform, fields, true).items.find((i) => i.id === id) : undefined;
     if (!item || !isDecisionKind(fields.decision)) return void res.status(400).type("text").send("Pick an item and a decision.");
     saveDecision(db, platform, item.id, { decision: fields.decision, value: str(fields.value, 500) ?? null, reason: str(fields.reason, 2000) ?? null, owner: str(fields.owner, 120) ?? null }, now());
     res.redirect(303, `/baselines/${platform}/decide?item=${encodeURIComponent(item.id)}&saved=1`);
@@ -177,7 +187,7 @@ export function mountBaselines(r: RouteContext): void {
     const platform = String(req.params.platform);
     if (!isPlanPlatform(platform)) return next();
     const out = exportPlan(buildTestPlan(db, planOptions(platform, fields)), isPlanFormat(fields.format) ? fields.format : "json", { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
-    res.setHeader("Content-Disposition", `attachment; filename="${out.filename}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(out.filename)}"`);
     res.setHeader("Cache-Control", "no-store");
     res.type(out.contentType).send(typeof out.body === "string" ? out.body : Buffer.from(out.body));
   };

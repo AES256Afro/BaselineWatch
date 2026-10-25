@@ -133,16 +133,32 @@ function writeSetting(ctx: PullContext, key: string, value: string): void {
 }
 
 /** Stores a page of records, returning counts and the alerts worth raising. Exported so tests and the CLI can load fixtures without the network. */
-export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: { cve: NvdCve }[]): { inserted: number; updated: number; alerts: AlertDraft[] } {
+export function storeNvdRecords(
+  ctx: Pick<PullContext, "db" | "now"> & Partial<Pick<PullContext, "log">>,
+  records: { cve: NvdCve }[],
+): { inserted: number; updated: number; skipped: number; alerts: AlertDraft[] } {
   const watch = loadWatchlist(ctx.db);
   const observedAt = ctx.now().toISOString();
   let inserted = 0;
   let updated = 0;
+  let skipped = 0;
   const alerts: AlertDraft[] = [];
   ctx.db.exec("BEGIN IMMEDIATE");
   try {
     for (const { cve } of records) {
-      const result = upsertVuln(ctx.db, normalizeNvd(cve), observedAt, watch);
+      // One malformed record (no id, descriptions not a list) must not stall the stream: the page
+      // would fail the same way on every run and the cursor would never move. Reading the record
+      // is pure, so it is skipped and said; the write that follows is the database's and still throws.
+      let normalized: ReturnType<typeof normalizeNvd>;
+      try {
+        normalized = normalizeNvd(cve);
+      } catch (error) {
+        skipped += 1;
+        const id = (cve as { id?: unknown } | undefined)?.id;
+        ctx.log?.(`[nvd] skipped a record (${typeof id === "string" ? id : "no id"}): ${error instanceof Error ? error.message : String(error)}`);
+        continue;
+      }
+      const result = upsertVuln(ctx.db, normalized, observedAt, watch);
       if (result.isNew) inserted += 1;
       else if (result.changes.length) updated += 1;
       if ((result.isNew || result.changes.length) && isNotable(result.row, result.isNew, observedAt)) {
@@ -166,7 +182,7 @@ export function storeNvdRecords(ctx: Pick<PullContext, "db" | "now">, records: {
     ctx.db.exec("ROLLBACK");
     throw error;
   }
-  return { inserted, updated, alerts };
+  return { inserted, updated, skipped, alerts };
 }
 
 /**
@@ -219,7 +235,7 @@ export const nvdAdapter: Adapter = {
           const modified = nvdDate(cve.lastModified);
           if (modified && new Date(modified) > newestSeen) newestSeen = new Date(modified);
         }
-        ctx.log(`[nvd] ${nvdStamp(windowStart).slice(0, 16)} → ${nvdStamp(windowEnd).slice(0, 16)}: ${startIndex + records.length}/${body.totalResults} (${counts.inserted} new, ${counts.updated} changed)`);
+        ctx.log(`[nvd] ${nvdStamp(windowStart).slice(0, 16)} → ${nvdStamp(windowEnd).slice(0, 16)}: ${startIndex + records.length}/${body.totalResults} (${counts.inserted} new, ${counts.updated} changed${counts.skipped ? `, ${counts.skipped} skipped` : ""})`);
         startIndex += body.resultsPerPage || pageSize;
         if (startIndex >= body.totalResults || records.length === 0) break;
       }
