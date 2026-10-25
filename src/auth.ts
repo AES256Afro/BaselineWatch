@@ -41,12 +41,18 @@ export function parseCookies(header: string | undefined): Record<string, string>
   for (const part of header.split(";")) {
     const eq = part.indexOf("=");
     if (eq <= 0) continue;
+    const name = part.slice(0, eq).trim();
+    // The first of a repeated name wins. A browser sends the most specific cookie first — the
+    // host-only one this app set — then any a sibling host set for the shared parent domain, so
+    // taking the last would let a neighbour on the same domain shadow the session, the look or
+    // the notice with one of its own.
+    if (Object.hasOwn(out, name)) continue;
     const value = part.slice(eq + 1).trim();
     // A sibling site on the same domain may set a cookie with a bare %; it is not ours to fail on.
     try {
-      out[part.slice(0, eq).trim()] = decodeURIComponent(value);
+      out[name] = decodeURIComponent(value);
     } catch {
-      out[part.slice(0, eq).trim()] = value;
+      out[name] = value;
     }
   }
   return out;

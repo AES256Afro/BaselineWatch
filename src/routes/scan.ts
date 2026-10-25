@@ -26,6 +26,7 @@ import { readScanScripts, scanScriptFiles, sumsFile, sumsText } from "../scan-sc
 
 import { parseNotifyUrl } from "../notify.ts";
 
+import { safeFilename } from "../paths.ts";
 import { str } from "./query.ts";
 import { publicDir, type RouteContext } from "./context.ts";
 
@@ -64,10 +65,18 @@ export function mountScan(r: RouteContext): void {
   // One InternetDB lookup, of a public address, when the visitor asks; a visitor may ask about
   // their own address a few times, not about the internet.
   const lookedUp = new RateWindow(6, 10 * 60_000);
+  // …and the instance as a whole has a ceiling. The per-address allowances below are keyed on the
+  // /64, which one visitor cannot rotate past — but a thousand addresses each within their own
+  // allowance still add up, and these two routes are the only ones where an anonymous request
+  // costs this server a request of its own (a lookup, a handshake, a GET). The ceiling is the
+  // difference between a slow afternoon and this instance being someone's scanner.
+  const everyone = new RateWindow(600, 10 * 60_000);
+  const ceiling = "This instance is answering as many of these as it will for now; the check costs it a request of its own. Try again in a little while.";
   app.post("/scan/exposure", async (req, res) => {
     const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
     if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
     if (!lookedUp.allow(throttleKey(req.ip), now().getTime())) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
+    if (!everyone.allow("scan", now().getTime())) return res.status(429).set("Retry-After", "600").type("text").send(ceiling);
     try {
       scanPage(req, res, { exposure: await lookUpExposure(ctx.http ?? httpGet, ip) });
     } catch (error) {
@@ -100,6 +109,7 @@ export function mountScan(r: RouteContext): void {
     const cached = reports.get(key);
     if (cached && t - cached.at < tenMinutes) return res.type("html").send(renderScanDomain({ ...base, domain, report: cached.report, problem: null, certs }));
     if (!asked.allow(throttleKey(req.ip), t)) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
+    if (!everyone.allow("scan", t)) return res.status(429).set("Retry-After", "600").type("html").send(renderScanDomain({ ...base, domain, report: null, problem: ceiling }));
     const report = await checkDomain(domain, domainDeps, { selectors });
     if (reports.size >= 200) reports.delete(reports.keys().next().value as string);
     reports.set(key, { at: t, report });
@@ -122,14 +132,16 @@ export function mountScan(r: RouteContext): void {
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(renderScanNetwork({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) }));
   });
+  // The guide's scripts and their sums, read once at mount: the device page lists them to download
+  // and the guide pages link them, and hashing every file twice at start said nothing extra.
+  const scanScripts = readScanScripts(path.join(publicDir, "scan"));
   // Is this device affected? (S7): the owner pastes the inventory script's report; it is read and answered, never stored.
-  const scripts = readScanScripts(path.join(publicDir, "scan"));
   app.get("/scan/devices", (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     const w = who(req, res);
     const device = deviceName((req.query as Record<string, unknown>).device);
     const history = w.owner && device ? { device, readings: readingsOf(db, device) } : null;
-    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: w.owner ? latestReadings(db) : [], history }));
+    res.type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: w.owner ? latestReadings(db) : [], history }));
   });
   app.post("/scan/devices", requireOwner, async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -137,18 +149,18 @@ export function mountScan(r: RouteContext): void {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const text = str(body.report, 2_000_000) ?? "";
     const device = deviceName(body.device);
-    if (!device) return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: "Name the device: letters, digits, spaces, a dot or a dash, up to sixty characters." }));
+    if (!device) return res.status(400).type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: latestReadings(db), problem: "Name the device: letters, digits, spaces, a dot or a dash, up to sixty characters." }));
     let report;
     try {
       report = readReport(text);
     } catch (error) {
-      return res.status(400).type("html").send(renderScanDevices({ ...w, scripts, now: now(), devices: latestReadings(db), problem: error instanceof Error ? error.message : String(error) }));
+      return res.status(400).type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), devices: latestReadings(db), problem: error instanceof Error ? error.message : String(error) }));
     }
     const findings = await readDevice(db, ctx.http ?? httpGet, report);
     const previous = readingsOf(db, device, 1)[0] ?? null;
     const reading = recordReading(db, device, report, findings, now().toISOString());
     const changes = readingChanges(previous, reading);
-    res.type("html").send(renderScanDevices({ ...w, scripts, now: now(), report, findings, devices: latestReadings(db), recorded: { device, ...changes } }));
+    res.type("html").send(renderScanDevices({ ...w, scripts: scanScripts, now: now(), report, findings, devices: latestReadings(db), recorded: { device, ...changes } }));
   });
   app.post("/scan/devices/forget", requireOwner, (req, res) => {
     const device = deviceName(((req.body ?? {}) as Record<string, unknown>).device);
@@ -250,7 +262,6 @@ export function mountScan(r: RouteContext): void {
   // The manual guide (M12.2) and its scripts: static files under public/scan, read once so the sums
   // shown beside the links are of the bytes served, and served as plain text so a person can read a
   // script in the browser before downloading it. Every one of these pages keeps the strict policy.
-  const scanScripts = readScanScripts(path.join(publicDir, "scan"));
   app.get("/scan/guide", (req, res) => {
     res.type("html").send(renderScanGuideIndex({ ...who(req, res), scripts: scanScripts }));
   });
@@ -266,7 +277,7 @@ export function mountScan(r: RouteContext): void {
     const body = file === sumsFile ? Buffer.from(sumsText(scanScripts), "utf8") : script?.content;
     if (!body) return next();
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Content-Disposition", `inline; filename="${file}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${safeFilename(file)}"`);
     res.setHeader("Cache-Control", "public, max-age=300");
     res.send(body);
   });

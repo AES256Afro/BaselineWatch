@@ -217,7 +217,7 @@ describe("what it reports", () => {
   });
 
   it("carries the storage line into the digest", () => {
-    const text = buildDigest(db, { from: daysBefore(1), to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" });
+    const { text } = buildDigest(db, { from: daysBefore(1), to: now.toISOString(), baseUrl: "https://cybercard.net", period: "daily" });
     expect(text).toContain("Storage:");
   });
 

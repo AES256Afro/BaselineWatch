@@ -57,7 +57,9 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   if (f.newSince) p.set("new", f.newHours && f.newHours !== 24 ? String(f.newHours) : "1");
   if (f.label) p.set("label", f.label);
   if (f.q) p.set("q", f.q);
-  if (f.sort && f.sort !== "modified") p.set("sort", f.sort);
+  // The default is left out, so an unfiltered list keeps the bare /vulnerabilities address
+  // — which is what tells the Save box, the feed link and a saved search that nothing is filtered.
+  if (f.sort && f.sort !== "risk") p.set("sort", f.sort);
   if (f.offset) p.set("offset", String(f.offset));
   const s = p.toString();
   return s ? `/vulnerabilities?${s}` : "/vulnerabilities";
@@ -107,6 +109,10 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     </tr>`;
   });
 
+  const feedQuery = query(filters, { offset: 0 });
+  const feed = { href: `/vulnerabilities/feed.xml${feedQuery.slice("/vulnerabilities".length)}`, title: "Vulnerabilities" };
+  // The same rows, in the same order, as a file: into a ticket or a spreadsheet.
+  const csvHref = `/vulnerabilities.csv${feedQuery.slice("/vulnerabilities".length)}`;
   const content = html`
     <div class="stats" aria-label="Totals">
       <a href="/vulnerabilities"><small>CVEs known</small><b>${figure(stats.total)}</b></a>
@@ -115,7 +121,6 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       <a href="/vulnerabilities?kev=1"><small>In KEV</small><b>${figure(stats.kev)}</b></a>
       <a href="/vulnerabilities?exploit=1"><small>Public exploit</small><b>${figure(stats.exploit)}</b></a>
       <a href="/vulnerabilities?watch=1"><small>Match watchlist</small><b>${figure(stats.watch)}</b></a>
-      <a href="/sources#src-first-epss"><small>EPSS scores</small><b>${epssDate ?? "—"}</b></a>
     </div>
     <div class="wire-top">
       <h1>Vulnerabilities</h1>
@@ -142,7 +147,8 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
       ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
       <span class="sort">Sort:
-        <a class="${(filters.sort ?? "modified") === "modified" ? "on" : ""}" href="${query(filters, { sort: "modified", offset: 0 })}">modified</a>
+        <a class="${(filters.sort ?? "risk") === "risk" ? "on" : ""}" href="${query(filters, { sort: "risk", offset: 0 })}" title="Known exploited first, then a public exploit, then EPSS, then CVSS, then how recently it changed">risk</a>
+        <a class="${filters.sort === "modified" ? "on" : ""}" href="${query(filters, { sort: "modified", offset: 0 })}">modified</a>
         <a class="${filters.sort === "published" ? "on" : ""}" href="${query(filters, { sort: "published", offset: 0 })}">published</a>
         <a class="${filters.sort === "cvss" ? "on" : ""}" href="${query(filters, { sort: "cvss", offset: 0 })}">CVSS</a>
         <a class="${filters.sort === "epss" ? "on" : ""}" href="${query(filters, { sort: "epss", offset: 0 })}">EPSS</a>
@@ -155,10 +161,9 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
           <tbody>${tableRows}</tbody>
         </table></div>
         <p class="more">${offset + rows.length} of ${total}${offset + rows.length < total ? html` · <a href="${query(filters, { offset: offset + limit })}">Next</a>` : ""}${offset > 0 ? html` · <a href="${query(filters, { offset: Math.max(0, offset - limit) })}">Previous</a>` : ""}</p>`}
-    <p class="small">NVD cursor: ${cursor ? html`<a href="/sources#src-nvd-cves">${shortStamp(cursor)}</a>` : html`no pull yet — <a href="/sources#src-nvd-cves">Sources</a> shows each feed's state and what to do when one fails`}. The <a href="/?kind=vulnerability">News page</a> shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
+    <p class="small"><a href="${csvHref}">Download these ${Math.min(total, 1000)} as CSV</a>${total > 1000 ? " (the first thousand in this order)" : ""} · <a href="${feed.href}">subscribe to this list</a>.</p>
+    <p class="small">EPSS scores: ${epssDate ? html`<a href="/sources#src-first-epss">${epssDate}</a>` : html`none pulled yet — <a href="/sources#src-first-epss">Sources</a>`}. NVD cursor: ${cursor ? html`<a href="/sources#src-nvd-cves">${shortStamp(cursor)}</a>` : html`no pull yet — <a href="/sources#src-nvd-cves">Sources</a> shows each feed's state and what to do when one fails`}. The <a href="/?kind=vulnerability">News page</a> shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
-  const feedQuery = query(filters, { offset: 0 });
-  const feed = { href: `/vulnerabilities/feed.xml${feedQuery.slice("/vulnerabilities".length)}`, title: "Vulnerabilities" };
   return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look, feed, canonical: "/vulnerabilities", description: "Every CVE as NVD, CISA and FIRST describe it: CVSS, EPSS, KEV, public exploits, and the fix published for each." });
 }
 

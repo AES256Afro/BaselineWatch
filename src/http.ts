@@ -93,7 +93,7 @@ export function privateAddress(ip: string): boolean {
   const bare = ip.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
   const kind = isIP(bare);
   if (kind === 4) {
-    const [a = 0, b = 0] = bare.split(".").map(Number);
+    const [a = 0, b = 0, c = 0] = bare.split(".").map(Number);
     return (
       a === 0 ||
       a === 10 ||
@@ -102,6 +102,15 @@ export function privateAddress(ip: string): boolean {
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 192 && b === 168) ||
       (a === 100 && b >= 64 && b <= 127) ||
+      // Two more of IANA's special-purpose ranges that a network really can carry a host on, and
+      // that a publisher is never on: protocol assignments (192.0.0.0/24, which holds the DS-Lite
+      // and NAT64 well-known addresses) and benchmarking (198.18.0.0/15, routed inside some
+      // networks). The three documentation ranges — 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24
+      // — are deliberately *not* here: they route nowhere, so refusing them stops nothing, and
+      // they are this project's own stand-in for a public address in tests, fixtures and the
+      // guides. Blocking the placeholder would cost every one of those a special case.
+      (a === 192 && b === 0 && c === 0) ||
+      (a === 198 && (b === 18 || b === 19)) ||
       a >= 224
     );
   }
@@ -116,8 +125,13 @@ export function privateAddress(ip: string): boolean {
   if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10 link local
   if ((g[0]! & 0xffc0) === 0xfec0) return true; // fec0::/10 site local (deprecated, still routed on old networks)
   if ((g[0]! & 0xff00) === 0xff00) return true; // ff00::/8 multicast
+  if (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) return true; // 100::/64 discard-only
   if (g[0] === 0x64 && g[1] === 0xff9b) return privateAddress(quad(g[6]!, g[7]!)); // 64:ff9b::/96 NAT64
   if (g[0] === 0x2002) return privateAddress(quad(g[1]!, g[2]!)); // 2002::/16 6to4
+  // 2001::/32 is Teredo: the address embeds an obfuscated IPv4 and the tunnel is not a
+  // publisher's host. 2001:db8::/32, the documentation range, is left public for the same reason
+  // the IPv4 ones above are: it is the placeholder this project writes examples with.
+  if (g[0] === 0x2001 && g[1] === 0) return true;
   return false;
 }
 

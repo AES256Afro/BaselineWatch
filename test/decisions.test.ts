@@ -62,10 +62,20 @@ describe("baseline decisions", () => {
     expect(decide).toContain("Saved");
     expect(decide).toContain("Kiosk Macs have no users");
     expect(decide).toContain('value="exclude" checked');
+    // The owner's board carries the whole decision; a visitor's does not carry the organisation's
+    // reason or the name of whoever signed it. That a rule is modified or not applied, and the
+    // value chosen instead, is the teaching value and stays public.
+    const ownerBoard = await (await fetch(`${app.base}/baselines/macos/decisions`, { headers: { cookie } })).text();
+    expect(ownerBoard).toContain("Kiosk Macs have no users");
     const board = await (await fetch(`${app.base}/baselines/macos/decisions`)).text();
-    expect(board).toContain("Kiosk Macs have no users");
+    expect(board).not.toContain("Kiosk Macs have no users");
+    expect(board).toContain("Not applying");
     expect(board).toContain("20 minutes");
     expect(board).not.toContain('name="decision"');
+    // The same on the decide page and in the download.
+    expect(await (await fetch(`${app.base}/baselines/macos/decide?item=${encodeURIComponent(excluded.id)}`)).text()).not.toContain("Kiosk Macs have no users");
+    expect(await (await fetch(`${app.base}/baselines/macos/decisions.csv`)).text()).not.toContain("Kiosk Macs have no users");
+    expect(await (await fetch(`${app.base}/baselines/macos/decisions.csv`, { headers: { cookie } })).text()).toContain("Kiosk Macs have no users");
     const builder = async (item: typeof excluded, headers: Record<string, string> = {}) => (await fetch(`${app.base}/baselines/macos?section=${sectionOf(item)}`, { headers })).text();
     expect(await builder(excluded)).toContain("Not applying");
     expect(await builder(modified)).toContain("Modified: 20 minutes");
@@ -73,10 +83,12 @@ describe("baseline decisions", () => {
     expect(await builder(excluded, { cookie })).toContain("decide-unticked");
     expect((await fetch(`${app.base}/baselines/macos/decide?item=stig:nope`)).status).toBe(404);
 
+    // A visitor's download keeps every column, including the two the organisation's own words
+    // would have gone in: the shape does not change, so a script reading it does not break.
     const csv = await (await fetch(`${app.base}/baselines/macos/decisions.csv`)).text();
     expect(csv.split("\r\n")[0]).toBe("item,kind,severity,title,publisher recommends,decision,our value,reason,owner,decided,reference");
     expect(csv).toContain("Not applying");
-    expect(csv).toContain("Kiosk Macs have no users");
+    expect(csv).not.toContain("Kiosk Macs have no users");
 
     const plan = buildTestPlan(app.db, { platform: "macos" });
     expect(plan.items.some((i) => i.id === `test:${excluded.id}`)).toBe(false);

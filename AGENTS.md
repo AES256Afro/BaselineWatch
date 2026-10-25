@@ -100,6 +100,7 @@ src/authorities.ts   where a rule comes from: the publishers, the rung each sits
 src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
 src/netscan.ts       the network check: canaries through the LAN resolver, daily, opt-in (M12.3)
 src/domaincheck.ts   check a domain: DNS, mail and web posture by lookups alone, each record quoted (Scan 2.0)
+src/domainfix.ts     what to do about a domain finding: the record to publish or the header to send, with its caution
 src/seen.ts          what this page learned about you: the request's facts, Tor exits, an InternetDB lookup on request
 src/exposure.ts      router and exposure: the public address, what Shodan sees of it, the router's admin page and firmware, daily, owner-only
 src/eol.ts           endoflife.date's cycles, and which of them a fleet release is
