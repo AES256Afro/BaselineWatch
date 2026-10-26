@@ -1087,11 +1087,18 @@ The plans export beautifully and prove nothing. A plan that ends in a signed PDF
 
 ### M17: The teaching site earns the name
 
-> The Learning section has its own plan from 2026-10-22: **[LEARN.md](LEARN.md)**, L1 to L6 —
+> The Learning section has its own plan from 2026-10-22: **[LEARN.md](LEARN.md)**, L1 to L7 —
 > the section's shape, the glossary, traces drawn from loaded data rather than written by hand, a
-> searchable and tool-readable chain, a nightly probe over the registry's addresses, and the
-> handout and accessibility pass that close M17's last two items. This milestone keeps the gate;
-> that document holds the detail.
+> searchable and tool-readable chain, a nightly probe over the registry's addresses, the handout
+> and accessibility pass that close M17's last two items, and, added 2026-10-26, **L7: the
+> catalogue seen whole** — every SP 800-53 control on one map, the twenty families each taught,
+> one control's life across every release, NIST's own reason for each change or an explicit note
+> that it published none, the privacy selection drawn across the families, and three addresses on
+> every version shown: the redline as this instance recorded it, the publisher's document for that
+> version, and the current catalogue entire. L7.1 (the catalogue's full release history, plus
+> Revision 4 as its own revision) is a backfill that every other part of L7 depends on and is
+> worth starting before the rest of M17. This milestone keeps the gate; that document holds the
+> detail.
 
 cybercard.net is the public mission and its audience is people learning. `/guide` shipped and is
 good; the rest of the site still assumes the reader knows what OSCAL, a CCI, CAT II, EPSS and a
@@ -1199,7 +1206,7 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 | M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
 | M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |
 | M16 Evidence | 2026-11-11 | 4 days | Two runs of one plan compared, answerable through MCP. |
-| M17 The teaching site | 2026-11-16 | 3 days | Keyboard and screen reader across looks and schemes. |
+| M17 The teaching site | 2026-11-16 | 3 days + L7 | Keyboard and screen reader across looks and schemes; L7's map and a control's life in [LEARN.md](LEARN.md). |
 | M18 More than one person | when a second person needs it | 4 days | Roles enforced on every write. Not a gate on 1.0. |
 | M19 1.0 | 2026-11-30 | 5 days | The unattended week. |
 
