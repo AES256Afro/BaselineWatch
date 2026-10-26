@@ -1,9 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { fleetPlatformKeys, nextActions, platformBreakdown, type Action } from "../agenda.ts";
+import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { devicesTile } from "../devices.ts";
 import { latestDigest } from "../digest.ts";
 import { endingSupport, loadFleet } from "../fleet.ts";
-import { candidateLimit, fixList, fixListCandidates, fixListHeadline, type FixList, type Remedy } from "../fixlist.ts";
+import { candidateLimit, fixList, fixListCandidates, fixListHeadline, fixListTotal, type FixList, type Remedy } from "../fixlist.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import { parseJson } from "../json.ts";
 import type { LookState } from "../look.ts";
@@ -91,8 +91,8 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const fleet = loadFleet();
 
   // The work, keyed by the remedy that ends it.
-  const candidates = fixListCandidates(db, since, [...fleetPlatformKeys(fleet)]);
-  const list: FixList = fixList(db, candidates, since, candidates.length >= candidateLimit);
+  const candidates = fixListCandidates(db, since);
+  const list: FixList = fixList(db, candidates, since, candidates.length >= candidateLimit ? fixListTotal(db, since) : candidates.length);
   const published = cvesIn(list.published);
   const mitigateOnly = cvesIn(list.mitigate);
   const nothing = cvesIn(list.none);
@@ -190,7 +190,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
           back,
           "Everything that touches you in this window has either a fix or a published action.",
         )}
-        ${list.truncated ? html`<p class="small">More than ${list.considered} CVEs touched you in this window; this is the most urgent of them. <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">The table</a> has all of them.</p>` : ""}
+        ${list.total > list.considered ? html`<p class="small">${list.considered} of ${list.total} CVEs that moved in this window, the most urgent first. <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">The table</a> has all of them.</p>` : ""}
       </section>
 
       <aside class="side">

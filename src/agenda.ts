@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
+import { movedInWindowSql } from "./vulns.ts";
 
 /**
  * What to do next, and what the window's vulnerabilities are about.
@@ -177,12 +178,12 @@ export function nextActions(db: DatabaseSync, options: AgendaOptions): Action[] 
         .prepare(
           `SELECT v.cve_id AS cveId, v.description, v.cvss_score AS cvss, v.epss, v.platforms_json AS platforms
              FROM vulns v
-            WHERE v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)
+            WHERE ${movedInWindowSql}
               AND (${keys.map(() => "v.platforms_json LIKE ?").join(" OR ")})
             ORDER BY v.epss IS NULL, v.epss DESC, v.cvss_score DESC
             LIMIT ?`,
         )
-        .all(since, ...keys.map((k) => `%"${k}"%`), 3 - actions.length) as {
+        .all(since, since, ...keys.map((k) => `%"${k}"%`), 3 - actions.length) as {
         cveId: string;
         description: string | null;
         cvss: number | null;
@@ -227,15 +228,19 @@ export interface PlatformBreakdown {
  * The window's CVEs by the platform they affect, the fleet's own platforms first. A CVE that
  * touches two platforms counts in both, because a person reading the row wants every CVE that
  * could reach that platform, not a share of one.
+ *
+ * "In the window" means NVD published it there or something other than its arrival here changed:
+ * a row in `vuln_changes` with field 'new' is this instance seeing a CVE for the first time, and
+ * on a backfill that is thousands of CVEs from years ago, none of which moved today.
  */
 export function platformBreakdown(db: DatabaseSync, since: string, fleet: Fleet = loadFleet()): PlatformBreakdown {
   const rows = db
     .prepare(
       `SELECT v.platforms_json AS platforms, v.kev, v.watch_hit AS watchHit
          FROM vulns v
-        WHERE v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)`,
+        WHERE ${movedInWindowSql}`,
     )
-    .all(since) as { platforms: string | null; kev: number; watchHit: number }[];
+    .all(since, since) as { platforms: string | null; kev: number; watchHit: number }[];
   const mine = fleetPlatformKeys(fleet);
   const tally = new Map<PlatformKey, PlatformTally>(
     platformKeys.map((key) => [key, { key, label: platformName(key), total: 0, kev: 0, mine: 0, inFleet: mine.has(key) }]),
