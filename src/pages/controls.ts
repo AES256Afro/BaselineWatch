@@ -1,7 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, type Html } from "../html.ts";
+import { html, newTab, type Html } from "../html.ts";
+import { getSource } from "../ingest.ts";
 import type { LookState } from "../look.ts";
-import { licenceOf, withheldFrom } from "../register.ts";
+import { getDocument, licenceOf, withheldFrom } from "../register.ts";
+import { documentSources, type SourceLink } from "../sourcelinks.ts";
 import { relativeTime } from "../time.ts";
 import { latestRegisterChanges, page } from "./layout.ts";
 
@@ -81,6 +83,24 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
     .all(...ids, like, like, like, like, like, limit) as unknown as ControlHit[];
 }
 
+/**
+ * Where a version's own words live at the publisher, looked up once per document however many
+ * rows of the page name it. A control's own page carries the address of that one rule; this is
+ * the version it belongs to, so a table of controls is not a dead end either.
+ */
+function publisherFor(db: DatabaseSync): (sourceId: string, documentId: number) => SourceLink | null {
+  const cache = new Map<number, SourceLink | null>();
+  return (sourceId, documentId) => {
+    const held = cache.get(documentId);
+    if (held !== undefined) return held;
+    const source = getSource(db, sourceId);
+    const doc = getDocument(db, documentId);
+    const link = source && doc ? (documentSources(source, doc)[0] ?? null) : null;
+    cache.set(documentId, link);
+    return link;
+  };
+}
+
 export function renderControls(options: { db: DatabaseSync; q: string | undefined; now: Date; owner: boolean; open: boolean; look: LookState }): string {
   const { db, q, now, owner, open, look } = options;
   const all = latestVersions(db);
@@ -89,6 +109,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
   const query = (q ?? "").trim();
   const hits = query ? searchControls(db, readable, query) : [];
   const moved = latestRegisterChanges(db, 6);
+  const publisher = publisherFor(db);
 
   const results: Html = query
     ? html`<section class="box wide" id="results">
@@ -100,7 +121,10 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
               <tbody>${hits.map(
                 (h) => html`<tr>
                   <td class="id"><a href="/standards/${h.sourceId}/${h.documentId}/${h.ref}"><b>${(h.ref ?? "").toUpperCase()}</b></a>${h.severity ? html`<div class="note">${h.severity}</div>` : ""}</td>
-                  <td><a href="/standards/${h.sourceId}">${h.name}</a>${h.versionLabel ? html`<div class="note">${h.versionLabel}</div>` : ""}</td>
+                  <td><a href="/standards/${h.sourceId}">${h.name}</a><div class="note">${h.versionLabel ?? ""}${(() => {
+                    const l = publisher(h.sourceId, h.documentId);
+                    return l ? html`${h.versionLabel ? " · " : ""}<a href="${l.href}" ${newTab}>at the publisher</a>` : "";
+                  })()}</div></td>
                   <td>${h.title ?? ""}${h.family ? html`<div class="note">${h.family}</div>` : ""}</td>
                   <td class="desc"><span>${(h.statement ?? "").slice(0, 200)}</span></td>
                 </tr>`,
@@ -124,16 +148,19 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
         <section class="box wide" id="standards">
           <h2>Open a standard's controls <span class="count">${readable.length} current version(s)</span></h2>
           <div class="table-wrap"><table><caption class="visually-hidden">Standards and their current versions</caption>
-            <thead><tr><th scope="col">Standard</th><th scope="col">Version</th><th scope="col" class="n">Controls</th><th scope="col">Published</th></tr></thead>
-            <tbody>${readable.map(
-              (v) => html`<tr>
+            <thead><tr><th scope="col">Standard</th><th scope="col">Version</th><th scope="col" class="n">Controls</th><th scope="col">Published</th><th scope="col">At the publisher</th></tr></thead>
+            <tbody>${readable.map((v) => {
+              const l = publisher(v.sourceId, v.documentId);
+              return html`<tr>
                 <td><a href="/standards/${v.sourceId}">${v.name}</a>${v.documentKey && readable.filter((o) => o.sourceId === v.sourceId).length > 1 ? html`<div class="note">${v.documentKey}</div>` : ""}</td>
                 <td>${v.versionLabel ?? "—"}</td>
                 <td class="n"><a href="/standards/${v.sourceId}/${v.documentId}/browse">${v.requirementCount}</a></td>
                 <td>${v.publishedAt ? v.publishedAt.slice(0, 10) : "—"}</td>
-              </tr>`,
-            )}</tbody>
+                <td>${l ? html`<a href="${l.href}" ${newTab}>${l.short ?? l.label}</a>` : html`<a href="/learn">who publishes it</a>`}</td>
+              </tr>`;
+            })}</tbody>
           </table></div>
+          <p class="small">Every control opens a page of its own, and each of those ends at the publisher: the rule in NIST's own reference tool or the publisher's file, the exact document this instance read, and the body that wrote it. Nothing here asks to be taken on trust.</p>
           ${withheld.length
             ? html`<p class="small">${withheld.length} source(s) carry a licence that forbids showing their entries to anyone but this instance's owner, so their controls are counted but never listed: ${withheld.map((v, i) => html`${i > 0 ? ", " : ""}<a href="/standards/${v.sourceId}">${v.name}</a> (${licenceOf({ licence: v.licence })})`)}.</p>`
             : ""}
