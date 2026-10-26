@@ -7,6 +7,7 @@ import { knownRelease } from "../pipeline.ts";
 import { productVersion } from "../version.ts";
 import { shortStamp } from "../time.ts";
 import type { LookState } from "../look.ts";
+import { groupOf, standardGroups, type Group } from "./controls.ts";
 import { page } from "./layout.ts";
 
 /** A known failure translated into what to do about it, drawn under the raw error. */
@@ -40,6 +41,22 @@ export interface SourcesPageOptions {
   look: LookState;
 }
 
+/**
+ * A source's note folded to its first sentence: the rest — how it is read, what it covers, why it is
+ * here — is a click away rather than the reason every row is ten lines tall.
+ */
+function aboutNote(notes: string): Html {
+  const m = /^(.+?[.;:])\s+(\S.*)$/s.exec(notes);
+  if (!m || m[1]!.length > 160) return html`<div class="note">${notes}</div>`;
+  return html`<details class="note about"><summary>${m[1]}</summary>${m[2]}</details>`;
+}
+
+/** The standards group cut under the ladder's headings, as Controls draws them; other groups in one piece. */
+function ordered<T extends SourceRow>(group: string, list: T[]): { heading: Group | null; sources: T[] }[] {
+  if (group !== "standards") return [{ heading: null, sources: list }];
+  return standardGroups.map((g) => ({ heading: g, sources: list.filter((s) => groupOf(s.id) === g.id) })).filter((g) => g.sources.length > 0);
+}
+
 export function renderSources({ db, owner, open, notice, look }: SourcesPageOptions): string {
   const rows = db
     .prepare(
@@ -62,10 +79,10 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
       <h2><a href="/?group=${group}">${groupLabel[group] ?? group}</a> <span class="count"><a href="#${group}">${list.length}</a></span></h2>
       <div class="table-wrap"><table><caption class="visually-hidden">Sources read by this instance</caption>
         <thead><tr><th scope="col">Source</th><th scope="col">Format</th><th scope="col">Checked</th><th scope="col">Items</th><th scope="col">Last fetch</th><th scope="col">Licence</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
-        <tbody>${list.map((s) => {
+        ${ordered(group, list).map(({ heading, sources }) => html`<tbody>${heading ? html`<tr class="series"><th scope="rowgroup" colspan="${owner ? 7 : 6}"><b>${heading.label}</b> · ${heading.line}</th></tr>` : ""}${sources.map((s) => {
           const adapter = adapterFor(s);
           return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">
-            <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.notes ? html`<div class="note">${s.notes}</div>` : ""}</td>
+            <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.notes ? aboutNote(s.notes) : ""}</td>
             <td>${s.format}</td>
             <td>${s.enabled ? s.schedule : "off"}${adapter ? "" : html`<div class="note">no adapter yet</div>`}</td>
             <td class="n"><a href="/?source=${s.id}">${s.item_count}</a></td>
@@ -79,7 +96,7 @@ export function renderSources({ db, owner, open, notice, look }: SourcesPageOpti
                 }</div></td>`
               : ""}
           </tr>`;
-        })}</tbody>
+        })}</tbody>`)}
       </table></div>
     </section>`);
   }

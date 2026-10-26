@@ -1,9 +1,12 @@
 import type { DatabaseSync } from "node:sqlite";
+import { authorityForSource, rungs, type Rung } from "../authorities.ts";
 import { html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
-import { licenceOf, withheldFrom } from "../register.ts";
+import { openDrafts, seriesOf } from "../publications.ts";
+import { licenceOf, withheldFrom, type DocumentRow } from "../register.ts";
 import { relativeTime } from "../time.ts";
 import { latestRegisterChanges, page } from "./layout.ts";
+import { seriesSummary, standardFold } from "./publications.ts";
 
 /**
  * Controls: the third rung of the ladder the guide teaches (/guide#ladder). A standard is the
@@ -11,6 +14,10 @@ import { latestRegisterChanges, page } from "./layout.ts";
  * IA-2, a STIG rule, a CIS recommendation. This page is one rule at a time: search every
  * standard's current version at once, open any standard's controls, and see which of them have
  * moved lately, which is what the change register holds.
+ *
+ * The standards are grouped by the rung of the ladder each sits on, and each standard is one
+ * folded group: its publications, gathered into series, each with its current version, its draft
+ * and its earlier versions, so nobody scrolls nineteen NIST PIV rows to find SP 800-63C.
  *
  * A licence-restricted source is listed with its counts and never searched or quoted, the way
  * the Register treats it.
@@ -81,14 +88,75 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
     .all(...ids, like, like, like, like, like, limit) as unknown as ControlHit[];
 }
 
+interface StandardSource {
+  id: string;
+  name: string;
+  notes: string | null;
+  restricted: number;
+  licence: string | null;
+}
+
+/** The groups the page is cut into: the ladder's rungs first, then what sits beside it. */
+export interface Group {
+  id: string;
+  label: string;
+  line: string;
+}
+
+const rungGroup = (id: Rung): Group => {
+  const r = rungs.find((x) => x.id === id)!;
+  return { id, label: r.label, line: r.line };
+};
+
+export const standardGroups: Group[] = [
+  { ...rungGroup("catalog"), label: "Control catalogues" },
+  { ...rungGroup("baseline"), label: "Baselines" },
+  { ...rungGroup("setting"), label: "Configuration settings" },
+  { id: "nist-pubs", label: "Other NIST guidance", line: "publications NIST writes beside the catalogue — identity and PIV cards, firmware, keys and platform security — each with its own versions" },
+  rungGroup("policy"),
+  rungGroup("check"),
+  { id: "other", label: "Other standards", line: "tracked here, not yet placed on the ladder" },
+  { id: "blocklists", label: "Blocklists and canaries", line: "not rules but lists the Scan checks against: the domains and addresses a resolver or browser should refuse" },
+];
+
+export function groupOf(sourceId: string): string {
+  if (/^(canary|adfection)-/.test(sourceId)) return "blocklists";
+  const rung = authorityForSource(sourceId)?.rung;
+  if (rung && standardGroups.some((g) => g.id === rung)) return rung;
+  return sourceId.startsWith("nist-") ? "nist-pubs" : "other";
+}
+
+function standardSources(db: DatabaseSync): StandardSource[] {
+  return db
+    .prepare(
+      `SELECT s.id, s.name, s.notes, s.restricted, s.licence FROM sources s
+        WHERE s.kind IN ('requirement-set', 'setting-set') AND EXISTS (SELECT 1 FROM documents d WHERE d.source_id = s.id)
+        ORDER BY s.name`,
+    )
+    .all() as unknown as StandardSource[];
+}
+
 export function renderControls(options: { db: DatabaseSync; q: string | undefined; now: Date; owner: boolean; open: boolean; look: LookState }): string {
   const { db, q, now, owner, open, look } = options;
   const all = latestVersions(db);
   const readable = all.filter((v) => !withheldFrom({ restricted: v.restricted }, owner));
-  const withheld = all.filter((v) => withheldFrom({ restricted: v.restricted }, owner));
   const query = (q ?? "").trim();
   const hits = query ? searchControls(db, readable, query) : [];
   const moved = latestRegisterChanges(db, 6);
+
+  const sources = standardSources(db);
+  const withheld = sources.filter((s) => withheldFrom(s, owner));
+  const drafts = openDrafts(db);
+  const documents = db.prepare("SELECT * FROM documents WHERE source_id = ?");
+  const grouped = new Map<string, Html[]>();
+  let entryCount = 0;
+  for (const source of sources) {
+    if (withheldFrom(source, owner)) continue;
+    const series = seriesOf(source.id, documents.all(source.id) as unknown as DocumentRow[], drafts);
+    entryCount += seriesSummary(series).entries;
+    const g = groupOf(source.id);
+    grouped.set(g, [...(grouped.get(g) ?? []), standardFold(db, source, series, now)]);
+  }
 
   const results: Html = query
     ? html`<section class="box wide" id="results">
@@ -120,24 +188,20 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
     </form>
     ${results}
     <div class="cols">
-      <section class="main">
-        <section class="box wide" id="standards">
-          <h2>Open a standard's controls <span class="count">${readable.length} current version(s)</span></h2>
-          <div class="table-wrap"><table><caption class="visually-hidden">Standards and their current versions</caption>
-            <thead><tr><th scope="col">Standard</th><th scope="col">Version</th><th scope="col" class="n">Controls</th><th scope="col">Published</th></tr></thead>
-            <tbody>${readable.map(
-              (v) => html`<tr>
-                <td><a href="/standards/${v.sourceId}">${v.name}</a>${v.documentKey && readable.filter((o) => o.sourceId === v.sourceId).length > 1 ? html`<div class="note">${v.documentKey}</div>` : ""}</td>
-                <td>${v.versionLabel ?? "—"}</td>
-                <td class="n"><a href="/standards/${v.sourceId}/${v.documentId}/browse">${v.requirementCount}</a></td>
-                <td>${v.publishedAt ? v.publishedAt.slice(0, 10) : "—"}</td>
-              </tr>`,
-            )}</tbody>
-          </table></div>
-          ${withheld.length
-            ? html`<p class="small">${withheld.length} source(s) carry a licence that forbids showing their entries to anyone but this instance's owner, so their controls are counted but never listed: ${withheld.map((v, i) => html`${i > 0 ? ", " : ""}<a href="/standards/${v.sourceId}">${v.name}</a> (${licenceOf({ licence: v.licence })})`)}.</p>`
-            : ""}
-        </section>
+      <section class="main" id="standards">
+        <p class="lede">Every standard below is folded to one line. Open one to see its publications — each with the version in force, the draft that will replace it, what the latest version changed, and the versions before it.</p>
+        ${standardGroups
+          .filter((g) => grouped.has(g.id))
+          .map(
+            (g) => html`<section class="fold-group" id="group-${g.id}">
+              <h2><a href="#group-${g.id}">${g.label}</a> <span class="count">${grouped.get(g.id)!.length}</span></h2>
+              <p class="small">${g.line}.</p>
+              ${grouped.get(g.id)}
+            </section>`,
+          )}
+        ${withheld.length
+          ? html`<p class="small">${withheld.length} source(s) carry a licence that forbids showing their entries to anyone but this instance's owner, so their controls are counted but never listed: ${withheld.map((v, i) => html`${i > 0 ? ", " : ""}<a href="/standards/${v.id}">${v.name}</a> (${licenceOf({ licence: v.licence })})`)}.</p>`
+          : ""}
       </section>
       <aside class="side">
         <section class="box" id="changed">
@@ -160,7 +224,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
     title: "Controls",
     active: "controls",
     content,
-    meta: html`${readable.reduce((sum, v) => sum + v.requirementCount, 0)} controls`,
+    meta: html`${entryCount.toLocaleString("en-US")} controls`,
     owner,
     open,
     look,

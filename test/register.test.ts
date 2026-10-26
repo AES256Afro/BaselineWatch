@@ -311,8 +311,10 @@ describe("Register pages", () => {
     const standard = await (await fetch(`${app.base}/standards/nist-sp-800-53`)).text();
     expect(standard).toContain("5.1.1+u4");
     expect(standard).toContain("3 added");
-    // The key's heading reads the newest version, its count is a permalink to the table, and each row's figures lead on.
-    expect(standard).toContain(`<section class="box" id="doc-catalog">\n      <h2><a href="/standards/nist-sp-800-53/${latest.id}/browse">Catalog</a> <span class="count"><a href="#doc-catalog">2 versions</a></span></h2>`);
+    // At a glance: the publication with its version in force; then every version, the only publication's fold open.
+    expect(standard).toContain(`<td class="pub"><a href="/standards/nist-sp-800-53#doc-catalog"><b>Catalog</b></a></td>`);
+    expect(standard).toContain(`<a href="/standards/nist-sp-800-53/${latest.id}"><b>5.2.0</b></a>`);
+    expect(standard).toContain(`<details class="fold" id="doc-catalog" open>\n      <summary><b>Catalog</b><span class="fold-meta">2 versions · newest 5.2.0</span></summary>`);
     expect(standard).toContain(`<td class="n"><a href="/standards/nist-sp-800-53/${latest.id}/browse">42</a></td>`);
     expect(standard).toMatch(new RegExp(`<td><a href="/standards/nist-sp-800-53/${latest.id}">3 added[^<]*</a></td>`));
 

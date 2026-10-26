@@ -202,8 +202,8 @@ describe("platform engineering: the release and hardware under test", () => {
     expect(moved.headers.get("location")).toBe("/fleet");
     const html = await (await fetch(`${app.base}/fleet`)).text();
     expect(html).toContain("<h1>Fleet</h1>");
-    // A platform's name and counts are permalinks to its section; the template count opens its test plan.
-    expect(html).toMatch(/<b><a href="#macos">macOS<\/a><\/b><span class="small"><a href="#macos">\d+ releases<\/a> · <a href="#macos-hardware">\d+ hardware families<\/a> · <a href="\/baselines\/macos\/tests">\d+ templates<\/a><\/span>/);
+    // A platform folds to one line: its name and counts, the releases and hardware inside.
+    expect(html).toMatch(/<details class="fold platform" id="macos">\s*<summary><b>macOS<\/b><span class="fold-meta">\d+ releases · \d+ hardware families · \d+ templates/);
     expect(html).toContain('<ul class="hw" id="macos-hardware">');
     expect(html).toContain('<h2><a href="/register">In the Register</a></h2>');
     expect(html).toContain("macOS 27 Golden Gate");
