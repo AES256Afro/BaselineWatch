@@ -118,7 +118,8 @@ export function matchingEntries(entries: MitigationEntry[], v: { cveId: string; 
   return entries.filter((e) => e.cves.includes(v.cveId.toUpperCase()) || e.keywords.some((k) => text.includes(k.toLowerCase())));
 }
 
-const fixTags = /^(patch|vendor advisory|mitigation)$/i;
+/** The NVD reference tags that mean "this is how you fix it". Shared with src/fixlist.ts. */
+export const fixTags = /^(patch|vendor advisory|mitigation)$/i;
 
 /** The KEV item for a CVE, with the required action from its signals or, for an older item, its summary. */
 export function kevFor(db: DatabaseSync, cveId: string): Fix["kev"] {
