@@ -2,6 +2,44 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.54.0 — 2026-10-26
+
+- **Today is the work, keyed by the fix that ends it.** It used to open on five counts and close
+  on two charts: fifteen blocks, eight tiles, most of them reading zero on a quiet morning. A count
+  says how much happened and nothing about what to do with it, and a line of news items a day
+  answers a question nobody has at seven in the morning. Nobody patches a CVE either — they install
+  an update, and one cumulative is one evening's work and nine rows in the table. So the remedy is
+  the row now and the CVEs it closes are its contents (`src/fixlist.ts`), in four groups a person
+  can act on in order: an update to install, a fix published without a version named, a mitigation
+  the publisher asked for, and the honest "nothing published yet". Every figure is printed with the
+  comparison that gives it meaning, in words. An install row ends in a verb, so it ends in a button:
+  **Mark done** writes every CVE it clears to the same triage board the CVE page uses. And a
+  **Cleared** count, because nothing on this page ever used to say that something got better.
+- **A commit is not an update you can install.** The first cut of that page counted every NVD
+  reference tagged `Patch` as a fix and announced "122 updates close 130 of this window's 150 CVEs".
+  Most of those references are git commits and bug-tracker entries: they prove a fix exists
+  somewhere, and you cannot install one. They have their own group now, grouped by the host that
+  holds them, so thirty kernel commits are one line rather than thirty rows, and only a named
+  artefact — a KB, a fixed package version, a vendor's own release — counts as an update.
+- **Today asked for the wrong CVEs, twice.** It reported 803 as having moved in a day; two of them
+  had. A row in `vuln_changes` with field `new` means *this instance* saw a CVE for the first time,
+  which on a backfill is eleven thousand CVEs from earlier years, none of which moved that day —
+  and both the fix list and the platform tally read any such row as movement. The window now means
+  what it says: published inside it, or something other than its arrival here changed. The second
+  half was worse: a CVE earned a row by naming a platform the fleet runs, and the Linux kernel
+  publishes hundreds a week whose only reference is a commit, so 117 of the 150 rows drawn were
+  kernel entries — which is why the install group read zero while the database held three thousand
+  CVEs with Microsoft KB numbers against them. `isNotable` already drew the line this needed, so
+  Today asks it too, in SQL that `test/vulns.test.ts` holds to the function row for row. The
+  twenty-four hour window went from 803 CVEs to thirteen, and a truncated list says what it is a
+  prefix of rather than "more than".
+- **Smaller**: `src/charts.ts` and its stylesheet go with the charts they drew, and the half of
+  its tests that held the four palettes to defining the same token names — the contract every page
+  depends on and none of them states — moves to `test/palettes.test.ts`, now with one fewer
+  exception than it had. A bare `.dot` rule that nothing drew was giving the Register ribbon's
+  separators an 8px box and a colour that resolved to nothing. `docs/mockups/today.html` keeps the
+  five directions this page was chosen from, each with its thesis and what it would have cost.
+
 ## 0.53.0 — 2026-10-25
 
 - **The sweeps, closed.** Five security sweeps and five bug sweeps, each on its own ground, then
