@@ -41,7 +41,16 @@ interface Who {
   look: LookState;
 }
 
-const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.startsWith("profile:") ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline` : key);
+// A key is a heading, so it is given the publisher's words: "catalog-rev4" is the superseded
+// revision held beside the current one, not a slug anybody should have to read.
+const keyLabel = (key: string): string =>
+  key === "catalog"
+    ? "Catalog"
+    : key === "catalog-rev4"
+      ? "Catalog, Revision 4 (withdrawn)"
+      : key.startsWith("profile:")
+        ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline`
+        : key;
 
 /**
  * What a visitor sees in place of a licence-restricted source's entries: the rule, the licence

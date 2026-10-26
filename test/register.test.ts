@@ -6,14 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { nistBaselinesAdapter, nistCatalogAdapter } from "../src/adapters/oscal-nist.ts";
 import { countRows, migrate, openDatabase } from "../src/db.ts";
 import { diffRequirements, summarizeChanges } from "../src/differ.ts";
-import type { HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { normalizeCatalog, normalizeProfile, resolveParams, type OscalCatalog, type OscalProfile } from "../src/oscal.ts";
 import { redline, wordDiff } from "../src/redline.ts";
 import { baselinesFor, explanationsFor, latestDocument, listDocuments, releaseChanges, relinkSource } from "../src/register.ts";
 import { parseNotifyUrl, recentAlerts } from "../src/notify.ts";
 import { listWire } from "../src/wire.ts";
-import { fixture, startTestApp, type TestApp } from "./helpers.ts";
+import { fixture, nistCurrentRelease, nistFixtureHttp, nistOneDiff, startTestApp, type TestApp } from "./helpers.ts";
 
 const load = <T>(name: string): T => JSON.parse(new TextDecoder().decode(fixture(name))) as T;
 const at = new Date("2026-10-15T01:00:00Z");
@@ -92,22 +91,14 @@ describe("differ", () => {
 });
 
 /** Serves the adapter's history and current URLs from the fixtures: the 5.2.0 fixture for the current catalog too. */
-function nistHttp(): HttpGet {
-  return async (url) => {
-    let name: string;
-    if (url.includes("_catalog.json")) name = url.includes("941c978d14") ? "oscal-catalog-5.1.1.json" : "oscal-catalog-5.2.0.json";
-    else if (url.includes("baseline_profile.json")) name = url.includes("941c978d14") ? "oscal-profile-moderate-5.1.1.json" : "oscal-profile-moderate-5.2.0.json";
-    else throw new Error(`no fixture for ${url}`);
-    return { url, status: 200, notModified: false, bytes: fixture(name), etag: null, lastModified: null, contentType: "application/json" };
-  };
-}
-
 async function loadNist(db: DatabaseSync, dataDir: string): Promise<void> {
-  const http = nistHttp();
+  const http = nistFixtureHttp();
   const catalog = getSource(db, "nist-sp-800-53")!;
-  for (const target of nistCatalogAdapter.history!(catalog)) await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at });
+  for (const target of nistCatalogAdapter.history!(catalog).filter(nistOneDiff)) {
+    await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at });
+  }
   const baselines = getSource(db, "nist-sp-800-53b")!;
-  for (const target of nistBaselinesAdapter.history!(baselines).filter((t) => t.key === "profile:moderate")) {
+  for (const target of nistBaselinesAdapter.history!(baselines).filter((t) => t.key === "profile:moderate" && nistOneDiff(t))) {
     await ingestDocumentTarget(db, dataDir, baselines, nistBaselinesAdapter, target, { http, now: () => at });
   }
 }
@@ -151,63 +142,104 @@ describe("Register ingestion", () => {
     expect(baselinesFor(db, "ac-1")).toEqual(["moderate"]);
     expect(baselinesFor(db, "sa-24")).toEqual([]);
 
-    // Fetching the current catalog again finds the same bytes: unchanged, no new document.
-    const again = await ingestSource(db, dataDir, getSource(db, "nist-sp-800-53")!, { http: nistHttp(), now: () => at });
-    expect(again.status).toBe("unchanged");
-    expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(2);
-    expect(getSource(db, "nist-sp-800-53")?.last_status).toBe("unchanged");
+    // Fetching the current catalog brings what NIST republished under the same version number: one
+    // control's text moved, and 5.2.0 therefore appears twice, which is what the publisher did.
+    const again = await ingestSource(db, dataDir, getSource(db, "nist-sp-800-53")!, { http: nistFixtureHttp(), now: () => at });
+    expect(again.status).toBe("ok");
+    const republished = latestDocument(db, "nist-sp-800-53", "catalog")!;
+    expect(republished.version_label).toBe("5.2.0");
+    expect(republished.previous_document_id).toBe(latest.id);
+    expect(releaseChanges(db, republished.id).map((c) => `${c.ref} ${c.field}`)).toEqual(["sa-15.13 statement"]);
+    expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(3);
   });
 
-  it("loads a standard's history on its first scheduled fetch, quietly, and only the current document after that", async () => {
-    const http = nistHttp();
+  it("loads a standard's whole published history on its first scheduled fetch, quietly, with Revision 4 as its own revision", async () => {
+    const http = nistFixtureHttp();
     const transport = parseNotifyUrl("ntfy://h/t");
     const catalog = getSource(db, "nist-sp-800-53")!;
     const first = await ingestSource(db, dataDir, catalog, { http, now: () => at, transport });
     expect(first.status).toBe("ok");
-    expect(first.items).toBe(3); // the two history entries, then the current file, which is the 5.2.0 bytes again
+    expect(first.items).toBe(8); // Revision 4, the six pinned releases of Revision 5, then the current file
     const docs = listDocuments(db, "nist-sp-800-53");
-    expect(docs.map((d) => d.version_label)).toEqual(["5.2.0", "5.1.1+u4"]);
-    expect(releaseChanges(db, docs[0]!.id).some((c) => c.ref === "sa-24" && c.kind === "added")).toBe(true);
+    expect(docs.map((d) => `${d.document_key} ${d.version_label}`)).toEqual([
+      "catalog 5.2.0",
+      "catalog 5.2.0",
+      "catalog 5.1.1+u4",
+      "catalog 5.1.1+u3",
+      "catalog 5.1.1+u2",
+      "catalog 5.1.1",
+      "catalog Revision 5 (Dec 2020 errata)",
+      "catalog-rev4 Revision 4",
+    ]);
     expect(recentAlerts(db, 10)).toHaveLength(0); // a back catalogue is not news
+
+    // Revision 4 is a different book, not an earlier release of this one: its own key, its own
+    // floor, nothing diffed into Revision 5, and the publisher's own words on why it is withdrawn.
+    const rev4 = docs.find((d) => d.document_key === "catalog-rev4")!;
+    expect(rev4.previous_document_id).toBeNull();
+    expect(rev4.requirement_count).toBe(37);
+    expect(releaseChanges(db, rev4.id)).toHaveLength(0);
+    expect(explanationsFor(db, rev4.id)[0]?.text).toContain("officially withdrawn on September 23, 2021");
+
+    // The Revision 5 chain runs oldest to newest, each release diffed against the one before it.
+    const chain = [...docs.filter((d) => d.document_key === "catalog")].reverse();
+    expect(chain[0]?.previous_document_id).toBeNull();
+    for (const [i, doc] of chain.entries()) if (i > 0) expect(doc.previous_document_id).toBe(chain[i - 1]!.id);
+    // Every pinned release carries the publisher's reason; the current file's comes from the page.
+    for (const doc of chain.slice(0, -1)) expect(explanationsFor(db, doc.id).map((e) => e.kind)).toEqual(["publisher"]);
+
+    // What each step says of itself. The releases that only changed how the content is represented
+    // touch no control text, which is the whole reason the conversions before the floor are left out.
+    const byVersion = (label: string, at = 0) => chain.filter((d) => d.version_label === label)[at]!;
+    const conversionOnly = releaseChanges(db, byVersion("5.1.1").id);
+    expect(conversionOnly.length).toBeGreaterThan(0);
+    expect(conversionOnly.every((c) => c.field === "extra" || c.field === "params")).toBe(true);
+    // 5.1.1+u2 carried NIST's new control IA-13, which is outside this fixture's families: the
+    // release is still kept, with its note, rather than folded into the next one.
+    expect(releaseChanges(db, byVersion("5.1.1+u2").id)).toHaveLength(0);
+    expect(explanationsFor(db, byVersion("5.1.1+u2").id)[0]?.text).toContain("one new control (IA-13)");
+    const minorRelease = releaseChanges(db, byVersion("5.2.0").id);
+    expect(minorRelease.filter((c) => c.kind === "added").map((c) => c.ref).sort()).toEqual(["sa-15.13", "sa-24", "si-2.7"]);
 
     const again = await ingestSource(db, dataDir, catalog, { http, now: () => at, transport });
     expect(again.status).toBe("unchanged");
     expect(again.items).toBe(1);
-    expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(2);
+    expect(listDocuments(db, "nist-sp-800-53")).toHaveLength(8);
   });
 
   it("slots a history loaded after the current release into publication order", async () => {
     // The current catalog (the 5.2.0 bytes) arrived first, on its own, and is the only document.
-    const http = nistHttp();
+    const http = nistFixtureHttp();
     const catalog = getSource(db, "nist-sp-800-53")!;
     expect((await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, { key: "catalog", url: catalog.url }, { http, now: () => at })).status).toBe("ok");
     const current = latestDocument(db, "nist-sp-800-53", "catalog")!;
     expect(current.previous_document_id).toBeNull();
     expect(explanationsFor(db, current.id)).toHaveLength(0);
 
-    // Then the backfill: 5.1.1 is older than what is loaded; the 5.2.0 entry is the same bytes.
+    // Then the backfill: both pinned releases are older than the republished file already loaded.
     const outcomes = [];
-    for (const target of nistCatalogAdapter.history!(catalog)) outcomes.push(await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at }));
-    expect(outcomes.map((o) => o.status)).toEqual(["ok", "unchanged"]);
+    for (const target of nistCatalogAdapter.history!(catalog).filter(nistOneDiff)) outcomes.push(await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at }));
+    expect(outcomes.map((o) => o.status)).toEqual(["ok", "ok"]);
     expect(outcomes[0]?.summary).toBe("first version, 39 requirements");
 
     const docs = listDocuments(db, "nist-sp-800-53");
-    expect(docs).toHaveLength(2);
-    const older = docs.find((d) => d.id !== current.id)!;
+    expect(docs).toHaveLength(3);
+    const [, asPublished, older] = docs;
     const latest = latestDocument(db, "nist-sp-800-53", "catalog")!;
     expect(latest.id).toBe(current.id);
-    expect(older.previous_document_id).toBeNull();
-    expect(latest.previous_document_id).toBe(older.id);
-    expect(releaseChanges(db, older.id)).toHaveLength(0);
-    const changes = releaseChanges(db, latest.id);
+    expect(older!.previous_document_id).toBeNull();
+    expect(asPublished!.previous_document_id).toBe(older!.id);
+    expect(latest.previous_document_id).toBe(asPublished!.id);
+    expect(releaseChanges(db, older!.id)).toHaveLength(0);
+    const changes = releaseChanges(db, asPublished!.id);
     expect(changes.some((c) => c.ref === "sa-24" && c.kind === "added")).toBe(true);
     expect(changes.some((c) => c.kind === "removed")).toBe(false);
     // The history entry knew why 5.2.0 happened, and the document had no reason yet: it adopts it.
-    expect(explanationsFor(db, latest.id).map((e) => e.kind)).toEqual(["publisher"]);
+    expect(explanationsFor(db, asPublished!.id).map((e) => e.kind)).toEqual(["publisher"]);
 
     const releases = listWire(db, { kind: "release" }).filter((i) => i.source_id === "nist-sp-800-53");
-    expect(releases.find((i) => i.external_id === `catalog#${latest.id}`)?.title).toMatch(/5\.2\.0: 3 added/);
-    expect(releases.find((i) => i.external_id === `catalog#${older.id}`)?.title).toMatch(/5\.1\.1.*: loaded as the first version/);
+    expect(releases.find((i) => i.external_id === `catalog#${asPublished!.id}`)?.title).toMatch(/5\.2\.0: 3 added/);
+    expect(releases.find((i) => i.external_id === `catalog#${older!.id}`)?.title).toMatch(/5\.1\.1.*: loaded as the first version/);
     expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 0 });
   });
 
@@ -235,6 +267,29 @@ describe("Register ingestion", () => {
     const release = listWire(db, { kind: "release" }).find((i) => i.external_id === `catalog#${latest.id}`);
     expect(release?.title).toMatch(/5\.2\.0: 3 added/);
     expect(relinkSource(db, catalog, at.toISOString())).toEqual({ keys: 1, relinked: 0 });
+  });
+
+  it("lets a release's own reason replace one scraped from a page that has since moved on", async () => {
+    const http = nistFixtureHttp();
+    const catalog = getSource(db, "nist-sp-800-53")!;
+    const target = nistCurrentRelease(nistCatalogAdapter.history!(catalog));
+    expect((await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at })).status).toBe("ok");
+    const doc = latestDocument(db, "nist-sp-800-53", "catalog")!;
+
+    // What an earlier fetch of this release left behind: the publication page's note about another one.
+    db.prepare("DELETE FROM explanations WHERE to_document_id = ?").run(doc.id);
+    db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'publisher', ?, ?, ?)").run(
+      doc.id,
+      "Planning Note (01/01/2030): a release this document knows nothing about",
+      "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final",
+      at.toISOString(),
+    );
+
+    // The same bytes again, under the history entry that names the reason for this release.
+    expect((await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at })).status).toBe("unchanged");
+    const reasons = explanationsFor(db, doc.id);
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]?.text).toContain("SA-15(13), SA-24, SI-02(07)");
   });
 });
 

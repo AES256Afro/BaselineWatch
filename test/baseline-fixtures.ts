@@ -9,7 +9,7 @@ import { nistBaselinesAdapter, nistCatalogAdapter } from "../src/adapters/oscal-
 import { parseSctListing } from "../src/adapters/sct.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { latestDocument } from "../src/register.ts";
-import { fakeHttp, fixture, type TestApp } from "./helpers.ts";
+import { fakeHttp, fixture, nistCurrentRelease, type TestApp } from "./helpers.ts";
 import { mscpZip } from "./mscp.test.ts";
 
 const text = (name: string) => new TextDecoder().decode(fixture(name));
@@ -51,8 +51,9 @@ export async function loadBaselineFixtures(app: TestApp, at: Date): Promise<{ wi
     expect(result.status, `${id}: ${result.error ?? result.detail}`).toBe("ok");
   }
   const nist = getSource(app.db, "nist-sp-800-53")!;
-  const nistHttp = fakeHttp({ [nistCatalogAdapter.history!(nist)[1]!.url]: { bytes: fixture("oscal-catalog-5.2.0.json") } });
-  await ingestDocumentTarget(app.db, app.dataDir, nist, nistCatalogAdapter, nistCatalogAdapter.history!(nist)[1]!, { http: nistHttp, now: () => at });
+  const current = nistCurrentRelease(nistCatalogAdapter.history!(nist));
+  const nistHttp = fakeHttp({ [current.url]: { bytes: fixture("oscal-catalog-5.2.0.json") } });
+  await ingestDocumentTarget(app.db, app.dataDir, nist, nistCatalogAdapter, current, { http: nistHttp, now: () => at });
   const b = getSource(app.db, "nist-sp-800-53b")!;
   const high = { key: "profile:high", url: "https://example.test/high.json" };
   await ingestDocumentTarget(app.db, app.dataDir, b, nistBaselinesAdapter, high, { http: fakeHttp({ [high.url]: { bytes: fixture("oscal-profile-moderate-5.2.0.json") } }), now: () => at });

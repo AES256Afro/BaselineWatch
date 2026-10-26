@@ -5,18 +5,10 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { nistCatalogAdapter } from "../src/adapters/oscal-nist.ts";
-import type { HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget } from "../src/ingest.ts";
-import { fixture, startTestApp, type TestApp } from "./helpers.ts";
+import { nistFixtureHttp, nistOneDiff, startTestApp, type TestApp } from "./helpers.ts";
 
 const at = new Date("2026-10-15T01:00:00Z");
-
-function nistHttp(): HttpGet {
-  return async (url) => {
-    const name = url.includes("941c978d14") ? "oscal-catalog-5.1.1.json" : "oscal-catalog-5.2.0.json";
-    return { url, status: 200, notModified: false, bytes: fixture(name), etag: null, lastModified: null, contentType: "application/json" };
-  };
-}
 
 async function connect(base: string): Promise<Client> {
   const client = new Client({ name: "test", version: "0" });
@@ -45,7 +37,9 @@ describe("the MCP server", () => {
     const dataDir = mkdtempSync(path.join(os.tmpdir(), "bw-mcp-"));
     try {
       const catalog = getSource(app.db, "nist-sp-800-53")!;
-      for (const target of nistCatalogAdapter.history!(catalog)) await ingestDocumentTarget(app.db, dataDir, catalog, nistCatalogAdapter, target, { http: nistHttp(), now: () => at });
+      for (const target of nistCatalogAdapter.history!(catalog).filter(nistOneDiff)) {
+        await ingestDocumentTarget(app.db, dataDir, catalog, nistCatalogAdapter, target, { http: nistFixtureHttp(), now: () => at });
+      }
     } finally {
       rmSync(dataDir, { recursive: true, force: true });
     }

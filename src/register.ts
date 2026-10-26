@@ -269,14 +269,24 @@ export function storeDocument(
 }
 
 /**
- * Gives a stored document the publisher's reason when a later pass knows it (a history entry that
- * turned out to be the bytes already loaded) and the document has none; the "no stated reason"
- * marker goes with it. Returns whether anything was written.
+ * Gives a stored document the publisher's reason when a later pass knows it: a history entry that
+ * turned out to be bytes already loaded. The "no stated reason" marker goes with it.
+ *
+ * A reason the adapter names for that release replaces one already stored, because the two are not
+ * equally good. A note read off a publication page is whatever that page said on the day it was
+ * fetched, and the page moves on: the catalog loaded in 2024 as SP 800-53 5.1.1+u4 was carrying
+ * CSRC's Planning Note about Release 5.2.0, nineteen months its junior. A reason pinned to the
+ * release in the adapter stays about that release. A generated summary is never touched.
+ *
+ * Returns whether anything was written.
  */
 export function adoptRationale(db: DatabaseSync, documentId: number, rationale: { text: string; url: string | null } | null | undefined, at: string): boolean {
   if (!rationale) return false;
-  const has = (db.prepare("SELECT COUNT(*) AS n FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind = 'publisher'").get(documentId) as { n: number }).n > 0;
-  if (has) return false;
+  const stored = db
+    .prepare("SELECT id, text FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind = 'publisher' ORDER BY id")
+    .all(documentId) as unknown as { id: number; text: string }[];
+  if (stored.some((row) => row.text === rationale.text)) return false;
+  for (const row of stored) db.prepare("DELETE FROM explanations WHERE id = ?").run(row.id);
   db.prepare("DELETE FROM explanations WHERE to_document_id = ? AND change_id IS NULL AND kind = 'none'").run(documentId);
   db.prepare("INSERT INTO explanations (change_id, to_document_id, kind, text, source_url, created_at) VALUES (NULL, ?, 'publisher', ?, ?, ?)").run(documentId, rationale.text, rationale.url, at);
   return true;
