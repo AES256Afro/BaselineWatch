@@ -8,7 +8,7 @@ import { normalizeNvd, nvdAdapter, nvdDate, nvdStamp, storeNvdRecords, type NvdC
 import { countRows, migrate, openDatabase } from "../src/db.ts";
 import type { HttpGet } from "../src/http.ts";
 import { getSource, ingestSource } from "../src/ingest.ts";
-import { applyKev, getVuln, isNotable, listVulns, matchWatch, recomputeWatchHits, vulnChanges, type WatchEntry } from "../src/vulns.ts";
+import { applyKev, getVuln, isNotable, listVulns, matchWatch, movedInWindowSql, notableInWindowSql, notableSql, recomputeWatchHits, vulnChanges, type WatchEntry } from "../src/vulns.ts";
 import { listWire } from "../src/wire.ts";
 import { cookieFrom, fakeHttp, fixture, formPost, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -160,6 +160,41 @@ describe("vulnerability store", () => {
     expect(isNotable({ ...quiet, cvss_score: 9.1, published_at: "2026-10-10T00:00:00.000Z" }, false, seen)).toBe(false);
     expect(isNotable({ ...quiet, epss: 0.7 }, false, seen)).toBe(true);
     expect(isNotable({ ...quiet, ssvc_json: JSON.stringify({ exploitation: "active" }) }, false, seen)).toBe(true);
+  });
+
+  it("decides the same thing in SQL, for the pages that read a window rather than a row", () => {
+    // notableSql and notableInWindowSql exist so Today can ask the database the question isNotable
+    // answers in TypeScript. Two spellings of one judgement drift unless something holds them
+    // together; this is that something.
+    storeNvdRecords({ db, now: () => at }, windowFixture().vulnerabilities!);
+    const seen = at.toISOString();
+    const windowStart = "2026-10-01T00:00:00.000Z";
+    const bySql = (sql: string, ...params: string[]) =>
+      new Set((db.prepare(`SELECT v.cve_id FROM vulns v WHERE ${sql}`).all(...params) as { cve_id: string }[]).map((r) => r.cve_id));
+
+    const all = db.prepare("SELECT * FROM vulns").all() as unknown as Parameters<typeof isNotable>[0][];
+    expect(all.length).toBeGreaterThan(0);
+
+    // The column arms, with no 'new critical' in play: the two agree row for row.
+    const sqlSaysNotable = bySql(notableSql);
+    for (const row of all) expect(sqlSaysNotable.has(row.cve_id), `${row.cve_id}`).toBe(isNotable(row, false, seen));
+
+    // And with the window standing in for 'this one is new': still row for row.
+    const sqlSaysInWindow = bySql(notableInWindowSql, windowStart);
+    for (const row of all) {
+      const publishedInWindow = row.published_at !== null && row.published_at >= windowStart;
+      expect(sqlSaysInWindow.has(row.cve_id), `${row.cve_id}`).toBe(isNotable(row, publishedInWindow, seen));
+    }
+  });
+
+  it("counts a CVE as moved only when it was published or really changed, not when it arrived", () => {
+    db.prepare("INSERT INTO vulns (cve_id, last_modified_at, published_at, first_seen_at, last_seen_at) VALUES ('CVE-2019-1', ?, '2019-01-01T00:00:00.000Z', ?, ?)").run(at.toISOString(), at.toISOString(), at.toISOString());
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2019-1', ?, 'new')").run(at.toISOString());
+    const windowStart = "2026-10-01T00:00:00.000Z";
+    const moved = () => (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE v.cve_id = 'CVE-2019-1' AND ${movedInWindowSql}`).get(windowStart, windowStart) as { n: number }).n;
+    expect(moved()).toBe(0);
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2019-1', ?, 'cvss')").run(at.toISOString());
+    expect(moved()).toBe(1);
   });
 });
 

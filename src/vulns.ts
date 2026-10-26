@@ -712,6 +712,28 @@ export function isNotable(row: VulnRow, isNew: boolean, observedAt: string): boo
   return ssvc.exploitation === "active";
 }
 
+/**
+ * The same two judgements as SQL, for queries that read a page of CVEs rather than one. Both
+ * assume the query aliases `vulns` as `v`. test/vulns.test.ts holds them to isNotable.
+ *
+ * `movedInWindowSql` is the one worth reading twice. A `vuln_changes` row with field 'new' means
+ * *this instance* saw the CVE for the first time, which is not the same thing as the CVE being
+ * new: on a backfill it is thousands of CVEs from years ago, all of them landing in one window.
+ * So "moved" means NVD published it inside the window, or something about it other than its
+ * arrival here changed. Takes the window start twice.
+ */
+export const movedInWindowSql = "(v.published_at >= ? OR v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field <> 'new'))";
+
+/** isNotable's arms that can be read from columns alone. Takes no parameters. */
+export const notableSql = "(v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active')";
+
+/**
+ * notableSql plus isNotable's remaining arm — a critical that is new rather than merely re-touched
+ * — read against the window instead of against an `isNew` flag the database does not keep. Takes
+ * the window start once, after movedInWindowSql's two.
+ */
+export const notableInWindowSql = `(v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active' OR (v.published_at >= ? AND COALESCE(v.cvss_score, 0) >= 9))`;
+
 /** Puts or refreshes a notable CVE on the Wire, resurfacing it as unread when something changed. */
 export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChange[], observedAt: string): void {
   const vendors = parseJson<string[]>(row.vendors_json, []);
