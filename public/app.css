@@ -173,6 +173,30 @@ a.state { text-decoration: none; }
 .std-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--mute); font-size: 12.5px; margin-top: 2px; }
 .std-meta .n { font-variant-numeric: tabular-nums; }
 .std-note { margin: 6px 0 0; color: var(--mute); font-size: 12.5px; }
+/* Grouped standards (Controls, the catalog, a standard's page): one folded line per standard, its publications inside. */
+.fold-group + .fold-group { margin-top: 26px; }
+.fold-group > p.small { margin: -4px 0 10px; }
+details.fold { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 0 14px; margin-bottom: 8px; min-width: 0; }
+details.fold > summary { cursor: pointer; padding: 10px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "▸"; color: var(--mute); font-size: 11px; width: 10px; }
+details.fold[open] > summary::before { content: "▾"; }
+details.fold > summary b { font-weight: 600; }
+details.fold > summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+details.fold:target { border-color: var(--acc); }
+details.fold[open] { padding-bottom: 10px; }
+h3.series { font-family: var(--sans); font-size: 13px; font-weight: 600; margin: 16px 0 6px; color: var(--mute); }
+.fold-meta { color: var(--mute); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.pubs tr.series th, tr.series th { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink); background: var(--paper); font-weight: 400; }
+table.pubs tr.series th .count { font: 500 11.5px var(--mono); color: var(--mute); margin-left: 6px; }
+table.pubs tr.in-series td.pub { padding-left: 24px; }
+table.pubs td.pub { min-width: 180px; }
+details.note.about summary { cursor: pointer; }
+details.note.about[open] summary { margin-bottom: 4px; }
+details.earlier summary { cursor: pointer; color: var(--mute); font-size: 12.5px; white-space: nowrap; }
+details.earlier ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12.5px; }
+details.earlier li { padding: 2px 0; white-space: nowrap; }
+details.earlier .when { color: var(--mute); margin-left: 4px; }
 .state { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); white-space: nowrap; }
 .state.wait { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
 .state.ok { color: var(--ins); background: var(--ins-bg); border-color: transparent; }
@@ -185,6 +209,7 @@ table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 720p
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
 th { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); background: var(--paper); }
 tr:last-child td { border-bottom: 0; }
+tbody + tbody > tr:first-child > * { border-top: 1px solid var(--rule); }
 tr.off td { color: var(--mute); }
 td .note { color: var(--mute); font-size: 12px; margin-top: 2px; max-width: 48ch; }
 td .note.err { color: var(--del); }
@@ -1017,14 +1042,13 @@ table.matrix .chip { white-space: normal; }
 .trace h3 a { color: var(--ink); text-decoration: none; }
 
 /* A body's card: the head, the publisher, then the derivation and the addresses. */
-.bodies { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+.bodies { display: grid; gap: 0; }
 .rung-band { margin: 0 0 22px; }
 .rung-band .std-head { margin-bottom: 8px; }
-.box.body { margin: 0; }
-.body-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
-.body-head h3 { margin: 0; font-size: 16px; }
-.body-head h3 a { color: var(--ink); text-decoration: none; }
-.body-pub { margin: 2px 0 8px; color: var(--mute); font-size: 12px; font-family: var(--mono); }
+details.fold.body > summary { gap: 4px 12px; }
+.body-head h3 { margin: 0; font-size: 15px; display: inline; }
+.body-head .chips { margin-left: auto; }
+.body-pub { color: var(--mute); font-size: 12px; font-family: var(--mono); }
 .body .why { color: var(--mute); }
 dl.derive { margin: 10px 0 0; font-size: 13px; }
 dl.derive dt { font: 600 10px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--mute); margin-top: 8px; }

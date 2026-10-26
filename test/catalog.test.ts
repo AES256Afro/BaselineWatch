@@ -26,13 +26,13 @@ describe("the all-standards catalog", () => {
     expect(text).toContain('<a href="#nist">NIST publications</a>');
     expect(text).toContain('<a href="#nasa">NASA (CSET / OCIO)</a>');
     // Nothing fetched yet: each band says so instead of standing empty.
-    expect(text).toContain("the NIST sources fill this table on their first fetch");
+    expect(text).toContain("the NIST sources fill this on their first fetch");
     expect(text).toContain("drafts-open-for-comment feed has not been fetched yet");
     expect(text).toContain("The reference has not been fetched yet");
     expect(text).toContain("cset.nasa.gov");
   });
 
-  it("shows the NASA reference once it is loaded, standards open and citation lists folded", async () => {
+  it("shows the NASA reference once it is loaded, each family folded to its count", async () => {
     const http = fakeHttp({ [docxUrl]: { bytes: fixture("nasa/cybersecurity-policy-reference-2026-q3.docx") } });
     const source = getSource(app.db, "nasa-cyber-ref")!;
     const outcome = await ingestDocumentTarget(app.db, app.dataDir, source, nasaPolicyAdapter, { key: "reference", url: docxUrl, title: "NASA Cybersecurity Policy Reference" }, { http, now: () => at });
@@ -42,9 +42,10 @@ describe("the all-standards catalog", () => {
     expect(text).toContain("as of 2026-09-15");
     expect(text).toContain("NASA-SPEC-2600");
     expect(text).toContain("Enumeration of ASCS Cybersecurity Requirements");
-    expect(text).toMatch(/<h3 id="nasa-standards">Standards \(\d+\)<\/h3>/);
-    expect(text).toMatch(/<details><summary>FIPS Documents \(\d+\)/);
-    expect(text).toMatch(/<details><summary>NIST Documents \(\d+\)/);
+    // Every family folds to one line with its count; the citation lists say they repeat the tracked versions.
+    expect(text).toMatch(/<details class="fold" id="nasa-standards">\s*<summary><b>Standards<\/b><span class="fold-meta">\d+ documents<\/span>/);
+    expect(text).toMatch(/<summary><b>FIPS Documents<\/b><span class="fold-meta">\d+ documents? · NASA(?:'|&#39;)s citation list/);
+    expect(text).toMatch(/<summary><b>NIST Documents<\/b><span class="fold-meta">\d+ documents? · NASA(?:'|&#39;)s citation list/);
     // The id leads to NASA's own page for the document; the title to the Register's row.
     expect(text).toMatch(/<a href="https:\/\/cset\.nasa\.gov\/ascs\/[^"]*" target="_blank" rel="noopener">NASA-SPEC-2600 Version 6\.0<\/a>/);
     expect(text).toContain(`/standards/nasa-cyber-ref/${outcome.documentId}/${encodeURIComponent("standard:nasa-spec-2600")}`);
