@@ -193,8 +193,8 @@ describe("the page", () => {
       const history = await (await fetch(`${app.base}/scan/devices?device=laptop`, { headers: { cookie } })).text();
       expect(history).toContain("laptop <span class=\"count\">2 reading(s)</span>");
       const today = await (await fetch(`${app.base}/today`, { headers: { cookie } })).text();
-      expect(today).toContain("<small>Devices</small><b>0</b><span>exposed of 1 read</span>");
-      expect(await (await fetch(`${app.base}/today`)).text()).not.toContain("<small>Devices</small>");
+      expect(today).toContain('<span><a href="/scan/devices">Devices</a></span><b>0 exposed of 1 read</b>');
+      expect(await (await fetch(`${app.base}/today`)).text()).not.toContain('<a href="/scan/devices">Devices</a>');
       expect((await formPost(app.base, "/scan/devices/forget", { device: "laptop" }, cookie)).status).toBe(303);
       expect((await formPost(app.base, "/scan/devices/forget", { device: "laptop" }, cookie)).status).toBe(404);
       // The scripts are served with their sums.

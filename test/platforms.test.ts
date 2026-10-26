@@ -185,7 +185,7 @@ describe("platform engineering: the release and hardware under test", () => {
   it("says what ends support soon on Today and the Platforms page, and links a plan as a URL", async () => {
     // The app's clock is 2026-10-19 in these tests: Windows 11 23H2 Enterprise ends 2026-11-10, 22 days out.
     const today = await (await fetch(`${app.base}/today`)).text();
-    expect(today).toContain('<a class="tile warn" href="/fleet"><small>Support ending</small><b>1</b><span>Windows 11, version 23H2: Enterprise and Education 2026-11-10</span></a>');
+    expect(today).toContain("<b>Support ending:</b> 1 release(s) within 90 days — Windows 11, version 23H2: Enterprise and Education 2026-11-10.");
     const platforms = await (await fetch(`${app.base}/platforms`)).text();
     expect(platforms).toContain("<b>Support ending within 90 days:</b>");
     expect(platforms).toContain('<span class="chip na">ends in 22 days</span> <span class="small">Enterprise and Education 2026-11-10</span>');

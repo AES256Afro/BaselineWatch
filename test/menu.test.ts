@@ -185,12 +185,14 @@ describe("the window's CVEs by platform", () => {
     expect(keys.has("android")).toBe(true);
   });
 
-  it("draws the rows on Today, each leading to the table filtered the same way", async () => {
+  it("says them in a sentence on Today, each platform leading to the table filtered the same way", async () => {
+    // The bars became a line of prose (M20): a figure is printed with the words that give it
+    // meaning, and only the platforms this fleet runs are named.
     const today = await (await fetch(`${app.base}/today`)).text();
-    expect(today).toContain('<section class="box wide" id="platforms">');
+    expect(today).toContain('class="small plat-line"');
+    expect(today).toContain("Across the platforms you run");
     expect(today).toContain('href="/vulnerabilities?platform=windows&amp;changed=1"');
-    expect(today).toContain('<span class="chip ok">in your fleet</span>');
-    expect(today).toContain("KEV</a>");
+    expect(today).toContain("exploited)");
     // And the table itself answers that filter.
     const filtered = await (await fetch(`${app.base}/vulnerabilities?platform=windows`)).text();
     expect(filtered).toContain("CVE-2026-100");

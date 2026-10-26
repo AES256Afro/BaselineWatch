@@ -1,0 +1,807 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Today — five directions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Five directions for /today, drawn on the app's real Register-look tokens on purpose: the
+   comparison here is about what the page SAYS and in what order, not about colour. Two rules hold
+   across all five, from the brief: (1) no decorative chart — a number is printed only with the
+   comparison that makes it mean something, in words; (2) the published fix sits beside the thing
+   it fixes, because "patch this" is the only sentence that ends the reading.
+   Content is invented but shaped like the real sources (src/adapters/, src/fix.ts, data/platforms.yaml). */
+:root{
+  --paper:#f3f4f1; --card:#ffffff; --panel-2:#f7f8f6; --ink:#1b1f23; --mute:#5f6b70; --rule:#cfd5d2; --rule-2:#b9c1bd;
+  --acc:#0f6e56; --acc-ink:#ffffff; --warn:#8a5a00; --warn-bg:#fbf2df; --del:#b3261e; --del-bg:#fbe9e7;
+  --ins:#1b6e3a; --ins-bg:#e3f3e8; --gen:#7a4fb3; --hl:#fff3cd;
+  --cyan:#0b6f8f; --amber:#8a5a00; --red:#b3261e; --green:#1b6e3a; --purple:#7a4fb3; --grid:#e2e6e3;
+  --serif:"Newsreader","Source Serif 4",Georgia,serif;
+  --sans:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --warn-bg:#2d2615; --del:#ff8a80; --del-bg:#3a1f1d;
+  --ins:#7fd99a; --ins-bg:#173123; --gen:#c2a6f0; --hl:#3a3420;
+  --cyan:#5fd0f3; --amber:#e2b55a; --red:#ff8a80; --green:#7fd99a; --purple:#c2a6f0; --grid:#2a3134; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --warn:#e2b55a; --warn-bg:#2d2615; --del:#ff8a80; --del-bg:#3a1f1d;
+  --ins:#7fd99a; --ins-bg:#173123; --gen:#c2a6f0; --hl:#3a3420;
+  --cyan:#5fd0f3; --amber:#e2b55a; --red:#ff8a80; --green:#7fd99a; --purple:#c2a6f0; --grid:#2a3134; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans)}
+a{color:var(--acc)}
+
+/* ---------- hub chrome ---------- */
+.wrap{max-width:1280px;margin:0 auto;padding:26px 16px 56px}
+.hub-head h1{font:500 27px/1.15 var(--serif);margin:0;letter-spacing:-.01em}
+.hub-head p{margin:8px 0 0;color:var(--mute);max-width:74ch}
+.disclosure{margin-top:14px;padding:10px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--mute);font-size:13px}
+.disclosure b{color:var(--ink)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.tabs button{appearance:none;border:1px solid var(--rule);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 13px;font:inherit;text-align:left;cursor:pointer;flex:1 1 210px;min-width:0}
+.tabs button[aria-selected="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.tabs button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.tabs button strong{display:block;font-size:14px}
+.tabs button span{display:block;color:var(--mute);font-size:12.5px;line-height:1.35;margin-top:2px}
+.stage{margin-top:18px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--card)}
+.chrome{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--rule);background:var(--panel-2);color:var(--mute);font:12px var(--mono)}
+.chrome i{width:9px;height:9px;border-radius:50%;background:var(--rule-2);font-style:normal}
+.view[hidden]{display:none}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-top:18px}
+.notes div{border-top:2px solid var(--rule);padding-top:10px;min-width:0}
+.notes h3{margin:0 0 4px;font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.notes p{margin:0;font-size:13.5px}
+.notes .fit{border-top-color:var(--acc)}
+.notes .cost{border-top-color:var(--warn)}
+.builds{margin-top:14px;font-size:13px;color:var(--mute);border-left:2px solid var(--rule);padding-left:12px}
+.builds b{color:var(--ink)}
+.builds code{font:12px var(--mono);background:var(--panel-2);border:1px solid var(--rule);border-radius:4px;padding:0 4px}
+
+/* ---------- shared app chrome inside every screen ---------- */
+.screen{background:var(--paper)}
+.mast{background:var(--card);border-bottom:1px solid var(--rule)}
+.mast-in{display:flex;align-items:center;gap:10px 22px;padding:11px 22px}
+.name{font:500 17px var(--serif);white-space:nowrap}
+.mast nav{display:flex;gap:18px;font-size:13.5px}
+.mast nav span{color:var(--mute);padding:3px 0;border-bottom:2px solid transparent}
+.mast nav span.on{color:var(--ink);border-bottom-color:var(--acc)}
+.mast .right{margin-left:auto;display:flex;gap:10px;align-items:center;color:var(--mute);font-size:12.5px}
+.deskbtn{border:1px solid var(--rule);border-radius:7px;padding:3px 10px}
+.strip{display:flex;gap:12px;align-items:center;padding:6px 22px;border-bottom:1px solid var(--rule);background:var(--warn-bg);font-size:12.5px;color:var(--mute);overflow:hidden;white-space:nowrap}
+.strip .lab{font:600 10.5px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--warn)}
+.strip b{color:var(--ink);font-weight:500}
+.strip .dot{color:var(--rule-2)}
+.body{padding:20px 22px 30px;max-width:1180px;margin:0 auto}
+.foot{border-top:1px solid var(--rule);padding:10px 22px;color:var(--mute);font-size:12px;background:var(--card)}
+
+/* shared atoms */
+.chip{display:inline-block;font:600 10.5px var(--sans);letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--mute);vertical-align:1px}
+.chip.kev{background:var(--del-bg);border-color:var(--del);color:var(--del)}
+.chip.std{background:var(--panel-2);border-color:var(--purple);color:var(--purple)}
+.chip.mine{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.chip.ok{background:var(--ins-bg);border-color:var(--ins);color:var(--ins)}
+.mono{font-family:var(--mono)}
+.sm{font-size:13px;color:var(--mute)}
+.btn{display:inline-block;border:1px solid var(--rule);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--mute);background:var(--card)}
+.btn.p{border-color:var(--acc);color:var(--acc)}
+h2.sec{font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;display:flex;align-items:baseline;gap:10px}
+h2.sec em{font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--rule-2)}
+.box{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 16px}
+
+/* Phone: the screens are desktop pages, so the STAGE scrolls sideways, never the document. */
+@media (max-width:900px){
+  .wrap{padding:20px 16px 44px}
+  .hub-head h1{font-size:23px}
+  .tabs button{flex:1 1 100%}
+  .stage{overflow-x:auto}
+  .screen{min-width:1040px}
+  .notes{grid-template-columns:1fr}
+}
+</style>
+<style>
+/* ---------- 1. BRIEFING ---------- */
+.m1 .body{max-width:980px}
+.m1 .dateline{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+.m1 .dateline .u{color:var(--acc)}
+.m1 .lede-h{font:500 31px/1.2 var(--serif);margin:10px 0 0;letter-spacing:-.012em;text-wrap:balance;max-width:38ch}
+.m1 .lede{font:400 17px/1.62 var(--serif);margin:14px 0 0;max-width:66ch}
+.m1 .lede a{text-decoration-thickness:1px;text-underline-offset:2px}
+.m1 .rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
+.m1 ol.todo{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.m1 ol.todo li{display:grid;grid-template-columns:26px 1fr auto;gap:0 12px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.m1 ol.todo li.urgent{border-left:3px solid var(--del)}
+.m1 ol.todo li.std{border-left:3px solid var(--purple)}
+.m1 .rank{font:500 15px var(--mono);color:var(--rule-2);grid-row:span 2}
+.m1 .head{font:500 16px/1.35 var(--serif)}
+.m1 .why{font-size:13.5px;color:var(--mute);margin-top:3px;max-width:72ch}
+.m1 .fixline{grid-column:2;margin-top:8px;padding-top:8px;border-top:1px dashed var(--rule);font-size:13.5px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.m1 .fixline .k{font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ins)}
+.m1 .fixline.none .k{color:var(--mute)}
+.m1 .acts{display:flex;gap:5px;align-items:flex-start}
+.m1 .figs{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--card)}
+.m1 .figs div{padding:12px 14px;border-right:1px solid var(--rule)}
+.m1 .figs div:last-child{border-right:0}
+.m1 .figs b{display:block;font:500 25px/1 var(--serif)}
+.m1 .figs small{display:block;font-size:12.5px;color:var(--mute);margin-top:5px}
+.m1 .figs .up{color:var(--del)} .m1 .figs .down{color:var(--ins)}
+.m1 .closing{font:400 15.5px/1.6 var(--serif);color:var(--mute);max-width:70ch;margin:0}
+.m1 .closing a{color:var(--acc)}
+
+/* ---------- 2. FIX LIST ---------- */
+.m2 .hdr{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.m2 .hdr h1{font:500 25px var(--serif);margin:0}
+.m2 .hdr p{margin:0;color:var(--mute);font-size:13.5px}
+.m2 .cols{display:grid;grid-template-columns:1fr 268px;gap:18px;margin-top:16px;align-items:start}
+.m2 .grp{margin-bottom:18px}
+.m2 .fix{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:0;margin-bottom:10px;overflow:hidden}
+.m2 .fix > .top{display:grid;grid-template-columns:1fr auto;gap:10px;padding:11px 14px;align-items:center}
+.m2 .remedy{font:500 16px var(--sans);display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.m2 .remedy .verb{color:var(--ins);font-weight:600}
+.m2 .remedy code{font:500 14px var(--mono);background:var(--ins-bg);border:1px solid var(--ins);color:var(--ins);border-radius:5px;padding:1px 7px}
+.m2 .where{font-size:12.5px;color:var(--mute);margin-top:3px}
+.m2 .clears{border-top:1px solid var(--rule);background:var(--panel-2);padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12.5px}
+.m2 .cve{font:500 12px var(--mono);border:1px solid var(--rule);background:var(--card);border-radius:5px;padding:1px 6px;color:var(--ink)}
+.m2 .cve.kev{border-color:var(--del);color:var(--del);background:var(--del-bg)}
+.m2 .cve.w{border-color:var(--warn);color:var(--warn);background:var(--warn-bg)}
+.m2 .fix.warn{border-left:3px solid var(--warn)}
+.m2 .fix.none{border-left:3px solid var(--rule-2)}
+.m2 .fix.none .remedy{color:var(--mute);font-weight:400}
+.m2 .side .box{margin-bottom:12px}
+.m2 .side ul{list-style:none;margin:0;padding:0;font-size:13px}
+.m2 .side li{padding:5px 0;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:8px}
+.m2 .side li:first-child{border-top:0}
+.m2 .side li b{font-weight:500}
+.m2 .tally{display:flex;gap:0;border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:var(--card);margin-bottom:14px}
+.m2 .tally div{flex:1;padding:9px 12px;border-right:1px solid var(--rule)}
+.m2 .tally div:last-child{border-right:0}
+.m2 .tally b{display:block;font:500 21px/1 var(--sans)}
+.m2 .tally small{display:block;font-size:12px;color:var(--mute);margin-top:4px}
+</style>
+
+<div class="wrap">
+<div class="hub-head">
+  <h1>Today — five directions</h1>
+  <p>The page as it stands is a dashboard: fifteen blocks, eight tiles and two charts that mostly
+  read zero. These five each pick one job for <code>/today</code> and drop everything that does not serve it.
+  All five obey the same two rules — <b>no decorative chart</b> (a figure appears only with the comparison
+  that gives it meaning, written out), and <b>the published fix sits beside the thing it fixes</b>.</p>
+</div>
+<div class="disclosure"><b>Mock-up, invented data.</b> Source names, standards and fleet releases are the real ones
+(<code>src/adapters/</code>, <code>data/platforms.yaml</code>); the CVE numbers, KB numbers and counts are made up to show the shape.
+All five are drawn on the app's real Register-look tokens on purpose, so the comparison is about what the page says and in what order, not about colour. Owner's view throughout.</div>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tab-1" aria-controls="view-1" aria-selected="true"><strong>1 · The Briefing</strong><span>A written front page. Prose first, then the agenda.</span></button>
+  <button role="tab" id="tab-2" aria-controls="view-2" aria-selected="false"><strong>2 · The Fix List</strong><span>Grouped by remedy, not by CVE. One KB, nine CVEs.</span></button>
+  <button role="tab" id="tab-3" aria-controls="view-3" aria-selected="false"><strong>3 · Since You Last Looked</strong><span>New, changed and cleared against your own mark.</span></button>
+  <button role="tab" id="tab-4" aria-controls="view-4" aria-selected="false"><strong>4 · The Ladder</strong><span>Standard → baseline → control → setting, every day.</span></button>
+  <button role="tab" id="tab-5" aria-controls="view-5" aria-selected="false"><strong>5 · The Fleet Board</strong><span>One card per release you actually run.</span></button>
+</div>
+
+<!-- ===================== 1. THE BRIEFING ===================== -->
+<div class="view" id="view-1" role="tabpanel" aria-labelledby="tab-1">
+<div class="stage"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today</div>
+<div class="screen m1">
+  <div class="mast"><div class="mast-in">
+    <span class="name">BaselineWatch</span>
+    <nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav>
+    <span class="right"><span class="deskbtn">Desk ▾</span></span>
+  </div></div>
+  <div class="strip"><span class="lab">Register</span><b>SP 800-53 Rev 5.2.0</b> · 4 controls revised <span class="dot">·</span> <b>Windows 11 25H2 baseline</b> · 11 settings <span class="dot">·</span> <b>STIG library</b> · October quarterly</div>
+  <div class="body">
+    <div class="dateline"><span>Monday 26 October 2026 · 07:14</span><span class="u">You last read this Friday 17:40</span></div>
+    <h1 class="lede-h">Two of the things you run went into KEV over the weekend. 800-53 moved for the first time since August.</h1>
+    <p class="lede">CISA added <a href="#">four vulnerabilities</a> to the Known Exploited catalogue since Friday, and two of them
+      are on platforms in your fleet — <a href="#">Windows 11 25H2</a> and <a href="#">Chrome</a>. Both already have a published fix, and one
+      October update clears nine of the weekend's CVEs at once. NIST published
+      <a href="#">SP 800-53 Rev 5.2.0</a> on Friday evening: four controls revised in the AC family, one withdrawn, and
+      <a href="#">your High baseline</a> applies three of them. Everything else was ordinary weekend traffic —
+      <a href="#">81 stories</a>, no advisory that named you, and every source answered.</p>
+    <hr class="rule">
+    <h2 class="sec">What to do <em>3 things, in order</em></h2>
+    <ol class="todo">
+      <li class="urgent">
+        <span class="rank">1</span>
+        <span>
+          <span class="head">CVE-2026-41877 — Windows CLFS elevation of privilege</span>
+          <span class="why">CISA has evidence this is being exploited and it is on Windows 11 25H2, which 14 of your devices run. Federal due date 16 November. CVSS 7.8, EPSS 62%.</span>
+        </span>
+        <span class="acts"><span class="btn p">Affects us</span><span class="btn">Not ours</span></span>
+        <span class="fixline"><span class="k">Fix published</span> Install <b class="mono">KB5071234</b> (October cumulative). Same update clears 8 more. <a href="#">Microsoft ›</a></span>
+      </li>
+      <li class="urgent">
+        <span class="rank">2</span>
+        <span>
+          <span class="head">CVE-2026-9910 — Chrome V8 type confusion</span>
+          <span class="why">Exploited in the wild per Google. Your last device reading saw Chrome 142.0.7220.49 on 9 machines, which is behind.</span>
+        </span>
+        <span class="acts"><span class="btn p">Affects us</span><span class="btn">Not ours</span></span>
+        <span class="fixline"><span class="k">Fix published</span> Update to <b class="mono">143.0.7300.52</b> or later. <a href="#">Chrome releases ›</a></span>
+      </li>
+      <li class="std">
+        <span class="rank">3</span>
+        <span>
+          <span class="head">SP 800-53 Rev 5.2.0 — AC-2, AC-3, AC-6 revised, AC-10 withdrawn</span>
+          <span class="why">NIST's stated reason: aligning account management language with the identity guidance in SP 800-63-4. Your High baseline applies AC-2, AC-3 and AC-6; AC-10 was never in it.</span>
+        </span>
+        <span class="acts"><span class="btn p">Read the diff</span></span>
+        <span class="fixline none"><span class="k">No action yet</span> A control change is a decision, not a patch. <a href="#">See both versions side by side ›</a></span>
+      </li>
+    </ol>
+    <hr class="rule">
+    <h2 class="sec">By the numbers <em>against the three days before</em></h2>
+    <div class="figs">
+      <div><b>31</b><small><span class="up">12 more</span> CVEs changed than the weekend before</small></div>
+      <div><b>4</b><small><span class="up">up from 1</span> added to KEV, 2 of them yours</small></div>
+      <div><b>3</b><small><span class="down">of 3 fixed</span> — every KEV entry that touches you has a patch</small></div>
+      <div><b>1</b><small>standard moved, after seven quiet weeks</small></div>
+    </div>
+    <hr class="rule">
+    <p class="closing">Otherwise: <a href="#">81 news items</a> over the weekend, the busiest from BleepingComputer and The Record;
+      <a href="#">no CVE</a> named by more than two sources; the <a href="#">network check</a> ran at 04:00 and found nothing new;
+      every enabled source answered on its last fetch, the oldest read 41 minutes ago.</p>
+  </div>
+  <div class="foot">Built 07:14 from 48 sources · <a href="#">the digest</a> says the same thing in an email</div>
+</div></div>
+<div class="notes">
+  <div><h3>Thesis</h3><p>A dashboard makes you diff it against your memory. A brief does the diff for you and writes the answer in sentences you could read aloud.</p></div>
+  <div><h3>Strong at</h3><p>A quiet day reads as four short lines, not a wall of zeros. Works for a public reader word for word. Phone-native: it is one column of prose.</p></div>
+  <div class="cost"><h3>Costs</h3><p>The lede has to be composed from facts by template — fiddly to write, and every new source means a new sentence. It is a read, not a work surface.</p></div>
+  <div class="fit"><h3>Fits</h3><p>The Register look and the teaching site exactly. Closest to <code>src/digest.ts</code>, which already builds this text for email.</p></div>
+</div>
+<p class="builds"><b>What it would take:</b> a <code>brief()</code> in a new <code>src/brief.ts</code> that turns the facts <code>src/agenda.ts</code> already gathers into clauses, plus <code>fixSummary(fixesFor(…))</code> per action for the fix line. The figures are counts you already run, each paired with the same count over the previous window. No new schema.</p>
+</div>
+
+<!-- ===================== 2. THE FIX LIST ===================== -->
+<div class="view" id="view-2" role="tabpanel" aria-labelledby="tab-2" hidden>
+<div class="stage"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today</div>
+<div class="screen m2">
+  <div class="mast"><div class="mast-in">
+    <span class="name">BaselineWatch</span>
+    <nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav>
+    <span class="right"><span class="deskbtn">Desk ▾</span></span>
+  </div></div>
+  <div class="strip"><span class="lab">Register</span><b>SP 800-53 Rev 5.2.0</b> · 4 controls revised <span class="dot">·</span> <b>Windows 11 25H2 baseline</b> · 11 settings</div>
+  <div class="body">
+    <div class="hdr">
+      <h1>Four updates close 23 of the weekend's CVEs</h1>
+      <p>Monday 26 October · last 72 hours · <span class="btn">24 h</span> <span class="btn p">3 days</span> <span class="btn">7 days</span></p>
+    </div>
+    <p class="sm" style="margin:0 0 14px;max-width:80ch">Grouped by the remedy rather than by the CVE, because one October cumulative is one evening's work and nine rows in a table. Only CVEs that touch your fleet or your watchlist are counted here; <a href="#">the full table</a> has the rest.</p>
+    <div class="cols">
+      <div>
+        <div class="tally">
+          <div><b>23</b><small>fixed by an update you can install now</small></div>
+          <div><b>3</b><small>mitigation published, no patch yet</small></div>
+          <div><b>2</b><small>nothing published — watching</small></div>
+          <div><b>6</b><small>already done, cleared since Friday</small></div>
+        </div>
+
+        <div class="grp">
+          <h2 class="sec">Install now <em>published fix, applies to your fleet</em></h2>
+
+          <div class="fix">
+            <div class="top">
+              <div>
+                <div class="remedy"><span class="verb">Install</span> <code>KB5071234</code> <span class="chip">Windows 11 25H2</span></div>
+                <div class="where">October cumulative update · 14 devices on this build · last reading 25 Oct 06:12 · <a href="#">Microsoft Update Guide ›</a></div>
+              </div>
+              <span class="btn p">Mark done</span>
+            </div>
+            <div class="clears">Clears 9:
+              <span class="cve kev">CVE-2026-41877</span><span class="cve w">CVE-2026-41880</span><span class="cve">CVE-2026-41881</span><span class="cve">CVE-2026-41884</span><span class="cve">CVE-2026-41885</span><span class="cve">CVE-2026-41890</span><span class="cve">CVE-2026-41893</span><span class="cve">CVE-2026-41899</span><span class="cve">CVE-2026-41902</span>
+              <span class="sm">· 1 exploited, 1 on your watchlist</span>
+            </div>
+          </div>
+
+          <div class="fix">
+            <div class="top">
+              <div>
+                <div class="remedy"><span class="verb">Update to</span> <code>Chrome 143.0.7300.52</code> <span class="chip">all platforms</span></div>
+                <div class="where">Stable channel, released 24 Oct · 9 devices seen on 142.0.7220.49 · <a href="#">Chrome releases ›</a></div>
+              </div>
+              <span class="btn p">Mark done</span>
+            </div>
+            <div class="clears">Clears 7: <span class="cve kev">CVE-2026-9910</span><span class="cve">CVE-2026-9911</span><span class="cve">CVE-2026-9914</span><span class="cve">CVE-2026-9915</span><span class="cve">CVE-2026-9918</span><span class="cve">CVE-2026-9920</span><span class="cve">CVE-2026-9921</span> <span class="sm">· 1 exploited in the wild</span></div>
+          </div>
+
+          <div class="fix">
+            <div class="top">
+              <div>
+                <div class="remedy"><span class="verb">Update to</span> <code>macOS 26.2</code> <span class="chip">macOS 26 Tahoe</span></div>
+                <div class="where">Apple security release 24 Oct · 6 devices on 26.1 · <a href="#">Apple security releases ›</a></div>
+              </div>
+              <span class="btn p">Mark done</span>
+            </div>
+            <div class="clears">Clears 5: <span class="cve">CVE-2026-3301</span><span class="cve">CVE-2026-3304</span><span class="cve w">CVE-2026-3310</span><span class="cve">CVE-2026-3312</span><span class="cve">CVE-2026-3318</span> <span class="sm">· 1 on your watchlist (WebKit)</span></div>
+          </div>
+
+          <div class="fix">
+            <div class="top">
+              <div>
+                <div class="remedy"><span class="verb">Upgrade</span> <code>openssl 3.0.18-1ubuntu1.2</code> <span class="chip">Ubuntu 24.04 LTS</span></div>
+                <div class="where">USN-7412-1 · matched from your SBOM upload, 3 packages affected · <a href="#">Ubuntu Security Notices ›</a></div>
+              </div>
+              <span class="btn p">Mark done</span>
+            </div>
+            <div class="clears">Clears 2: <span class="cve">CVE-2026-7701</span><span class="cve">CVE-2026-7702</span></div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <h2 class="sec">Mitigation only <em>the vendor has published what to do, but no patch</em></h2>
+          <div class="fix warn">
+            <div class="top">
+              <div>
+                <div class="remedy"><span class="verb" style="color:var(--warn)">Disable</span> SMBv1 inbound at the edge <span class="chip mine">watchlist</span></div>
+                <div class="where">CISA KEV required action, due 16 Nov · also blunted by <a href="#">STIG rule V-253300</a> from your mitigations file</div>
+              </div>
+              <span class="btn">Open</span>
+            </div>
+            <div class="clears">Covers 3: <span class="cve kev">CVE-2026-5511</span><span class="cve">CVE-2026-5512</span><span class="cve">CVE-2026-5519</span></div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <h2 class="sec">Nothing published yet <em>BaselineWatch does not guess at a fix</em></h2>
+          <div class="fix none">
+            <div class="top">
+              <div>
+                <div class="remedy">No patch, advisory or mitigation on NVD</div>
+                <div class="where">Both are on your watchlist; this row will change the moment a reference tagged Patch appears.</div>
+              </div>
+              <span class="btn">Watch</span>
+            </div>
+            <div class="clears"><span class="cve w">CVE-2026-8840</span><span class="cve w">CVE-2026-8841</span> <span class="sm">· first seen 25 Oct, EPSS 4% and 2%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="box">
+          <h2 class="sec">Standards moved</h2>
+          <ul>
+            <li><span><a href="#">SP 800-53 Rev 5.2.0</a><br><span class="sm">4 revised, 1 withdrawn · 3 in your High baseline</span></span></li>
+            <li><span><a href="#">Windows 11 25H2 baseline</a><br><span class="sm">11 settings changed · Microsoft SCT</span></span></li>
+            <li><span><a href="#">STIG library, October</a><br><span class="sm">6 STIGs you follow re-released</span></span></li>
+          </ul>
+        </div>
+        <div class="box">
+          <h2 class="sec">Cleared since Friday</h2>
+          <ul>
+            <li><span><span class="chip ok">done</span> KB5069122 installed<br><span class="sm">closed 6 CVEs on 25H2</span></span></li>
+            <li><span><span class="chip ok">met</span> KEV due date 24 Oct<br><span class="sm">CVE-2026-3140, you marked it done</span></span></li>
+          </ul>
+        </div>
+        <div class="box">
+          <h2 class="sec">The instance</h2>
+          <ul>
+            <li><span>Sources answering</span><b>48 / 48</b></li>
+            <li><span>Oldest read</span><b>41 min</b></li>
+            <li><span>Network check</span><b>04:00, clean</b></li>
+            <li><span>Devices read</span><b>23, 2 behind</b></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div class="foot">Fixes assembled by <span class="mono">src/fix.ts</span> from NVD references, vendor advisories, KEV required actions, package advisories and Microsoft's update guide. Nothing is inferred.</div>
+</div></div>
+<div class="notes">
+  <div><h3>Thesis</h3><p>You do not patch a CVE, you install an update. Group by the remedy and today's twenty-three rows become four evening jobs, each with a done button.</p></div>
+  <div><h3>Strong at</h3><p>The most actionable of the five by a distance, and the only one that ends in a verb. "Nothing published yet" is a first-class answer, which keeps it honest.</p></div>
+  <div class="cost"><h3>Costs</h3><p>Standards get a sidebar, which inverts the project's own thesis. Thin for a public reader with no fleet. Needs device readings to be current to be worth much.</p></div>
+  <div class="fit"><h3>Fits</h3><p>The owner at a keyboard on a Monday. Directly answers the ask: "here are the fixes for these CVEs."</p></div>
+</div>
+<p class="builds"><b>What it would take:</b> the least new code of the five. <code>fixesFor(db, ctx, row)</code> already returns KB numbers, fixed package versions, KEV required actions and mitigations per CVE; this page inverts that map — key by the remedy, collect the CVEs — and joins <code>src/devices.ts</code> for "14 devices on this build". A <code>fix_done</code> row per remedy is the only new table.</p>
+</div>
+
+<style>
+/* ---------- 3. SINCE YOU LAST LOOKED ---------- */
+.m3 .mark{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:11px 14px;margin-bottom:16px}
+.m3 .mark h1{font:500 21px var(--serif);margin:0}
+.m3 .mark .ago{font:500 12px var(--mono);color:var(--acc);border:1px solid var(--acc);border-radius:999px;padding:2px 9px}
+.m3 .mark .right{margin-left:auto;display:flex;gap:6px}
+.m3 .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start}
+.m3 .col > h2{display:flex;align-items:baseline;gap:8px;margin:0 0 9px;font:600 11px var(--sans);letter-spacing:.12em;text-transform:uppercase}
+.m3 .col.new > h2{color:var(--del)} .m3 .col.chg > h2{color:var(--warn)} .m3 .col.clr > h2{color:var(--ins)}
+.m3 .col > h2 b{font:500 17px var(--sans);letter-spacing:0;color:var(--ink)}
+.m3 .card{background:var(--card);border:1px solid var(--rule);border-radius:9px;padding:10px 12px;margin-bottom:9px}
+.m3 .col.new .card{border-left:3px solid var(--del)}
+.m3 .col.chg .card{border-left:3px solid var(--warn)}
+.m3 .col.clr .card{border-left:3px solid var(--ins)}
+.m3 .card .t{font:500 14px/1.35 var(--sans)}
+.m3 .card .t .mono{font-size:12.5px}
+.m3 .card .d{font-size:12.5px;color:var(--mute);margin-top:4px}
+.m3 .card .fx{margin-top:7px;padding-top:7px;border-top:1px dashed var(--rule);font-size:12.5px}
+.m3 .card .fx b{color:var(--ins)}
+.m3 .card.seen{opacity:.5;background:var(--panel-2)}
+.m3 .delta{display:inline-flex;align-items:baseline;gap:5px;font:500 12.5px var(--mono);background:var(--panel-2);border:1px solid var(--rule);border-radius:5px;padding:1px 6px}
+.m3 .delta s{color:var(--mute);text-decoration-color:var(--rule-2)}
+.m3 .delta i{font-style:normal;color:var(--del)}
+.m3 .more{display:block;text-align:center;font-size:12.5px;color:var(--mute);border:1px dashed var(--rule);border-radius:8px;padding:7px}
+.m3 .quiet{background:var(--panel-2);border:1px solid var(--rule);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--mute);margin-top:14px}
+.m3 .quiet b{color:var(--ink);font-weight:500}
+
+/* ---------- 4. THE LADDER ---------- */
+.m4 .intro{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.m4 .intro h1{font:500 24px var(--serif);margin:0}
+.m4 .intro p{margin:0;color:var(--mute);font-size:13.5px;max-width:62ch}
+.m4 .rung{display:grid;grid-template-columns:180px 1fr;gap:16px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:13px 15px;margin-bottom:10px;position:relative}
+.m4 .rung.quiet{background:var(--panel-2)}
+.m4 .rung .lab{border-right:1px solid var(--rule);padding-right:14px}
+.m4 .rung .lab .w{font:500 16px var(--serif);display:block}
+.m4 .rung .lab .def{font-size:12px;color:var(--mute);line-height:1.4;margin-top:3px;display:block}
+.m4 .rung .lab .n{font:500 12px var(--mono);color:var(--acc);margin-top:7px;display:block}
+.m4 .rung ul{list-style:none;margin:0;padding:0}
+.m4 .rung li{padding:6px 0;border-top:1px solid var(--rule);font-size:13.5px;display:flex;gap:10px;align-items:baseline}
+.m4 .rung li:first-child{border-top:0;padding-top:0}
+.m4 .rung li .ti{flex:1;min-width:0}
+.m4 .rung li .ti b{font-weight:500}
+.m4 .rung li .ti span{display:block;color:var(--mute);font-size:12.5px;margin-top:2px}
+.m4 .rung .none{color:var(--mute);font-size:13px;margin:0}
+.m4 .diff{font:500 12px var(--mono)}
+.m4 .diff .a{background:var(--ins-bg);color:var(--ins);border-radius:3px;padding:0 3px}
+.m4 .diff .r{background:var(--del-bg);color:var(--del);border-radius:3px;padding:0 3px;text-decoration:line-through}
+.m4 .vulnband{border:1px solid var(--rule);border-left:3px solid var(--cyan);border-radius:10px;background:var(--card);padding:13px 15px;margin-top:16px}
+.m4 .vulnband h2{font:500 16px var(--serif);margin:0 0 3px}
+.m4 .vulnband p{margin:0 0 10px;color:var(--mute);font-size:13px;max-width:72ch}
+.m4 .vrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.m4 .vrow div{border:1px solid var(--rule);border-radius:8px;padding:9px 11px;font-size:13px}
+.m4 .vrow b{display:block;font-weight:500;margin-bottom:2px}
+.m4 .vrow span{color:var(--mute);font-size:12.5px}
+.m4 .teach{margin-top:14px;font-size:13px;color:var(--mute);text-align:center}
+</style>
+
+<!-- ===================== 3. SINCE YOU LAST LOOKED ===================== -->
+<div class="view" id="view-3" role="tabpanel" aria-labelledby="tab-3" hidden>
+<div class="stage"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today</div>
+<div class="screen m3">
+  <div class="mast"><div class="mast-in">
+    <span class="name">BaselineWatch</span>
+    <nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav>
+    <span class="right"><span class="deskbtn">Desk ▾</span></span>
+  </div></div>
+  <div class="body">
+    <div class="mark">
+      <h1>Since you last looked</h1>
+      <span class="ago">Friday 17:40 · 61 hours ago</span>
+      <span class="sm">34 things moved. 3 want a decision.</span>
+      <span class="right"><span class="btn">Last 24 h instead</span><span class="btn p">Mark all seen</span></span>
+    </div>
+    <div class="three">
+      <div class="col new">
+        <h2>New <b>11</b></h2>
+        <div class="card">
+          <div class="t"><span class="chip kev">KEV</span> <span class="mono">CVE-2026-41877</span> Windows CLFS elevation of privilege</div>
+          <div class="d">Added by CISA 25 Oct 14:02 · due 16 Nov · CVSS 7.8 · on Windows 11 25H2, which you run</div>
+          <div class="fx"><b>Fix:</b> KB5071234, the October cumulative</div>
+        </div>
+        <div class="card">
+          <div class="t"><span class="chip kev">KEV</span> <span class="mono">CVE-2026-9910</span> Chrome V8 type confusion</div>
+          <div class="d">Added 24 Oct · exploited in the wild per Google</div>
+          <div class="fx"><b>Fix:</b> Chrome 143.0.7300.52</div>
+        </div>
+        <div class="card seen">
+          <div class="t"><span class="chip std">Standard</span> SP 800-53 Rev 5.2.0 published</div>
+          <div class="d">Friday 17:51 · you were still here for this one</div>
+        </div>
+        <div class="card">
+          <div class="t"><span class="chip mine">watchlist</span> <span class="mono">CVE-2026-8840</span> on a package in your SBOM</div>
+          <div class="d">First seen 25 Oct · EPSS 4% · no fix published</div>
+        </div>
+        <span class="more">7 more — 2 advisories, 5 CVEs with no fleet match</span>
+      </div>
+      <div class="col chg">
+        <h2>Changed <b>17</b></h2>
+        <div class="card">
+          <div class="t"><span class="mono">CVE-2026-5511</span> moved into KEV</div>
+          <div class="d">On your watchlist since August as "SMB"</div>
+          <div class="fx"><span class="delta"><s>not listed</s> → <i>KEV, due 16 Nov</i></span></div>
+        </div>
+        <div class="card">
+          <div class="t"><span class="mono">CVE-2026-3310</span> score raised</div>
+          <div class="d">NVD rescored Saturday · WebKit, on your watchlist</div>
+          <div class="fx"><span class="delta">CVSS <s>6.5</s> → <i>8.8</i></span> <span class="delta">EPSS <s>9%</s> → <i>38%</i></span></div>
+        </div>
+        <div class="card">
+          <div class="t"><span class="chip std">Standard</span> AC-2 revised in Rev 5.2.0</div>
+          <div class="d">NIST's reason: aligning account management with SP 800-63-4 · in your High baseline</div>
+          <div class="fx"><span class="diff"><span class="r">…automated mechanisms…</span> <span class="a">…automated mechanisms and identity proofing per SP 800-63A…</span></span></div>
+        </div>
+        <div class="card seen">
+          <div class="t">Windows 11 25H2 baseline, 11 settings</div>
+          <div class="d">Microsoft SCT · you read this diff Friday 16:30</div>
+        </div>
+        <span class="more">13 more score and status changes</span>
+      </div>
+      <div class="col clr">
+        <h2>Cleared <b>6</b></h2>
+        <div class="card">
+          <div class="t">KB5069122 is installed everywhere</div>
+          <div class="d">Last device caught up Saturday 11:20 · closes 6 CVEs on 25H2</div>
+        </div>
+        <div class="card">
+          <div class="t"><span class="mono">CVE-2026-3140</span> met its KEV due date</div>
+          <div class="d">You marked it done 24 Oct, a day inside the deadline</div>
+        </div>
+        <div class="card">
+          <div class="t">openssl advisory now has a fixed version</div>
+          <div class="d">USN-7412-1 landed Sunday · was "no fix published" on Friday</div>
+          <div class="fx"><b>Fix:</b> 3.0.18-1ubuntu1.2</div>
+        </div>
+        <div class="card">
+          <div class="t">bleepingcomputer is answering again</div>
+          <div class="d">Failed 14 fetches Friday night, recovered 06:02 Saturday</div>
+        </div>
+        <span class="more">2 more triage items closed</span>
+      </div>
+    </div>
+    <div class="quiet">Nothing moved in: <b>the STIG library</b> (next quarterly due January) · <b>your domain posture</b> (DNS, mail and web unchanged since 12 Oct) · <b>the network check</b> (04:00 daily, clean for 9 days) · <b>certificates</b> (no new entry in the transparency logs).</div>
+  </div>
+  <div class="foot">Your mark moves when you press "Mark all seen". A public reader gets the last 24 hours instead.</div>
+</div></div>
+<div class="notes">
+  <div><h3>Thesis</h3><p>The page is already called "Since yesterday" but measures a fixed window. Measure it against <em>your</em> last visit instead and every number on it becomes a delta by construction.</p></div>
+  <div><h3>Strong at</h3><p>The third column. Nothing else here ever tells you something got better — a patch landing, a deadline met, a source recovering — and that is half of why you would open it on a Monday.</p></div>
+  <div class="cost"><h3>Costs</h3><p>Three columns fight on a phone; they would stack, and the order then matters. Needs a per-reader mark, so the public version is a different page in practice.</p></div>
+  <div class="fit"><h3>Fits</h3><p>Someone who looks irregularly — away for four days and wants the diff, not the state.</p></div>
+</div>
+<p class="builds"><b>What it would take:</b> one <code>last_seen_at</code> row for the owner plus a "mark seen" POST. New and Changed come from <code>items.published_at</code> and <code>vuln_changes.observed_at</code> against that mark — both already indexed. Cleared is the genuinely new work: a fix reference appearing where there was none, a triage row reaching <code>done</code>, a source going from error to ok.</p>
+</div>
+
+<!-- ===================== 4. THE LADDER ===================== -->
+<div class="view" id="view-4" role="tabpanel" aria-labelledby="tab-4" hidden>
+<div class="stage"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today</div>
+<div class="screen m4">
+  <div class="mast"><div class="mast-in">
+    <span class="name">BaselineWatch</span>
+    <nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav>
+    <span class="right"><span class="deskbtn">Desk ▾</span></span>
+  </div></div>
+  <div class="body">
+    <div class="intro">
+      <h1>Monday 26 October</h1>
+      <p>What moved, read down the ladder: the rulebook, the set chosen for a kind of system, the single rule, the setting on the device. <a href="#">What these words mean ›</a></p>
+    </div>
+
+    <div class="rung">
+      <div class="lab"><span class="w">Standard</span><span class="def">The rulebook a publisher maintains.</span><span class="n">1 moved · 7 quiet</span></div>
+      <ul>
+        <li><div class="ti"><b>NIST SP 800-53 Rev 5.2.0</b> <span class="chip std">new version</span>
+          <span>Published Friday 17:51, the first revision since 5.1.1 in August. NIST's own note: "alignment of account management and identity language with SP 800-63-4." <a href="#">Read the release ›</a></span></div></li>
+        <li><div class="ti"><b>DISA STIG library</b> <span>October quarterly re-released 6 of the STIGs you follow with no rule changes — version numbers only.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="rung">
+      <div class="lab"><span class="w">Baseline</span><span class="def">The rules chosen for a kind of system.</span><span class="n">2 of yours affected</span></div>
+      <ul>
+        <li><div class="ti"><b>800-53 High</b> <span>applies 3 of the 4 revised controls. AC-10 was withdrawn and was never in High, so nothing to remove.</span></div>
+          <span class="btn p">Open diff</span></li>
+        <li><div class="ti"><b>Microsoft Windows 11 25H2 security baseline</b> <span>11 settings changed in the October SCT drop — 4 added, 1 removed, 6 revised.</span></div>
+          <span class="btn p">Open diff</span></li>
+      </ul>
+    </div>
+
+    <div class="rung">
+      <div class="lab"><span class="w">Control</span><span class="def">One rule inside that set.</span><span class="n">4 changed</span></div>
+      <ul>
+        <li><div class="ti"><b>AC-2 Account Management</b> <span class="diff"><span class="r">automated mechanisms</span> <span class="a">automated mechanisms and identity proofing consistent with SP 800-63A</span></span></div></li>
+        <li><div class="ti"><b>AC-3 Access Enforcement</b> <span>One discussion paragraph rewritten; the control statement is unchanged.</span></div></li>
+        <li><div class="ti"><b>AC-6 Least Privilege</b> <span>Enhancement (10) now names "non-privileged accounts" explicitly.</span></div></li>
+        <li><div class="ti"><b>AC-10 Concurrent Session Control</b> <span class="diff"><span class="r">withdrawn — incorporated into AC-2</span></span></div></li>
+      </ul>
+    </div>
+
+    <div class="rung">
+      <div class="lab"><span class="w">Configuration setting</span><span class="def">How the rule is enforced on a device.</span><span class="n">11 changed · 3 on what you run</span></div>
+      <ul>
+        <li><div class="ti"><b>Interactive logon: machine inactivity limit</b> <span class="mono" style="font-size:12px">Windows 11 25H2 · MS SCT</span> <span class="diff"><span class="r">900</span> → <span class="a">600</span> seconds</span></div></li>
+        <li><div class="ti"><b>Enable virtualization-based security</b> <span class="mono" style="font-size:12px">Windows 11 25H2 · MS SCT</span> <span class="diff"><span class="a">added — now required, was recommended</span></span></div></li>
+        <li><div class="ti"><b>LDAP client signing requirements</b> <span class="mono" style="font-size:12px">Windows 11 25H2 · MS SCT</span> <span class="diff"><span class="r">Negotiate</span> → <span class="a">Require</span></span></div></li>
+      </ul>
+    </div>
+
+    <div class="vulnband">
+      <h2>And the week's vulnerabilities, against the controls they test</h2>
+      <p>A CVE is not a rung on this ladder — it is the thing the ladder exists to prevent. These are the ones that reached a platform you run, grouped by the control they would have exercised.</p>
+      <div class="vrow">
+        <div><b>AC-6 Least privilege</b><span><span class="mono">CVE-2026-41877</span> Windows CLFS privilege escalation. Exploited. <b style="color:var(--ins)">Fix: KB5071234.</b></span></div>
+        <div><b>SI-2 Flaw remediation</b><span><span class="mono">CVE-2026-9910</span> and 6 more in Chrome. <b style="color:var(--ins)">Fix: 143.0.7300.52.</b></span></div>
+        <div><b>SC-8 Transmission confidentiality</b><span><span class="mono">CVE-2026-7701</span> openssl. <b style="color:var(--ins)">Fix: 3.0.18-1ubuntu1.2.</b></span></div>
+      </div>
+    </div>
+    <p class="teach">31 CVEs changed in the last three days, 12 more than the weekend before. <a href="#">The whole table ›</a></p>
+  </div>
+  <div class="foot">Every row ends at its publisher: the rule's own address, the document this instance read, then the body that wrote it.</div>
+</div></div>
+<div class="notes">
+  <div><h3>Thesis</h3><p>Teach the ladder by drawing it every morning. The change register — the one thing no other tool does — becomes the page's spine instead of a sidebar.</p></div>
+  <div><h3>Strong at</h3><p>The public teaching site. A reader with no fleet still learns something, and the "and the vulnerabilities, against the controls they test" band is a genuinely new way to read a CVE.</p></div>
+  <div class="cost"><h3>Costs</h3><p>Standards move perhaps weekly. On a Tuesday in February four of these five bands say "nothing moved", and a page whose shape is fixed will read emptier than one that collapses.</p></div>
+  <div class="fit"><h3>Fits</h3><p>cybercard.net as a read-only teaching site, and <code>/guide#ladder</code> as the page it sends you to.</p></div>
+</div>
+<p class="builds"><b>What it would take:</b> the register already stores field-level rows in <code>changes</code>, so the Standard, Control and Setting rungs are three groupings of one query. The Baseline rung needs the join from a changed control to the baselines that apply it — the same join <code>/baselines</code> already does. The control-to-CVE band is the loosest claim on the page and would need a stated rule for how a CVE maps to a control family, or it should be cut.</p>
+</div>
+
+<style>
+/* ---------- 5. FLEET BOARD ---------- */
+.m5 .intro{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.m5 .intro h1{font:500 24px var(--serif);margin:0}
+.m5 .intro .right{margin-left:auto;display:flex;gap:6px}
+.m5 .sub{color:var(--mute);font-size:13.5px;margin:0 0 15px;max-width:84ch}
+.m5 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.m5 .pf{background:var(--card);border:1px solid var(--rule);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.m5 .pf.act{border-color:var(--del)}
+.m5 .pf .ph{padding:11px 13px;border-bottom:1px solid var(--rule)}
+.m5 .pf.act .ph{background:var(--del-bg)}
+.m5 .pf .ph b{font:500 16px var(--sans);display:block}
+.m5 .pf .ph .v{font:500 12px var(--mono);color:var(--mute);margin-top:2px;display:block}
+.m5 .pf .lines{padding:9px 13px;display:grid;gap:7px;flex:1}
+.m5 .pf .ln{display:grid;grid-template-columns:70px 1fr;gap:9px;font-size:13px;align-items:baseline}
+.m5 .pf .ln .k{font:600 10px var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);padding-top:2px}
+.m5 .pf .ln .v2{min-width:0}
+.m5 .pf .ln b{font-weight:500}
+.m5 .pf .ln .mu{color:var(--mute);font-size:12.5px;display:block;margin-top:1px}
+.m5 .pf .do{border-top:1px solid var(--rule);background:var(--ins-bg);padding:9px 13px;font-size:13px}
+.m5 .pf .do b{color:var(--ins)}
+.m5 .pf .do .mono{font-size:12.5px}
+.m5 .pf .do.wait{background:var(--panel-2)}
+.m5 .pf .do.wait b{color:var(--mute)}
+.m5 .pf .do.warn{background:var(--warn-bg)}
+.m5 .pf .do.warn b{color:var(--warn)}
+.m5 .eol{font:500 12px var(--mono)}
+.m5 .eol.soon{color:var(--warn)} .m5 .eol.ok{color:var(--mute)}
+.m5 .rest{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-top:15px}
+.m5 .rest .box{padding:11px 13px}
+.m5 .rest h2{font:600 10.5px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--mute);margin:0 0 7px}
+.m5 .rest ul{list-style:none;margin:0;padding:0;font-size:13px}
+.m5 .rest li{padding:4px 0;border-top:1px solid var(--rule)}
+.m5 .rest li:first-child{border-top:0}
+.m5 .rest .mu{color:var(--mute);font-size:12.5px}
+.m5 .outside{margin-top:13px;background:var(--panel-2);border:1px solid var(--rule);border-radius:9px;padding:9px 13px;font-size:13px;color:var(--mute)}
+.m5 .outside b{color:var(--ink);font-weight:500}
+</style>
+
+<!-- ===================== 5. FLEET BOARD ===================== -->
+<div class="view" id="view-5" role="tabpanel" aria-labelledby="tab-5" hidden>
+<div class="stage"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today</div>
+<div class="screen m5">
+  <div class="mast"><div class="mast-in">
+    <span class="name">BaselineWatch</span>
+    <nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav>
+    <span class="right"><span class="deskbtn">Desk ▾</span></span>
+  </div></div>
+  <div class="body">
+    <div class="intro"><h1>What today means for what you run</h1>
+      <span class="right"><span class="btn">24 h</span><span class="btn p">3 days</span><span class="btn">7 days</span></span></div>
+    <p class="sub">Six releases in <a href="#">your fleet</a>. Two want something from you today. Everything on this page is filtered to them — the rest of the week is in <a href="#">the News</a> and <a href="#">the table</a>.</p>
+    <div class="grid">
+
+      <div class="pf act">
+        <div class="ph"><b>Windows 11</b><span class="v">25H2 · 14 devices · build 26200.3112</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>9 new</b>, 1 exploited <span class="mu">CVE-2026-41877, CLFS privilege escalation, KEV due 16 Nov</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>11 settings changed</b> <span class="mu">Microsoft SCT, October · <a href="#">read the diff</a></span></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol ok">until 12 Oct 2027</span> <span class="mu">12 months left</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>2 behind</b> <span class="mu">last read 25 Oct 06:12</span></span></div>
+        </div>
+        <div class="do"><b>Do:</b> install <span class="mono">KB5071234</span> — clears all 9. <a href="#">Microsoft ›</a></div>
+      </div>
+
+      <div class="pf act">
+        <div class="ph"><b>macOS</b><span class="v">26 Tahoe · 6 devices · 26.1</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>5 new</b>, none exploited <span class="mu">1 on your watchlist (WebKit), rescored 6.5 → 8.8</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>unchanged</b> <span class="mu">mSCP for macOS 26, last moved 2 Oct</span></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol ok">current release</span> <span class="mu">26.2 is out</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>6 on 26.1</b> <span class="mu">all one point release behind</span></span></div>
+        </div>
+        <div class="do"><b>Do:</b> update to <span class="mono">macOS 26.2</span> — clears all 5. <a href="#">Apple ›</a></div>
+      </div>
+
+      <div class="pf">
+        <div class="ph"><b>iOS / iPadOS</b><span class="v">26 · 11 devices · 26.2</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>none</b> <span class="mu">since the 24 Oct release you already took</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>unchanged</b></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol ok">current release</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>all current</b> <span class="mu">read 25 Oct</span></span></div>
+        </div>
+        <div class="do wait"><b>Nothing to do.</b> Quiet since Friday.</div>
+      </div>
+
+      <div class="pf">
+        <div class="ph"><b>Ubuntu</b><span class="v">24.04 LTS · 3 hosts</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>2 new</b> <span class="mu">openssl, matched from your SBOM upload</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>unchanged</b> <span class="mu">ComplianceAsCode</span></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol ok">until Apr 2029</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>not read</b> <span class="mu">no inventory report yet</span></span></div>
+        </div>
+        <div class="do"><b>Do:</b> <span class="mono">openssl 3.0.18-1ubuntu1.2</span> — USN-7412-1. <a href="#">Ubuntu ›</a></div>
+      </div>
+
+      <div class="pf">
+        <div class="ph"><b>Android</b><span class="v">16 · 4 devices</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>3 new</b> <span class="mu">in the October bulletin, none exploited</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>unchanged</b></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol ok">supported</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>patch level Sep 2026</b> <span class="mu">one month behind</span></span></div>
+        </div>
+        <div class="do warn"><b>Waiting on the carrier</b> for the October patch level.</div>
+      </div>
+
+      <div class="pf">
+        <div class="ph"><b>Windows 10</b><span class="v">22H2 · 1 device</span></div>
+        <div class="lines">
+          <div class="ln"><span class="k">CVEs</span><span class="v2"><b>4 new</b> <span class="mu">2 of them have no fix for this release</span></span></div>
+          <div class="ln"><span class="k">Baseline</span><span class="v2"><b>frozen</b> <span class="mu">Microsoft published no further baseline</span></span></div>
+          <div class="ln"><span class="k">Support</span><span class="v2"><span class="eol soon">ended 14 Oct 2025</span> <span class="mu">ESU year 2 ends Oct 2027</span></span></div>
+          <div class="ln"><span class="k">Devices</span><span class="v2"><b>1 on ESU</b></span></div>
+        </div>
+        <div class="do warn"><b>Decide:</b> this is the only release on the board without a future. <a href="#">Your note from Aug ›</a></div>
+      </div>
+    </div>
+
+    <div class="rest">
+      <div class="box"><h2>Standards that moved</h2><ul>
+        <li><a href="#">SP 800-53 Rev 5.2.0</a> <span class="mu">— 4 controls, 3 in your High baseline</span></li>
+        <li><a href="#">Windows 11 25H2 baseline</a> <span class="mu">— 11 settings, shown on the card above</span></li>
+        <li><a href="#">STIG library, October</a> <span class="mu">— 6 you follow, version numbers only</span></li>
+      </ul></div>
+      <div class="box"><h2>Needs a decision</h2><ul>
+        <li>CVE-2026-41877 <span class="mu">— new, KEV, unplaced</span></li>
+        <li>CVE-2026-5511 <span class="mu">— you marked it reviewing on 12 Oct, due date passed</span></li>
+        <li>Windows 10 22H2 <span class="mu">— ESU runs out in 12 months</span></li>
+      </ul></div>
+      <div class="box"><h2>The instance</h2><ul>
+        <li>48 of 48 sources answering <span class="mu">— oldest read 41 minutes ago</span></li>
+        <li>Network check 04:00 <span class="mu">— clean 9 days running</span></li>
+        <li>Last digest Friday 18:00</li>
+      </ul></div>
+    </div>
+    <div class="outside">Outside the fleet, for the record: <b>19 more CVEs</b> changed on platforms you do not run, <b>81 news items</b> over the weekend, and <b>no CVE</b> was named by more than two sources. <a href="#">The News ›</a></div>
+  </div>
+  <div class="foot">Fleet from <span class="mono">data/platforms.yaml</span> · device counts from the last inventory reading · support dates are the vendors' own</div>
+</div></div>
+<div class="notes">
+  <div><h3>Thesis</h3><p>You do not run "Windows", you run 25H2 on fourteen machines until October 2027. Make the unit of the page the thing you own, and relevance stops being a filter — it is the layout.</p></div>
+  <div><h3>Strong at</h3><p>Honest about the boring releases: a card that says "nothing to do" is information. Puts the end-of-life clock where you cannot miss it, which is where the Windows 10 decision actually gets made.</p></div>
+  <div class="cost"><h3>Costs</h3><p>Useless to a public reader — six empty cards. Standards get a footnote. The cards are only as good as the last inventory reading, and two of six here have none.</p></div>
+  <div class="fit"><h3>Fits</h3><p>The owner's Desk more than the public home. Could live at <code>/fleet</code> and leave <code>/today</code> to one of the others.</p></div>
+</div>
+<p class="builds"><b>What it would take:</b> <code>loadFleet()</code>, <code>endingSupport()</code>, <code>platformBreakdown()</code>, <code>devicesTile()</code> and <code>eolFor()</code> all exist and already key on the same release ids; this is mostly a regrouping of queries Today runs today. The per-card "Do" line is <code>fixSummary()</code> again. The honest gap is coverage: the card is thin for any release with no inventory report.</p>
+</div>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function show(id) {
+    tabs.forEach(function (t) {
+      var on = t.id === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { show(t.id); });
+    t.addEventListener('keydown', function (e) {
+      var i = tabs.indexOf(t);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus(); show(next.id); e.preventDefault();
+      }
+    });
+  });
+})();
+</script>
+</div>

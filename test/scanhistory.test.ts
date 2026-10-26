@@ -44,7 +44,7 @@ describe("the runs", () => {
       expect(page).toContain("theirs alone to see");
       expect(page).toContain('aria-current="page"><b>History</b>');
       const today = await (await fetch(`${app.base}/today`)).text();
-      expect(today).toContain('<a class="tile warn" href="/scan/history"><small>Network check</small><b>1/3</b><span>1 canary resolved, 1 changed</span></a>');
+      expect(today).toContain('<span><a href="/scan/history">Network check</a></span><b class="warn">1/3 · 1 canary resolved, 1 changed</b>');
     } finally {
       await app.close();
     }
