@@ -978,27 +978,45 @@ form.decide button { justify-self: start; }
 .ladder-pair h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mute); }
 .ladder-pair p { font-size: 13.5px; line-height: 1.6; }
 
-/* Today, rebuilt (M17): what to do next, then the window's CVEs by the platform they affect. */
-.next { list-style: none; margin: 0; padding: 0; }
-.next > li { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--rule); }
-.next > li:last-child { border-bottom: 0; }
-.next .rank { font: 600 12px var(--mono); color: var(--mute); flex: none; width: 1.4em; }
-.next .what { flex: 1; }
-.next .what b { font-weight: 600; }
-.next .why { display: block; color: var(--mute); font-size: 12.5px; margin-top: 2px; }
-.next .act { flex: none; }
-.plat-rows { list-style: none; margin: 0; padding: 0; }
-.plat-rows > li { display: grid; grid-template-columns: 8em 3em minmax(60px, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; }
-.plat-rows .pname { font-weight: 600; }
-.plat-rows .pname a { border-bottom: 0; }
-.plat-rows .pn { font: 600 13px var(--mono); text-align: right; color: var(--mute); }
-.plat-rows .pbar { height: 8px; width: 100%; background: var(--panel-2); border-radius: 4px; }
-.plat-rows .pbar rect { fill: var(--tone); }
-.plat-rows .mine { font-size: 11.5px; color: var(--mute); display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
-.plat-rows .chip.kev { background: var(--red); color: #fff; }
+/* Today, rebuilt again (M20): the window's work keyed by the remedy that ends it. The row is the
+   update, the CVEs it clears are its contents, and the publisher's own address is on the verb.
+   Three groups — install, mitigate, nothing published — in the order a person can act on them. */
+.plat-line { margin: 0 0 14px; }
+.fixgroup + .fixgroup { margin-top: 14px; }
+.remedies { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.remedy { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--card); }
+.remedy .top { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 9px 12px; }
+.remedy .what { font-size: 15px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.remedy .what a { border-bottom: 0; }
+.remedy .verb { font-weight: 600; color: var(--ins); }
+.remedy .what code { font: 600 13.5px var(--mono); background: var(--ins-bg); border: 1px solid var(--ins); color: var(--ins); border-radius: 5px; padding: 1px 7px; }
+.remedy .said { font-weight: 500; }
+.remedy .where { margin-top: 3px; }
+.remedy .top button { font-size: 12px; padding: 3px 9px; }
+.remedy .clears { border-top: 1px solid var(--rule); background: var(--panel-2); padding: 7px 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.remedy .cve { font: 500 12px var(--mono); border: 1px solid var(--rule); background: var(--card); border-radius: 5px; padding: 1px 6px; color: var(--ink); border-bottom-width: 1px; }
+.remedy .cve.kev { border-color: var(--del); color: var(--del); background: var(--del-bg); }
+.remedy .cve.watch { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+.remedy.advisory { border-left: 3px solid var(--cyan); }
+.remedy.advisory .verb { color: var(--cyan); }
+.remedy.advisory .what code { background: transparent; border-color: var(--cyan); color: var(--cyan); }
+.remedy.upstream { border-left: 3px solid var(--rule-2); }
+.remedy.upstream .said { color: var(--mute); font-weight: 400; }
+.remedy.mitigate { border-left: 3px solid var(--warn); }
+.remedy.mitigate .said { color: var(--warn); }
+.remedy.none { border-left: 3px solid var(--rule-2); }
+.remedy.none .said { color: var(--mute); font-weight: 400; }
+.stats.today .tile.ok b { color: var(--ins); }
+/* The instance's own health: five lines, not five tiles. A figure here is a word, not a number. */
+.instance { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.instance > li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-top: 1px solid var(--rule); }
+.instance > li:first-child { border-top: 0; }
+.instance b { font-weight: 500; text-align: right; }
+.instance b.bad, .instance b.fail { color: var(--del); }
+.instance b.warn { color: var(--warn); }
 @media (max-width: 560px) {
-  .plat-rows > li { grid-template-columns: 1fr 2.6em; row-gap: 2px; }
-  .plat-rows .pbar, .plat-rows .mine { grid-column: 1 / -1; justify-content: flex-start; }
+  .remedy .top { grid-template-columns: 1fr; }
+  .remedy .top form { justify-self: start; }
 }
 /* A sentence, not a label: the wide menus' captions keep their case. */
 .mast .menu.wide .cap { text-transform: none; letter-spacing: 0.01em; font-size: 11.5px; line-height: 1.45; padding-bottom: 6px; }

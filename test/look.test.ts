@@ -119,13 +119,13 @@ describe("the switch on the site", () => {
     expect(foreign.headers.getSetCookie()).toEqual([]);
   });
 
-  it("draws Today's glance panels from the data, with the figures in words and the feeds' words escaped", async () => {
+  it("draws Today's work by remedy from the data, with the feeds' words escaped", async () => {
     const db = app.db;
     const day = (iso: string) => iso;
     const item = db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at, signals_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     item.run("cisa-kev", "kev", "CVE-2026-1", "Ahsay AhsayCBS: one", "https://nvd/1", day("2026-10-14T18:00:00.000Z"), now.toISOString(), JSON.stringify({ kev: true, vendor: "Ahsay", dueDate: "2026-11-01" }));
     item.run("cisa-kev", "kev", "CVE-2026-2", "Ahsay AhsayCBS: two", "https://nvd/2", day("2026-10-14T18:00:00.000Z"), now.toISOString(), JSON.stringify({ kev: true, vendor: "Ahsay" }));
-    item.run("cisa-kev", "kev", "CVE-2026-3", "Acme: three", "https://nvd/3", day("2026-10-14T18:00:00.000Z"), now.toISOString(), JSON.stringify({ kev: true, vendor: "<Acme> & Sons" }));
+    item.run("cisa-kev", "kev", "CVE-2026-3", "<Acme> & Sons: three", "https://nvd/3", day("2026-10-14T18:00:00.000Z"), now.toISOString(), JSON.stringify({ kev: true, vendor: "<Acme> & Sons" }));
     item.run("bleeping", "article", "a1", "A story", "https://b/1", day("2026-10-15T09:00:00.000Z"), now.toISOString(), null);
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, cvss_score, cvss_severity, epss, watch_hit, first_seen_at, last_seen_at) VALUES ('CVE-2026-1', ?, 9.8, 'CRITICAL', 0.7, 1, ?, ?)").run(now.toISOString(), now.toISOString(), now.toISOString());
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, cvss_score, cvss_severity, epss, watch_hit, first_seen_at, last_seen_at) VALUES ('CVE-2026-9', ?, 4.0, 'MEDIUM', 0.002, 0, ?, ?)").run(now.toISOString(), now.toISOString(), now.toISOString());
@@ -136,20 +136,24 @@ describe("the switch on the site", () => {
     db.prepare("UPDATE sources SET last_status = 'error', last_error = 'HTTP 503', last_fetch_at = ? WHERE id = 'bleeping'").run("2026-10-15T11:00:00.000Z");
 
     const text = await (await fetch(`${app.base}/today`)).text();
-    expect(text).toContain('aria-label="Known exploited by vendor, 30 days: Ahsay 2, &lt;Acme&gt; &amp; Sons 1"');
-    expect(text).not.toContain("<Acme>");
-    expect(text).toContain('aria-label="News items a day, 14 days: News 1 in all, 1 on 10-15; Vulnerabilities 3 in all, 0 on 10-15; Standards 0 in all, 0 on 10-15"');
-    expect(text).toContain(">10-02</text>");
-    // Four panels of charts gave their room to lists that lead somewhere (M17): what to do next,
-    // and the window's CVEs by the platform they affect.
+    // The two charts went (M20): a donut of KEV by vendor and a line of news items a day answered
+    // questions nobody has at seven in the morning. The page is the window's work by remedy.
+    expect(text).not.toContain("Known exploited by vendor");
+    expect(text).not.toContain("News items a day");
     expect(text).not.toContain("by EPSS band");
     expect(text).not.toContain("Triage by state");
-    expect(text).toContain('<section class="box wide" id="next">');
-    expect(text).toContain('<section class="box wide" id="platforms">');
+    expect(text).toContain('<section class="box wide fixgroup" id="install">');
+    expect(text).toContain('<section class="box wide fixgroup" id="published">');
+    expect(text).toContain('<section class="box wide fixgroup" id="nofix">');
+    // A watched CVE that moved and has nothing published is named as exactly that, not hidden.
+    expect(text).toContain('<a class="cve watch" href="/vulnerabilities/CVE-2026-1">CVE-2026-1</a>');
+    expect(text).toContain("No patch, advisory or mitigation published");
+    // Whatever a feed called itself is escaped wherever the page repeats it.
+    expect(text).toContain("&lt;Acme&gt; &amp; Sons: three");
+    expect(text).not.toContain("<Acme>");
     // A failing source is named with its error in the side column, where it was always drawn too.
     expect(text).toContain('<a href="/sources#src-bleeping"><b>BleepingComputer</b></a> <span class="small">HTTP 503</span>');
-    expect(text).toContain("<b>3</b>");
-    expect(text).toContain('<a class="tile warn" href="/triage"><small>Needs you</small><b>1</b>');
+    expect(text).toContain('<h2><a href="/triage">Needs you</a> <span class="count">1 placed,');
   });
 });
 

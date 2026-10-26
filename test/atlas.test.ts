@@ -85,17 +85,18 @@ describe("Atlas data", () => {
 
     const today = await (await fetch(`${app.base}/today`)).text();
     expect(today).toContain("Needs you");
-    expect(today).toContain("KEV additions");
     expect(today).toContain("Ahsay AhsayCBS");
     expect(today).toContain("NIST SP 800-53 (controls) 5.2.0");
     const week = await (await fetch(`${app.base}/today?since=168`)).text();
     expect(week).toContain('class="on" href="/today?since=168"');
     expect(today).toContain(`/standards/nist-sp-800-53/${latest.id}`);
-    // The glance panels lead to the lists they count: a series to the News by group, a band to the table, a state to its column.
-    expect(today).toContain('href="/?group=standards"');
-    // The platform rows lead to the table filtered the same way the row counted.
-    expect(today).toContain('<section class="box wide" id="platforms">');
-    expect(today).toContain('<h2><a href="/sources">Sources</a></h2>');
+    // Today is the window's work by remedy (M20): the three groups, and the platform tally as a
+    // sentence rather than a row of bars.
+    expect(today).toContain('<section class="box wide fixgroup" id="install">');
+    expect(today).toContain('<section class="box wide fixgroup" id="published">');
+    expect(today).toContain('<section class="box wide fixgroup" id="nofix">');
+    expect(today).toContain('class="small plat-line"');
+    expect(today).toContain('<h2><a href="/sources">The instance</a></h2>');
     expect(today).toContain('href="/?source=cisa-kev"');
   });
 });
