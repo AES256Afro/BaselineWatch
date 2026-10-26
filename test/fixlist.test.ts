@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { fixList, fixListCandidates, fixListHeadline } from "../src/fixlist.ts";
+import { fixList, fixListCandidates, fixListHeadline, fixListTotal } from "../src/fixlist.ts";
 import { upsertMsrcVulns } from "../src/msrc.ts";
 import type { VulnRow } from "../src/vulns.ts";
 import { formPost, startTestApp, type TestApp } from "./helpers.ts";
@@ -206,13 +206,50 @@ describe("the fix list", () => {
     expect((await formPost(app.base, "/today/done", { cves: "not-a-cve" })).status).toBe(400);
   });
 
-  it("asks the database only for CVEs that moved in the window and touch you", () => {
-    db.prepare("INSERT INTO vulns (cve_id, last_modified_at, kev, watch_hit, first_seen_at, last_seen_at) VALUES ('CVE-2026-4001', ?, 1, 0, ?, ?)").run(since, since, since);
-    db.prepare("INSERT INTO vulns (cve_id, last_modified_at, kev, watch_hit, first_seen_at, last_seen_at) VALUES ('CVE-2026-4002', ?, 0, 0, ?, ?)").run(since, since, since);
-    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2026-4001', ?, 'cvss')").run(since);
-    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2026-4002', ?, 'cvss')").run(since);
-    const picked = fixListCandidates(db, since, []).map((r) => r.cve_id);
-    expect(picked).toContain("CVE-2026-4001");
-    expect(picked).not.toContain("CVE-2026-4002");
+  it("asks only for CVEs that moved in the window and are notable", () => {
+    const v = db.prepare("INSERT INTO vulns (cve_id, last_modified_at, published_at, kev, watch_hit, epss, cvss_score, ssvc_json, platforms_json, first_seen_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const changed = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES (?, ?, ?)");
+    const old = "2021-06-01T00:00:00.000Z";
+    //                               cve                pub   kev watch epss cvss ssvc  platforms
+    v.run("CVE-2026-4001", since, old, 1, 0, null, 5, null, '["windows"]', since, since);
+    v.run("CVE-2026-4002", since, old, 0, 1, null, 5, null, '["windows"]', since, since);
+    v.run("CVE-2026-4003", since, old, 0, 0, 0.8, 5, null, '["windows"]', since, since);
+    v.run("CVE-2026-4004", since, old, 0, 0, null, 5, '{"exploitation":"active"}', '["windows"]', since, since);
+    v.run("CVE-2026-4005", since, since, 0, 0, null, 9.8, null, '["windows"]', since, since);
+    // On a platform the fleet runs, but nothing says it matters: the table's job, not Today's.
+    v.run("CVE-2026-4006", since, old, 0, 0, 0.01, 7.5, null, '["linux"]', since, since);
+    for (const n of ["4001", "4002", "4003", "4004", "4005", "4006"]) changed.run(`CVE-2026-${n}`, since, "cvss");
+
+    const picked = fixListCandidates(db, since).map((r) => r.cve_id);
+    expect(picked).toEqual(expect.arrayContaining(["CVE-2026-4001", "CVE-2026-4002", "CVE-2026-4003", "CVE-2026-4004", "CVE-2026-4005"]));
+    // The Linux kernel publishes hundreds of these a week; a platform match alone is not a reason.
+    expect(picked).not.toContain("CVE-2026-4006");
+  });
+
+  it("does not call a CVE that merely arrived here today one that moved today", () => {
+    // 'new' in vuln_changes is first-seen-here. A backfill wrote 11,762 of those in one day, and
+    // the page reported 803 CVEs as having moved when two of them had.
+    const v = db.prepare("INSERT INTO vulns (cve_id, last_modified_at, published_at, kev, first_seen_at, last_seen_at) VALUES (?, ?, ?, 1, ?, ?)");
+    v.run("CVE-2019-7777", since, "2019-03-01T00:00:00.000Z", since, since);
+    v.run("CVE-2026-7778", since, since, since, since);
+    const changed = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES (?, ?, 'new')");
+    changed.run("CVE-2019-7777", since);
+    changed.run("CVE-2026-7778", since);
+
+    const picked = fixListCandidates(db, since).map((r) => r.cve_id);
+    expect(picked).not.toContain("CVE-2019-7777");
+    // Published inside the window, so it is genuinely new and belongs.
+    expect(picked).toContain("CVE-2026-7778");
+
+    // And the old one returns the moment something other than its arrival changes.
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2019-7777', ?, 'kev')").run(since);
+    expect(fixListCandidates(db, since).map((r) => r.cve_id)).toContain("CVE-2019-7777");
+  });
+
+  it("says what a truncated list is a prefix of", () => {
+    const rows = fixListCandidates(db, since, 2);
+    const list = fixList(db, rows, since, fixListTotal(db, since));
+    expect(list.considered).toBe(2);
+    expect(list.total).toBeGreaterThan(2);
   });
 });

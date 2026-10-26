@@ -2,10 +2,9 @@ import type { DatabaseSync } from "node:sqlite";
 import { fixTags, loadMitigations, matchingEntries, type MitigationEntry } from "./fix.ts";
 import { parseJson } from "./json.ts";
 import { kbUrl, type MsrcFix } from "./msrc.ts";
-import type { PlatformKey } from "./platforms.ts";
 import { loadRequirements } from "./register.ts";
 import { followedStigs } from "./stigs.ts";
-import type { AffectedPackage, VulnRow } from "./vulns.ts";
+import { movedInWindowSql, notableInWindowSql, type AffectedPackage, type VulnRow } from "./vulns.ts";
 
 /**
  * Today's work, keyed by the remedy rather than by the CVE.
@@ -73,29 +72,43 @@ export interface FixList {
   considered: number;
   /** Of those, how many have an update that can actually be installed. */
   fixed: number;
-  /** True when the window held more candidates than the cap and the list is a prefix. */
-  truncated: boolean;
+  /** How many candidates the window held in all; `considered` is the prefix that was read. */
+  total: number;
 }
 
 /** The default cap: enough for a busy Patch Tuesday, bounded enough that the page stays a page. */
 export const candidateLimit = 150;
 
 /**
- * The CVEs worth a remedy row: ones that moved in the window and are either exploited, on the
- * watchlist, or on a platform this fleet runs. The rest are in the table, which is where a CVE
- * that touches nothing you own belongs.
+ * The CVEs worth a remedy row: ones that moved in the window and are notable by the same line the
+ * Wire uses (src/vulns.ts).
+ *
+ * Both halves of that sentence were wrong when this shipped, and the page said so in its own
+ * numbers: 803 candidates in a day, of which exactly two had been published by NVD inside the
+ * window, and 117 of the 150 it drew were Linux kernel entries whose only reference is a git
+ * commit — which is why the "install" group read zero while the database held three thousand
+ * CVEs with Microsoft KBs against them.
+ *
+ * So the window is now published-or-really-changed rather than anything `vuln_changes` touched,
+ * and a CVE earns its row by being exploited, watched, likely to be exploited or newly critical —
+ * not by naming a platform the fleet happens to run. The kernel publishes hundreds of those a
+ * week and they are answered by taking your distribution's updates, not by reading 113 rows.
+ * They are all still in the table, which is where every CVE belongs.
  */
-export function fixListCandidates(db: DatabaseSync, since: string, fleetKeys: PlatformKey[], limit = candidateLimit): VulnRow[] {
-  const platformClause = fleetKeys.length ? ` OR ${fleetKeys.map(() => "v.platforms_json LIKE ?").join(" OR ")}` : "";
+export function fixListCandidates(db: DatabaseSync, since: string, limit = candidateLimit): VulnRow[] {
   return db
     .prepare(
       `SELECT v.* FROM vulns v
-        WHERE v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)
-          AND (v.kev = 1 OR v.watch_hit = 1${platformClause})
+        WHERE ${movedInWindowSql} AND ${notableInWindowSql}
         ORDER BY v.kev DESC, v.watch_hit DESC, v.epss IS NULL, v.epss DESC, v.cvss_score DESC
         LIMIT ?`,
     )
-    .all(since, ...fleetKeys.map((k) => `%"${k}"%`), limit) as unknown as VulnRow[];
+    .all(since, since, since, limit) as unknown as VulnRow[];
+}
+
+/** How many there were in all, so a truncated list can say what it is a prefix of. */
+export function fixListTotal(db: DatabaseSync, since: string): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE ${movedInWindowSql} AND ${notableInWindowSql}`).get(since, since, since) as { n: number }).n;
 }
 
 /** Microsoft's published fixes for a set of CVEs, in one query rather than one per CVE. */
@@ -184,7 +197,7 @@ const productLine = (products: string[]): string | null =>
  * The window's work, grouped by remedy. One pass over the candidate CVEs; every lookup it needs
  * was fetched in a handful of queries above, so this costs the same for one CVE and for a hundred.
  */
-export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, truncated = false): FixList {
+export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total = rows.length): FixList {
   const cveIds = rows.map((r) => r.cve_id);
   const msrc = msrcFixes(db, cveIds);
   const kev = kevActions(db, cveIds);
@@ -338,7 +351,7 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, trunca
     none: remedies.filter((r) => r.kind === "none"),
     considered: rows.length,
     fixed: fixedCves.size,
-    truncated,
+    total,
   };
 }
 
