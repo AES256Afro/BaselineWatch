@@ -7,10 +7,10 @@
 @font-face { font-family: "Public Sans Variable"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("/assets/fonts/public-sans/public-sans-latin-wght-normal.woff2") format("woff2"); }
 @font-face { font-family: "Public Sans Variable"; font-style: italic; font-weight: 100 900; font-display: swap; src: url("/assets/fonts/public-sans/public-sans-latin-wght-italic.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono Variable"; font-style: normal; font-weight: 100 800; font-display: swap; src: url("/assets/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); }
-/* Tokens: four palettes, every one defining the same names (test/charts.test.ts holds them to it).
+/* Tokens: four palettes, every one defining the same names (test/palettes.test.ts holds them to it).
    With no data-scheme the device decides through prefers-color-scheme; data-scheme="dark" or
-   "light" overrides it. The tone names (cyan, amber, red, green, purple) are what charts and
-   marks use: cyan is what is measured, amber what to act on, red what is critical. */
+   "light" overrides it. The tone names (cyan, amber, red, green, purple) are what the marks use:
+   cyan is what is measured, amber what to act on, red what is critical. */
 :root {
   --paper: #f3f4f1; --card: #ffffff; --panel-2: #f7f8f6; --ink: #1b1f23; --mute: #5f6b70; --rule: #cfd5d2; --rule-2: #b9c1bd;
   --acc: #0f6e56; --acc-ink: #ffffff;
@@ -515,53 +515,6 @@ table.browse tr.changed td.id a { color: var(--acc); }
 .look-group button[aria-pressed="true"] { background: var(--acc); color: var(--acc-ink); }
 .look-group button:focus-visible { outline-offset: -2px; }
 
-/* Today's glance panels and the charts in them (src/charts.ts). A tone is one custom property a
-   class sets, read by every chart for its strokes, fills and legend dots, in both looks. */
-.glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
-@media (max-width: 1000px) { .glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) { .glance { grid-template-columns: 1fr; } }
-.glance .box { min-width: 0; display: grid; gap: 10px; align-content: start; margin-top: 0; }
-.glance .box h2 { margin-bottom: 0; }
-.glance .box p.small { margin: 0; }
-.t-acc { --tone: var(--acc); } .t-cyan { --tone: var(--cyan); } .t-amber { --tone: var(--amber); } .t-red { --tone: var(--red); } .t-green { --tone: var(--green); } .t-purple { --tone: var(--purple); } .t-mute { --tone: var(--rule-2); }
-.chart { margin: 0; display: grid; gap: 10px; justify-items: center; min-width: 0; }
-.chart svg { max-width: 100%; }
-.donut .track { fill: none; stroke: var(--grid); }
-.donut .arc { fill: none; stroke: var(--tone); }
-.donut .centre { font: 200 34px var(--sans); fill: var(--ink); font-variant-numeric: tabular-nums; }
-.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 12.5px; color: var(--mute); }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--tone); margin-right: 6px; vertical-align: -1px; }
-.legend b { font: 500 12px var(--mono); color: var(--ink); }
-.legend a { color: inherit; text-decoration: none; }
-.legend a:hover { color: var(--ink); text-decoration: underline; }
-.donut a:hover .arc, .stacked a:hover rect { opacity: 0.75; }
-.lines a:hover polyline { stroke-width: 3; }
-.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; width: 100%; justify-items: stretch; }
-.bars li { display: grid; grid-template-columns: 90px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 12.5px; color: var(--mute); }
-.bars svg { display: block; width: 100%; height: 10px; }
-.bars rect { fill: var(--tone); }
-.bars b { font: 500 12.5px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
-.bars li.link { display: block; }
-.bars li.link > a { display: grid; grid-template-columns: 90px minmax(0, 1fr) 44px; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
-.bars li.link > a:hover span { color: var(--ink); text-decoration: underline; }
-.lines { justify-items: stretch; }
-.lines svg { display: block; width: 100%; height: auto; }
-.lines .grid line { stroke: var(--grid); stroke-width: 1; }
-.lines .axis text { font: 10px var(--mono); fill: var(--mute); }
-.lines polyline { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linejoin: round; }
-.lines circle { fill: var(--tone); }
-.stacked { justify-items: stretch; }
-.stacked svg { display: block; width: 100%; height: 14px; border-radius: 3px; }
-.stacked rect { fill: var(--tone); }
-.stacked .track { fill: var(--grid); }
-.src-glance { list-style: none; margin: 0; padding: 0; font-size: 13px; }
-.src-glance li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); min-width: 0; }
-.src-glance li:last-child { border-bottom: 0; }
-.src-glance li > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.src-glance a { color: var(--ink); text-decoration: none; }
-.src-glance a:hover { text-decoration: underline; }
-.src-glance .when { flex: none; color: var(--mute); font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); margin-right: 8px; vertical-align: 1px; }
 .stats.today .tile.warn b { color: var(--warn); }
 
 /* The Console look: the dense face of a security console. The same markup as the Register look,
