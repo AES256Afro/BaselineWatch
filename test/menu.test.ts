@@ -161,7 +161,9 @@ describe("what to do next", () => {
 describe("the window's CVEs by platform", () => {
   it("counts a CVE under every platform it affects, KEV and watchlist apart, the fleet's own first", () => {
     db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2026-100', ?, 'cvss')").run(ago(3));
+    // CVE-2026-200 arrives as 'new' AND was published inside the window: a genuinely new CVE.
     db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2026-200', ?, 'new')").run(ago(2));
+    db.prepare("UPDATE vulns SET published_at = ? WHERE cve_id = 'CVE-2026-200'").run(ago(2));
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, kev, watch_hit, platforms_json, first_seen_at, last_seen_at) VALUES ('CVE-2026-400', ?, 0, 0, '[\"windows\",\"linux\"]', ?, ?)").run(ago(4), ago(4), ago(4));
     db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2026-400', ?, 'cvss')").run(ago(4));
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, platforms_json, first_seen_at, last_seen_at) VALUES ('CVE-2026-500', ?, '[]', ?, ?)").run(ago(5), ago(5), ago(5));
@@ -175,6 +177,24 @@ describe("the window's CVEs by platform", () => {
     // One CVE names no platform this site can read; it is counted apart rather than dropped.
     expect(breakdown.unplaced).toBe(1);
     expect(breakdown.total).toBe(4);
+  });
+
+  it("does not count a CVE that only arrived here today, however old it is", () => {
+    // 'new' in vuln_changes means this instance saw the CVE for the first time. On a backfill that
+    // is thousands of CVEs from years ago, and counting them made Today report 803 CVEs as having
+    // moved in a day when two of them had. A CVE this old moved when it was published, not today.
+    db.prepare("INSERT INTO vulns (cve_id, last_modified_at, published_at, platforms_json, first_seen_at, last_seen_at) VALUES ('CVE-2021-999', ?, '2021-06-01T00:00:00.000Z', '[\"windows\"]', ?, ?)").run(ago(1), ago(1), ago(1));
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2021-999', ?, 'new')").run(ago(1));
+
+    const breakdown = platformBreakdown(db, ago(24));
+    expect(breakdown.total).toBe(4);
+    expect(breakdown.rows.find((r) => r.key === "windows")).toMatchObject({ total: 2 });
+
+    // The same CVE counts the moment something other than its arrival changes.
+    db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field) VALUES ('CVE-2021-999', ?, 'cvss')").run(ago(1));
+    const after = platformBreakdown(db, ago(24));
+    expect(after.total).toBe(5);
+    expect(after.rows.find((r) => r.key === "windows")).toMatchObject({ total: 3 });
   });
 
   it("reads the fleet's platforms in the vocabulary CVEs use", () => {
