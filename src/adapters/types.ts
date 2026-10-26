@@ -148,6 +148,8 @@ export interface Adapter {
   headers?: Record<string, string>;
   parse?(bytes: Uint8Array, source: SourceRow, now: Date): ParseResult;
   pull?(ctx: PullContext): Promise<PullOutcome>;
+  /** For a stream source: forgets where the last pull left off, so the next pull starts its backfill window over. The backfill command calls it. */
+  rewind?(db: DatabaseSync): void;
   /** Runs after a parsed document's items are stored, for joins into other tables. */
   after?(db: DatabaseSync, items: ParsedItem[], now: Date): void;
   /** The current documents of a standards source; a listing adapter fetches its index here first. */

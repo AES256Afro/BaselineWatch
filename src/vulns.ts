@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
+import { replaceCpeMatches, type CpeMatch } from "./cpematches.ts";
 import { csvLine } from "./csv.ts";
 import { ftsQuery } from "./wire.ts";
 
@@ -22,6 +23,8 @@ export interface NormalizedVuln {
   kev: { dateAdded: string | null; dueDate: string | null; requiredAction: string | null; name: string | null } | null;
   /** Affected packages, from an advisory source; undefined when the source (NVD) says nothing about packages. */
   packages?: AffectedPackage[];
+  /** NVD's CPE match criteria with their version ranges; undefined when the source (an advisory) says nothing about them, so the rows the last NVD record wrote stay. */
+  cpeMatches?: CpeMatch[];
 }
 
 /** A package an advisory names as affected, with the versions that introduced and fixed the flaw. */
@@ -293,6 +296,7 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
     existing?.first_seen_at ?? observedAt,
     observedAt,
   );
+  if (n.cpeMatches !== undefined) replaceCpeMatches(db, n.cveId, n.cpeMatches);
 
   const insertChange = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, ?, ?, ?, ?)");
   for (const c of changes) insertChange.run(n.cveId, observedAt, n.lastModifiedAt, c.field, c.before, c.after);
