@@ -1,4 +1,5 @@
 import { html } from "../html.ts";
+import { guideArticles } from "./guides/index.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
@@ -19,6 +20,17 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
       <a href="/learn">Learn</a>.
     </p>
     <div class="guide">
+      <section class="box wide" id="articles">
+        <h2>Articles, one subject at a time</h2>
+        <p class="small">
+          The rest of this page explains the site. These explain one thing happening in the world,
+          with the CVEs they are about read from this instance's own table, so the severities and
+          whether a fix exists stay current after the prose is written.
+        </p>
+        <ul class="plain srcs">${guideArticles.map(
+          (a) => html`<li><a href="/guide/${a.slug}"><b>${a.title}</b></a> <span class="when">${a.written}</span><div class="small">${a.description}</div></li>`,
+        )}</ul>
+      </section>
       <section class="box wide" id="ladder">
         <h2>Standard, baseline, control, setting</h2>
         <p>
