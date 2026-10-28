@@ -50,6 +50,12 @@ version the CHANGELOG does not carry, the pipeline on Today and in `/metrics` â€
 its items are losses, not gaps. A milestone is done when its "Done when" can be shown on
 cybercard.net, not when its dates are up.
 
+**The site feeds itself** (2026-10-28) is M20 in the same plan, and a gate on 1.0: keeping the data
+current must need neither a coding agent editing this repository nor a model at run time. Before
+adding another version name, word list or source row in code, check whether M20 means it should be
+discovered, proposed to the owner, or entered on the running instance instead, and name any new
+hand-kept list in the commit so M20.1's ledger can carry it.
+
 ## Conventions
 
 - **Stack**: Node â‰¥ 24 running TypeScript directly (type stripping, so `erasableSyntaxOnly`: no
