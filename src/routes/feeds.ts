@@ -23,11 +23,11 @@ export function mountFeeds(r: RouteContext): void {
   };
   const self = (path: string): string => `${config.baseUrl}${path}`;
   app.get("/feed.xml", (req, res) => send(res, "application/rss+xml; charset=utf-8", wireFeed(db, config.baseUrl, wireFilters(req.query as Record<string, unknown>), self(req.originalUrl))));
-  app.get("/vulnerabilities/feed.xml", (req, res) => send(res, "application/rss+xml; charset=utf-8", vulnFeed(db, config.baseUrl, vulnFilters(req.query as Record<string, unknown>, now()), self(req.originalUrl))));
+  app.get("/vulnerabilities/feed.xml", (req, res) => send(res, "application/rss+xml; charset=utf-8", vulnFeed(db, config.baseUrl, vulnFilters(req.query as Record<string, unknown>, now(), res.locals.owner === true), self(req.originalUrl), res.locals.owner === true)));
   app.get("/sources.opml", (_req, res) => send(res, "text/x-opml; charset=utf-8", opmlDocument(db, config.baseUrl)));
   app.get("/vulnerabilities/kev.ics", (req, res) => {
     res.setHeader("Content-Disposition", 'inline; filename="kev.ics"');
-    send(res, "text/calendar; charset=utf-8", kevCalendar(db, config.baseUrl, { watch: String((req.query as Record<string, unknown>).watch ?? "") === "1", now: now() }));
+    send(res, "text/calendar; charset=utf-8", kevCalendar(db, config.baseUrl, { watch: res.locals.owner === true && String((req.query as Record<string, unknown>).watch ?? "") === "1", now: now() }));
   });
   app.get("/sitemap.xml", (_req, res) => send(res, "application/xml; charset=utf-8", sitemapDocument(db, config.baseUrl)));
   app.get("/feeds", (req, res) => {

@@ -5,7 +5,8 @@ import { nextActions } from "../src/agenda.ts";
 import { kevCalendar } from "../src/feeds.ts";
 import { fixListCandidates, fixListTotal } from "../src/fixlist.ts";
 import { setTriage } from "../src/triage.ts";
-import { listVulns } from "../src/vulns.ts";
+import { platformsOf } from "../src/platforms.ts";
+import { listVulns, platformFigures } from "../src/vulns.ts";
 import { listWire } from "../src/wire.ts";
 import { cookieFrom, formPost, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -199,5 +200,78 @@ describe("the table, the calendar and the order", () => {
     expect(listWire(db).map((i) => i.source_id)).toEqual(["bleeping"]);
     expect(listWire(db, {}, { owner: true }).map((i) => i.source_id).sort()).toEqual(["bleeping", "crtsh"]);
     expect(apiItems(db, {}, "https://example.test").map((i) => i.source)).toEqual(["bleeping"]);
+  });
+});
+
+describe("the watchlist is the owner's, and the platforms are everyone's", () => {
+  let app: TestApp;
+  let cookie: string;
+
+  beforeAll(async () => {
+    app = await startTestApp({ env: { BW_ADMIN_PASSWORD: "hunter2hunter2", BW_PUBLIC_READ: "true" }, now: () => now });
+    cookie = cookieFrom(await formPost(app.base, "/login", { password: "hunter2hunter2", next: "/" }));
+    app.db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('product', 'widgetd', 'Widget daemon', ?)").run(now.toISOString());
+    addVuln(app.db, "CVE-2026-91001", { kev: 1, cvss_score: 9.8, platforms_json: '["windows"]', watch_hit: 1, watch_labels_json: '["Widget daemon"]' });
+    addVuln(app.db, "CVE-2026-91002", { cvss_score: 8.1, platforms_json: '["chrome"]' });
+    addVuln(app.db, "CVE-2026-91003", { cvss_score: 5.0, platforms_json: '["linux"]', epss: 0.7 });
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("sends a visitor to sign in from the watchlist, and shows the owner theirs", async () => {
+    const visitor = await fetch(`${app.base}/watchlist`);
+    expect(visitor.status).toBe(401);
+    expect(await visitor.text()).not.toContain("Widget daemon");
+    expect(await (await fetch(`${app.base}/watchlist`, { headers: { cookie } })).text()).toContain("Widget daemon");
+  });
+
+  it("leaves the watch marks out of everything a visitor can read", async () => {
+    const page = await (await fetch(`${app.base}/vulnerabilities`)).text();
+    expect(page).not.toContain("Widget daemon");
+    expect(page).not.toContain("My stack");
+    expect(page).not.toContain("Match watchlist");
+    // A link that asks for the watchlist gets the whole list, not the owner's slice of it.
+    expect(await (await fetch(`${app.base}/vulnerabilities?watch=1`)).text()).toContain("CVE-2026-91002");
+    expect(await (await fetch(`${app.base}/vulnerabilities/CVE-2026-91001`)).text()).not.toContain("Widget daemon");
+    expect(await (await fetch(`${app.base}/vulnerabilities.csv`)).text()).not.toContain("Widget daemon");
+    expect(await (await fetch(`${app.base}/vulnerabilities/feed.xml`)).text()).not.toContain("your stack");
+    const api = (await (await fetch(`${app.base}/api/v1/vulns`)).json()) as { vulns: Record<string, unknown>[] };
+    for (const v of api.vulns) expect(v).not.toHaveProperty("watch");
+    const owner = await (await fetch(`${app.base}/vulnerabilities`, { headers: { cookie } })).text();
+    expect(owner).toContain("Widget daemon");
+    expect(owner).toContain("My stack");
+  });
+
+  it("opens the table on what is affecting each platform, each figure a link to its list", async () => {
+    const page = await (await fetch(`${app.base}/vulnerabilities`)).text();
+    expect(page).toContain("What is affecting");
+    expect(page).toContain('href="/vulnerabilities?platform=windows"');
+    expect(page).toContain('href="/vulnerabilities?platform=windows&amp;kev=1"');
+    expect(page).toContain('href="/vulnerabilities?danger=1"');
+    const browsers = await (await fetch(`${app.base}/vulnerabilities?platform=browsers`)).text();
+    expect(browsers).toContain("CVE-2026-91002");
+    expect(browsers).not.toContain("CVE-2026-91001");
+    const danger = await (await fetch(`${app.base}/vulnerabilities?danger=1`)).text();
+    expect(danger).toContain("CVE-2026-91001");
+    expect(danger).toContain("CVE-2026-91003");
+    expect(danger).not.toContain("CVE-2026-91002");
+  });
+
+  it("counts each platform from the side table the triggers keep", () => {
+    const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+    const figures = platformFigures(app.db, since);
+    expect(figures.find((f) => f.id === "windows")).toMatchObject({ total: 1, kev: 1, worst: { cve_id: "CVE-2026-91001" } });
+    expect(figures.find((f) => f.id === "browsers")).toMatchObject({ total: 1, kev: 0 });
+    expect(figures.find((f) => f.id === "danger")).toMatchObject({ total: 2 });
+    app.db.prepare("UPDATE vulns SET platforms_json = '[\"apple\"]' WHERE cve_id = 'CVE-2026-91002'").run();
+    expect(app.db.prepare("SELECT platform FROM vuln_platforms WHERE vuln_id = (SELECT id FROM vulns WHERE cve_id = 'CVE-2026-91002')").all()).toEqual([{ platform: "apple" }]);
+  });
+
+  it("files a CVE by its CPE, not by a browser its description mentions", () => {
+    const ray = { cpes: ["cpe:2.3:a:anyscale:ray:*:*:*:*:*:*:*:*"], vendors: ["anyscale"], products: ["ray"], description: "Ray … exploitable via Firefox and Safari." };
+    expect(platformsOf(ray)).toEqual([]);
+    expect(platformsOf({ cpes: [], vendors: [], products: [], description: "A use after free in Google Chrome prior to 150.0" })).toEqual(["chrome"]);
   });
 });

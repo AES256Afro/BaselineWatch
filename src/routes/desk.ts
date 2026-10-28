@@ -1,3 +1,4 @@
+import { renderLogin } from "../pages/login.ts";
 import type { Request, Response } from "express";
 
 
@@ -51,7 +52,11 @@ export function mountDesk(r: RouteContext): void {
     res.type("html").send(renderAppearance({ owner: state.owner, open: state.open, look: lookOf(req) }));
   });
 
+  // The watchlist says what the owner runs, which is exactly what a visitor should not learn: the
+  // page is the owner's, and a visitor is sent to sign in. The table's platform cards are what
+  // everyone else reads instead.
   app.get("/watchlist", (req, res) => {
+    if (res.locals.owner !== true) return res.status(401).type("html").send(renderLogin({ next: "/watchlist", open: false, look: lookOf(req) }));
     res.type("html").send(renderWatchlist({ db, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
   });
   app.post("/watchlist", requireOwner, (req, res) => {

@@ -286,7 +286,8 @@ describe("vulnerability pages", () => {
     expect(list).toMatch(/<a href="\/vulnerabilities\?new=1"><small>New, 24 h<\/small><b>\d+<\/b><\/a>/);
     expect(list).toContain('<a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small>');
     expect(list).toContain('<a href="/vulnerabilities?kev=1"><small>In KEV</small>');
-    expect(list).toContain('<a href="/vulnerabilities?watch=1"><small>Match watchlist</small>');
+    // The watchlist is the owner's (the audit of 28 October): a visitor's strip has no tile for it.
+    expect(list).not.toContain("Match watchlist");
     // The EPSS date is provenance, not a metric: it sits on the line under the table that
     // already carries the NVD cursor, not in the row of counts.
     expect(list).toMatch(/EPSS scores: (<a href="\/sources#src-first-epss">|none pulled yet)/);
@@ -327,7 +328,7 @@ describe("vulnerability pages", () => {
     expect(watchPage).toContain("Remove");
     expect(watchPage).toContain('<h2><a href="#add">Add to the watchlist</a></h2>');
     expect(watchPage).toContain('<h2><a href="/vulnerabilities?watch=1">How matching works</a></h2>');
-    const mine = await (await fetch(`${app.base}/vulnerabilities?watch=1`)).text();
+    const mine = await (await fetch(`${app.base}/vulnerabilities?watch=1`, { headers: { cookie } })).text();
     expect(mine).toContain("CVE-2021-44228");
     expect(mine).not.toContain("CVE-2015-1197");
     const id = (app.db.prepare("SELECT id FROM watchlist").get() as { id: number }).id;

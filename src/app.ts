@@ -220,9 +220,9 @@ export function createApp(ctx: AppContext): Express {
     handler(req, res);
   };
   app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl, authState(req, config, now().getTime()).owner) })));
-  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now()))));
+  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now(), authState(req, config, now().getTime()).owner))));
   app.get("/api/v1/vulns/:cve", apiRead((req, res) => {
-    const v = apiVuln(db, String(req.params.cve));
+    const v = apiVuln(db, String(req.params.cve), authState(req, config, now().getTime()).owner);
     if (!v) return res.status(404).json({ error: "no such CVE" });
     json(res, v);
   }));

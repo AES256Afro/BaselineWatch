@@ -139,7 +139,7 @@ describe("the Fix panel", () => {
     const ok = await formPost(app.base, "/watchlist", { kind: "platform", value: "Apple" }, cookie);
     expect(ok.status).toBe(303);
     expect(loadWatchlist(app.db).find((e) => e.kind === "platform")).toMatchObject({ value: "apple", label: null });
-    const list = await (await fetch(`${app.base}/watchlist`)).text();
+    const list = await (await fetch(`${app.base}/watchlist`, { headers: { cookie } })).text();
     expect(list).toContain("<td>Platform</td>");
     expect(list).toContain("<code>apple</code>");
 
@@ -155,8 +155,12 @@ describe("the Fix panel", () => {
     expect(row.watch_hit).toBe(1);
     expect(JSON.parse(row.watch_labels_json!)).toEqual(["Apple"]);
     expect(recomputeWatchHits(app.db)).toBe(0);
-    const wire = await (await fetch(`${app.base}/wire?kind=vulnerability`)).text();
+    const wire = await (await fetch(`${app.base}/?kind=vulnerability`, { headers: { cookie } })).text();
     expect(wire).toContain("CVE-2026-55555");
     expect(wire).toContain('<span class="chip mine">Apple</span>');
+    // The CVE is news to everyone; that it is on the owner's watchlist is the owner's.
+    const visitor = await (await fetch(`${app.base}/?kind=vulnerability`)).text();
+    expect(visitor).toContain("CVE-2026-55555");
+    expect(visitor).not.toContain('<span class="chip mine">');
   });
 });
