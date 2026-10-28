@@ -3,6 +3,7 @@ import { publicSummary } from "./api.ts";
 import { fleetPlatforms } from "./fleet.ts";
 import { html, type Html } from "./html.ts";
 import { parseJson } from "./json.ts";
+import { platformChoiceName } from "./platforms.ts";
 import { productName } from "./version.ts";
 import { listVulns, type VulnFilters } from "./vulns.ts";
 import { listWire, type WireFilters } from "./wire.ts";
@@ -63,9 +64,10 @@ export function wireFeed(db: DatabaseSync, baseUrl: string, filters: WireFilters
 }
 
 /** The Vulnerabilities table under its own filters; a CVE that changes comes round again, because the change is the news. */
-export function vulnFeed(db: DatabaseSync, baseUrl: string, filters: VulnFilters, self: string): string {
+/** The table as RSS. "Your stack" marks a watched CVE in the owner's copy only; a feed reader sends no cookie, so it gets the plain one. */
+export function vulnFeed(db: DatabaseSync, baseUrl: string, filters: VulnFilters, self: string, owner = false): string {
   const { rows } = listVulns(db, { ...filters, offset: 0, limit: feedLimit });
-  const words = [filters.kev ? "KEV" : null, filters.exploit ? "public exploit" : null, filters.watch ? "your stack" : null, filters.platform, filters.severity, filters.minCvss !== undefined ? `CVSS ≥ ${filters.minCvss}` : null, filters.q ? `“${filters.q}”` : null].filter((w) => w);
+  const words = [filters.kev ? "KEV" : null, filters.exploit ? "public exploit" : null, filters.watch ? "your stack" : null, filters.platform ? platformChoiceName(filters.platform) : null, filters.danger ? "most dangerous" : null, filters.severity, filters.minCvss !== undefined ? `CVSS ≥ ${filters.minCvss}` : null, filters.q ? `“${filters.q}”` : null].filter((w) => w);
   return rssDocument(
     { title: `${productName} · Vulnerabilities${words.length ? ` · ${words.join(" · ")}` : ""}`, link: `${baseUrl}/vulnerabilities`, description: "CVEs as NVD, CISA and FIRST describe them, newest change first.", self },
     rows.map((r) => {
@@ -74,7 +76,7 @@ export function vulnFeed(db: DatabaseSync, baseUrl: string, filters: VulnFilters
       const who = [...new Set([...vendors, ...products])].join(", ");
       const severity = r.cvss_score === null ? "unscored" : `CVSS ${r.cvss_score.toFixed(1)} ${(r.cvss_severity ?? "").toLowerCase()}`.trim();
       return {
-        title: `${r.cve_id} · ${severity}${r.kev ? " · KEV" : ""}${r.watch_hit ? " · your stack" : ""}`,
+        title: `${r.cve_id} · ${severity}${r.kev ? " · KEV" : ""}${owner && r.watch_hit ? " · your stack" : ""}`,
         link: `${baseUrl}/vulnerabilities/${r.cve_id}`,
         guid: `${r.cve_id}@${r.last_modified_at}`,
         date: r.last_modified_at,
@@ -164,6 +166,8 @@ export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch:
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", `PRODID:-//${productName}//KEV due dates//EN`, "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${icsText(`${productName} · KEV due dates${options.watch ? " (your stack)" : ""}`)}`];
   for (const r of rows) {
     const due = r.kev_due_date.slice(0, 10);
+    // A due date as the publisher typed it, unchecked at ingest: one "TBD" must not fail the whole calendar.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || Number.isNaN(Date.parse(`${due}T00:00:00Z`))) continue;
     const next = new Date(new Date(`${due}T00:00:00Z`).getTime() + 86_400_000).toISOString();
     const what = (r.description ?? "").replace(/\s+/g, " ").trim();
     lines.push(
@@ -201,7 +205,7 @@ export function robotsText(publicRead: boolean, baseUrl: string): string {
 export function sitemapDocument(db: DatabaseSync, baseUrl: string): string {
   const standards = (db.prepare("SELECT id FROM sources WHERE group_name = 'standards' AND enabled = 1 ORDER BY id").all() as { id: string }[]).map((s) => `/standards/${s.id}`);
   const paths = [
-    "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/guide", "/guide", "/feeds",
+    "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/traces", "/scan/guide", "/guide", "/feeds",
     ...standards,
     ...fleetPlatforms.map((p) => `/baselines/${p.id}`),
     ...["windows", "macos", "linux", "ios", "android"].map((os) => `/scan/guide/${os}`),

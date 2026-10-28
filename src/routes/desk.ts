@@ -1,3 +1,4 @@
+import { renderLogin } from "../pages/login.ts";
 import type { Request, Response } from "express";
 
 
@@ -12,7 +13,9 @@ import { getSource, ingestSource, setSourceEnabled, storeUploadedDocument, type 
 
 import { renderAppearance } from "../pages/appearance.ts";
 
-import { renderSources } from "../pages/sources.ts";
+import { renderSourceProbe, renderSources } from "../pages/sources.ts";
+import { addSource, logSourceChange, probeFeed, readNewSource, sourceWithUrl } from "../newsource.ts";
+import { adoptFallback, useRepair } from "../repairs.ts";
 
 import { renderDigest } from "../pages/digest.ts";
 
@@ -51,7 +54,11 @@ export function mountDesk(r: RouteContext): void {
     res.type("html").send(renderAppearance({ owner: state.owner, open: state.open, look: lookOf(req) }));
   });
 
+  // The watchlist says what the owner runs, which is exactly what a visitor should not learn: the
+  // page is the owner's, and a visitor is sent to sign in. The table's platform cards are what
+  // everyone else reads instead.
   app.get("/watchlist", (req, res) => {
+    if (res.locals.owner !== true) return res.status(401).type("html").send(renderLogin({ next: "/watchlist", open: false, look: lookOf(req) }));
     res.type("html").send(renderWatchlist({ db, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
   });
   app.post("/watchlist", requireOwner, (req, res) => {
@@ -225,13 +232,14 @@ export function mountDesk(r: RouteContext): void {
       flash && typeof flash.sourceId === "string" && typeof flash.status === "string"
         ? { sourceId: flash.sourceId.slice(0, 80), status: flash.status.slice(0, 20), detail: typeof flash.detail === "string" ? flash.detail.slice(0, 1200) : "" }
         : null;
-    res.type("html").send(renderSources({ db, ...who(req, res), notice }));
+    res.type("html").send(renderSources({ db, ...who(req, res), notice, now: now() }));
   });
   // Turning a source on or off: the scheduler reads the flag on its next pass; what was loaded stays.
   const setEnabled = (enabled: boolean) => (req: Request, res: Response) => {
     const source = getSource(db, String(req.params.id));
     if (!source) return res.status(404).type("text").send("No such source.");
     setSourceEnabled(db, source.id, enabled);
+    if (Boolean(source.enabled) !== enabled) logSourceChange(db, source.id, now().toISOString(), enabled ? "enabled" : "disabled", null, null);
     const detail = enabled ? `checked ${source.schedule} from the scheduler's next pass; Fetch now runs it at once` : "no longer fetched; what was loaded stays on the Register";
     res.append("Set-Cookie", flashHeader({ sourceId: source.id, status: enabled ? "enabled" : "disabled", detail }, secureCookies(req)));
     res.redirect(303, `/sources#src-${source.id}`);
@@ -315,19 +323,64 @@ export function mountDesk(r: RouteContext): void {
     res.redirect(303, "/sources#storage");
   });
 
+  // Adding a source (M20.2): the probe shows what the feed holds before anything is saved, and
+  // the add probes again rather than trusting the form, then fetches once so its entries arrive now.
+  const ingestDeps = () => ({
+    now,
+    settings: pullSettings(config),
+    log: (line: string) => console.log(line),
+    transport: parseNotifyUrl(config.notifyUrl),
+    baseUrl: config.baseUrl,
+    ...(ctx.http ? { http: ctx.http } : {}),
+  });
+  app.post("/sources/probe", requireOwner, async (req, res) => {
+    const input = readNewSource((req.body ?? {}) as Record<string, unknown>);
+    if (typeof input === "string") return res.status(400).type("html").send(renderSourceProbe({ ...who(req, res), input: null, probe: { ok: false, error: input }, duplicate: null }));
+    const duplicate = sourceWithUrl(db, input.url);
+    const probe = duplicate ? null : await probeFeed(ctx.http ?? httpGet, input.url);
+    res.status(probe && !probe.ok ? 422 : 200).type("html").send(renderSourceProbe({ ...who(req, res), input, probe, duplicate }));
+  });
+  app.post("/sources/add", requireOwner, async (req, res) => {
+    const input = readNewSource((req.body ?? {}) as Record<string, unknown>);
+    if (typeof input === "string") return res.status(400).type("html").send(renderSourceProbe({ ...who(req, res), input: null, probe: { ok: false, error: input }, duplicate: null }));
+    const duplicate = sourceWithUrl(db, input.url);
+    if (duplicate) return res.status(409).type("html").send(renderSourceProbe({ ...who(req, res), input, probe: null, duplicate }));
+    const probe = await probeFeed(ctx.http ?? httpGet, input.url);
+    if (!probe.ok) return res.status(422).type("html").send(renderSourceProbe({ ...who(req, res), input, probe, duplicate: null }));
+    const id = addSource(db, input, probe.feed, now().toISOString());
+    const result = await ingestSource(db, config.dataDir, getSource(db, id)!, ingestDeps());
+    const detail = result.status === "error" ? `added, but its first fetch failed: ${result.error ?? "error"}` : `added; ${result.items} entries, ${result.inserted} new on the News`;
+    res.append("Set-Cookie", flashHeader({ sourceId: id, status: result.status === "error" ? "error" : "added", detail }, secureCookies(req)));
+    res.redirect(303, `/sources#src-${id}`);
+  });
+  // Repairs (M20.3): the owner's click on a proposal, or on the fallback that has been answering.
+  const afterMove = async (req: Request, res: Response, sourceId: string, url: string) => {
+    const result = await ingestSource(db, config.dataDir, getSource(db, sourceId)!, ingestDeps());
+    const detail = `now read from ${url}; ${result.status === "error" ? `its first fetch failed: ${result.error ?? "error"}` : `${result.items} entries`}`;
+    res.append("Set-Cookie", flashHeader({ sourceId, status: result.status, detail }, secureCookies(req)));
+    res.redirect(303, `/sources#src-${sourceId}`);
+  };
+  app.post("/sources/:id/repairs/:repair/use", requireOwner, async (req, res) => {
+    const source = getSource(db, String(req.params.id));
+    if (!source) return res.status(404).type("text").send("No such source.");
+    const repair = useRepair(db, source, Number(req.params.repair), now().toISOString());
+    if (!repair) return res.status(404).type("text").send("That repair is no longer proposed; the source may have answered again.");
+    await afterMove(req, res, source.id, repair.url);
+  });
+  app.post("/sources/:id/adopt-fallback", requireOwner, async (req, res) => {
+    const source = getSource(db, String(req.params.id));
+    if (!source) return res.status(404).type("text").send("No such source.");
+    const url = adoptFallback(db, source, now().toISOString());
+    if (!url) return res.status(409).type("text").send("No fallback is answering for this source.");
+    await afterMove(req, res, source.id, url);
+  });
+
   app.post("/sources/:id/enable", requireOwner, setEnabled(true));
   app.post("/sources/:id/disable", requireOwner, setEnabled(false));
   app.post("/sources/:id/fetch", requireOwner, async (req, res) => {
     const source = getSource(db, String(req.params.id));
     if (!source) return res.status(404).type("text").send("No such source.");
-    const result: IngestResult = await ingestSource(db, config.dataDir, source, {
-      now,
-      settings: pullSettings(config),
-      log: (line) => console.log(line),
-      transport: parseNotifyUrl(config.notifyUrl),
-      baseUrl: config.baseUrl,
-      ...(ctx.http ? { http: ctx.http } : {}),
-    });
+    const result: IngestResult = await ingestSource(db, config.dataDir, source, ingestDeps());
     const detail = result.status === "ok" ? (result.detail ?? `${result.items} items, ${result.inserted} new, ${result.updated} changed`) : (result.error ?? result.status);
     res.append("Set-Cookie", flashHeader({ sourceId: source.id, status: result.status, detail }, secureCookies(req)));
     res.redirect(303, `/sources#src-${source.id}`);

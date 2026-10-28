@@ -151,20 +151,23 @@ function chainBlock(chain: (typeof chains)[number]): Html {
   </section>`;
 }
 
-/** One body's card: what it is, who it rests on, who rests on it, and where to read it. */
-function bodyCard(a: Authority, held: Map<string, Held>, now: Date): Html {
+/**
+ * One body's card: what it is, who it rests on, who rests on it, and where to read it. Folded to its
+ * name, publisher and step, so the directory reads as a list; a narrowed view opens every card.
+ */
+function bodyCard(a: Authority, held: Map<string, Held>, now: Date, open: boolean): Html {
   const up = a.derivesFrom;
   const down = feedsInto(a.id);
   const sources = a.links.filter((l) => (l.kind ?? "source") === "source");
   const crosswalks = a.links.filter((l) => l.kind === "crosswalk");
   const mine = a.tracked ? held.get(a.tracked) : undefined;
   const far = ancestors(a.id).filter((p) => !up.includes(p.id));
-  return html`<section class="box body" id="body-${a.id}">
-    <div class="body-head">
-      <h3><a href="#body-${a.id}">${a.name}</a></h3>
-      <span class="chips"><a class="chip rung-chip" href="/learn?rung=${a.rung}">${rungs.find((r) => r.id === a.rung)?.label}</a>${sectorChips(a.sectors)}</span>
-    </div>
-    <p class="body-pub">${a.publisher}</p>
+  return html`<details class="fold body" id="body-${a.id}"${open ? html` open` : ""}>
+    <summary class="body-head">
+      <h3>${a.name}</h3>
+      <span class="body-pub">${a.publisher}</span>
+      <span class="chips"><a class="chip rung-chip" href="/learn?rung=${a.rung}">${rungs.find((r) => r.id === a.rung)?.label}</a>${sectorChips(a.sectors)}${a.tracked ? html`<span class="chip ok">tracked here</span>` : ""}</span>
+    </summary>
     <p>${a.what}</p>
     <p class="small why">${a.because}</p>
     <dl class="derive">
@@ -189,7 +192,7 @@ function bodyCard(a: Authority, held: Map<string, Held>, now: Date): Html {
             : html`<a href="/standards/${a.tracked}">tracked as a source</a>, <span class="mute-t">nothing loaded yet</span>`}</dd>`
         : ""}
     </dl>
-  </section>`;
+  </details>`;
 }
 
 /**
@@ -254,7 +257,7 @@ export function renderLearn(options: LearnOptions): string {
       if (here.length === 0) return html``;
       return html`<section class="rung-band" id="rung-${r.id}">
         <div class="std-head"><b><a href="#rung-${r.id}">${r.label}</a></b><span class="small">${r.line}</span></div>
-        <div class="bodies">${here.map((a) => bodyCard(a, held, now))}</div>
+        <div class="bodies">${here.map((a) => bodyCard(a, held, now, filtered))}</div>
       </section>`;
     });
 

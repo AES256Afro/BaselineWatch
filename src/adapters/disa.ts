@@ -110,9 +110,13 @@ export function packageTarget(items: DisaListingItem[], key: string, namePattern
   return { key, url: item.DownloadLink, versionLabel: month, publishedAt: item.UploadDate ? `${item.UploadDate}T00:00:00.000Z` : null };
 }
 
-/** The STIGs to follow: the watchlist's baseline entries, or the defaults. */
+/**
+ * The STIGs to follow: the watchlist's baseline entries, or the defaults. An entry written
+ * `mscp: <branch>` names an mSCP branch for that adapter and is not a STIG name, so it is no
+ * reason to stop following the defaults.
+ */
 export function followedPatterns(ctx: Pick<ListingContext, "db">): string[] {
-  const rows = ctx.db.prepare("SELECT value FROM watchlist WHERE kind = 'baseline'").all() as { value: string }[];
+  const rows = ctx.db.prepare("SELECT value FROM watchlist WHERE kind = 'baseline' AND value NOT LIKE 'mscp:%'").all() as { value: string }[];
   const values = rows.map((r) => r.value.replace(/^stig:\s*/i, "").trim()).filter((v) => v.length > 0);
   return values.length ? values : defaultStigs;
 }
@@ -226,7 +230,12 @@ export const disaAdapter: Adapter = {
   id: "disa-stig",
   headers: { accept: "application/json, application/zip, */*" },
   async documents(source: SourceRow, ctx) {
-    return selectStigs(await fetchListing(ctx, source.url), followedPatterns(ctx));
+    // A watchlist whose baseline entries name no STIG in the listing (a CIS benchmark kept to
+    // mark the Register's changes as the owner's, a misspelt product) must not leave DISA followed
+    // for nothing: that reads as a quiet source, not as a mistake.
+    const items = await fetchListing(ctx, source.url);
+    const targets = selectStigs(items, followedPatterns(ctx));
+    return targets.length ? targets : selectStigs(items, defaultStigs);
   },
   async parseDocument(bytes, target): Promise<ParsedDocument> {
     const entries = unzipAll(bytes);

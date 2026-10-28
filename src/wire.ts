@@ -1,5 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ItemKind } from "./adapters/types.ts";
+import { newsQuery, platformKeysOf, type PlatformChoice } from "./platforms.ts";
+import { aiHeadlineQuery, aiItemSql } from "./topics.ts";
+import { dangerSql } from "./vulns.ts";
 
 /**
  * The News timeline's queries: the filters a reader can set, the page of items they select with
@@ -16,6 +19,14 @@ export interface WireFilters {
   before?: number | undefined;
   /** Only items published (or, undated, fetched) at or after this instant. */
   since?: string | undefined;
+  /** Only stories about this platform: one that names its CVEs, or one whose headline or summary names it. */
+  platform?: PlatformChoice | undefined;
+  /** Only stories about the most dangerous: a KEV addition, or a story naming an exploited or likely-exploited CVE. */
+  danger?: boolean | undefined;
+  /** Only the AI stories (src/topics.ts). */
+  topic?: "ai" | undefined;
+  /** Leave the AI stories out: a reader's choice, kept in a cookie, or `ai=hide` on a link. Ignored when `topic` asks for them. */
+  hideAi?: boolean | undefined;
   limit?: number;
 }
 
@@ -55,9 +66,20 @@ interface Built {
   params: (string | number)[];
 }
 
-function build(filters: WireFilters, options: { copies?: boolean } = {}): Built {
+/**
+ * Sources whose items are the owner's own facts, not news: crt.sh's items name the certificates
+ * logged for the owner's domains. They reach the owner's News and nobody else's — not a visitor's
+ * page, the feeds, the API or the MCP tools — as the digest has kept them since 0.53.0.
+ */
+export const ownerOnlySources: readonly string[] = ["crtsh"];
+
+function build(filters: WireFilters, options: { copies?: boolean; owner?: boolean } = {}): Built {
   const clauses: string[] = [];
   const params: (string | number)[] = [];
+  if (!options.owner) {
+    clauses.push(`i.source_id NOT IN (${ownerOnlySources.map(() => "?").join(", ")})`);
+    params.push(...ownerOnlySources);
+  }
   // Hide later copies of the same link (the same story from two feeds), unless every copy is wanted.
   if (!options.copies) clauses.push("(i.canonical_url IS NULL OR i.id = (SELECT MIN(d.id) FROM items d WHERE d.canonical_url = i.canonical_url))");
   if (filters.source) {
@@ -80,6 +102,27 @@ function build(filters: WireFilters, options: { copies?: boolean } = {}): Built 
       params.push(query);
     }
   }
+  // A story is about the CVEs it is (a KEV or CVE item) and the CVEs its signals name. Each set
+  // of CVEs below is written uncorrelated, so SQLite builds it once for the query rather than
+  // once a story: correlated, Linux's 7,700 CVEs made the page take two and a half seconds.
+  const namesCveIn = (set: string): string =>
+    `((i.kind IN ('kev', 'vulnerability') AND i.external_id IN ${set})
+      OR EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(i.signals_json) THEN i.signals_json ELSE '{}' END, '$.cves') c WHERE c.value IN ${set}))`;
+  if (filters.platform) {
+    const keys = platformKeysOf(filters.platform);
+    const set = `(SELECT v.cve_id FROM vuln_platforms p JOIN vulns v ON v.id = p.vuln_id WHERE p.platform IN (${keys.map(() => "?").join(", ")}))`;
+    // Headlines only: a long post that mentions Windows once in passing is not a Windows story.
+    clauses.push(`(i.id IN (SELECT rowid FROM items_fts WHERE items_fts MATCH ?) OR ${namesCveIn(set)})`);
+    params.push(`title : (${newsQuery(filters.platform)})`, ...keys, ...keys);
+  }
+  if (filters.topic === "ai") {
+    clauses.push(aiItemSql);
+    params.push(aiHeadlineQuery);
+  } else if (filters.hideAi) {
+    clauses.push(`NOT ${aiItemSql}`);
+    params.push(aiHeadlineQuery);
+  }
+  if (filters.danger) clauses.push(`(i.kind = 'kev' OR ${namesCveIn(`(SELECT v.cve_id FROM vulns v WHERE ${dangerSql})`)})`);
   if (filters.since) {
     clauses.push("COALESCE(i.published_at, i.fetched_at) >= ?");
     params.push(filters.since);
@@ -94,8 +137,11 @@ function build(filters: WireFilters, options: { copies?: boolean } = {}): Built 
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }
 
-/** The page's items; with `copies`, later copies of one address come too, for a page that names the other sources. */
-export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: { copies?: boolean } = {}): WireItem[] {
+/**
+ * The page's items; with `copies`, later copies of one address come too, for a page that names the
+ * other sources. Without `owner`, the owner-only sources are left out.
+ */
+export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: { copies?: boolean; owner?: boolean } = {}): WireItem[] {
   const { where, params } = build(filters, options);
   const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
   return db
@@ -110,7 +156,7 @@ export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: {
 
 export function markAllRead(db: DatabaseSync, filters: WireFilters = {}): number {
   // Every copy of a story is marked, so the unread count (which counts them all) can reach zero.
-  const { where, params } = build({ ...filters, before: undefined }, { copies: true });
+  const { where, params } = build({ ...filters, before: undefined }, { copies: true, owner: true });
   const result = db.prepare(`UPDATE items SET read = 1 WHERE id IN (SELECT i.id FROM items i ${where})`).run(...params);
   return Number(result.changes);
 }

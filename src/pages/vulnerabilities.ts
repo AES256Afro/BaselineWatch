@@ -5,7 +5,9 @@ import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import { cveMentions, newsFor } from "../trending.ts";
 import { getTriage } from "../triage.ts";
-import { getVuln, listVulns, vulnChanges, vulnStats, type AffectedPackage, type VulnFilters, type VulnRow } from "../vulns.ts";
+import { getVuln, listVulns, platformFigures, vulnChanges, vulnStats, type AffectedPackage, type PlatformFigures, type VulnFilters, type VulnRow } from "../vulns.ts";
+import { platformChoiceName } from "../platforms.ts";
+import { platformPicker } from "./platform-pick.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { saveSearchForm } from "./saved.ts";
@@ -36,6 +38,25 @@ function exploitChip(t: ExploitTally | undefined): Html {
   return html`<span class="chip exploit${t.verified ? " verified" : ""}" title="${exploitWording(t)}">exploit${t.count > 1 ? ` ×${t.count}` : ""}</span>`;
 }
 
+/**
+ * One platform's card: what is affecting it, and the worst of it by the table's risk order. Every
+ * figure is a link to the list it counts, so "45 exploited" opens those 45.
+ */
+function platformCard(f: PlatformFigures): Html {
+  const base = f.id === "danger" ? "/vulnerabilities?danger=1" : `/vulnerabilities?platform=${f.id}`;
+  const worst = f.worst;
+  // "microsoft windows 11 24h2", not "microsoft windows_11_24h2 windows_11_25h2": one product, as words.
+  const who = worst ? [...new Set([...parseJson<string[]>(worst.vendors_json, []).slice(0, 1), ...parseJson<string[]>(worst.products_json, []).slice(0, 1)])].join(" ").replace(/_/g, " ") : "";
+  return html`<div class="pcard${f.id === "danger" ? " danger" : ""}">
+    <a class="pcard-head" href="${base}"><small>${f.label}</small><b>${figure(f.total)}</b></a>
+    <p class="pcard-blurb">${f.blurb}</p>
+    <p class="pcard-stats">${f.kev ? html`<a class="kev" href="${base}&amp;kev=1">${figure(f.kev)} exploited</a>` : html`<span>none exploited</span>`} · <a href="${base}&amp;exploit=1">${figure(f.exploit)} public exploit</a> · <a href="${base}&amp;new=168">${figure(f.recent)} new this week</a></p>
+    ${worst
+      ? html`<p class="pcard-worst"><span>Worst now</span> <a href="/vulnerabilities/${worst.cve_id}">${worst.cve_id}</a>${worst.kev ? html` <span class="chip kev">KEV</span>` : ""}${worst.cvss_score !== null ? html` <span class="small">${worst.cvss_score.toFixed(1)}</span>` : ""}${who ? html` <span class="small">${who}</span>` : ""}</p>`
+      : ""}
+  </div>`;
+}
+
 function epssText(row: VulnRow): string {
   if (row.epss === null) return "—";
   return `${(row.epss * 100).toFixed(row.epss < 0.01 ? 2 : 1)}%`;
@@ -45,6 +66,8 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   const f = { ...filters, ...overrides };
   const p = new URLSearchParams();
   if (f.watch) p.set("watch", "1");
+  if (f.platform) p.set("platform", f.platform);
+  if (f.danger) p.set("danger", "1");
   if (f.kev) p.set("kev", "1");
   if (f.exploit) p.set("exploit", "1");
   if (f.minCvss !== undefined) p.set("min_cvss", String(f.minCvss));
@@ -55,6 +78,7 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   // A 24 h window is the "1" the links have always carried; a wider one (the Today page's 3 or 7 days) names its hours.
   if (f.changedSince) p.set("changed", f.changedHours && f.changedHours !== 24 ? String(f.changedHours) : "1");
   if (f.newSince) p.set("new", f.newHours && f.newHours !== 24 ? String(f.newHours) : "1");
+  if (f.movedSince) p.set("moved", f.movedHours && f.movedHours !== 24 ? String(f.movedHours) : "1");
   if (f.label) p.set("label", f.label);
   if (f.q) p.set("q", f.q);
   // The default is left out, so an unfiltered list keeps the bare /vulnerabilities address
@@ -82,13 +106,16 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && !filters.exploit && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.label;
+  const none = !filters.watch && !filters.kev && !filters.exploit && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.movedSince && !filters.label;
   // A band the Today page sent us into, shown as a chip that takes it off again.
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
   // The window a chip names: the Today page's 3 or 7 days read as such, so the figure clicked and the list shown agree.
   const windowWord = (h: number | undefined): string => (h === undefined || h === 24 ? "24 h" : h % 24 === 0 ? `${h / 24} days` : `${h} h`);
 
+  // The landing view opens on what is affecting each platform; a list already narrowed to one does not need the cards.
+  const landing = none && !filters.platform && !filters.danger && !filters.q && offset === 0;
+  const cards = landing ? platformFigures(db, new Date(now.getTime() - 7 * 86_400_000).toISOString()) : [];
   const exploits = exploitTallies(db, rows.map((r) => r.cve_id));
   const microsoft = msrcFlags(db, rows.map((r) => r.cve_id));
   // Named by two or more sources this week: being talked about, whatever the score.
@@ -98,8 +125,8 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
     const products = parseJson<string[]>(r.products_json, []);
     const packages = parseJson<AffectedPackage[]>(r.packages_json, []);
     const who = [...new Set([...vendors.slice(0, 2), ...products.slice(0, 3)])].join(", ") || packages.slice(0, 3).map((p) => `${p.ecosystem}:${p.name}`).join(", ");
-    const watch = parseJson<string[]>(r.watch_labels_json, []);
-    return html`<tr class="${r.watch_hit ? "hit" : ""}">
+    const watch = owner ? parseJson<string[]>(r.watch_labels_json, []) : [];
+    return html`<tr class="${owner && r.watch_hit ? "hit" : ""}">
       <td class="id"><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a>${r.kev ? html`<span class="chip kev">KEV</span>` : ""}${exploitChip(exploits.get(r.cve_id))}${microsoft.get(r.cve_id)?.exploited ? html`<span class="chip kev" title="Microsoft reports this CVE exploited">exploited</span>` : ""}${(mentions.get(r.cve_id)?.sources ?? 0) >= 2 ? html`<span class="chip news" title="Named by ${mentions.get(r.cve_id)?.sources} sources in the last 7 days">news ×${mentions.get(r.cve_id)?.sources}</span>` : ""}${watch.length ? html`<span class="chip mine">${watch.join(", ")}</span>` : ""}</td>
       <td>${severityChip(r)}</td>
       <td class="n" title="EPSS ${r.epss ?? ""} · percentile ${r.epss_percentile ?? ""}">${epssText(r)}</td>
@@ -120,13 +147,15 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       <a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small><b>${figure(stats.changedSince)}</b></a>
       <a href="/vulnerabilities?kev=1"><small>In KEV</small><b>${figure(stats.kev)}</b></a>
       <a href="/vulnerabilities?exploit=1"><small>Public exploit</small><b>${figure(stats.exploit)}</b></a>
-      <a href="/vulnerabilities?watch=1"><small>Match watchlist</small><b>${figure(stats.watch)}</b></a>
+      ${owner ? html`<a href="/vulnerabilities?watch=1"><small>Match watchlist</small><b>${figure(stats.watch)}</b></a>` : ""}
     </div>
     <div class="wire-top">
-      <h1>Vulnerabilities</h1>
+      <h1>Vulnerabilities${filters.platform ? html` <small class="motto">· ${platformChoiceName(filters.platform)}</small>` : filters.danger ? html` <small class="motto">· the most dangerous</small>` : ""}</h1>
       ${saveSearchForm(db, query(filters, { offset: 0 }), owner)}
       <form method="get" action="/vulnerabilities" class="search" role="search">
         ${filters.watch ? html`<input type="hidden" name="watch" value="1">` : ""}
+        ${filters.platform ? html`<input type="hidden" name="platform" value="${filters.platform}">` : ""}
+        ${filters.danger ? html`<input type="hidden" name="danger" value="1">` : ""}
         ${filters.kev ? html`<input type="hidden" name="kev" value="1">` : ""}
         ${filters.exploit ? html`<input type="hidden" name="exploit" value="1">` : ""}
         <label class="visually-hidden" for="q">Search CVEs</label>
@@ -134,15 +163,23 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
         <button type="submit">Search</button>
       </form>
     </div>
+    ${cards.length
+      ? html`<section class="platforms" aria-labelledby="affecting">
+          <h2 id="affecting">What is affecting…</h2>
+          <div class="pcards">${cards.map(platformCard)}</div>
+        </section>`
+      : ""}
+    ${platformPicker(filters, (next) => query(filters, { platform: next.platform, danger: next.danger === true, offset: 0 }))}
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, label: undefined, offset: 0 })}">All</a>
-      <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, movedSince: undefined, movedHours: undefined, label: undefined, offset: 0 })}">All</a>
+      ${owner ? html`<a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>` : ""}
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
       <a class="${filters.exploit ? "on" : ""}" href="${query(filters, { exploit: !filters.exploit, offset: 0 })}">Public exploit</a>
       <a class="${filters.minCvss === 9 ? "on" : ""}" href="${query(filters, { minCvss: filters.minCvss === 9 ? undefined : 9, offset: 0 })}">Critical (9+)</a>
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
       <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, changedHours: undefined, offset: 0 })}">Changed, ${windowWord(filters.changedSince ? filters.changedHours : undefined)}</a>
       <a class="${filters.newSince ? "on" : ""}" href="${query(filters, { newSince: filters.newSince ? undefined : since, newHours: undefined, offset: 0 })}">New, ${windowWord(filters.newSince ? filters.newHours : undefined)}</a>
+      ${filters.movedSince ? html`<a class="on" href="${query(filters, { movedSince: undefined, movedHours: undefined, offset: 0 })}" title="Published or really changed, as Today counts them">Moved, ${windowWord(filters.movedHours)} ×</a>` : ""}
       ${filters.label ? html`<a class="on" href="${query(filters, { label: undefined, offset: 0 })}">Watch: ${filters.label} ×</a>` : ""}
       ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
       ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
@@ -231,7 +268,8 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   // Only web links are drawn as links; a reference that is not http(s) is not one to follow.
   const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []).filter((r) => /^https?:\/\//i.test(r.url));
   const ssvc = parseJson<Record<string, string>>(row.ssvc_json, {});
-  const watch = parseJson<string[]>(row.watch_labels_json, []);
+  // The watchlist is the owner's: a visitor sees the CVE, not whether the owner runs it.
+  const watch = owner ? parseJson<string[]>(row.watch_labels_json, []) : [];
   const msrc = msrcFlags(db, [row.cve_id]).get(row.cve_id);
   const news = newsFor(db, row.cve_id, 10);
   const changes = vulnChanges(db, row.cve_id);
@@ -295,7 +333,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
             const t = getTriage(db, "vuln", row.id);
             const board = t ? `/triage#${t.state}` : "/triage";
             if (owner) return html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2>${triageForm({ kind: "vuln", id: row.id }, t, `/vulnerabilities/${row.cve_id}`)}</section>`;
-            return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p>${t.note ? html`<p class="small">${t.note}</p>` : ""}</section>` : "";
+            return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p></section>` : "";
           })()}
         <section class="box" id="scores">
           <h2><a href="#scores">Scores</a></h2>

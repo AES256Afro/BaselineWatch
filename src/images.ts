@@ -46,13 +46,23 @@ export function extractOgImage(page: string): string | null {
 export interface ImageDeps {
   http: HttpGet;
   log?: (line: string) => void;
+  /** The ingest's clock, for which stories are recent enough to get an image. */
+  now?: () => Date;
 }
 
-const maxImageBytes = 8 * 1024 * 1024;
+/** A lead image drawn at card width; the long tail above this was print-resolution heroes of 2–5 MB. */
+const maxImageBytes = 3 * 1024 * 1024;
 const maxPageBytes = 3 * 1024 * 1024;
-/** og:image page fetches per source per run, so one busy feed cannot turn a fetch into a crawl.
- * Feed-supplied media is exempt: each is exactly one image GET the publisher offered. */
+/** og:image page fetches per source per run, so one busy feed cannot turn a fetch into a crawl. */
 const maxOgFetchesPerRun = 20;
+/**
+ * Feed-supplied images per source per run. Each is one GET the publisher offered, but a source's
+ * first fetch offers its whole back catalogue: 709 images took one blog's first run to 494 seconds,
+ * holding a scheduler slot the whole time. The rest of a first fetch is left to `backfillImages`.
+ */
+const maxFeedImagesPerRun = 40;
+/** Only a story this recent gets its image at ingest; an older one is backlog, not news. */
+const freshImageDays = 14;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -78,12 +88,17 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
   const miss = db.prepare("UPDATE items SET image_checked_at = ? WHERE id = ? AND image_blob IS NULL");
   let stored = 0;
   let ogFetches = 0;
+  let feedImages = 0;
+  const oldest = (deps.now ? deps.now() : new Date()).getTime() - freshImageDays * 86_400_000;
   for (const item of fresh) {
     if (item.kind !== "article") continue;
+    if (item.publishedAt && Date.parse(item.publishedAt) < oldest) continue;
     const row = db.prepare("SELECT id, image_blob FROM items WHERE source_id = ? AND external_id = ?").get(source.id, item.externalId) as { id: number; image_blob: string | null } | undefined;
     if (!row || row.image_blob) continue;
     try {
       if (item.imageUrl) {
+        if (feedImages >= maxFeedImagesPerRun) continue;
+        feedImages += 1;
         if (await cacheImage(db, dataDir, deps, row.id, item.imageUrl, item.imageOrigin ?? "enclosure")) stored += 1;
         else miss.run(new Date().toISOString(), row.id);
       } else if (item.url && ogFetches < maxOgFetchesPerRun) {

@@ -27,6 +27,7 @@ export type Area =
   | "scan-guide"
   | "scan-history"
   | "scan-devices"
+  | "scan-traces"
   | "saved"
   | "triage"
   | "atlas"
@@ -65,6 +66,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   scan: { label: "This browser", path: "/scan", blurb: "ads, trackers and filtering DNS, seen from this tab" },
   "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
   "scan-devices": { label: "A device", path: "/scan/devices", blurb: "paste what it runs, see which CVEs apply" },
+  "scan-traces": { label: "Traces", path: "/scan/traces", blurb: "its saved data read against the spyware indicators, in this tab" },
   "scan-network": { label: "Your network", path: "/scan/network", blurb: "the LAN resolver, from this server, daily" },
   "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
   "scan-history": { label: "History", path: "/scan/history", blurb: "every run, and what changed between them" },
@@ -84,7 +86,7 @@ const standardsTools: Area[] = ["stigs", "register", "atlas"];
 const standardsLearn: Area[] = ["learn"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
-const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-network", "scan-history", "scan-guide"];
+const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-traces", "scan-network", "scan-history", "scan-guide"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist", "saved"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
@@ -109,23 +111,23 @@ export interface PageOptions {
   canonical?: string | undefined;
   /**
    * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
-   * page passes one, under its own policy; every other page is served with script-src 'none'.
+   * page and Traces pass one, each under its own policy; every other page is served with script-src 'none'.
    */
   script?: string | undefined;
 }
 
 /** The Register's newest changes, for the ribbon under the masthead and anywhere else that glances at it. */
-export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[] {
+export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[] {
   const rows = db
     .prepare(
       `SELECT d.id AS documentId, d.source_id AS sourceId, s.name, d.version_label AS versionLabel,
-              COALESCE(d.published_at, d.parsed_at) AS at,
+              COALESCE(d.published_at, d.parsed_at) AS at, d.previous_document_id AS previousId,
               (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
        FROM documents d JOIN sources s ON s.id = d.source_id
        WHERE s.group_name = 'standards'
        ORDER BY at DESC, d.id DESC LIMIT ?`,
     )
-    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[];
+    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
   return rows;
 }
 
@@ -135,7 +137,7 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   if (rows.length === 0) return html``;
   const entries = rows.map(
     (r, i) =>
-      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount === 0 ? "first version" : html`${r.changeCount} changed`}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
+      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount > 0 ? html`${r.changeCount} changed` : r.previousId === null ? "first version" : "no control-level changes"}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
   );
   // The strip scrolls sideways when the releases do not fit, which on a phone is always. It is a
   // labelled, focusable region so a keyboard can reach and scroll it, and it ends in the way out:
@@ -220,11 +222,11 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
     </nav>
     <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"><a class="to-search" href="/search">Search</a></form>
     <div class="meta">${meta ?? ""}</div>
-    <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
+    <details class="group desk${[...deskGroup, ...deskInstance, ...deskLook].includes(active) ? " on" : ""}">
       <summary>Desk</summary>
       <div class="menu right wide">
         <span class="cap">Your fleet and your work</span>
-        ${deskGroup.map((a) => entry(a))}
+        ${deskGroup.filter((a) => owner || a !== "watchlist").map((a) => entry(a))}
         <hr>
         <span class="cap">This instance</span>
         ${deskInstance.map((a) => entry(a))}

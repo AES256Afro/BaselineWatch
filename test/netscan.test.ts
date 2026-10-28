@@ -43,7 +43,7 @@ function canaryRoutes(): Record<string, FakeRoute> {
   return {
     "https://easylist.to/easylist/easylist.txt": { bytes: fixture("blocklists/easylist.txt") },
     "https://easylist.to/easylist/easyprivacy.txt": { bytes: fixture("blocklists/easyprivacy.txt") },
-    "https://urlhaus.abuse.ch/downloads/hostfile/": { bytes: fixture("blocklists/urlhaus-hostfile.txt") },
+    "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt": { bytes: fixture("blocklists/urlhaus-filter-hosts.txt") },
     "https://openphish.com/feed.txt": { bytes: fixture("blocklists/openphish-feed.txt") },
     [`${api}dist/adfection.domains.txt&per_page=1`]: { bytes: fixture("blocklists/commits-domains.json"), contentType: "application/json" },
     [`${raw}/${head}/dist/adfection.domains.txt`]: { bytes: fixture("blocklists/adfection.domains-2026-10-18b.txt") },

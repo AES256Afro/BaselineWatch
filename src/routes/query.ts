@@ -1,5 +1,5 @@
 import type { ItemKind } from "../adapters/types.ts";
-import { isPlatformKey } from "../platforms.ts";
+import { isPlatformChoice, type PlatformChoice } from "../platforms.ts";
 import type { VulnFilters } from "../vulns.ts";
 import type { WireFilters } from "../wire.ts";
 
@@ -24,12 +24,20 @@ export function wireFilters(query: Record<string, unknown>): WireFilters {
     group: group === "news" || group === "vulnerabilities" || group === "standards" ? group : undefined,
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? (kind as ItemKind) : undefined,
     q: str(query.q),
+    platform: isPlatformChoice(str(query.platform)) ? (str(query.platform) as PlatformChoice) : undefined,
+    danger: str(query.danger) === "1",
+    topic: str(query.topic) === "ai" ? "ai" : undefined,
+    hideAi: str(query.ai) === "hide",
     unread: str(query.unread) === "1",
     before: Number.isInteger(before) && before > 0 ? before : undefined,
   };
 }
 
-export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilters {
+/**
+ * The table's filters from a query string. The watchlist is the owner's, so `watch` and `label`
+ * are read only when the owner is asking; a visitor's link that carries them gets the whole list.
+ */
+export function vulnFilters(query: Record<string, unknown>, now: Date, owner = false): VulnFilters {
   const num = (v: unknown): number | undefined => {
     const n = Number(str(v));
     return Number.isFinite(n) ? n : undefined;
@@ -48,12 +56,14 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
   const sinceHours = (h: number | undefined): string | undefined => (h === undefined ? undefined : new Date(now.getTime() - h * 60 * 60 * 1000).toISOString());
   const changedHours = hours(query.changed);
   const newHours = hours(query.new);
+  const movedHours = hours(query.moved);
   const platform = str(query.platform);
   return {
-    watch: str(query.watch) === "1",
+    watch: owner && str(query.watch) === "1",
     kev: str(query.kev) === "1",
     exploit: str(query.exploit) === "1",
-    platform: isPlatformKey(platform) ? platform : undefined,
+    platform: isPlatformChoice(platform) ? platform : undefined,
+    danger: str(query.danger) === "1",
     minCvss: num(query.min_cvss),
     severity: severity === "critical" || severity === "high" || severity === "medium" || severity === "low" || severity === "unscored" ? severity : undefined,
     minEpss: num(query.min_epss),
@@ -63,7 +73,9 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
     changedHours,
     newSince: sinceHours(newHours),
     newHours,
-    label: str(query.label, 60),
+    movedSince: sinceHours(movedHours),
+    movedHours,
+    label: owner ? str(query.label, 60) : undefined,
     q: str(query.q),
     sort: sort === "modified" || sort === "published" || sort === "cvss" || sort === "epss" ? sort : "risk",
     // A whole number SQLite can bind, capped: 1e300 or 1.5 would be a datatype mismatch and a 500.

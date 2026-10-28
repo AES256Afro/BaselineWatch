@@ -22,6 +22,7 @@ import {
   notedChangeCount,
   notesFor,
   releaseChanges,
+  requirementIn,
   withheldFrom,
   withheldLabel,
   type DocumentRow,
@@ -29,9 +30,11 @@ import {
 import { relativeTime, shortStamp } from "../time.ts";
 import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
+import { keyLabel, numberOfKey, openDrafts, seriesOf } from "../publications.ts";
 import type { LookState } from "../look.ts";
 import { authorityBox } from "./learn.ts";
 import { page } from "./layout.ts";
+import { publicationsTable } from "./publications.ts";
 import { mappingLine } from "./stigs.ts";
 import { triageForm } from "./triage.ts";
 
@@ -40,8 +43,6 @@ interface Who {
   open: boolean;
   look: LookState;
 }
-
-const keyLabel = (key: string): string => (key === "catalog" ? "Catalog" : key.startsWith("profile:") ? `${key.slice(8).charAt(0).toUpperCase()}${key.slice(9)} baseline` : key);
 
 /**
  * What a visitor sees in place of a licence-restricted source's entries: the rule, the licence
@@ -84,12 +85,15 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
   const documents = listDocuments(db, sourceId);
   const byKey = new Map<string, DocumentRow[]>();
   for (const d of documents) byKey.set(d.document_key, [...(byKey.get(d.document_key) ?? []), d]);
+  const series = seriesOf(sourceId, documents, openDrafts(db));
+  const publicationCount = series.reduce((n, s) => n + s.publications.length, 0);
 
-  // The key's heading reads the newest version; the count is a permalink to its table of versions.
+  // One fold per document key, in the publisher's order: a series' publications under its name,
+  // a superseded revision ("catalog-rev4") after the publication it preceded. A standard with one
+  // publication opens its first; nineteen publications stay folded to a line each.
   const anchor = (key: string) => `doc-${key.replace(/[^a-z0-9]+/gi, "-")}`;
-  const sections = [...byKey.entries()].map(
-    ([key, docs]) => html`<section class="box" id="${anchor(key)}">
-      <h2><a href="/standards/${sourceId}/${docs[0]!.id}/browse">${keyLabel(key)}</a> <span class="count"><a href="#${anchor(key)}">${docs.length} version${docs.length === 1 ? "" : "s"}</a></span></h2>
+  const versionsFold = (key: string, docs: DocumentRow[], open: boolean): Html => html`<details class="fold" id="${anchor(key)}"${open ? html` open` : ""}>
+      <summary><b>${numberOfKey(key) ?? keyLabel(key, docs[0]!.title)}</b><span class="fold-meta">${numberOfKey(key) && docs[0]!.title ? html`${docs[0]!.title} · ` : ""}${docs.length} version${docs.length === 1 ? "" : "s"} · newest ${docs[0]!.version_label ?? "version unknown"}</span></summary>
       <div class="table-wrap"><table><caption class="visually-hidden">Versions of this standard</caption>
         <thead><tr><th scope="col">Version</th><th scope="col">Published</th><th scope="col">Requirements</th><th scope="col">Against the previous version</th><th scope="col">Loaded</th></tr></thead>
         <tbody>${docs.map((d) => {
@@ -103,8 +107,25 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
           </tr>`;
         })}</tbody>
       </table></div>
-    </section>`,
-  );
+    </details>`;
+  let first = true;
+  const sections = series.map((s) => {
+    const folds = s.publications.map((p) => {
+      const keys = [...new Set([p.current, p.draft, ...p.earlier].filter((d): d is DocumentRow => d !== null).map((d) => d.document_key))];
+      return keys.map((key) => {
+        const fold = versionsFold(key, byKey.get(key) ?? [], first && publicationCount === 1);
+        first = false;
+        return fold;
+      });
+    });
+    return s.publications.length > 1 ? html`<h3 class="series">${s.number ? html`${s.number} · ` : ""}${s.title}</h3>${folds}` : html`${folds}`;
+  });
+  const overview =
+    publicationCount > 0
+      ? html`<section class="fold-group" id="publications"><h2><a href="#publications">At a glance</a> <span class="count">${publicationCount} publication${publicationCount === 1 ? "" : "s"}</span></h2>
+          <p class="small">Each publication's version in force, the draft that will replace it, what the latest changed, and the versions before it.</p>
+          ${publicationsTable(db, series, now)}</section>`
+      : html``;
 
   const content = html`
     <h1>${source.name}</h1>
@@ -115,7 +136,7 @@ export function renderStandard(options: { db: DatabaseSync; sourceId: string; no
     ${withheldFrom(source, owner) ? withheldBox(source, open) : ""}
     ${documents.length === 0
       ? html`<div class="empty"><b>No version loaded yet.</b><p>${source.format === "pdf-upload" ? "Nothing uploaded so far." : owner ? html`Fetch it from the <a href="/sources">Sources</a> page, or run <code>npm run backfill -- ${sourceId}</code> to load the published history first.` : "The owner can fetch it from the Sources page."}</p></div>`
-      : sections}`;
+      : html`${overview}<section class="fold-group" id="versions"><h2><a href="#versions">Every version</a> <span class="count">${documents.length}</span></h2>${sections}</section>`}`;
 
   return page({ title: source.name, active: "register", content, meta: html`${documents.length} versions`, owner, open, look });
 }
@@ -253,7 +274,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
   const content = html`
     <div class="rel">
       <h1>${source.name} <span class="arrow">${previous ? html`${previous.version_label ?? "previous"} → ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
-      <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key)} source</a></div>
+      <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key, doc.title)} source</a></div>
     </div>
     <div class="pills">
       ${summary.added.length ? html`<a class="pill ins" href="${tables.substantive}">+ ${summary.added.length} added${named(summary.added)}</a>` : ""}
@@ -321,8 +342,8 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     return page({ title: `${withheldLabel} · ${source.name}`, active: "register", content, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}` } });
   }
   const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
-  const after = loadRequirements(db, documentId).find((r) => r.ref === ref) ?? null;
-  const before = previous ? (loadRequirements(db, previous.id).find((r) => r.ref === ref) ?? null) : null;
+  const after = requirementIn(db, documentId, ref);
+  const before = previous ? requirementIn(db, previous.id, ref) : null;
   if (!after && !before) return null;
   const shown = after ?? before!;
   const baselines = baselinesFor(db, ref);
@@ -378,7 +399,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${(() => {
       const t = getTriage(db, "control", documentId, ref);
       if (owner) return html`<details class="box triage-box" ${t ? "open" : ""}><summary>Triage${t ? html`: ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}` : ""}</summary>${triageForm({ kind: "control", id: documentId, key: ref }, t, `/standards/${sourceId}/${documentId}/${ref}`)}</details>`;
-      return t ? html`<div class="box triage-box"><b>Triage:</b> ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}${t.note ? html`<p class="small">${t.note}</p>` : ""}</div>` : "";
+      return t ? html`<div class="box triage-box"><b>Triage:</b> ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}</div>` : "";
     })()}
     ${field("title", "Title", before?.title ?? null, after?.title ?? null)}
     ${field("statement", "Control", before?.statement ?? null, after?.statement ?? null)}

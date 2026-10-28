@@ -5,7 +5,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 
 import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
 
-import { authState, issueSession, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
+import { authState, isKnownDevice, issueSession, knownDeviceCookieHeader, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
 
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
@@ -175,7 +175,20 @@ export function createApp(ctx: AppContext): Express {
   app.delete("/mcp", postOnly);
 
   app.use(sameOriginOnly);
-  app.use("/assets", express.static(publicDir, { index: false, maxAge: "1h", fallthrough: true }));
+  // The stylesheet's address carries the version (`?v=`), so a release is a new address and that
+  // one can be kept a year; everything else under /assets, the scan scripts among it, keeps the hour.
+  app.use(
+    "/assets",
+    express.static(publicDir, {
+      index: false,
+      fallthrough: true,
+      cacheControl: false,
+      setHeaders: (res, file) => {
+        const versioned = path.basename(file) === "app.css" && typeof (res as unknown as Response).req.query.v === "string";
+        res.setHeader("Cache-Control", versioned ? "public, max-age=31536000, immutable" : "public, max-age=3600");
+      },
+    }),
+  );
   // The Register's typefaces, served from their packages so the strict CSP (font-src 'self') holds and nothing is fetched from Google.
   for (const family of ["newsreader", "public-sans", "jetbrains-mono"]) {
     app.use(`/assets/fonts/${family}`, express.static(path.join(import.meta.dirname, "..", "node_modules", "@fontsource-variable", family, "files"), { index: false, maxAge: "30d", immutable: true, fallthrough: true }));
@@ -206,10 +219,10 @@ export function createApp(ctx: AppContext): Express {
     if (!config.publicRead && !state.owner) return res.status(401).json({ error: "sign in first" });
     handler(req, res);
   };
-  app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl) })));
-  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now()))));
+  app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl, authState(req, config, now().getTime()).owner) })));
+  app.get("/api/v1/vulns", apiRead((req, res) => json(res, apiVulns(db, req.query as ApiQuery, now(), authState(req, config, now().getTime()).owner))));
   app.get("/api/v1/vulns/:cve", apiRead((req, res) => {
-    const v = apiVuln(db, String(req.params.cve));
+    const v = apiVuln(db, String(req.params.cve), authState(req, config, now().getTime()).owner);
     if (!v) return res.status(404).json({ error: "no such CVE" });
     json(res, v);
   }));
@@ -309,7 +322,9 @@ export function createApp(ctx: AppContext): Express {
     if (state.open) return res.redirect(303, next);
     const key = throttleKey(req.ip);
     const peer = throttleKey(req.socket.remoteAddress ?? undefined);
-    if (throttle.blocked(key, now().getTime()) || peerThrottle.blocked(peer, now().getTime())) {
+    // A browser the owner signed in from before is let past the peer's brake, which behind a tunnel is everyone's.
+    const known = isKnownDevice(req, config, now().getTime());
+    if (throttle.blocked(key, now().getTime()) || (!known && peerThrottle.blocked(peer, now().getTime()))) {
       return res.status(429).type("html").send(renderLogin({ next, open: false, error: "Too many attempts. Wait ten minutes and try again.", look: lookOf(req) }));
     }
     const given = ((req.body ?? {}) as Record<string, unknown>).password;
@@ -321,7 +336,7 @@ export function createApp(ctx: AppContext): Express {
     }
     throttle.clear(key);
     peerThrottle.clear(peer);
-    res.setHeader("Set-Cookie", sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)));
+    res.setHeader("Set-Cookie", [sessionCookieHeader(config, issueSession(config, now().getTime()), secureCookies(req)), knownDeviceCookieHeader(config, now().getTime(), secureCookies(req))]);
     res.redirect(303, next);
   });
   app.post("/logout", (req, res) => {

@@ -121,8 +121,12 @@ describe("baseline decisions", () => {
   });
 
   it("exports the report in every look as Word, PDF and LaTeX that open", async () => {
+    // A visitor's copy keeps the decision and leaves out its reason and signer (the audit of 28 October).
+    const visitor = unzipSync(new Uint8Array(await (await fetch(`${app.base}/baselines/macos/tests/export?format=docx`)).arrayBuffer()));
+    expect(new TextDecoder().decode(visitor["word/document.xml"])).not.toContain("Kiosk Macs have no users");
+    expect(await (await fetch(`${app.base}/baselines/macos/tests/export?format=json`)).text()).not.toContain("Endpoint team");
     for (const style of reportStyles) {
-      const docx = await fetch(`${app.base}/baselines/macos/tests/export?format=docx&style=${style.id}`);
+      const docx = await fetch(`${app.base}/baselines/macos/tests/export?format=docx&style=${style.id}`, { headers: { cookie } });
       expect(docx.status).toBe(200);
       const files = unzipSync(new Uint8Array(await docx.arrayBuffer()));
       for (const [name, bytes] of Object.entries(files)) expect(XMLValidator.validate(new TextDecoder().decode(bytes)), `${style.id} ${name}`).toBe(true);

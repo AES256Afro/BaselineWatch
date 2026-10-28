@@ -97,6 +97,6 @@ export const crtshAdapter: Adapter = {
       }
     }
     const counts = upsertItems(ctx.db, ctx.source.id, items, at);
-    return { items: seen, inserted: counts.inserted, updated: counts.updated, detail: `${domains.length - skipped.length} of ${domains.length} domain(s) read, ${items.length} new certificate(s)${skipped.length ? `; crt.sh did not answer for ${skipped.join(", ")}` : ""}` };
+    return { items: seen, inserted: counts.inserted, updated: counts.updated, detail: `${domains.length - skipped.length} of ${domains.length} domain(s) read, ${items.length} new certificate(s)${skipped.length ? `; crt.sh did not answer for ${skipped.length} of them` : ""}` };
   },
 };

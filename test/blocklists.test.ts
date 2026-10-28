@@ -266,6 +266,18 @@ describe("canary sets", () => {
     }
   });
 
+  it("reads malware-filter's keyless copy of the URLhaus hosts the same way, dated by its own header", () => {
+    const hostfile = text("urlhaus-filter-hosts.txt");
+    const hosts = hostfileHosts(hostfile);
+    expect(hosts.length).toBeGreaterThan(1000);
+    expect(hosts.every((h) => /^0\.0\.0\.0\s+\S+$/.test(h.line))).toBe(true);
+    const doc = canaryDocument(list("canary-malware"), hostfile);
+    expect(doc.versionLabel).toBe("2026-10-28 12:13 UTC");
+    expect(doc.publishedAt).toBe("2026-10-28T12:13:03.000Z");
+    expect(doc.requirements).toHaveLength(canaryCount);
+    for (const r of doc.requirements) expect(r.ref.split(".")).toHaveLength(2);
+  });
+
   it("derives phishing canaries from the OpenPhish feed, keeping each host's origin and never a path", () => {
     const feed = text("openphish-feed.txt");
     const hosts = urlHosts(feed);
