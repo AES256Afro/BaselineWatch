@@ -269,6 +269,28 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
     expect(app.db.prepare("SELECT platform FROM vuln_platforms WHERE vuln_id = (SELECT id FROM vulns WHERE cve_id = 'CVE-2026-91002')").all()).toEqual([{ platform: "apple" }]);
   });
 
+  it("narrows the News and Today to a platform with the same picker", async () => {
+    const insert = app.db.prepare("INSERT INTO items (source_id, kind, external_id, title, summary, url, published_at, fetched_at, signals_json) VALUES ('bleeping', 'article', ?, ?, ?, 'https://example.net', ?, ?, ?)");
+    insert.run("w1", "Patch now: a Windows SMB flaw", null, now.toISOString(), now.toISOString(), null);
+    insert.run("w2", "A long post about tooling", "It also mentions Windows in passing.", now.toISOString(), now.toISOString(), null);
+    insert.run("w3", "Researchers detail a new widget flaw", null, now.toISOString(), now.toISOString(), '{"cves":["CVE-2026-91001"]}');
+    insert.run("c1", "Chrome ships a fix for a V8 bug", null, now.toISOString(), now.toISOString(), null);
+    const windows = await (await fetch(`${app.base}/?platform=windows`)).text();
+    expect(windows).toContain("Patch now: a Windows SMB flaw");
+    // Placed by the CVE it names, which is a Windows CVE.
+    expect(windows).toContain("Researchers detail a new widget flaw");
+    // A headline that does not name the platform is not its story, whatever the summary says.
+    expect(windows).not.toContain("A long post about tooling");
+    expect(windows).not.toContain("Chrome ships a fix");
+    expect(windows).toContain('class="filters platform-pick"');
+    const danger = await (await fetch(`${app.base}/?danger=1`)).text();
+    expect(danger).toContain("Researchers detail a new widget flaw");
+    expect(danger).not.toContain("Chrome ships a fix");
+    const today = await (await fetch(`${app.base}/today?platform=browsers&since=168`)).text();
+    expect(today).toContain('class="filters platform-pick"');
+    expect(today).toContain('href="/today?since=168&amp;platform=windows"');
+  });
+
   it("files a CVE by its CPE, not by a browser its description mentions", () => {
     const ray = { cpes: ["cpe:2.3:a:anyscale:ray:*:*:*:*:*:*:*:*"], vendors: ["anyscale"], products: ["ray"], description: "Ray … exploitable via Firefox and Safari." };
     expect(platformsOf(ray)).toEqual([]);

@@ -36,14 +36,31 @@ export function platformName(id: PlatformKey): string {
  */
 export type PlatformChoice = PlatformKey | "browsers";
 
-export const platformChoices: { id: PlatformChoice; label: string; blurb: string; keys: PlatformKey[] }[] = [
-  { id: "windows", label: "Windows", blurb: "Windows, Windows Server and their components", keys: ["windows"] },
-  { id: "apple", label: "Apple", blurb: "macOS, iOS, iPadOS and Safari", keys: ["apple"] },
-  { id: "linux", label: "Linux", blurb: "The kernel and the distributions", keys: ["linux"] },
-  { id: "browsers", label: "Browsers", blurb: "Chrome, Firefox and Edge", keys: ["chrome", "firefox", "edge"] },
-  { id: "android", label: "Android", blurb: "Android and Pixel", keys: ["android"] },
-  { id: "network", label: "Network devices", blurb: "Firewalls, VPNs and edge gear", keys: ["network"] },
+/**
+ * `newsTerms` are the words a story uses for the platform, matched as whole words in its headline
+ * and summary (the News has no CPEs; a story that names a CVE is placed by the CVE as well).
+ * Edge is only ever "Microsoft Edge": "edge devices" is the network's.
+ */
+export const platformChoices: { id: PlatformChoice; label: string; blurb: string; keys: PlatformKey[]; newsTerms: string[] }[] = [
+  { id: "windows", label: "Windows", blurb: "Windows, Windows Server and their components", keys: ["windows"], newsTerms: ["windows", "patch tuesday", "active directory", "exchange server", "sharepoint"] },
+  { id: "apple", label: "Apple", blurb: "macOS, iOS, iPadOS and Safari", keys: ["apple"], newsTerms: ["apple", "macos", "ios", "ipados", "iphone", "ipad", "safari", "webkit"] },
+  { id: "linux", label: "Linux", blurb: "The kernel and the distributions", keys: ["linux"], newsTerms: ["linux", "ubuntu", "debian", "red hat", "rhel", "fedora", "suse", "glibc", "systemd"] },
+  { id: "browsers", label: "Browsers", blurb: "Chrome, Firefox and Edge", keys: ["chrome", "firefox", "edge"], newsTerms: ["chrome", "chromium", "firefox", "microsoft edge", "browser", "browsers"] },
+  { id: "android", label: "Android", blurb: "Android and Pixel", keys: ["android"], newsTerms: ["android", "pixel"] },
+  {
+    id: "network",
+    label: "Network devices",
+    blurb: "Firewalls, VPNs and edge gear",
+    keys: ["network"],
+    newsTerms: ["cisco", "fortinet", "fortigate", "fortios", "palo alto", "pan-os", "juniper", "ivanti", "citrix", "netscaler", "sonicwall", "f5", "big-ip", "zyxel", "mikrotik", "router", "routers", "firewall", "firewalls", "vpn"],
+  },
 ];
+
+/** A choice's words as an FTS5 query: each one quoted, any of them. */
+export function newsQuery(choice: PlatformChoice): string {
+  const terms = platformChoices.find((c) => c.id === choice)?.newsTerms ?? [];
+  return terms.map((t) => `"${t}"`).join(" OR ");
+}
 
 export function isPlatformChoice(value: unknown): value is PlatformChoice {
   return value === "browsers" || isPlatformKey(value);
