@@ -1,5 +1,4 @@
 import { platformChoiceName } from "../platforms.ts";
-import { platformPicker } from "./platform-pick.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { fixContext, fixesFor, fixSummary, kevFor } from "../fix.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
@@ -213,7 +212,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
 
   const content = html`
     <div class="wire-top">
-      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : filters.platform ? html` <small>· ${platformChoiceName(filters.platform)}${filters.danger ? ", the most dangerous" : ""}</small>` : filters.danger ? html` <small>· the most dangerous</small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
+      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : filters.platform || filters.danger ? html` <small>· ${filters.platform ? platformChoiceName(filters.platform) : ""}${filters.platform && filters.danger ? ", " : ""}${filters.danger ? "the most dangerous" : ""} <a class="show-all" href="${query(filters, { platform: undefined, danger: false, before: undefined })}">show all</a></small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
       ${saveSearchForm(db, query(filters, { before: undefined }), owner)}
       <form method="get" action="/" class="search" role="search">
         ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
@@ -229,7 +228,6 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     ${featured.length ? featuredCards(featured) : ""}
     <div class="cols wire">
       <section class="main">
-        ${platformPicker(filters, (next) => query(filters, { platform: next.platform, danger: next.danger === true, before: undefined }))}
         <div class="filters">
           <a class="${!filters.kind && !filters.group ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, before: undefined })}">All</a>
           <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, before: undefined })}">News</a>

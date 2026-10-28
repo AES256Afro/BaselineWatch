@@ -1,5 +1,5 @@
 import { platformChoiceName } from "../platforms.ts";
-import { platformPicker, type PlatformScope } from "./platform-pick.ts";
+import type { PlatformScope } from "./platform-pick.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { devicesTile } from "../devices.ts";
@@ -181,10 +181,9 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}${scope.platform ? html` <span class="motto">· ${platformChoiceName(scope.platform)}</span>` : ""}${scope.danger ? html` <span class="motto">· the most dangerous</span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
+      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
-    ${platformPicker(scope, (next) => todayHref(hours, next))}
 
     <div class="stats today">
       <a class="tile${list.fixed ? " ok" : ""}" href="#install"><small>Fixed by an update</small><b>${list.fixed}</b><span>${list.install.length} update(s) to install</span></a>
