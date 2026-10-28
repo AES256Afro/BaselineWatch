@@ -571,6 +571,36 @@ does not read), ENISA's EUVD (an "exploited" list beside KEV; check its terms fi
 reviewed advisories, CIRCL's sightings (for the "talked about" count), Red Hat CSAF, and Android
 through OSV's bulk export.
 
+### AI (added 2026-10-28, migration 0048)
+
+AI is a beat of its own in the News: these sources carry `topic = 'ai'`, and a story from any
+other source joins the beat when its headline uses one of the words in `src/topics.ts` (prompt
+injection, LLM, Claude, Ollama and the rest). The News shows the beat as a chip and an "AI lately"
+box, and a reader can leave it out with the Hide AI switch (a cookie, `bw_ai=hide`) or `ai=hide`
+on a link or a feed. Each feed answered on the day; Reddit's throttled quick checks with 429, as it
+does, and the adapter spaces its requests.
+
+| Source | Feed |
+| --- | --- |
+| OpenAI news | `https://openai.com/news/rss.xml` (about 800 KB) |
+| Google DeepMind blog | `https://deepmind.google/blog/rss.xml` |
+| Google, AI | `https://blog.google/technology/ai/rss/` |
+| Hugging Face blog | `https://huggingface.co/blog/feed.xml` |
+| Ollama blog | `https://ollama.com/blog/rss.xml` |
+| NVIDIA, generative AI | `https://blogs.nvidia.com/blog/category/generative-ai/feed/` |
+| Simon Willison | `https://simonwillison.net/atom/everything/` |
+| Embrace The Red (attacks on AI systems) | `https://embracethered.com/blog/index.xml` |
+| The Decoder | `https://the-decoder.com/feed/` |
+| MIT Technology Review, AI | `https://www.technologyreview.com/topic/artificial-intelligence/feed` |
+| The Verge, AI | `https://www.theverge.com/rss/ai-artificial-intelligence/index.xml` |
+| Ars Technica, AI | `https://arstechnica.com/ai/feed/` |
+| Import AI, Latent Space, Interconnects (weekly) | their Substack feeds |
+| Hacker News, AI over 100 points | Algolia, `query=AI` |
+| r/LocalLLaMA, r/ollama, r/StableDiffusion, r/MachineLearning, r/artificial, r/OpenAI, r/ClaudeAI, r/singularity | `/r/<sub>/new.rss?limit=50` |
+
+Probed and not added: Anthropic, Meta AI, HiddenLayer, Lakera and Protect AI publish no feed at
+the usual paths; VentureBeat's AI feed answered 429.
+
 ---
 
 ## C2. Platform vendors' security pages (no feeds; checked 2026-10-19)

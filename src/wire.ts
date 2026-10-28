@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ItemKind } from "./adapters/types.ts";
 import { newsQuery, platformKeysOf, type PlatformChoice } from "./platforms.ts";
+import { aiHeadlineQuery, aiItemSql } from "./topics.ts";
 import { dangerSql } from "./vulns.ts";
 
 /**
@@ -22,6 +23,10 @@ export interface WireFilters {
   platform?: PlatformChoice | undefined;
   /** Only stories about the most dangerous: a KEV addition, or a story naming an exploited or likely-exploited CVE. */
   danger?: boolean | undefined;
+  /** Only the AI stories (src/topics.ts). */
+  topic?: "ai" | undefined;
+  /** Leave the AI stories out: a reader's choice, kept in a cookie, or `ai=hide` on a link. Ignored when `topic` asks for them. */
+  hideAi?: boolean | undefined;
   limit?: number;
 }
 
@@ -109,6 +114,13 @@ function build(filters: WireFilters, options: { copies?: boolean; owner?: boolea
     // Headlines only: a long post that mentions Windows once in passing is not a Windows story.
     clauses.push(`(i.id IN (SELECT rowid FROM items_fts WHERE items_fts MATCH ?) OR ${namesCveIn(set)})`);
     params.push(`title : (${newsQuery(filters.platform)})`, ...keys, ...keys);
+  }
+  if (filters.topic === "ai") {
+    clauses.push(aiItemSql);
+    params.push(aiHeadlineQuery);
+  } else if (filters.hideAi) {
+    clauses.push(`NOT ${aiItemSql}`);
+    params.push(aiHeadlineQuery);
   }
   if (filters.danger) clauses.push(`(i.kind = 'kev' OR ${namesCveIn(`(SELECT v.cve_id FROM vulns v WHERE ${dangerSql})`)})`);
   if (filters.since) {

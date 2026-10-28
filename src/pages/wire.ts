@@ -47,6 +47,7 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   if (merged.q) params.set("q", merged.q);
   if (merged.platform) params.set("platform", merged.platform);
   if (merged.danger) params.set("danger", "1");
+  if (merged.topic) params.set("topic", merged.topic);
   if (merged.unread) params.set("unread", "1");
   if (merged.before) params.set("before", String(merged.before));
   const s = params.toString();
@@ -131,7 +132,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
   const current = query(filters, {});
   const last = fetched[fetched.length - 1];
   // The front page leads with image cards; a filtered or paged view is the plain list.
-  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before && !filters.platform && !filters.danger;
+  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before && !filters.platform && !filters.danger && !filters.topic;
   const featured = plain ? items.slice(0, 4) : [];
   const listed = plain ? items.slice(featured.length) : items;
   // The fix line on a CVE or KEV item: the same facts as the CVE page's Fix panel, in one sentence.
@@ -210,9 +211,19 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
       </section>`
     : "";
 
+  // AI lately: the beat as its own section on the front page, unless this browser asked to leave it out.
+  const aiRows = plain && !filters.hideAi ? listWire(db, { topic: "ai", limit: 6 }, { owner }) : [];
+  const aiBox = aiRows.length
+    ? html`<section class="box ai-box">
+        <h2><a href="/?topic=ai">AI lately</a></h2>
+        <ul class="kev-list">${aiRows.map((a) => html`<li><a href="${a.url ?? "/?topic=ai"}" ${newTabIf(a.url)}>${a.title}</a><span class="when">${a.source_name} · ${relativeTime(a.published_at ?? a.fetched_at, now)}</span></li>`)}</ul>
+        <p class="small"><a href="/?topic=ai">Every AI story</a> · frontier and local models, the labs, the research, and AI's own security.</p>
+      </section>`
+    : "";
+
   const content = html`
     <div class="wire-top">
-      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : filters.platform || filters.danger ? html` <small>· ${filters.platform ? platformChoiceName(filters.platform) : ""}${filters.platform && filters.danger ? ", " : ""}${filters.danger ? "the most dangerous" : ""} <a class="show-all" href="${query(filters, { platform: undefined, danger: false, before: undefined })}">show all</a></small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
+      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : filters.topic === "ai" ? html` <small>· AI <a class="show-all" href="${query(filters, { topic: undefined, before: undefined })}">show all</a></small>` : filters.platform || filters.danger ? html` <small>· ${filters.platform ? platformChoiceName(filters.platform) : ""}${filters.platform && filters.danger ? ", " : ""}${filters.danger ? "the most dangerous" : ""} <a class="show-all" href="${query(filters, { platform: undefined, danger: false, before: undefined })}">show all</a></small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
       ${saveSearchForm(db, query(filters, { before: undefined }), owner)}
       <form method="get" action="/" class="search" role="search">
         ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
@@ -229,12 +240,19 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     <div class="cols wire">
       <section class="main">
         <div class="filters">
-          <a class="${!filters.kind && !filters.group ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, before: undefined })}">All</a>
-          <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, before: undefined })}">News</a>
-          <a class="${filters.group === "vulnerabilities" && filters.kind === "article" ? "on" : ""}" href="${query(filters, { group: "vulnerabilities", kind: "article", before: undefined })}">Vendor advisories</a>
-          <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", group: undefined, before: undefined })}">Known exploited</a>
-          <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", group: undefined, before: undefined })}">Notable CVEs</a>
-          <a class="${filters.kind === "release" ? "on" : ""}" href="${query(filters, { kind: "release", group: undefined, before: undefined })}">Releases</a>
+          <a class="${!filters.kind && !filters.group && !filters.topic ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, topic: undefined, before: undefined })}">All</a>
+          <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, topic: undefined, before: undefined })}">News</a>
+          <a class="${filters.topic === "ai" ? "on" : ""}" href="${query(filters, { topic: "ai", group: undefined, kind: undefined, before: undefined })}" title="Frontier and local models, the labs, the research, and the security of AI">AI</a>
+          <a class="${filters.group === "vulnerabilities" && filters.kind === "article" ? "on" : ""}" href="${query(filters, { group: "vulnerabilities", kind: "article", topic: undefined, before: undefined })}">Vendor advisories</a>
+          <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", group: undefined, topic: undefined, before: undefined })}">Known exploited</a>
+          <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", group: undefined, topic: undefined, before: undefined })}">Notable CVEs</a>
+          <a class="${filters.kind === "release" ? "on" : ""}" href="${query(filters, { kind: "release", group: undefined, topic: undefined, before: undefined })}">Releases</a>
+          ${filters.topic !== "ai"
+            ? html`<form method="post" action="/news/ai" class="inline ai-switch" title="${filters.hideAi ? "AI stories are hidden in this browser" : "Leave AI stories out of the News in this browser"}">
+                <input type="hidden" name="back" value="${current}">
+                <button type="submit" name="ai" value="${filters.hideAi ? "show" : "hide"}">${filters.hideAi ? "Show AI" : "Hide AI"}</button>
+              </form>`
+            : ""}
           ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
@@ -244,6 +262,8 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
                 ${filters.q ? html`<input type="hidden" name="q" value="${filters.q}">` : ""}
                 ${filters.platform ? html`<input type="hidden" name="platform" value="${filters.platform}">` : ""}
                 ${filters.danger ? html`<input type="hidden" name="danger" value="1">` : ""}
+                ${filters.topic ? html`<input type="hidden" name="topic" value="${filters.topic}">` : ""}
+                ${filters.hideAi ? html`<input type="hidden" name="ai" value="hide">` : ""}
                 <input type="hidden" name="back" value="${current}">
                 <button type="submit">Mark all read</button>
               </form>`
@@ -256,6 +276,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
       </section>
       <aside class="side">
         ${kevBox}
+        ${aiBox}
         <section class="box">
           <h2><a href="/sources">Sources</a> <span class="count">${owner ? html`<a href="${query(filters, { unread: true, before: undefined })}">${totalUnread} unread</a>` : html`${totalUnread} items`}</span></h2>
           <ul class="src-list">
