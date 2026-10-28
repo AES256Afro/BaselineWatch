@@ -1,3 +1,5 @@
+import { platformChoiceName } from "../platforms.ts";
+import { platformPicker } from "./platform-pick.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { fixContext, fixesFor, fixSummary, kevFor } from "../fix.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
@@ -44,6 +46,8 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   if (merged.group) params.set("group", merged.group);
   if (merged.kind) params.set("kind", merged.kind);
   if (merged.q) params.set("q", merged.q);
+  if (merged.platform) params.set("platform", merged.platform);
+  if (merged.danger) params.set("danger", "1");
   if (merged.unread) params.set("unread", "1");
   if (merged.before) params.set("before", String(merged.before));
   const s = params.toString();
@@ -128,7 +132,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
   const current = query(filters, {});
   const last = fetched[fetched.length - 1];
   // The front page leads with image cards; a filtered or paged view is the plain list.
-  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before;
+  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before && !filters.platform && !filters.danger;
   const featured = plain ? items.slice(0, 4) : [];
   const listed = plain ? items.slice(featured.length) : items;
   // The fix line on a CVE or KEV item: the same facts as the CVE page's Fix panel, in one sentence.
@@ -209,12 +213,14 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
 
   const content = html`
     <div class="wire-top">
-      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
+      <h1>News${filters.source ? html` <small>· ${counts.find((c) => c.source_id === filters.source)?.name ?? filters.source}</small>` : filters.platform ? html` <small>· ${platformChoiceName(filters.platform)}${filters.danger ? ", the most dangerous" : ""}</small>` : filters.danger ? html` <small>· the most dangerous</small>` : plain ? html` <small class="motto">Advisories, exploited vulnerabilities and the stories behind them</small>` : ""}</h1>
       ${saveSearchForm(db, query(filters, { before: undefined }), owner)}
       <form method="get" action="/" class="search" role="search">
         ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
         ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
         ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
+        ${filters.platform ? html`<input type="hidden" name="platform" value="${filters.platform}">` : ""}
+        ${filters.danger ? html`<input type="hidden" name="danger" value="1">` : ""}
         <label class="visually-hidden" for="q">Search the news</label>
         <input type="search" id="q" name="q" value="${filters.q ?? ""}" placeholder="Search titles and summaries">
         <button type="submit">Search</button>
@@ -223,6 +229,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     ${featured.length ? featuredCards(featured) : ""}
     <div class="cols wire">
       <section class="main">
+        ${platformPicker(filters, (next) => query(filters, { platform: next.platform, danger: next.danger === true, before: undefined }))}
         <div class="filters">
           <a class="${!filters.kind && !filters.group ? "on" : ""}" href="${query(filters, { kind: undefined, group: undefined, before: undefined })}">All</a>
           <a class="${filters.group === "news" ? "on" : ""}" href="${query(filters, { group: "news", kind: undefined, before: undefined })}">News</a>
@@ -237,6 +244,8 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
                 ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
                 ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}
                 ${filters.q ? html`<input type="hidden" name="q" value="${filters.q}">` : ""}
+                ${filters.platform ? html`<input type="hidden" name="platform" value="${filters.platform}">` : ""}
+                ${filters.danger ? html`<input type="hidden" name="danger" value="1">` : ""}
                 <input type="hidden" name="back" value="${current}">
                 <button type="submit">Mark all read</button>
               </form>`

@@ -1,6 +1,7 @@
 
 
 
+import { isPlatformChoice } from "../platforms.ts";
 import { renderAtlas } from "../pages/atlas.ts";
 
 import { renderGuide } from "../pages/guide.ts";
@@ -21,7 +22,9 @@ export function mountReading(r: RouteContext): void {
   app.get("/today", (req, res) => {
     const since = Number(str(req.query.since));
     const hours = since === 72 || since === 168 ? since : 24;
-    res.type("html").send(renderToday({ db, ...who(req, res), now: now(), hours }));
+    const platform = str(req.query.platform);
+    const scope = { platform: isPlatformChoice(platform) ? platform : undefined, danger: str(req.query.danger) === "1" };
+    res.type("html").send(renderToday({ db, ...who(req, res), now: now(), hours, scope }));
   });
   // Today's remedy rows end in a verb, so they end in a button: one update done is every CVE it
   // clears marked done, which is the same triage row the board and the CVE page write.

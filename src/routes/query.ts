@@ -1,5 +1,5 @@
 import type { ItemKind } from "../adapters/types.ts";
-import { isPlatformChoice } from "../platforms.ts";
+import { isPlatformChoice, type PlatformChoice } from "../platforms.ts";
 import type { VulnFilters } from "../vulns.ts";
 import type { WireFilters } from "../wire.ts";
 
@@ -24,6 +24,8 @@ export function wireFilters(query: Record<string, unknown>): WireFilters {
     group: group === "news" || group === "vulnerabilities" || group === "standards" ? group : undefined,
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? (kind as ItemKind) : undefined,
     q: str(query.q),
+    platform: isPlatformChoice(str(query.platform)) ? (str(query.platform) as PlatformChoice) : undefined,
+    danger: str(query.danger) === "1",
     unread: str(query.unread) === "1",
     before: Number.isInteger(before) && before > 0 ? before : undefined,
   };

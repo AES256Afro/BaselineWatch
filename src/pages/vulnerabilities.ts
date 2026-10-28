@@ -6,7 +6,8 @@ import { relativeTime, shortStamp } from "../time.ts";
 import { cveMentions, newsFor } from "../trending.ts";
 import { getTriage } from "../triage.ts";
 import { getVuln, listVulns, platformFigures, vulnChanges, vulnStats, type AffectedPackage, type PlatformFigures, type VulnFilters, type VulnRow } from "../vulns.ts";
-import { platformChoiceName, platformChoices } from "../platforms.ts";
+import { platformChoiceName } from "../platforms.ts";
+import { platformPicker } from "./platform-pick.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 import { saveSearchForm } from "./saved.ts";
@@ -168,12 +169,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
           <div class="pcards">${cards.map(platformCard)}</div>
         </section>`
       : ""}
-    <div class="filters platform-pick" aria-label="Platform">
-      <span class="lab">Platform</span>
-      <a class="${!filters.platform ? "on" : ""}" href="${query(filters, { platform: undefined, offset: 0 })}">All</a>
-      ${platformChoices.map((c) => html`<a class="${filters.platform === c.id ? "on" : ""}" href="${query(filters, { platform: filters.platform === c.id ? undefined : c.id, offset: 0 })}" title="${c.blurb}">${c.label}</a>`)}
-      <a class="danger${filters.danger ? " on" : ""}" href="${query(filters, { danger: !filters.danger, offset: 0 })}" title="Exploited, a public exploit, or EPSS at or over 50%">Most dangerous</a>
-    </div>
+    ${platformPicker(filters, (next) => query(filters, { platform: next.platform, danger: next.danger === true, offset: 0 }))}
     <div class="filters">
       <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, movedSince: undefined, movedHours: undefined, label: undefined, offset: 0 })}">All</a>
       ${owner ? html`<a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>` : ""}

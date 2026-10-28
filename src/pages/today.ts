@@ -1,3 +1,5 @@
+import { platformChoiceName } from "../platforms.ts";
+import { platformPicker, type PlatformScope } from "./platform-pick.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { nextActions, platformBreakdown, type Action } from "../agenda.ts";
 import { devicesTile } from "../devices.ts";
@@ -83,16 +85,27 @@ function group(id: string, heading: string, blurb: string, remedies: Remedy[], o
   </section>`;
 }
 
-export function renderToday(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; hours: number; look: LookState }): string {
+/** Today's own address for a window and a scope; the defaults (24 h, every platform) are left out. */
+function todayHref(hours: number, scope: PlatformScope): string {
+  const p = new URLSearchParams();
+  if (hours !== 24) p.set("since", String(hours));
+  if (scope.platform) p.set("platform", scope.platform);
+  if (scope.danger) p.set("danger", "1");
+  const q = p.toString();
+  return q ? `/today?${q}` : "/today";
+}
+
+export function renderToday(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; hours: number; look: LookState; scope?: PlatformScope }): string {
   const { db, owner, open, now, hours, look } = options;
+  const scope = options.scope ?? {};
   const since = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
-  const back = `/today?since=${hours}`;
+  const back = todayHref(hours, scope);
   const windowWord = hoursWord(hours);
   const fleet = loadFleet();
 
   // The work, keyed by the remedy that ends it.
-  const candidates = fixListCandidates(db, since);
-  const list: FixList = fixList(db, candidates, since, candidates.length >= candidateLimit ? fixListTotal(db, since) : candidates.length);
+  const candidates = fixListCandidates(db, since, candidateLimit, scope);
+  const list: FixList = fixList(db, candidates, since, candidates.length >= candidateLimit ? fixListTotal(db, since, scope) : candidates.length);
   const published = cvesIn(list.published);
   const mitigateOnly = cvesIn(list.mitigate);
   const nothing = cvesIn(list.none);
@@ -164,13 +177,14 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const devices = owner ? devicesTile(db) : null;
   const digest = latestDigest(db);
   const pipeline = pipelineHealth(db, now);
-  const windowLink = (h: number) => html`<a class="${hours === h ? "on" : ""}" href="/today?since=${h}">${h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}</a>`;
+  const windowLink = (h: number) => html`<a class="${hours === h ? "on" : ""}" href="${todayHref(h, scope)}">${h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}</a>`;
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
+      <h1>${fixListHeadline(list)}${scope.platform ? html` <span class="motto">· ${platformChoiceName(scope.platform)}</span>` : ""}${scope.danger ? html` <span class="motto">· the most dangerous</span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
+    ${platformPicker(scope, (next) => todayHref(hours, next))}
 
     <div class="stats today">
       <a class="tile${list.fixed ? " ok" : ""}" href="#install"><small>Fixed by an update</small><b>${list.fixed}</b><span>${list.install.length} update(s) to install</span></a>

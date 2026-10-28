@@ -595,6 +595,22 @@ export interface VulnFilters {
 export const dangerSql = "(v.kev = 1 OR v.has_exploit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active')";
 
 /**
+ * A platform and the dangerous line as SQL over `vulns v`, for a list that is not the table's own
+ * (Today's fix list): the same clauses `vulnQuery` writes, so "Windows" means one thing everywhere.
+ */
+export function scopeSql(scope: { platform?: PlatformChoice | undefined; danger?: boolean | undefined }): { sql: string; params: string[] } {
+  const clauses: string[] = [];
+  const params: string[] = [];
+  if (scope.platform) {
+    const keys = platformKeysOf(scope.platform);
+    clauses.push(`v.id IN (SELECT vuln_id FROM vuln_platforms WHERE platform IN (${keys.map(() => "?").join(", ")}))`);
+    params.push(...keys);
+  }
+  if (scope.danger) clauses.push(dangerSql);
+  return { sql: clauses.map((c) => ` AND ${c}`).join(""), params };
+}
+
+/**
  * What is affecting each platform, for the cards the Vulnerabilities page opens on: how many CVEs,
  * how many exploited, how many with a public exploit, how many first seen since `since` (the
  * table's `new` filter, so the figure and the list it opens agree), and the
