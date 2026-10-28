@@ -213,6 +213,9 @@ tbody + tbody > tr:first-child > * { border-top: 1px solid var(--rule); }
 tr.off td { color: var(--mute); }
 td .note { color: var(--mute); font-size: 12px; margin-top: 2px; max-width: 48ch; }
 td .note.err { color: var(--del); }
+td .note.repair ul { margin: 4px 0 0; padding-left: 1.2em; }
+td.reviewed { white-space: nowrap; }
+details.fold > form, details.fold > p { margin-bottom: 12px; }
 .status.ok { color: var(--ins); } .status.error { color: var(--del); } .status.unchanged { color: var(--mute); }
 
 /* Register */
@@ -265,7 +268,7 @@ button.link { border: 0; background: none; padding: 0; color: var(--acc); text-d
 form.inline { display: inline; }
 .mast .meta form.inline button.link { font-size: 12.5px; }
 .sep { color: var(--rule); margin: 0 2px; }
-input[type="search"], input[type="password"], input[type="text"] { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); min-width: 0; }
+input[type="search"], input[type="password"], input[type="text"], input[type="url"] { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); min-width: 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .notice { margin: 0 0 16px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--rule); background: var(--card); font-size: 13px; }
 .notice.ok { border-color: var(--ins); } .notice.error { border-color: var(--del); } .notice.unchanged { color: var(--mute); }
@@ -564,7 +567,7 @@ table.browse tr.changed td.id a { color: var(--acc); }
 
 /* Sign-in */
 .login { max-width: 420px; margin: 40px auto; }
-.stack { display: grid; gap: 8px; }
+.stack { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 .stack label { font-size: 13px; color: var(--mute); }
 .form-error { margin: 0; color: var(--del); font-size: 13px; }
 
@@ -639,7 +642,7 @@ table.browse tr.changed td.id a { color: var(--acc); }
 [data-look="console"] .wi-title { font-size: 14px; }
 [data-look="console"] .kv { font-size: 12.5px; }
 [data-look="console"] .kv dd { font-family: var(--mono); font-size: 12px; }
-[data-look="console"] input[type="search"], [data-look="console"] input[type="password"], [data-look="console"] input[type="text"], [data-look="console"] select, [data-look="console"] .triage-form textarea, [data-look="console"] .triage-form input[type="date"] { background: var(--paper); border-color: var(--rule-2); border-radius: 5px; font-size: 13px; }
+[data-look="console"] input[type="search"], [data-look="console"] input[type="password"], [data-look="console"] input[type="text"], [data-look="console"] input[type="url"], [data-look="console"] select, [data-look="console"] .triage-form textarea, [data-look="console"] .triage-form input[type="date"] { background: var(--paper); border-color: var(--rule-2); border-radius: 5px; font-size: 13px; }
 [data-look="console"] .foot { font: 11.5px var(--mono); }
 [data-look="console"] .foot .attrib { font-family: var(--sans); font-size: 12px; }
 [data-look="console"] .look-group { border-radius: 5px; }

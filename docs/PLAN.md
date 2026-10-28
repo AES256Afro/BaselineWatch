@@ -1352,6 +1352,26 @@ pull request with the captures and the result. An owner-added feed needs no fixt
 is read by an adapter that has one, and its first response is a snapshot like any other.
 **Done when** the month's fixture refresh is a pull request nobody had to start.
 
+*The thin slice landed 2026-10-28, the day this was written.* **M20.1**: `src/curated.ts` holds
+twenty-two rows, drawn on the Sources page under "Kept by hand" for everyone, and
+`test/curated.test.ts` fails on a path that is gone, a file under `data/` with no row, or a new
+long list in `src/` that is neither a row nor named as something that does not go stale.
+**M20.2, the add-a-feed half**: "Add a source" on the Sources page probes an address through the
+public-only path with the feed adapter, shows the feed's title and newest entries, and saves
+nothing until "Add it", which probes again, writes a row with `origin = 'owner'` and fetches it at
+once; an added feed is fetched public-only on every later pass too; every add, move and turn on
+or off is in `source_log`, drawn as "Changes made here". **M20.3**: `sources.fallback_urls` is
+tried in order when a source's own address fails, the row keeps which fallback answered and what
+its own address said until that address answers again, and "Make it the address" keeps it;
+a feed that still fails, other than with a 403, a 429 or a 5xx, is looked into once a day (a 301 or 308, the feeds its page and its
+site's home page announce, six usual paths, same site only, never an address another source
+already reads), and each candidate that parses with entries is a proposed repair with "Use it",
+named in the day-old notification and on Today's tile. `canary-malware` declares the
+malware-filter project's GitHub and Cloudflare copies (migration 0051). `test/m20.test.ts` replays
+the URLhaus 410 against the mirror. **Still open in the slice's own terms**: editing a seeded
+source's schedule, topic or name, OPML import and keyed sources (the rest of M20.2), and the
+"Done when" itself, which is a month on cybercard.net, not a test.
+
 - **Depends on**: M13 (the pipeline tile, the notifier, the probes), all shipped. M20.5 overlaps
   M16 and replaces its fleet item. **Thin slice**: M20.1, M20.3 and the add-a-feed half of M20.2 —
   the first makes the debt visible and the other two would have closed the URLhaus episode without

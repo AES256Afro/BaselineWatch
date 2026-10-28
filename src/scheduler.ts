@@ -7,6 +7,7 @@ import { httpGet } from "./http.ts";
 import { ingestSource, listSources, type IngestDeps, type IngestResult } from "./ingest.ts";
 import { notify } from "./notify.ts";
 import { alertAfterHours, markAlerted, sourcesToAlert } from "./pipeline.ts";
+import { proposedRepairs } from "./repairs.ts";
 
 /**
  * The in-process scheduler: a tick a minute, the sources that are due fetched a few hosts at a time
@@ -185,13 +186,16 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     const stuck = sourcesToAlert(db, now());
     for (const source of stuck) {
       const at = now().toISOString();
+      const repair = proposedRepairs(db, source.id)[0];
       await notify(
         db,
         options.transport ?? null,
         {
           kind: "source",
           title: `${source.name} has been failing for ${source.hours} h`,
-          body: `${source.error ?? "no error recorded"}\n\nNothing from this source has reached the timeline since ${source.since?.slice(0, 16).replace("T", " ") ?? "its last success"}. The Sources page says what to do about this failure.`,
+          body: `${source.error ?? "no error recorded"}\n\nNothing from this source has reached the timeline since ${source.since?.slice(0, 16).replace("T", " ") ?? "its last success"}. ${
+            repair ? `This instance found a repair: ${repair.url} (${repair.how}, ${repair.items} entries). Use it from the Sources page.` : "The Sources page says what to do about this failure."
+          }`,
           url: options.baseUrl ? `${options.baseUrl}/sources#src-${source.id}` : null,
         },
         options.http ?? httpGet,

@@ -8,6 +8,11 @@ Shape key: `article` (news), `vulnerability`, `requirement-set` (controls, rules
 recommendations), `setting-set` (configuration values), `listing` (a page we watch only to find
 new downloads).
 
+This register lists the sources every instance is seeded with. Since M20 an owner can add
+feeds on their own instance's Sources page; those are recorded there, under **Changes made
+here**, not here. A seeded source may also declare fallback addresses for the same document
+(`sources.fallback_urls`), named in its entry below.
+
 ---
 
 ## A. Standards and baselines (the Register)
@@ -313,7 +318,10 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a resolver
   must not sinkhole), then the twelve that hash lowest. Version and date from `# Updated:` (or
   URLhaus's `# Last updated:`). **Cadence**: daily, because the list turns over as sites go
-  offline. **Licence**: CC0 1.0, URLhaus's data as abuse.ch publishes it, republished by the
+  offline. **Fallbacks** (migration 0051): the project's copies on GitHub Pages
+  (`https://curbengh.github.io/malware-filter/urlhaus-filter-hosts.txt`) and Cloudflare Pages
+  (`https://malware-filter.pages.dev/urlhaus-filter-hosts.txt`, which lagged by two weeks when
+  checked). **Licence**: CC0 1.0, URLhaus's data as abuse.ch publishes it, republished by the
   malware-filter project (`https://gitlab.com/malware-filter/urlhaus-filter#license`).
 - **Phishing canaries (OpenPhish)** (`canary-phishing`, restricted, registered off).
   `https://openphish.com/feed.txt` (15 KB, 300 URLs, refreshed every twelve hours; redirects to the
