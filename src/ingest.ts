@@ -8,6 +8,7 @@ import { fetchNewItemImages } from "./images.ts";
 import { upsertItems } from "./items.ts";
 import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
+import { clearRepairs, fallbacksOf, findRepairs } from "./repairs.ts";
 import { adoptRationale, changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
 
 export { upsertItems } from "./items.ts";
@@ -254,8 +255,45 @@ function recordOutcome(
  * Fetches one source once. A parsing adapter gets a conditional GET, a content-addressed
  * snapshot, a parse and an upsert; a pulling adapter runs its own requests. Either way the
  * source's status row records the outcome, and a source's own failure never throws.
+ *
+ * A source that fails tries the other addresses it declared for the same document, in order,
+ * and the first that answers serves this fetch: the row says which, and keeps what the source's
+ * own address said, until that address answers again (M20.3). A feed that still fails is looked
+ * into for a repair, once a day, which the owner may use from the Sources page.
  */
 export async function ingestSource(db: DatabaseSync, dataDir: string, source: SourceRow, deps: IngestDeps = {}): Promise<IngestResult> {
+  const result = await ingestOnce(db, dataDir, source, deps);
+  if (result.status === "skipped") return result;
+  if (result.status !== "error") {
+    db.prepare("UPDATE sources SET answered_from = NULL, primary_error = NULL WHERE id = ? AND answered_from IS NOT NULL").run(source.id);
+    clearRepairs(db, source.id);
+    return result;
+  }
+  const primaryError = result.error ?? "error";
+  const fallbacks = fallbacksOf(source);
+  for (const url of fallbacks) {
+    const answered = await ingestOnce(db, dataDir, { ...source, url, etag: null, last_modified: null }, deps);
+    if (answered.status === "error") continue;
+    // The fallback's validators belong to another server; the source's own address must not send them.
+    db.prepare("UPDATE sources SET answered_from = ?, primary_error = ?, etag = NULL, last_modified = NULL WHERE id = ?").run(url, primaryError.slice(0, 500), source.id);
+    clearRepairs(db, source.id);
+    deps.log?.(`[ingest] ${source.id}: its own address failed (${primaryError}); answered from ${url}`);
+    return { ...answered, detail: `answered from its fallback ${url}; its own address failed: ${primaryError}`.slice(0, 1200) };
+  }
+  if (fallbacks.length) {
+    // The row should name the source's own failure, not the last fallback's.
+    db.prepare("UPDATE sources SET last_error = ? WHERE id = ?").run(`${primaryError} (and ${fallbacks.length} fallback${fallbacks.length === 1 ? "" : "s"} failed too)`.slice(0, 500), source.id);
+  }
+  try {
+    const found = await findRepairs(db, getSource(db, source.id) ?? source, deps.http ?? httpGet, (deps.now ?? (() => new Date()))());
+    if (found) deps.log?.(`[ingest] ${source.id}: ${found} repair(s) proposed on the Sources page`);
+  } catch (error) {
+    deps.log?.(`[ingest] ${source.id}: the repair search failed (${error instanceof Error ? error.message : String(error)})`);
+  }
+  return result;
+}
+
+async function ingestOnce(db: DatabaseSync, dataDir: string, source: SourceRow, deps: IngestDeps = {}): Promise<IngestResult> {
   const http = deps.http ?? httpGet;
   const now = deps.now ?? (() => new Date());
   const log = deps.log ?? (() => {});
@@ -304,6 +342,8 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
       etag: source.etag,
       lastModified: source.last_modified,
       ...(adapter.headers ? { headers: adapter.headers } : {}),
+      // An address typed into the Sources page is held to public hosts on every fetch, not only the probe.
+      ...(source.origin === "owner" ? { publicOnly: true } : {}),
     });
     const fetchedAt = now().toISOString();
     if (response.notModified) {

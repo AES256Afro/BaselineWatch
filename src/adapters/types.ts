@@ -24,6 +24,16 @@ export interface SourceRow {
   last_modified: string | null;
   last_duration_ms: number | null;
   fetch_count: number;
+  /** `seed` for a row a migration wrote, `owner` for one added on the Sources page (M20.2). */
+  origin?: "seed" | "owner";
+  /** A JSON array of other addresses serving the same document, tried in order when this one fails (M20.3). */
+  fallback_urls?: string | null;
+  /** The fallback that answered the last fetch, while the source's own address fails. */
+  answered_from?: string | null;
+  /** What the source's own address said, while a fallback answers for it. */
+  primary_error?: string | null;
+  /** When the instance last looked for a repair to this source's failure. */
+  repair_checked_at?: string | null;
 }
 
 export type ItemKind = "article" | "vulnerability" | "kev" | "release";

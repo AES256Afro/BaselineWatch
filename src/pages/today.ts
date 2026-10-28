@@ -169,7 +169,9 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const counts = triageCounts(db);
   const inbox = triageInbox(db, 6);
   const ending = endingSupport(fleet, now, 90);
-  const failing = db.prepare("SELECT id, name, last_error FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name").all() as { id: string; name: string; last_error: string | null }[];
+  const failing = db
+    .prepare("SELECT id, name, last_error, (SELECT COUNT(*) FROM source_repairs r WHERE r.source_id = sources.id) AS repairs FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name")
+    .all() as { id: string; name: string; last_error: string | null; repairs: number }[];
   const alerts = recentAlerts(db, 4);
   const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
   const scan = scanTile(db);
@@ -289,7 +291,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             ${devices && devices.read ? html`<li><span><a href="/scan/devices">Devices</a></span><b>${devices.exposed} exposed of ${devices.read} read${devices.behind ? `, ${devices.behind} behind` : ""}</b></li>` : ""}
             <li><span><a href="/digest">Last digest</a></span><b>${digest ? relativeTime(digest.generated_at, now) : "none yet"}</b></li>
           </ul>
-          ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span></li>`)}</ul>` : ""}
+          ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span>${owner && f.repairs ? html` · <a href="/sources#src-${f.id}">a repair is proposed</a>` : ""}</li>`)}</ul>` : ""}
           ${alerts.length ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
         </section>
       </aside>

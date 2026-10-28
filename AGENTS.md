@@ -72,7 +72,11 @@ hand-kept list in the commit so M20.1's ledger can carry it.
   (one document in, timeline items out; the ingester does the GET, the snapshot and the upsert)
   or `pull()` (the adapter runs its own requests against a stream such as the NVD API), a row in
   a migration, a line in `src/adapters/index.ts`, and a fixture test that replays a real captured
-  response. No bespoke code paths per source outside the adapter.
+  response. No bespoke code paths per source outside the adapter. **A new feed** (RSS, RSS 1.0
+  or Atom) needs none of that: the owner adds it on the Sources page, where it is probed before
+  it is saved (`src/newsource.ts`, M20.2), and a migration row is only for one that every
+  instance should read. A source whose document also lives elsewhere declares those addresses in
+  `sources.fallback_urls`, tried in order when its own fails (`src/repairs.ts`, M20.3).
 - **The Wire is for what matters.** Every CVE goes in the Vulnerabilities table; only notable
   ones (`isNotable` in `src/vulns.ts`: KEV, watchlist, new criticals, EPSS over 50%, active
   exploitation per SSVC) become timeline items.
@@ -97,6 +101,9 @@ src/server.ts        start: config, data dir, migrations, listen
 src/app.ts           Express app: headers, body limits, the MCP endpoint, assets, API, health, sign-in, the read gate; then the mounts
 src/routes/          one module per area (news, today, standards, scan, baselines, vulnerabilities, desk), each a mount function taking RouteContext
 src/json.ts          the one reader for a column that should hold JSON
+src/curated.ts       the hand-kept ledger: every store of data typed into the repository, how it goes stale, what replaces it (M20.1)
+src/newsource.ts     a feed the owner adds on the Sources page, probed before it is saved, and the log of changes made there (M20.2)
+src/repairs.ts       a failing source's fallbacks, and the repairs the instance finds and proposes for a failing feed (M20.3)
 src/config.ts        BW_* environment variables
 src/db.ts            open, migrate, counts
 src/blobs.ts         content-addressed snapshot store
