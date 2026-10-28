@@ -26,6 +26,8 @@ export function wireFilters(query: Record<string, unknown>): WireFilters {
     q: str(query.q),
     platform: isPlatformChoice(str(query.platform)) ? (str(query.platform) as PlatformChoice) : undefined,
     danger: str(query.danger) === "1",
+    topic: str(query.topic) === "ai" ? "ai" : undefined,
+    hideAi: str(query.ai) === "hide",
     unread: str(query.unread) === "1",
     before: Number.isInteger(before) && before > 0 ? before : undefined,
   };

@@ -324,6 +324,10 @@ input[type="search"], input[type="password"], input[type="text"] { font: inherit
   .pcard-stats a.kev, .pcard-stats > span:first-child { font-size: 12px; }
 }
 .filters form { margin-left: auto; }
+/* The AI switch is one of the chips, not an action at the row's end. */
+.filters form.ai-switch { margin-left: 0; }
+.filters form.ai-switch button { font: inherit; font-size: 12.5px; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--rule-2); color: var(--mute); background: transparent; cursor: pointer; }
+.filters form.ai-switch button:hover { color: var(--ink); border-color: var(--acc); }
 .wire-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .wi { background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--rule); border-radius: 8px; padding: 10px 14px; min-width: 0; display: grid; gap: 4px; }
 .wi-body { min-width: 0; display: grid; gap: 4px; }

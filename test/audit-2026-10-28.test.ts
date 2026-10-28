@@ -299,3 +299,59 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
     expect(platformsOf({ cpes: [], vendors: [], products: [], description: "A use after free in Google Chrome prior to 150.0" })).toEqual(["chrome"]);
   });
 });
+
+describe("AI as a beat of the News", () => {
+  let app: TestApp;
+
+  beforeAll(async () => {
+    app = await startTestApp({ now: () => now });
+    const insert = app.db.prepare("INSERT INTO items (source_id, kind, external_id, title, summary, url, published_at, fetched_at) VALUES (?, 'article', ?, ?, ?, 'https://example.net', ?, ?)");
+    insert.run("bleeping", "s1", "AI coding agents hijacked through a file in Downloads", null, now.toISOString(), now.toISOString());
+    insert.run("bleeping", "s2", "Ransomware gang hits a hospital chain", "Their negotiator was an AI chatbot.", now.toISOString(), now.toISOString());
+    insert.run("reddit-localllama", "l1", "Running a 70B model on two used GPUs", null, now.toISOString(), now.toISOString());
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it("brings the AI sources in, marked as the AI beat", () => {
+    const ai = app.db.prepare("SELECT id FROM sources WHERE topic = 'ai' ORDER BY id").all() as { id: string }[];
+    expect(ai.map((s) => s.id)).toEqual(expect.arrayContaining(["openai-news", "huggingface-blog", "reddit-localllama", "hn-ai", "simonwillison"]));
+    // Reddit serves its Atom feed to an identified client and refuses the JSON listing.
+    for (const r of app.db.prepare("SELECT url, format FROM sources WHERE id LIKE 'reddit-%' AND topic = 'ai'").all() as { url: string; format: string }[]) {
+      expect(r.url).toMatch(/\/new\.rss\?limit=50$/);
+      expect(r.format).toBe("atom");
+    }
+  });
+
+  it("counts a story as AI by its source or its headline, and shows the beat as its own section", async () => {
+    const only = listWire(app.db, { topic: "ai" }).map((i) => i.external_id).sort();
+    expect(only).toEqual(["l1", "s1"]);
+    const page = await (await fetch(`${app.base}/?topic=ai`)).text();
+    expect(page).toContain("AI coding agents hijacked");
+    expect(page).toContain("Running a 70B model");
+    expect(page).not.toContain("Ransomware gang hits a hospital chain");
+    const front = await (await fetch(`${app.base}/`)).text();
+    expect(front).toContain("AI lately");
+    expect(front).toContain(">Hide AI</button>");
+  });
+
+  it("comes in by default and stays out of a browser that asked, until it asks again", async () => {
+    const hidden = await formPost(app.base, "/news/ai", { ai: "hide", back: "/" });
+    expect(hidden.status).toBe(303);
+    const cookie = cookieFrom(hidden);
+    expect(cookie).toBe("bw_ai=hide");
+    const page = await (await fetch(`${app.base}/`, { headers: { cookie } })).text();
+    expect(page).toContain("Ransomware gang hits a hospital chain");
+    expect(page).not.toContain("AI coding agents hijacked");
+    expect(page).not.toContain("AI lately");
+    expect(page).toContain(">Show AI</button>");
+    // Asking for the AI section still shows it, and a link can override the cookie either way.
+    expect(await (await fetch(`${app.base}/?topic=ai`, { headers: { cookie } })).text()).toContain("AI coding agents hijacked");
+    expect(await (await fetch(`${app.base}/?ai=show`, { headers: { cookie } })).text()).toContain("AI coding agents hijacked");
+    expect(await (await fetch(`${app.base}/feed.xml?ai=hide`)).text()).not.toContain("AI coding agents hijacked");
+    const shown = await formPost(app.base, "/news/ai", { ai: "show", back: "/" }, cookie);
+    expect(shown.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+});
