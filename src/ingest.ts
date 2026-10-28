@@ -344,7 +344,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
     if (status !== "unchanged") adapter.after?.(db, parsed.items, now());
     // New news articles bring their lead image along: the feed's own media, or og:image once.
     if (status === "ok" && counts.inserted > 0 && source.group_name === "news" && deps.settings?.newsImages === true) {
-      await fetchNewItemImages(db, dataDir, source, parsed.items.filter((i) => !before.has(i.externalId)), { http, log });
+      await fetchNewItemImages(db, dataDir, source, parsed.items.filter((i) => !before.has(i.externalId)), { http, log, now });
     }
     const result = done({ status, items: parsed.items.length, snapshotId, ...counts });
     recordOutcome(db, source, { status, etag: response.etag, lastModified: response.lastModified, fetchedAt, durationMs: result.durationMs });

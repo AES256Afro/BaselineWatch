@@ -48,6 +48,7 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
   const sinceHours = (h: number | undefined): string | undefined => (h === undefined ? undefined : new Date(now.getTime() - h * 60 * 60 * 1000).toISOString());
   const changedHours = hours(query.changed);
   const newHours = hours(query.new);
+  const movedHours = hours(query.moved);
   const platform = str(query.platform);
   return {
     watch: str(query.watch) === "1",
@@ -63,6 +64,8 @@ export function vulnFilters(query: Record<string, unknown>, now: Date): VulnFilt
     changedHours,
     newSince: sinceHours(newHours),
     newHours,
+    movedSince: sinceHours(movedHours),
+    movedHours,
     label: str(query.label, 60),
     q: str(query.q),
     sort: sort === "modified" || sort === "published" || sort === "cvss" || sort === "epss" ? sort : "risk",

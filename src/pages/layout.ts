@@ -115,17 +115,17 @@ export interface PageOptions {
 }
 
 /** The Register's newest changes, for the ribbon under the masthead and anywhere else that glances at it. */
-export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[] {
+export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[] {
   const rows = db
     .prepare(
       `SELECT d.id AS documentId, d.source_id AS sourceId, s.name, d.version_label AS versionLabel,
-              COALESCE(d.published_at, d.parsed_at) AS at,
+              COALESCE(d.published_at, d.parsed_at) AS at, d.previous_document_id AS previousId,
               (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
        FROM documents d JOIN sources s ON s.id = d.source_id
        WHERE s.group_name = 'standards'
        ORDER BY at DESC, d.id DESC LIMIT ?`,
     )
-    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number }[];
+    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
   return rows;
 }
 
@@ -135,7 +135,7 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   if (rows.length === 0) return html``;
   const entries = rows.map(
     (r, i) =>
-      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount === 0 ? "first version" : html`${r.changeCount} changed`}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
+      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount > 0 ? html`${r.changeCount} changed` : r.previousId === null ? "first version" : "no control-level changes"}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
   );
   // The strip scrolls sideways when the releases do not fit, which on a phone is always. It is a
   // labelled, focusable region so a keyboard can reach and scroll it, and it ends in the way out:
@@ -220,7 +220,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
     </nav>
     <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"><a class="to-search" href="/search">Search</a></form>
     <div class="meta">${meta ?? ""}</div>
-    <details class="group desk${deskGroup.includes(active) ? " on" : ""}">
+    <details class="group desk${[...deskGroup, ...deskInstance, ...deskLook].includes(active) ? " on" : ""}">
       <summary>Desk</summary>
       <div class="menu right wide">
         <span class="cap">Your fleet and your work</span>

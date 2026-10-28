@@ -4,7 +4,7 @@ import { html, newTab, newTabIf, type Html } from "../html.ts";
 import { getVuln } from "../vulns.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, type TriageState } from "../triage.ts";
-import { listWire, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
+import { listWire, ownerOnlySources, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
 import type { LookState } from "../look.ts";
 import { page, registerStrip } from "./layout.ts";
 import { saveSearchForm } from "./saved.ts";
@@ -50,7 +50,7 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   return s ? `/?${s}` : "/";
 }
 
-function chips(item: WireItem): Html[] {
+function chips(item: WireItem, owner: boolean): Html[] {
   const s = signals(item);
   const out: Html[] = [];
   if (item.kind === "kev" || (item.kind === "vulnerability" && s.kev)) out.push(html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>`);
@@ -62,7 +62,7 @@ function chips(item: WireItem): Html[] {
   if (s.ransomware) out.push(html`<span class="chip kev">ransomware</span>`);
   if (s.cves?.length && item.kind !== "kev") out.push(html`<span class="chip">${s.cves.slice(0, 3).join(", ")}${s.cves.length > 3 ? html` +${s.cves.length - 3}` : ""}</span>`);
   if (typeof s.score === "number" && s.thread) out.push(html`<a class="chip" href="${s.thread}" ${newTab}>${s.score} pts · ${s.comments ?? 0} comments</a>`);
-  if (item.starred) out.push(html`<span class="chip star">starred</span>`);
+  if (owner && item.starred) out.push(html`<span class="chip star">starred</span>`);
   return out;
 }
 
@@ -95,9 +95,11 @@ function storyKeys(item: WireItem): string[] {
   return keys;
 }
 
-export function renderNews({ db, filters, owner, open, now, look }: NewsPageOptions): string {
+export function renderNews({ db, filters: asked, owner, open, now, look }: NewsPageOptions): string {
+  // What the owner has read and starred is theirs: a visitor's list is not filtered by it, and the counts are totals.
+  const filters: WireFilters = owner ? asked : { ...asked, unread: false };
   // Copies of one address are fetched here so the other sources can be named; the clustering below folds them.
-  const fetched = listWire(db, { ...filters, limit: 50 }, { copies: true });
+  const fetched = listWire(db, { ...filters, limit: 50 }, { copies: true, owner });
   // One story from several sources is one card: the first by date, the others named on it.
   const alsoOn = new Map<number, WireItem[]>();
   const firstByKey = new Map<string, WireItem>();
@@ -112,7 +114,10 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
     for (const k of keys) if (!firstByKey.has(k)) firstByKey.set(k, item);
     items.push(item);
   }
-  const counts = sourceCounts(db).filter((c) => c.total > 0 || c.source_id === filters.source);
+  const counts = sourceCounts(db)
+    .filter((c) => owner || !ownerOnlySources.includes(c.source_id))
+    .filter((c) => c.total > 0 || c.source_id === filters.source)
+    .map((c) => (owner ? c : { ...c, unread: c.total }));
   const triageState = new Map<number, TriageState>();
   if (items.length) {
     for (const r of db.prepare(`SELECT subject_id, state FROM triage WHERE subject_kind = 'item' AND subject_id IN (${items.map(() => "?").join(",")})`).all(...items.map((i) => i.id)) as { subject_id: number; state: TriageState }[]) {
@@ -139,7 +144,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
 
   const rows = listed.map((item) => {
     const back = html`<input type="hidden" name="back" value="${current}">`;
-    return html`<li class="wi ${item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
+    return html`<li class="wi ${owner && item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
       ${item.image_blob ? html`<a class="wi-img" href="${item.url ?? `/img/${item.image_blob}`}" ${newTabIf(item.url)} tabindex="-1" aria-hidden="true"><img src="/img/${item.image_blob}" alt="" loading="lazy"></a>` : ""}
       <div class="wi-body">
       <div class="wi-head">
@@ -150,7 +155,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
       ${item.summary ? html`<p class="wi-sum">${item.summary}</p>` : ""}
       ${fixLine(item)}
       <div class="wi-foot">
-        <div class="chips">${chips(item)}${(alsoOn.get(item.id) ?? []).map((d) => html`<a class="chip also" href="${d.url ?? "#"}" ${newTabIf(d.url)}>also on ${d.source_name}</a>`)}</div>
+        <div class="chips">${chips(item, owner)}${(alsoOn.get(item.id) ?? []).map((d) => html`<a class="chip also" href="${d.url ?? "#"}" ${newTabIf(d.url)}>also on ${d.source_name}</a>`)}</div>
         ${owner
           ? html`<div class="acts">
               <form method="post" action="/items/${item.id}/${item.read ? "unread" : "read"}">${back}<button type="submit">${item.read ? "Mark unread" : "Mark read"}</button></form>
@@ -164,7 +169,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
   });
 
   const sourceList = counts.map(
-    (c) => html`<li class="${filters.source === c.source_id ? "on" : ""}"><a href="${query(filters, { source: c.source_id, before: undefined })}">${c.name}</a><b><a href="${query(filters, { source: c.source_id, unread: true, before: undefined })}">${c.unread ?? 0}</a></b></li>`,
+    (c) => html`<li class="${filters.source === c.source_id ? "on" : ""}"><a href="${query(filters, { source: c.source_id, before: undefined })}">${c.name}</a><b>${owner ? html`<a href="${query(filters, { source: c.source_id, unread: true, before: undefined })}">${c.unread ?? 0}</a>` : c.total}</b></li>`,
   );
 
   // The desk box: the owner's queue at a glance, or the sign-in prompt on the public site.
@@ -225,7 +230,7 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
           <a class="${filters.kind === "kev" ? "on" : ""}" href="${query(filters, { kind: "kev", group: undefined, before: undefined })}">Known exploited</a>
           <a class="${filters.kind === "vulnerability" ? "on" : ""}" href="${query(filters, { kind: "vulnerability", group: undefined, before: undefined })}">Notable CVEs</a>
           <a class="${filters.kind === "release" ? "on" : ""}" href="${query(filters, { kind: "release", group: undefined, before: undefined })}">Releases</a>
-          <a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>
+          ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
                 ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
@@ -245,9 +250,9 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
       <aside class="side">
         ${kevBox}
         <section class="box">
-          <h2><a href="/sources">Sources</a> <span class="count"><a href="${query(filters, { unread: true, before: undefined })}">${totalUnread} unread</a></span></h2>
+          <h2><a href="/sources">Sources</a> <span class="count">${owner ? html`<a href="${query(filters, { unread: true, before: undefined })}">${totalUnread} unread</a>` : html`${totalUnread} items`}</span></h2>
           <ul class="src-list">
-            <li class="${!filters.source ? "on" : ""}"><a href="${query(filters, { source: undefined, before: undefined })}">All sources</a><b><a href="${query(filters, { source: undefined, unread: true, before: undefined })}">${totalUnread}</a></b></li>
+            <li class="${!filters.source ? "on" : ""}"><a href="${query(filters, { source: undefined, before: undefined })}">All sources</a><b>${owner ? html`<a href="${query(filters, { source: undefined, unread: true, before: undefined })}">${totalUnread}</a>` : totalUnread}</b></li>
             ${sourceList}
           </ul>
         </section>
@@ -257,5 +262,5 @@ export function renderNews({ db, filters, owner, open, now, look }: NewsPageOpti
 
   const feedQuery = query(filters, { before: undefined, unread: false });
   const feed = { href: feedQuery === "/" ? "/feed.xml" : `/feed.xml${feedQuery.slice(1)}`, title: "News" };
-  return page({ title: "News", active: "wire", content, meta: html`${totalUnread} unread`, owner, open, strip: registerStrip(db, now), look, feed, canonical: "/", description: "Security news, vendor advisories and the CVEs that matter, in one timeline, with what to do about each." });
+  return page({ title: "News", active: "wire", content, meta: owner ? html`${totalUnread} unread` : html``, owner, open, strip: registerStrip(db, now), look, feed, canonical: "/", description: "Security news, vendor advisories and the CVEs that matter, in one timeline, with what to do about each." });
 }

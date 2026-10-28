@@ -33,6 +33,8 @@ export function mountNews(r: RouteContext): void {
     const bytes = getBlob(config.dataDir, image.sha256);
     if (!bytes) return next();
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    // The hash is the content: an ETag of it spares Express hashing the whole image on every request.
+    res.setHeader("ETag", `"${image.sha256}"`);
     res.type(image.type).send(bytes);
   });
 

@@ -196,7 +196,10 @@ export function pinnedRequest(target: string, address: string, init: { method: s
   const transport = parsed.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     const request = transport.request(parsed, { method: init.method, headers: init.headers, lookup: pinned as never, timeout: init.timeoutMs }, (response) => {
-      clearTimeout(deadline);
+      // The deadline runs on through the body, as AbortSignal.timeout does on the other path: a
+      // server that answers its headers at once and then drips a byte inside every idle window
+      // would otherwise hold the request, and the scheduler slot waiting on it, for as long as it liked.
+      response.on("close", () => clearTimeout(deadline));
       const headers: Record<string, string> = {};
       for (const [name, value] of Object.entries(response.headers)) {
         if (value !== undefined) headers[name.toLowerCase()] = Array.isArray(value) ? value.join(", ") : value;
@@ -220,6 +223,10 @@ export function pinnedRequest(target: string, address: string, init: { method: s
             });
             response.on("end", () => ok(Buffer.concat(chunks)));
             response.on("error", fail);
+            // Destroyed by the deadline before the end: a body cut short is a failure, not a short answer.
+            response.on("close", () => {
+              if (!response.complete) fail(new Error(`no complete answer from ${parsed.host} within ${init.timeoutMs} ms`));
+            });
           }),
         discard: async () => {
           response.resume();
@@ -229,7 +236,7 @@ export function pinnedRequest(target: string, address: string, init: { method: s
     const fail = (): void => {
       request.destroy(Object.assign(new Error(`no answer from ${parsed.host} within ${init.timeoutMs} ms`), { code: "timeout" }));
     };
-    // `timeout` is the socket's idle limit; the deadline bounds the whole request.
+    // `timeout` is the socket's idle limit; the deadline bounds the whole request, body included.
     const deadline = setTimeout(fail, init.timeoutMs);
     request.on("timeout", fail);
     request.on("error", (error) => {
