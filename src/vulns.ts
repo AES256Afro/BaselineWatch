@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { isPlatformKey, platformName, platformsOf, type PlatformKey } from "./platforms.ts";
+import { isPlatformKey, platformChoices, platformKeysOf, platformName, platformsOf, type PlatformChoice } from "./platforms.ts";
 import { parseJson } from "./json.ts";
 import { csvLine } from "./csv.ts";
 import { ftsQuery } from "./wire.ts";
@@ -81,6 +81,10 @@ export interface VulnRow {
   last_seen_at: string;
   packages_json: string | null;
   aliases_json: string | null;
+  /** The platforms src/platforms.ts places it on, as a JSON array of ids; vuln_platforms mirrors it. */
+  platforms_json: string | null;
+  /** Kept by triggers from the exploits table (migration 0045). */
+  has_exploit: number;
 }
 
 export interface VulnChange {
@@ -555,7 +559,9 @@ export interface VulnFilters {
   /** Only CVEs with at least one row in the exploits table (src/exploits.ts). */
   exploit?: boolean;
   /** One of src/platforms.ts' ids: the CVEs whose CPEs, vendors, products or description put them on that platform. */
-  platform?: PlatformKey | undefined;
+  platform?: PlatformChoice | undefined;
+  /** The most dangerous: exploited (KEV, or SSVC says active), a public exploit, or likely to be (EPSS ≥ 50%). */
+  danger?: boolean;
   minCvss?: number | undefined;
   /** One CVSS severity as NVD words it, or "unscored" for a CVE without one, the way the Today page bands them. */
   severity?: "critical" | "high" | "medium" | "low" | "unscored" | undefined;
@@ -585,17 +591,82 @@ export interface VulnFilters {
   limit?: number;
 }
 
+/** The "most dangerous" line: being exploited, an exploit anyone can run, or a forecast that one will be. Takes no parameters. */
+export const dangerSql = "(v.kev = 1 OR v.has_exploit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active')";
+
+/**
+ * What is affecting each platform, for the cards the Vulnerabilities page opens on: how many CVEs,
+ * how many exploited, how many with a public exploit, how many first seen since `since` (the
+ * table's `new` filter, so the figure and the list it opens agree), and the
+ * worst of them by the table's own risk order. Plus the same figures for the dangerous line
+ * across every platform. Six small indexed queries; no watchlist in it, so it reads the same to
+ * everyone.
+ */
+export interface PlatformFigures {
+  id: PlatformChoice | "danger";
+  label: string;
+  blurb: string;
+  total: number;
+  kev: number;
+  exploit: number;
+  recent: number;
+  worst: Pick<VulnRow, "cve_id" | "cvss_score" | "kev" | "description" | "vendors_json" | "products_json"> | null;
+}
+
+/**
+ * Kept until the data moves: about 75 ms to count across 46,000 CVEs, on the page everyone opens.
+ * The key is the newest change, exploit and EPSS day and the CVE count — each moves when an ingest
+ * changes anything these figures read — and the window's start to the hour.
+ */
+const figureCache = new WeakMap<DatabaseSync, { key: string; value: PlatformFigures[] }>();
+
+export function platformFigures(db: DatabaseSync, since: string): PlatformFigures[] {
+  const marks = db
+    .prepare(
+      `SELECT (SELECT MAX(rowid) FROM vuln_changes) AS changed, (SELECT MAX(rowid) FROM exploits) AS exploits,
+              (SELECT MAX(rowid) FROM vulns) AS vulns, (SELECT value FROM app_settings WHERE key = 'epss.date') AS epss`,
+    )
+    .get() as { changed: number | null; exploits: number | null; vulns: number | null; epss: string | null };
+  const key = `${marks.changed}|${marks.exploits}|${marks.vulns}|${marks.epss}|${since.slice(0, 13)}`;
+  const cached = figureCache.get(db);
+  if (cached?.key === key) return cached.value;
+  const value = countPlatformFigures(db, since);
+  figureCache.set(db, { key, value });
+  return value;
+}
+
+function countPlatformFigures(db: DatabaseSync, since: string): PlatformFigures[] {
+  const figures = (where: string, params: string[]) =>
+    db
+      .prepare(
+        `SELECT COUNT(*) AS total, COALESCE(SUM(v.kev), 0) AS kev, COALESCE(SUM(v.has_exploit), 0) AS exploit,
+                COALESCE(SUM(CASE WHEN v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field = 'new') THEN 1 ELSE 0 END), 0) AS recent
+           FROM vulns v WHERE ${where}`,
+      )
+      .get(since, ...params) as { total: number; kev: number; exploit: number; recent: number };
+  const worst = (where: string, params: string[]) =>
+    (db.prepare(`SELECT v.cve_id, v.cvss_score, v.kev, v.description, v.vendors_json, v.products_json FROM vulns v WHERE ${where} ORDER BY ${sortSql.risk} LIMIT 1`).get(...params) as PlatformFigures["worst"] | undefined) ?? null;
+  const out: PlatformFigures[] = platformChoices.map((c) => {
+    const where = `v.id IN (SELECT vuln_id FROM vuln_platforms WHERE platform IN (${c.keys.map(() => "?").join(", ")}))`;
+    return { id: c.id, label: c.label, blurb: c.blurb, ...figures(where, c.keys), worst: worst(where, c.keys) };
+  });
+  out.push({ id: "danger", label: "Most dangerous", blurb: "Exploited, exploit public, or likely (EPSS ≥ 50%)", ...figures(dangerSql, []), worst: worst(dangerSql, []) });
+  return out;
+}
+
 function vulnQuery(filters: VulnFilters): { where: string; params: (string | number)[] } {
   const clauses: string[] = [];
   const params: (string | number)[] = [];
   if (filters.watch) clauses.push("v.watch_hit = 1");
   if (filters.platform) {
-    // The column holds a JSON array of platform ids, so one quoted id matches exactly one platform.
-    clauses.push("v.platforms_json LIKE ?");
-    params.push(`%"${filters.platform}"%`);
+    // vuln_platforms (migration 0047) is platforms_json one row a pair, indexed; "browsers" is three ids.
+    const keys = platformKeysOf(filters.platform);
+    clauses.push(`v.id IN (SELECT vuln_id FROM vuln_platforms WHERE platform IN (${keys.map(() => "?").join(", ")}))`);
+    params.push(...keys);
   }
   if (filters.kev) clauses.push("v.kev = 1");
-  if (filters.exploit) clauses.push("EXISTS (SELECT 1 FROM exploits e WHERE e.cve_id = v.cve_id)");
+  if (filters.exploit) clauses.push("v.has_exploit = 1");
+  if (filters.danger) clauses.push(dangerSql);
   if (filters.minCvss !== undefined) {
     clauses.push("v.cvss_score >= ?");
     params.push(filters.minCvss);
@@ -801,7 +872,7 @@ export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChan
  * Numbers are written as numbers (a CVSS of 9.8, an EPSS as its decimal) rather than as the page
  * formats them, because the point of a CSV is that something else will do arithmetic on it.
  */
-export function vulnsCsv(db: DatabaseSync, filters: VulnFilters, baseUrl: string): string {
+export function vulnsCsv(db: DatabaseSync, filters: VulnFilters, baseUrl: string, owner = false): string {
   const { rows } = listVulns(db, { ...filters, limit: Math.min(filters.limit ?? 1000, 5000) }, { maxLimit: 5000 });
   const exploited = new Set(
     rows.length
@@ -824,7 +895,7 @@ export function vulnsCsv(db: DatabaseSync, filters: VulnFilters, baseUrl: string
         exploited.has(v.cve_id) ? "yes" : "no",
         parseJson<string[]>(v.vendors_json, []).join("; "),
         parseJson<string[]>(v.products_json, []).join("; "),
-        parseJson<string[]>(v.watch_labels_json, []).join("; "),
+        owner ? parseJson<string[]>(v.watch_labels_json, []).join("; ") : "",
         v.description ?? "",
         `${baseUrl}/vulnerabilities/${v.cve_id}`,
       ]),

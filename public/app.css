@@ -291,6 +291,38 @@ input[type="search"], input[type="password"], input[type="text"] { font: inherit
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 14px; }
 .filters a { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); color: var(--mute); text-decoration: none; background: var(--card); }
 .filters a.on { color: var(--acc); border-color: var(--acc); }
+.filters.platform-pick { margin-bottom: 4px; }
+.filters .lab { font: 600 10.5px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--mute); margin-right: 4px; }
+.filters a.danger { color: var(--del); }
+.filters a.danger.on { border-color: var(--del); background: var(--del-bg); }
+
+/* The Vulnerabilities page opens on what is affecting each platform: one card a platform, the worst of it named. */
+.platforms { margin: 14px 0 18px; }
+.platforms h2 { font: 600 11px var(--sans); letter-spacing: 0.11em; text-transform: uppercase; color: var(--mute); margin: 0 0 8px; }
+.pcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.pcard { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px 11px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pcard:hover, .pcard:focus-within { border-color: var(--acc); }
+.pcard.danger { border-left: 3px solid var(--del); }
+.pcard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink); text-decoration: none; }
+.pcard-head small { font: 600 14px var(--sans); }
+.pcard-head b { font: 500 22px var(--mono); font-variant-numeric: tabular-nums; }
+.pcard-blurb { margin: 0; font-size: 12.5px; color: var(--mute); }
+.pcard-stats { margin: 2px 0 6px; font-size: 12.5px; color: var(--mute); }
+.pcard-stats a { color: inherit; }
+.pcard-stats a.kev { color: var(--del); font-weight: 600; }
+.pcard-worst { margin: auto 0 0; padding-top: 6px; border-top: 1px dashed var(--rule); font-size: 12.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.pcard-worst > span:first-child { font: 600 10px var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); margin-right: 4px; }
+.pcard-worst a { font-family: var(--mono); }
+/* On a phone the cards are a two-column index to the lists: name, count and how many are exploited. */
+@media (max-width: 560px) {
+  .pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .pcard { padding: 8px 10px; }
+  .pcard-head { flex-direction: column; align-items: flex-start; gap: 0; }
+  .pcard-head b { font-size: 18px; }
+  .pcard-blurb, .pcard-worst, .pcard-stats a:not(.kev), .pcard-stats span ~ *, .pcard-stats a.kev ~ * { display: none; }
+  .pcard-stats { margin: 0; font-size: 0; }
+  .pcard-stats a.kev, .pcard-stats > span:first-child { font-size: 12px; }
+}
 .filters form { margin-left: auto; }
 .wire-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .wi { background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--rule); border-radius: 8px; padding: 10px 14px; min-width: 0; display: grid; gap: 4px; }

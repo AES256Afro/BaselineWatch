@@ -181,10 +181,11 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
     "vulnerabilities",
     {
       title: "CVEs and advisories",
-      description: "Vulnerabilities with CVSS, EPSS, KEV, SSVC, vendors, products and watchlist hits. Filter to the watchlist, to KEV, by score or likelihood, by change date, or search.",
+      description: "Vulnerabilities with CVSS, EPSS, KEV, SSVC, vendors, products and the platforms they affect. Filter by platform (windows, apple, linux, browsers, android, network), to the most dangerous (exploited, a public exploit, or EPSS at least 50%), to KEV, by score or likelihood, by change date, or search.",
       inputSchema: {
         q: z.string().max(200).optional().describe("Search in ids and descriptions"),
-        watch: z.boolean().optional().describe("Only vulnerabilities matching the watchlist"),
+        platform: z.enum(["windows", "apple", "linux", "browsers", "android", "network", "chrome", "firefox", "edge"]).optional().describe("Only vulnerabilities affecting this platform"),
+        dangerous: z.boolean().optional().describe("Only the most dangerous: exploited, a public exploit, or likely to be (EPSS at least 50%)"),
         kev: z.boolean().optional().describe("Only CISA KEV entries"),
         min_cvss: z.number().min(0).max(10).optional(),
         min_epss: z.number().min(0).max(1).optional(),
@@ -199,7 +200,8 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
       asText(
         apiVulns(db, {
           q: args.q,
-          watch: s(args.watch),
+          platform: args.platform,
+          danger: s(args.dangerous),
           kev: s(args.kev),
           min_cvss: s(args.min_cvss),
           min_epss: s(args.min_epss),

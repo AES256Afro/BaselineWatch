@@ -58,9 +58,9 @@ function remedyCard(r: Remedy, owner: boolean, back: string): Html {
     </div>
     <div class="clears">
       <span class="small">${r.kind === "none" ? "" : `Clears ${r.cves.length}:`}</span>
-      ${r.cves.map((c) => html`<a class="cve${c.kev ? " kev" : c.watch ? " watch" : ""}" href="/vulnerabilities/${c.cveId}">${c.cveId}</a>`)}
-      ${r.kevCount || r.watchCount
-        ? html`<span class="small">· ${[r.kevCount ? `${r.kevCount} exploited` : null, r.watchCount ? `${r.watchCount} on your watchlist` : null].filter(Boolean).join(", ")}</span>`
+      ${r.cves.map((c) => html`<a class="cve${c.kev ? " kev" : owner && c.watch ? " watch" : ""}" href="/vulnerabilities/${c.cveId}">${c.cveId}</a>`)}
+      ${r.kevCount || (owner && r.watchCount)
+        ? html`<span class="small">· ${[r.kevCount ? `${r.kevCount} exploited` : null, owner && r.watchCount ? `${r.watchCount} on your watchlist` : null].filter(Boolean).join(", ")}</span>`
         : ""}
     </div>
   </li>`;

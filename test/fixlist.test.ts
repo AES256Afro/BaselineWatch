@@ -50,6 +50,8 @@ function vuln(cveId: string, over: Partial<VulnRow> = {}): VulnRow {
     first_seen_at: since,
     last_seen_at: since,
     packages_json: null,
+    platforms_json: null,
+    has_exploit: 0,
     aliases_json: null,
     ...over,
   };

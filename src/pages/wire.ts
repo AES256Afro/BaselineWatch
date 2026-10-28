@@ -56,7 +56,7 @@ function chips(item: WireItem, owner: boolean): Html[] {
   if (item.kind === "kev" || (item.kind === "vulnerability" && s.kev)) out.push(html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>`);
   if (item.kind === "vulnerability") {
     if (typeof s.epss === "number") out.push(html`<span class="chip epss">EPSS ${(s.epss * 100).toFixed(0)}%</span>`);
-    if (s.watch?.length) out.push(html`<span class="chip mine">${s.watch.join(", ")}</span>`);
+    if (owner && s.watch?.length) out.push(html`<span class="chip mine">${s.watch.join(", ")}</span>`);
     if (s.cves?.[0]) out.push(html`<a class="chip" href="/vulnerabilities/${s.cves[0]}">details</a>`);
   }
   if (s.ransomware) out.push(html`<span class="chip kev">ransomware</span>`);

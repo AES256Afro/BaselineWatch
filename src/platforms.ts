@@ -29,6 +29,35 @@ export function platformName(id: PlatformKey): string {
   return platformList.find((p) => p.id === id)?.label ?? id;
 }
 
+/**
+ * What a reader picks on the Vulnerabilities page: the platforms as people ask about them. The
+ * three browsers are one choice there, because "what is hitting the browsers?" is the question;
+ * Safari stays with Apple, where src/platforms.ts has always put it.
+ */
+export type PlatformChoice = PlatformKey | "browsers";
+
+export const platformChoices: { id: PlatformChoice; label: string; blurb: string; keys: PlatformKey[] }[] = [
+  { id: "windows", label: "Windows", blurb: "Windows, Windows Server and their components", keys: ["windows"] },
+  { id: "apple", label: "Apple", blurb: "macOS, iOS, iPadOS and Safari", keys: ["apple"] },
+  { id: "linux", label: "Linux", blurb: "The kernel and the distributions", keys: ["linux"] },
+  { id: "browsers", label: "Browsers", blurb: "Chrome, Firefox and Edge", keys: ["chrome", "firefox", "edge"] },
+  { id: "android", label: "Android", blurb: "Android and Pixel", keys: ["android"] },
+  { id: "network", label: "Network devices", blurb: "Firewalls, VPNs and edge gear", keys: ["network"] },
+];
+
+export function isPlatformChoice(value: unknown): value is PlatformChoice {
+  return value === "browsers" || isPlatformKey(value);
+}
+
+/** The platform ids a choice stands for. */
+export function platformKeysOf(choice: PlatformChoice): PlatformKey[] {
+  return choice === "browsers" ? ["chrome", "firefox", "edge"] : [choice];
+}
+
+export function platformChoiceName(choice: PlatformChoice): string {
+  return choice === "browsers" ? "Browsers" : platformName(choice);
+}
+
 const networkVendors = new Set(["cisco", "juniper", "fortinet", "paloaltonetworks", "f5", "ivanti", "citrix", "sonicwall", "zyxel", "dlink", "d-link", "netgear", "mikrotik", "arista", "checkpoint", "pulsesecure", "barracuda", "sophos", "watchguard", "arraynetworks", "draytek", "tp-link", "ubiquiti", "hpe", "aruba"]);
 const linuxVendors = new Set(["linux", "redhat", "canonical", "debian", "suse", "opensuse", "fedoraproject", "almalinux", "rockylinux", "oraclelinux"]);
 
@@ -81,7 +110,10 @@ export function platformsOf(v: { cpes: string[]; vendors: string[]; products: st
     const products = v.products.map((x) => x.toLowerCase());
     for (const vendor of vendors) for (const product of products.length ? products : [""]) for (const p of platformsOfCpe(`cpe:2.3:a:${vendor}:${product}`)) out.add(p);
   }
-  if (out.size === 0 && v.description) {
+  // Only when NVD has attached nothing: a CVE whose CPE names another product is that product's,
+  // however its description travels. "Ray … exploitable via Firefox and Safari" is a Ray flaw,
+  // and filing it under the browsers put it first on "what is affecting the browsers?".
+  if (out.size === 0 && v.cpes.length === 0 && v.vendors.length === 0 && v.description) {
     for (const hint of descriptionHints) if (hint.re.test(v.description)) out.add(hint.platform);
   }
   return [...out];

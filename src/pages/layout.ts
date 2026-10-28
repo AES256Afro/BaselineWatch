@@ -224,7 +224,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
       <summary>Desk</summary>
       <div class="menu right wide">
         <span class="cap">Your fleet and your work</span>
-        ${deskGroup.map((a) => entry(a))}
+        ${deskGroup.filter((a) => owner || a !== "watchlist").map((a) => entry(a))}
         <hr>
         <span class="cap">This instance</span>
         ${deskInstance.map((a) => entry(a))}
