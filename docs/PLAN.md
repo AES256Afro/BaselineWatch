@@ -906,7 +906,7 @@ orphaned in a "next, in order" list.
 | Mine: the profile in a signed cookie, the shareable link, per-profile feeds | M11.4 | M15 |
 | CVEs by release; the Apple, Android and Samsung pages that have no feed | M11.5 | M15 |
 | Plan runs as data, runs compared, saved named plans, results in the API and MCP | M11.7 | M16 |
-| endoflife.date as a source, `check:templates`, the quarterly template review | M11.6 | M16 |
+| endoflife.date as a source, `check:templates`, the quarterly template review | M11.6 | M16; the fleet check itself moved to M20.5 on 2026-10-28, which makes the file an overlay rather than checking it |
 | Saved named baseline profiles | M9.3 | M16, beside saved plans |
 | Multi-user with roles | M8 | M18, gated on a second person needing it |
 | Intune baselines | M8 | Standing backlog: blocked until Microsoft publishes a machine-readable baseline. DISA's Intune package already covers Windows. |
@@ -1072,7 +1072,8 @@ The plans export beautifully and prove nothing. A plan that ends in a signed PDF
   across releases; saved named plans and saved baseline profiles for the owner; the results in the
   JSON API and the MCP tools, so an agent answers "did we test Platform SSO on Golden Gate yet"
   without a person opening a page.
-- **The fleet file checked against a source**: endoflife.date as an adapter, diffed into the
+- **The fleet file checked against a source** (moved to M20.5 on 2026-10-28, which goes further):
+  endoflife.date as an adapter, diffed into the
   Register like any standard, with `platforms.yaml` as the curated layer over it and a digest line
   when the two disagree; M13's `check:templates` extended to name a template whose cited page
   changed; a quarterly review line in the digest.
@@ -1167,7 +1168,7 @@ Thirty-seven releases in seven days is the right pace for building and the wrong
 something over. 1.0 is the version a stranger installs from the catalog and runs for a week
 without the author.
 
-- **Scope freeze**: no new areas, and only the gates above closed — M13 to M17, not M18.
+- **Scope freeze**: no new areas, and only the gates above closed — M13 to M17 and M20, not M18.
 - **A written threat model and a sweep against it**: the one page that carries a script, the two
   upload paths (the CIS PDF and the branding mark) and the hand-rolled multipart reader, the
   session and cookie handling, the per-route CSP, SSRF in every adapter that follows a URL out of
@@ -1189,12 +1190,186 @@ without the author.
   alerting, no manual backfill, no stuck source that nothing reported — and every claim on the
   public site is either sourced to a publisher or covered by a fixture test.
 
+### M20: The site feeds itself (planned 2026-10-28)
+
+Written after M19 and numbered after it, but it is a gate on 1.0 and sits before it in the order
+below: "runs a week without the author" means nothing while the author's coding agent is how new
+data arrives.
+
+**What the sweep of 2026-10-28 found.** cybercard.net's own `/metrics` read
+`baselinewatch_source_failing_seconds{source="canary-malware"} 522000`: six days red. URLhaus had
+put every download behind a per-user Auth-Key and its host file answered 410 Gone. M13.2 did its
+job — the tile went red, the notification went out — and then nothing could happen without a
+session in this repository, because the only way to change a source's address is a migration
+(0050 is that session). That is the pattern, not the exception. An inventory of what the site shows
+found twenty-two stores of hand-kept data, and none of them can be changed from the running
+instance:
+
+- **Sources** are about 115 rows across 31 migrations. The Sources page can turn one on or off,
+  fetch it now and take a CIS upload; it cannot add a feed, change an address, a schedule or a
+  topic. The generic feed adapter already reads any RSS, RSS 1.0 or Atom URL (`adapterFor` falls
+  back by format, `src/adapters/index.ts`), so for most new sources the missing piece is a form,
+  not code.
+- **What a source follows is named by version.** DISA's twenty `defaultStigs` say "Apple macOS
+  26", "Google Android 17", "Canonical Ubuntu 24.04" (`src/adapters/disa.ts`); mSCP follows
+  `["tahoe", "sequoia", "ios_26"]` (`src/adapters/mscp.ts`) and `src/baselines.ts` maps "26" to
+  tahoe by hand; CSRC follows thirty hand-picked publications (`src/adapters/csrc-pubs.ts`);
+  endoflife.date seven products (`src/eol.ts`). Each is right today and wrong the day the publisher
+  ships the next one. The fleet file already names macOS 27 and `mscp: ios_27`, which nothing
+  fetches: the branch does not exist upstream yet, and nothing will notice when it does.
+- **The curated files are baked into the image.** `data/platforms.yaml` (591 lines, eight
+  "verify" markers), `data/mitigations.yaml` and twenty-five test plans are copied to `/app/data`
+  (`Dockerfile`), the container runs read-only and the volume is `/data`. A wrong date is a commit,
+  an image and two clicks in BoxPilot.
+- **Classifiers are word lists in code.** The platform vendor sets and description patterns
+  (`src/platforms.ts`), the thirty-seven AI headline words (`src/topics.ts`), the STIG and KEV
+  page groups (`src/stigs.ts`), the DISA Intune and GPO joins (`src/baselines.ts`); a new network
+  vendor in KEV needs a code change and a migration to re-mark its CVEs (0049 is that, for AI).
+- **The one model path** (`src/llm.ts`) is optional and labelled, and stays so; but with it off a
+  release with no captured rationale shows a bare "no stated reason", and turning it on later
+  summarises nothing already loaded.
+
+**The rule this milestone sets.** Keeping the data current needs neither a coding agent editing the
+repository nor a model at run time. Relevant and expected data — the next version of what the
+instance already follows, a release in the fleet's product lines, a feed the owner wants — arrives
+by itself or is one owner click, and a source that breaks proposes its own repair. Agents stay
+welcome for building features; they stop being the delivery path for data. Nothing here relaxes
+the standing promises: no outbound call except to a declared source (an owner-added source is
+declared by being added), public hosts only, no model in ingest, diff or explain, licensed content
+never redistributed, secrets never rendered.
+
+#### M20.1: The hand-kept ledger
+
+One registry, `src/curated.ts`, with a row per hand-kept store: the file or constant, what it
+holds, the source that can check it (or "none"), the date it was last checked and how it goes
+stale. A test fails when a new constant list or YAML file appears without a row, and the Sources
+page gains a "Kept by hand" section that shows each store's age and its checker's latest verdict.
+**Done when** the twenty-two stores are on that page with their ages, and each later sub-milestone
+is measured by how many rows it retires.
+
+#### M20.2: Sources the owner adds and edits
+
+- **Add a source** on the Sources page, owner only: a URL and a kind (feed, subreddit, Hacker News
+  query), probed before it is saved — one fetch through the public-only path, parsed by the adapter
+  that would read it, the first five items shown — and refused if it does not parse. Name, group,
+  topic, schedule and licence are fields; headlines and links only, as for every feed.
+- **Edit a source**: address, schedule, topic and name; retire one. Rows carry `origin` (`seed`
+  or `owner`) and a log of every change with its before and after, and seeded rows the owner has
+  edited are left alone by later migrations, which already guard their updates on the old value
+  (0046, 0050).
+- **OPML import** beside the OPML export that exists (`src/feeds.ts`), each entry probed the same
+  way.
+- **Keyed sources** without code: a source may declare that it needs a key, read from
+  `BW_KEY_<SOURCE>` and spliced into the request, never stored, logged or shown — the page says
+  "set" or "not set". URLhaus's own export (`urlhaus-api.abuse.ch/v2/files/exports/<key>/…`) is the
+  first user, for an owner who would rather read it than the mirror.
+- **Done when** the owner adds a feed by its URL on cybercard.net and its items are on the News at
+  the next tick, with no deploy.
+
+#### M20.3: Repairs proposed, not hunted
+
+- When a source fails, the instance tries the moves a person would: follow a permanent redirect and
+  offer to keep the new address; look for `<link rel="alternate">` feeds on the publisher's home
+  page; try the source's declared **fallbacks** in order (a `fallback_urls` list per row:
+  `canary-malware` would have carried malware-filter's copy of URLhaus from the day it was seeded).
+- What it finds is a **proposed repair** on the Sources page and on Today's pipeline tile — the
+  failure as the Sources page translates it, the candidate, its probe result — with **Use it**, and
+  the notification M13.2 already sends names it. Nothing switches address without the click, except
+  a declared fallback, which is used at once and reported.
+- The nightly feed and template probes stay as the backstop and file their issue only for what the
+  instance could not repair.
+- **Done when** the next dead feed is mended from Today by a click, and replaying the URLhaus 410
+  against a row that declares the mirror shows a fallback the same hour instead of six red days.
+
+#### M20.4: Follow the next version, not the one we named
+
+- **DISA**: follow families, not versions — "Apple macOS *n*", "Google Android *n*", "Canonical
+  Ubuntu *n* LTS", "Microsoft Windows Server *n*" — keeping the newest two of each the listing
+  carries, with the owner's `stig:` entries still able to narrow it. (The sweep's fix to
+  `followedPatterns` keeps an `mscp:` entry or a baseline that names no STIG from leaving DISA
+  following nothing; this replaces the list it falls back to.)
+- **mSCP**: the branches from GitHub's branches API once a day, each placed by the OS version its
+  own `VERSION.yaml` states, following the newest two macOS and the newest iOS and visionOS
+  branches; the codename map in `src/baselines.ts` read from the same answer.
+- **CSRC**: follow series and topics through CSRC's search, with today's thirty publications as
+  the seed rather than the boundary; a new publication in a followed series is a Register item.
+- **endoflife.date**: the product list from its `all` index, filtered to the categories the fleet
+  uses, rather than seven names in `src/eol.ts`.
+- **The DISA Intune and GPO joins** by the names the packages and STIGs share, with the table in
+  `src/baselines.ts` kept only for the exceptions.
+- **Done when** a listing fixture that gains "Apple macOS 27 STIG - Ver 1, Rel 1" and a branches
+  fixture that gains a new codename both land in the Register and the builder with no code change,
+  and the real macOS 27 STIG and mSCP branch do the same on cybercard.net when they ship.
+
+#### M20.5: The fleet from its sources, the file as an overlay
+
+This supersedes M16's "fleet file checked against a source" and goes further.
+
+- Release, release date, support end and status come from what the instance already loads —
+  `eol_cycles`, Apple's security releases, Microsoft's update guide and release information, the
+  STIG and mSCP listings — and the YAML keeps only what no publisher states: hardware families, the
+  owner's notes, the baseline keys that cannot be derived. Each date on `/fleet` cites its source;
+  the "verify" markers go.
+- A release a source announces that the fleet does not carry yet is a **proposed release** on
+  `/fleet`, quoting the source, with **Add**. The owner's additions and corrections live in the
+  database, not the image, so they survive an upgrade; the shipped YAML is the seed, and where the
+  two differ the page says so.
+- The same move for `data/mitigations.yaml` and the test plans, whose prose carries dates and
+  versions ("24H2 ended 2026-10-13"): owner-editable copies in the database, the shipped files as
+  seed, `check:templates` naming a plan whose cited page changed.
+- **Done when** a release endoflife.date adds is proposed on `/fleet` within a day, accepting it
+  puts it in the builder's release picker, and no date in the fleet is without a source.
+
+#### M20.6: Classifiers from the data, not from a list in code
+
+- The platform vendor sets, description patterns and AI headline words move into a table seeded
+  from today's lists, re-marked by a job the owner runs from the page rather than by a migration.
+- **Suggestions without a model**: KEV entries and notable CVEs whose vendor maps to no platform,
+  counted by vendor, are proposed for a platform ("Gladinet: 3 KEV entries this month — Network
+  devices?"); words that recur in the AI sources' headlines and rarely elsewhere are proposed as AI
+  terms. Counting, never guessing; each proposal shows the rows it counted.
+- **Done when** a network vendor new to KEV is proposed on the day it appears, and accepting it
+  re-marks its CVEs with no migration.
+
+#### M20.7: Every release explained without a model
+
+- A **computed** summary of every release from its diff — how many controls or rules were added,
+  removed and retitled, by family, severities moved, the three largest changes named — always
+  present and badged "Computed from the diff", distinct from the "Generated" badge.
+- Each standards adapter reads the publisher's own reason where the publisher ships one: DISA's
+  revision history inside the zip, mSCP's release notes in the branch, NIST's change notes in the
+  OSCAL catalog's back matter.
+- The optional model keeps its place and gains `npm run summarize`, so turning it on later
+  covers what is already loaded.
+- **Done when**, with `BW_LLM_URL` unset, no release in the Register shows "no stated reason"
+  with nothing beside it.
+
+#### M20.8: Fixtures that refresh themselves
+
+The monthly standing commitment — fixtures refreshed for the listing adapters — becomes a
+scheduled workflow that captures this month's responses, runs the suite against them and opens one
+pull request with the captures and the result. An owner-added feed needs no fixture of its own: it
+is read by an adapter that has one, and its first response is a snapshot like any other.
+**Done when** the month's fixture refresh is a pull request nobody had to start.
+
+- **Depends on**: M13 (the pipeline tile, the notifier, the probes), all shipped. M20.5 overlaps
+  M16 and replaces its fleet item. **Thin slice**: M20.1, M20.3 and the add-a-feed half of M20.2 —
+  the first makes the debt visible and the other two would have closed the URLhaus episode without
+  a session. M20.4 next, and before Apple's 27 releases reach the STIG and mSCP listings.
+- **Done when**: thirty days pass on cybercard.net in which no commit was needed to keep its data
+  current — every new version followed, every new release in the fleet, every broken address
+  repaired either arrived by itself or was a click the owner made, and the owner's change log on
+  the Sources page shows those clicks. `git log -- data/ src/migrations/` over the window holds
+  schema and features, not data.
+
 ### The order, and what the dates are worth
 
 ```
 M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
                   ├──► M15 Mine ──────► M16 evidence ───────┤
-                  └──► M17 teaching site ───────────────────┴──► M19 1.0
+                  ├──► M17 teaching site ───────────────────┼──► M19 1.0
+                  └──► M20 the site feeds itself ───────────┘
+                       (M20.5 replaces M16's fleet check)
 
                         M15 ──► M18 more than one person
                                 (gated on demand, off the 1.0 path, ships as 1.1)
@@ -1208,6 +1383,7 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 | M16 Evidence | 2026-11-11 | 4 days | Two runs of one plan compared, answerable through MCP. |
 | M17 The teaching site | 2026-11-16 | 3 days + L7 | Keyboard and screen reader across looks and schemes; L7's map and a control's life in [LEARN.md](LEARN.md). |
 | M18 More than one person | when a second person needs it | 4 days | Roles enforced on every write. Not a gate on 1.0. |
+| M20 The site feeds itself | 2026-11-25 | 6 days | Thirty days with no data-only commit; a broken source mended by a click. Thin slice first: M20.1, M20.3, adding a feed. |
 | M19 1.0 | 2026-11-30 | 5 days | The unattended week. |
 
 The dates assume the pace of the first week — a sub-milestone a day with an agent — and they are
