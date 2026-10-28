@@ -295,8 +295,25 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
 
   it("files a CVE by its CPE, not by a browser its description mentions", () => {
     const ray = { cpes: ["cpe:2.3:a:anyscale:ray:*:*:*:*:*:*:*:*"], vendors: ["anyscale"], products: ["ray"], description: "Ray … exploitable via Firefox and Safari." };
-    expect(platformsOf(ray)).toEqual([]);
+    // Ray is AI tooling (src/platforms.ts), and not a browser whatever its description names.
+    expect(platformsOf(ray)).toEqual(["ai"]);
     expect(platformsOf({ cpes: [], vendors: [], products: [], description: "A use after free in Google Chrome prior to 150.0" })).toEqual(["chrome"]);
+  });
+
+  it("files the software people run models and agents with as AI tooling", () => {
+    const of = (cpe: string) => platformsOf({ cpes: [cpe], vendors: [], products: [], description: null });
+    expect(of("cpe:2.3:a:vllm:vllm:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    expect(of("cpe:2.3:a:langflow:langflow:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    expect(of("cpe:2.3:a:anyscale:ray:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    expect(of("cpe:2.3:a:nvidia:triton_inference_server:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    expect(of("cpe:2.3:a:google:tensorflow:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    expect(of("cpe:2.3:a:googlecloud:mcp_toolbox_for_databases:*:*:*:*:*:*:*:*")).toEqual(["ai"]);
+    // Automation and notebooks that host AI are not AI tooling, and Joyent's Triton is not NVIDIA's.
+    expect(of("cpe:2.3:a:n8n:n8n:*:*:*:*:*:*:*:*")).toEqual([]);
+    expect(of("cpe:2.3:a:tritondatacenter:smartos:*:*:*:*:*:*:*:*")).toEqual([]);
+    // Chrome stays Chrome: "mcp" matches a product word, not any product containing those letters.
+    expect(of("cpe:2.3:a:google:chrome:*:*:*:*:*:*:*:*")).toEqual(["chrome"]);
+    expect(platformsOf({ cpes: [], vendors: [], products: [], description: "Ollama before 0.7.1 allows a remote attacker to read files." })).toEqual(["ai"]);
   });
 });
 
