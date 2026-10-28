@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ten Directions Mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Ten directions for News, Today and Standards, drawn from the audit of 28 October 2026.
+   Content is from a copy of the instance's own database (26 October 2026); fix versions and
+   fleet cells are illustrative. Tokens are the Register look's. No script: each screen is static. */
+:root{
+  --paper:#f3f4f1; --card:#ffffff; --panel-2:#f7f8f6; --ink:#1b1f23; --mute:#5f6b70; --rule:#cfd5d2; --rule-2:#b9c1bd;
+  --acc:#0f6e56; --acc-ink:#ffffff; --acc-soft:#e3f1ec; --warn:#8a5a00; --warn-soft:#fbf0d9; --del:#b3261e; --del-soft:#fbe7e5;
+  --ins-soft:#e2f2e6; --hl:#fff3cd; --cyan:#0b6f8f; --purple:#7a4fb3; --purple-soft:#efe8f8;
+  --serif:"Newsreader","Source Serif 4",Georgia,serif;
+  --sans:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --acc-soft:#173a31; --warn:#e2b55a; --warn-soft:#3a3020; --del:#ff8a80; --del-soft:#3d2220;
+  --ins-soft:#1d3a26; --hl:#3a3420; --cyan:#5fd0f3; --purple:#c2a6f0; --purple-soft:#2e2540; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#15181a; --card:#1d2124; --panel-2:#22272b; --ink:#e7eae6; --mute:#9aa6a3; --rule:#333a3d; --rule-2:#46504f;
+  --acc:#4cc9a6; --acc-ink:#06211a; --acc-soft:#173a31; --warn:#e2b55a; --warn-soft:#3a3020; --del:#ff8a80; --del-soft:#3d2220;
+  --ins-soft:#1d3a26; --hl:#3a3420; --cyan:#5fd0f3; --purple:#c2a6f0; --purple-soft:#2e2540; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);padding-bottom:72px}
+a{color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px}
+header.top h1{font:500 34px/1.1 var(--serif);margin:40px 0 0}
+header.top p{color:var(--mute);max-width:72ch;margin:10px 0 0}
+.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:22px 0 0;padding:0;list-style:none}
+.toc a{display:block;text-decoration:none;border:1px solid var(--rule);background:var(--card);border-radius:9px;padding:9px 12px;height:100%}
+.toc a:hover,.toc a:focus-visible{border-color:var(--acc);outline:none}
+.toc b{display:block;font-size:13.5px}
+.toc span{display:block;color:var(--mute);font-size:12.5px;line-height:1.35}
+.toc small{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+section.dir{margin-top:64px;scroll-margin-top:16px}
+.kicker{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:0 0 6px}
+section.dir h2{font:500 28px/1.15 var(--serif);margin:0}
+.thesis{color:var(--mute);max-width:76ch;margin:8px 0 0}
+.frame{margin-top:16px;border:1px solid var(--rule);border-radius:10px;overflow-x:auto;background:var(--card)}
+.chrome{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--rule);background:var(--panel-2);color:var(--mute);font:12px var(--mono);min-width:1020px}
+.chrome i{width:9px;height:9px;border-radius:50%;background:var(--rule-2)}
+.screen{min-width:1020px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.notes div{border-top:2px solid var(--rule);padding-top:8px;min-width:0}
+.notes h3{margin:0 0 4px;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.notes p{margin:0;font-size:14px}
+.notes .solves{border-top-color:var(--acc)}
+.notes .costs{border-top-color:var(--warn)}
+
+/* shared masthead */
+.mast{display:flex;align-items:center;gap:22px;padding:11px 20px;border-bottom:1px solid var(--rule);background:var(--card)}
+.mast .name{font:500 17px var(--serif);white-space:nowrap}
+.mast nav{display:flex;gap:18px;font-size:13.5px}
+.mast nav span{color:var(--mute);padding:3px 0;border-bottom:2px solid transparent;white-space:nowrap}
+.mast nav span.on{color:var(--ink);border-bottom-color:var(--acc)}
+.mast .search{margin-left:auto;border:1px solid var(--rule);border-radius:7px;padding:4px 10px;color:var(--mute);font-size:13px;min-width:200px}
+.mast .desk{border:1px solid var(--rule);border-radius:7px;padding:4px 10px;color:var(--mute);font-size:13px;white-space:nowrap}
+.page{padding:18px 20px 24px}
+.ph{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.ph h3{font:500 24px/1.15 var(--serif);margin:0}
+.ph .sub{color:var(--mute);font-size:13px}
+.chip{display:inline-block;font:500 11px var(--mono);padding:1px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--mute);white-space:nowrap}
+.chip.kev{background:var(--del-soft);border-color:transparent;color:var(--del)}
+.chip.epss{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.chip.mine{background:var(--acc-soft);border-color:transparent;color:var(--acc)}
+.chip.std{background:var(--purple-soft);border-color:transparent;color:var(--purple)}
+.src{font:500 11.5px var(--mono);color:var(--mute)}
+.t{font:11.5px var(--mono);color:var(--mute);font-variant-numeric:tabular-nums}
+.small{font-size:12.5px;color:var(--mute)}
+.btn{display:inline-block;border:1px solid var(--rule-2);border-radius:7px;padding:4px 10px;font-size:12.5px;background:var(--card);white-space:nowrap}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.box{border:1px solid var(--rule);border-radius:9px;background:var(--card);padding:12px 14px}
+.box h4{margin:0 0 8px;font:600 11px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
+.gen{display:inline-block;font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:4px;background:var(--purple-soft);color:var(--purple)}
+.kbd{font:500 11px var(--mono);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--panel-2)}
+
+/* 1 · clusters */
+.d1{display:grid;grid-template-columns:1fr 280px;gap:18px;margin-top:14px}
+.cl{border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:14px 16px;margin-bottom:12px}
+.cl.hot{border-left:4px solid var(--del)}
+.cl .head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.cl .head b{font:500 19px/1.25 var(--serif)}
+.cl .count{margin-left:auto;font:600 12px var(--mono);color:var(--acc);white-space:nowrap}
+.cl .span{display:flex;align-items:center;gap:8px;margin:8px 0 6px}
+.cl .bar{position:relative;height:6px;flex:1;background:var(--panel-2);border-radius:3px}
+.cl .bar i{position:absolute;top:-3px;width:12px;height:12px;border-radius:50%;background:var(--acc);border:2px solid var(--card)}
+.cl ul{list-style:none;margin:6px 0 0;padding:0;border-top:1px dashed var(--rule)}
+.cl li{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;padding:5px 0;border-bottom:1px dashed var(--rule);font-size:13.5px}
+.cl li:last-child{border-bottom:0}
+.single{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+.mix{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0}
+.mix i{display:block}
+
+/* 2 · reader */
+.d2{display:grid;grid-template-columns:420px 1fr;min-height:560px;border-top:1px solid var(--rule)}
+.list{border-right:1px solid var(--rule);background:var(--panel-2)}
+.hour{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);padding:10px 14px 4px}
+.it{display:grid;grid-template-columns:10px 1fr;gap:8px;padding:8px 14px;border-bottom:1px solid var(--rule);font-size:13.5px;line-height:1.35}
+.it .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);margin-top:6px}
+.it.read .dot{background:transparent}
+.it.read .tt{color:var(--mute)}
+.it.sel{background:var(--card);box-shadow:inset 3px 0 0 var(--acc)}
+.it .meta{display:flex;gap:8px;margin-top:2px}
+.pane{padding:20px 26px}
+.pane h3{font:500 25px/1.2 var(--serif);margin:4px 0 6px}
+.pane .lead{font:17px/1.55 var(--serif);max-width:62ch}
+.img{height:150px;border-radius:9px;background:repeating-linear-gradient(135deg,var(--panel-2) 0 12px,var(--card) 12px 24px);border:1px solid var(--rule);display:flex;align-items:flex-end;padding:8px;margin:12px 0;color:var(--mute);font:11px var(--mono)}
+.verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.verdict div{border:1px solid var(--rule);border-radius:8px;padding:9px 11px}
+.verdict small{display:block;font:600 10px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.verdict b{font:600 17px var(--mono)}
+.verdict .bad b{color:var(--del)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.keys{display:flex;gap:16px;padding:8px 14px;border-top:1px solid var(--rule);color:var(--mute);font-size:12px;background:var(--panel-2)}
+
+/* 3 · bands */
+.band{margin-top:16px}
+.band .lab{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:4px}
+.band .lab b{font:500 19px var(--serif)}
+.band.red .lab{border-color:var(--del)} .band.red .lab b{color:var(--del)}
+.band.grn .lab{border-color:var(--acc)}
+.band.pur .lab{border-color:var(--purple)}
+.band .lab .ask{margin-left:auto;font-size:12.5px;color:var(--mute)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:10px}
+.card{border:1px solid var(--rule);border-radius:9px;padding:10px 12px;background:var(--card);font-size:13.5px;line-height:1.35;display:flex;flex-direction:column;gap:6px}
+.card .tt{font:500 15px/1.3 var(--serif)}
+.card .foot{margin-top:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* 4 · vendor week */
+.vw{display:grid;grid-template-columns:170px repeat(7,1fr) 70px;margin-top:14px;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.vw > div{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:7px 8px;min-height:58px;font-size:12px}
+.vw .h{min-height:0;font:600 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);background:var(--panel-2)}
+.vw .v{font:600 13.5px var(--sans);display:flex;flex-direction:column;justify-content:center}
+.vw .v small{font:400 11.5px var(--sans);color:var(--mute)}
+.vw .tot{font:600 15px var(--mono);text-align:right;display:flex;align-items:center;justify-content:flex-end}
+.pill{display:block;border-radius:5px;padding:2px 5px;margin-bottom:3px;line-height:1.25;background:var(--panel-2);border:1px solid var(--rule)}
+.pill.k{background:var(--del-soft);border-color:transparent;color:var(--del);font-weight:600}
+.pill.p{background:var(--acc-soft);border-color:transparent;color:var(--acc)}
+.pill.n{color:var(--ink)}
+.heat0{background:var(--card)} .heat1{background:color-mix(in srgb,var(--warn-soft) 55%,var(--card))} .heat2{background:var(--warn-soft)} .heat3{background:var(--del-soft)}
+
+/* 5 · runway */
+.runway{position:relative;margin-top:18px;border:1px solid var(--rule);border-radius:10px;padding:14px 16px 10px;background:var(--card)}
+.days{display:grid;grid-template-columns:repeat(22,1fr);border-bottom:1px solid var(--rule);font:11px var(--mono);color:var(--mute)}
+.days span{padding:3px 0;text-align:center;border-left:1px solid var(--rule)}
+.days span.today{color:var(--acc);font-weight:600;background:var(--acc-soft)}
+.days span.wk{color:var(--rule-2)}
+.lanes{display:grid;grid-template-columns:repeat(22,1fr);grid-auto-rows:30px;grid-auto-flow:row dense;gap:6px 4px;margin-top:8px}
+.ev{border-radius:6px;padding:4px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--rule);background:var(--panel-2)}
+.ev.over{background:var(--del-soft);border-color:var(--del);color:var(--del);font-weight:600}
+.ev.due{background:var(--warn-soft);border-color:transparent;color:var(--warn);font-weight:600}
+.ev.pt{background:var(--acc-soft);border-color:transparent;color:var(--acc);font-weight:600}
+.ev.std{background:var(--purple-soft);border-color:transparent;color:var(--purple)}
+.lanelab{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--mute)}
+.lanelab i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.joblist{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.job{border:1px solid var(--rule);border-radius:9px;padding:11px 13px;background:var(--card)}
+.job .when{font:600 11px var(--mono)}
+.job b{display:block;font:500 16px/1.3 var(--serif);margin:3px 0}
+
+/* 6 · matrix */
+.mx{width:100%;border-collapse:separate;border-spacing:0;margin-top:14px;font-size:13px}
+.mx th,.mx td{border-bottom:1px solid var(--rule);padding:8px 10px;text-align:center}
+.mx thead th{font:600 11px var(--sans);letter-spacing:.06em;color:var(--mute);vertical-align:bottom;border-bottom:2px solid var(--ink)}
+.mx thead th small{display:block;font:400 11px var(--sans);letter-spacing:0;color:var(--mute)}
+.mx tbody th{text-align:left;font-weight:400;min-width:260px}
+.mx tbody th b{display:block;font:500 15px var(--serif)}
+.cell{display:inline-flex;align-items:center;justify-content:center;width:34px;height:26px;border-radius:6px;font:600 11.5px var(--mono)}
+.cell.a{background:var(--del);color:#fff}
+.cell.u{border:1px dashed var(--rule-2);color:var(--mute)}
+.cell.n{color:var(--rule-2)}
+.cell.d{background:var(--acc-soft);color:var(--acc)}
+.mx td.done{text-align:right}
+.mx tr.cleared th,.mx tr.cleared td{opacity:.55}
+
+/* 7 · phone */
+.phones{display:flex;gap:28px;justify-content:center;padding:24px;background:var(--panel-2)}
+.phone{width:375px;height:760px;border:10px solid #111;border-radius:44px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column;flex:none}
+.phone .bar{display:flex;justify-content:space-between;padding:10px 22px 4px;font:600 12px var(--sans)}
+.phone .hd{padding:8px 16px 10px}
+.phone .hd small{font:600 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.phone .hd h3{font:500 26px/1.15 var(--serif);margin:2px 0 0}
+.phone .body{flex:1;overflow:hidden;padding:0 12px;display:flex;flex-direction:column;gap:10px}
+.pc{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:12px 14px}
+.pc.top{border-left:4px solid var(--del)}
+.pc b{display:block;font:500 17px/1.25 var(--serif);margin:4px 0}
+.pc .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pc .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.pc .acts span{text-align:center;padding:9px 0;border-radius:9px;border:1px solid var(--rule-2);font-weight:600;font-size:13.5px}
+.pc .acts span.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.tabbar{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule);background:var(--card);padding:8px 0 22px;font-size:11.5px;text-align:center;color:var(--mute)}
+.tabbar b{display:block;font-size:17px;line-height:1.1;font-weight:400}
+.tabbar .on{color:var(--acc);font-weight:600}
+
+/* 8 · ladder columns */
+.rungs{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:14px;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.rung{border-right:1px solid var(--rule);min-height:470px;display:flex;flex-direction:column}
+.rung:last-child{border-right:0}
+.rung .rh{padding:10px 12px;background:var(--panel-2);border-bottom:1px solid var(--rule)}
+.rung .rh b{display:block;font:500 17px var(--serif)}
+.rung .rh span{display:block;font-size:12px;color:var(--mute);line-height:1.35}
+.opt{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--rule);font-size:13.5px;line-height:1.3}
+.opt .n{font:500 11.5px var(--mono);color:var(--mute);white-space:nowrap}
+.opt.sel{background:var(--acc-soft);box-shadow:inset 3px 0 0 var(--acc)}
+.opt.sel .n{color:var(--acc)}
+.opt code{font:500 12px var(--mono)}
+.opt .changed{color:var(--warn);font:600 10.5px var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.crumb{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.crumb span{border:1px solid var(--rule);border-radius:999px;padding:2px 10px;background:var(--card)}
+.crumb i{color:var(--rule-2);font-style:normal}
+
+/* 9 · scrubber */
+.scrub{position:relative;margin:22px 10px 8px;height:58px}
+.scrub .line{position:absolute;left:0;right:0;top:12px;height:2px;background:var(--rule-2)}
+.scrub .sel{position:absolute;top:10px;height:6px;background:var(--acc);border-radius:3px}
+.scrub .v{position:absolute;top:4px;transform:translateX(-50%);text-align:center;font:11px var(--mono);color:var(--mute);white-space:nowrap}
+.scrub .v i{display:block;margin:0 auto 6px;width:14px;height:14px;border-radius:50%;background:var(--card);border:2px solid var(--rule-2)}
+.scrub .v.on i{background:var(--acc);border-color:var(--acc)}
+.scrub .v.on{color:var(--ink);font-weight:600}
+.scrub .v.ch i{border-color:var(--warn)}
+.d9{display:grid;grid-template-columns:1fr 1fr 300px;gap:14px;margin-top:6px}
+.side{border:1px solid var(--rule);border-radius:9px;background:var(--card);padding:12px 14px}
+.side h4{margin:0 0 6px;font:600 11px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--mute)}
+.side p{margin:0;font:16px/1.55 var(--serif)}
+del{background:var(--del-soft);color:var(--del);text-decoration:line-through;text-decoration-thickness:1px}
+ins{background:var(--ins-soft);color:var(--acc);text-decoration:none}
+blockquote{margin:0;border-left:3px solid var(--acc);padding:2px 0 2px 10px;font:15px/1.5 var(--serif)}
+.fields{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.fields span{font-size:12px;border:1px solid var(--rule);border-radius:6px;padding:2px 8px;color:var(--mute)}
+.fields span.on{border-color:var(--warn);color:var(--warn);font-weight:600}
+
+/* 10 · coverage grid */
+.cg{display:grid;grid-template-columns:200px repeat(7,1fr);margin-top:14px;font-size:12.5px;border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.cg > div{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:6px 8px;position:relative}
+.cg .h{font:600 11px var(--sans);color:var(--mute);background:var(--panel-2);line-height:1.3}
+.cg .h small{display:block;font-weight:400}
+.cg .f{font-weight:600}
+.cg .f small{display:block;font-weight:400;color:var(--mute)}
+.cg .c{text-align:center;font:500 12.5px var(--mono);display:flex;align-items:center;justify-content:center}
+.c0{color:var(--rule-2)}
+.c1{background:color-mix(in srgb,var(--acc) 12%,var(--card))}
+.c2{background:color-mix(in srgb,var(--acc) 26%,var(--card))}
+.c3{background:color-mix(in srgb,var(--acc) 45%,var(--card));color:var(--ink)}
+.c4{background:color-mix(in srgb,var(--acc) 70%,var(--card));color:var(--acc-ink)}
+.cg .c.mv::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.legend{display:flex;gap:14px;align-items:center;margin-top:10px;font-size:12px;color:var(--mute);flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.legend .dotw{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <p class="kicker">Mockups · 28 October 2026</p>
+  <h1>Ten directions for News, Today and Standards</h1>
+  <p>Four for News, three for Today, three for Standards. Each one starts from something the readability and usability sweep found, and each uses the vocabulary in AGENTS.md: standard, baseline, control, configuration setting, the owner's Desk, and the fleet. Headlines, CVEs, KEV due dates and the 800-53 change come from a copy of this instance's own database. Fix versions and fleet cells are made up to illustrate.</p>
+  <ul class="toc">
+    <li><a href="#d1"><small>News · 1</small><b>One story, many sources</b><span>Coverage folded into one card per story</span></a></li>
+    <li><a href="#d2"><small>News · 2</small><b>Reader pane</b><span>Read with j/k on the keyboard; the fleet's verdict sits beside the story</span></a></li>
+    <li><a href="#d3"><small>News · 3</small><b>Signal bands</b><span>Grouped by what each story asks of you</span></a></li>
+    <li><a href="#d4"><small>News · 4</small><b>Vendor week</b><span>Which vendor is having a bad week</span></a></li>
+    <li><a href="#d5"><small>Today · 5</small><b>Deadline runway</b><span>Due dates first, then the work</span></a></li>
+    <li><a href="#d6"><small>Today · 6</small><b>Fix × fleet</b><span>One row per remedy, one column per release</span></a></li>
+    <li><a href="#d7"><small>Today · 7</small><b>Pocket Today</b><span>A phone screen: three jobs and a thumb</span></a></li>
+    <li><a href="#d8"><small>Standards · 8</small><b>Ladder columns</b><span>Standard → baseline → control → setting</span></a></li>
+    <li><a href="#d9"><small>Standards · 9</small><b>Revision scrubber</b><span>One control through each release</span></a></li>
+    <li><a href="#d10"><small>Standards · 10</small><b>Coverage grid</b><span>Control families against publishers, with what moved</span></a></li>
+  </ul>
+</header>
+
+<!-- ============ 1 ============ -->
+<section class="dir" id="d1">
+  <p class="kicker">News · 1</p>
+  <h2>One story, many sources</h2>
+  <p class="thesis">On 26 October, five sources ran PHP2Shell, three ran the Node2Shell Brotli flaw and two ran Wasmtime, so the timeline showed the same story ten times. This folds each story into one card: a shared CVE id first, then a close title match within 48 hours. The card shows how many sources carried it and when the first and latest reports appeared. A single source's own copies, such as BleepingComputer's two Kali posts, fold the same way.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span class="on">News</span><span>Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>News</h3><span class="sub">Monday 26 October · 41 items folded into 26 stories · <a href="#">show every item</a></span></div>
+      <div class="d1">
+        <div>
+          <article class="cl hot">
+            <div class="head"><b>PHP2Shell moves from probes to working shells</b><span class="chip kev">exploited</span><span class="count">5 sources · 4 h</span></div>
+            <div class="span"><span class="t">09:30</span><div class="bar"><i style="left:0"></i><i style="left:22%"></i><i style="left:58%"></i><i style="left:61%"></i><i style="left:96%"></i></div><span class="t">13:52</span></div>
+            <ul>
+              <li><span class="src">SecurityWeek</span><span>PHP2Shell Exploitation Moves From Probes to Working Shells</span><span class="t">09:30</span></li>
+              <li><span class="src">The Register</span><span>We shouldn't be surprised about the PHPocalypse…</span><span class="t">09:14</span></li>
+              <li><span class="src">r/cybersecurity</span><span>PHP2Shell security flaws now successfully exploited in the wild</span><span class="t">10:48</span></li>
+              <li><span class="src">SecurityWeek</span><span>Industrial Vendors Check Products for PHP2Shell Vulnerabilities</span><span class="t">10:52</span></li>
+              <li><span class="src">The Hacker News</span><span>Weekly Recap: This2Shell, That2Shell, Everything's an RCE?</span><span class="t">10:06</span></li>
+            </ul>
+          </article>
+          <article class="cl">
+            <div class="head"><b>Node2Shell: a Brotli decoder RCE, patched across .NET, Node.js and Python</b><span class="chip">CVE-2026-111497</span><span class="chip mine">2 releases</span><span class="count">3 sources</span></div>
+            <div class="span"><span class="t">06:21</span><div class="bar"><i style="left:0"></i><i style="left:61%"></i><i style="left:96%"></i></div><span class="t">11:38</span></div>
+            <ul>
+              <li><span class="src">SecurityWeek</span><span>Node2Shell: Brotli Flaw Triggers Patching Across Microsoft, Node.js, Python Packages</span><span class="t">06:21</span></li>
+              <li><span class="src">r/cybersecurity</span><span>Node2Shell: Brotli Decoder RCE in Node.js (CVE-2026-111497)</span><span class="t">09:42</span></li>
+              <li><span class="src">BleepingComputer</span><span>Microsoft releases emergency .NET patches for critical Brotli flaw</span><span class="t">11:38</span></li>
+            </ul>
+          </article>
+          <article class="cl">
+            <div class="head"><b>Two critical Wasmtime flaws let modules escape the sandbox</b><span class="count">2 sources</span></div>
+          </article>
+          <div class="single"><span class="src">The Record</span><span>Ukraine warns hackers are exploiting Chinese-made Dahua surveillance cameras</span><span class="t">10:21</span></div>
+          <div class="single"><span class="src">The Record</span><span>Popular AI tool LiteLLM says unrevoked key allowed hackers to target users</span><span class="t">08:00</span></div>
+          <div class="single"><span class="src">SecurityWeek</span><span>Genesys Hack Exposes Customer Data From Internal Systems</span><span class="t">10:40</span></div>
+          <div class="single"><span class="src">BleepingComputer</span><span>Kali Linux 2026.3 released with new tools <span class="chip">2 versions</span></span><span class="t">06:26</span></div>
+        </div>
+        <aside>
+          <div class="box"><h4>How stories fold</h4><p class="small" style="margin:0">Items share a story when they name the same CVE, or when their titles score 0.6 or more on similarity within 48 hours. Reddit threads join a story but never start one. Each story's headline comes from the source with the highest rank in <a href="#">Sources</a>.</p></div>
+          <div class="box" style="margin-top:12px"><h4>Today's mix</h4>
+            <div class="mix"><i style="width:34%;background:var(--acc)"></i><i style="width:26%;background:var(--cyan)"></i><i style="width:22%;background:var(--purple)"></i><i style="width:18%;background:var(--rule-2)"></i></div>
+            <p class="small" style="margin:0">Trade press 34% · community 26% · vendor and CERT 22% · research 18%</p></div>
+          <div class="box" style="margin-top:12px"><h4>Talked about</h4><p class="small" style="margin:0">CVE-2026-111497 · 3 sources<br>PHP2Shell (no CVE yet) · 5 sources<br>Wasmtime · 2 sources</p></div>
+        </aside>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>The repeat headlines on a busy day. A story's source count gives a "trending" signal that works for stories with no CVE yet, which src/trending.ts cannot count.</p></div><div class="costs"><h3>Costs</h3><p>A <code>story_id</code> on items, written at ingest by a similarity pass over the last 48 hours. Folding is reversible: "show every item" turns it off.</p></div><div><h3>Data</h3><p>Uses items, signals_json CVE ids and source rank. The rank is new: one number per source.</p></div></div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="dir" id="d2">
+  <p class="kicker">News · 2</p>
+  <h2>Reader pane</h2>
+  <p class="thesis">A mail-client layout for someone who reads all of it. The list on the left, read with <span class="kbd">j</span>/<span class="kbd">k</span>; the item on the right with its lead image, an excerpt, and the three facts that decide whether to act on it: is it exploited, does it affect my fleet, and is there a fix. The strict CSP rules out script, so this works as plain links: <code>/?item=8812</code> opens the pane on the server, and the keys are <code>accesskey</code>s.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/?item=8812</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span class="on">News</span><span>Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="d2">
+      <div class="list">
+        <div class="hour">11:00 – 12:00 · 3 unread</div>
+        <div class="it"><i class="dot"></i><div><div class="tt">Microsoft releases emergency .NET patches for critical Brotli flaw</div><div class="meta"><span class="src">BleepingComputer</span><span class="t">11:38</span><span class="chip mine">fleet</span></div></div></div>
+        <div class="it sel"><i class="dot"></i><div><div class="tt">Two Critical Wasmtime Flaws Could Let Malicious WebAssembly Modules Escape Sandboxes</div><div class="meta"><span class="src">The Hacker News</span><span class="t">11:52</span></div></div></div>
+        <div class="it"><i class="dot"></i><div><div class="tt">Dutch Police Arrest Two Over NFC Relay Attacks That Drained $400,000+</div><div class="meta"><span class="src">SecurityWeek</span><span class="t">11:47</span></div></div></div>
+        <div class="hour">10:00 – 11:00</div>
+        <div class="it read"><i class="dot"></i><div><div class="tt">Ukraine warns hackers are exploiting Chinese-made Dahua surveillance cameras</div><div class="meta"><span class="src">The Record</span><span class="t">10:21</span><span class="chip kev">exploited</span></div></div></div>
+        <div class="it read"><i class="dot"></i><div><div class="tt">PHP2Shell Exploitation Moves From Probes to Working Shells</div><div class="meta"><span class="src">SecurityWeek</span><span class="t">09:30</span><span class="chip">+4 sources</span></div></div></div>
+        <div class="it read"><i class="dot"></i><div><div class="tt">Kali Linux 2026.3 released with 7 new tools, desktop updates</div><div class="meta"><span class="src">BleepingComputer</span><span class="t">06:26</span></div></div></div>
+        <div class="it read"><i class="dot"></i><div><div class="tt">Indirect Syscall Rust Loader Analysis (Stream)</div><div class="meta"><span class="src">r/ReverseEngineering</span><span class="t">11:35</span></div></div></div>
+      </div>
+      <div class="pane">
+        <span class="src">The Hacker News · 26 Oct 11:52 · 2 sources</span>
+        <h3>Two Critical Wasmtime Flaws Could Let Malicious WebAssembly Modules Escape Sandboxes</h3>
+        <div class="img">/img/3f9c…a1 · cached at ingest from og:image</div>
+        <p class="lead">The feed's own summary, two or three sentences, quoted as published with a link to read the rest at the source.</p>
+        <div class="verdict">
+          <div><small>Exploited</small><b>Not known</b><div class="small">No KEV entry · EPSS 0.4%</div></div>
+          <div class="bad"><small>Your fleet</small><b>1 release</b><div class="small">Ubuntu 24.04 · wasmtime on the watchlist</div></div>
+          <div><small>Fix</small><b>38.0.3</b><div class="small">From the GHSA advisory, through OSV</div></div>
+        </div>
+        <div class="actions"><span class="btn pri">Affects me → Triage</span><span class="btn">Reviewing</span><span class="btn">Not mine</span><span class="btn">☆ Star</span><span class="btn">Read at source ↗</span></div>
+      </div>
+    </div>
+    <div class="keys"><span><span class="kbd">j</span> next</span><span><span class="kbd">k</span> previous</span><span><span class="kbd">m</span> mark read</span><span><span class="kbd">s</span> star</span><span><span class="kbd">t</span> triage</span><span style="margin-left:auto">Owner view · visitors see the pane without the actions</span></div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>Reading means going to the source and coming back, and the fleet's verdict sits on another page. Here the verdict is beside the story.</p></div><div class="costs"><h3>Costs</h3><p>Each move between items is a full server round trip with no script. The page already renders fast enough for that. On a phone the list and the pane become two screens.</p></div><div><h3>Data</h3><p>Uses data the instance already has: items, the watchlist and fleet matching from agenda.ts, and OSV fix versions.</p></div></div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="dir" id="d3">
+  <p class="kicker">News · 3</p>
+  <h2>Signal bands</h2>
+  <p class="thesis">The timeline sorted by what each story asks of you, not by when it arrived: something exploited now, a fix to deploy, research to read, industry news to know. Each band holds four cards and links to the rest. Time order still applies inside a band.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/?view=bands</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span class="on">News</span><span>Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>News</h3><span class="sub">Last 24 hours · <a href="#">time order</a> · <b>bands</b></span></div>
+      <div class="band red"><div class="lab"><b>Exploited now</b><span class="small">6</span><span class="ask">Check the fleet; fix today</span></div>
+        <div class="cards">
+          <div class="card"><span class="src">SecurityWeek</span><span class="tt">PHP2Shell Exploitation Moves From Probes to Working Shells</span><div class="foot"><span class="chip kev">exploited</span><span class="chip">+4</span></div></div>
+          <div class="card"><span class="src">The Record</span><span class="tt">Ukraine warns hackers are exploiting Dahua surveillance cameras</span><div class="foot"><span class="chip kev">exploited</span></div></div>
+          <div class="card"><span class="src">CISA KEV</span><span class="tt">VeloCloud Orchestrator on-prem: CVE-2026-114625 added</span><div class="foot"><span class="chip kev">due 26 Oct</span><span class="chip">CVSS 9.4</span></div></div>
+          <div class="card"><span class="src">CISA KEV</span><span class="tt">Collabora Online CODE server: CVE-2026-110447 added</span><div class="foot"><span class="chip kev">due 26 Oct</span><span class="chip epss">EPSS 12%</span></div></div>
+        </div></div>
+      <div class="band grn"><div class="lab"><b>Fix shipped</b><span class="small">9</span><span class="ask">Schedule it</span></div>
+        <div class="cards">
+          <div class="card"><span class="src">BleepingComputer</span><span class="tt">Microsoft releases emergency .NET patches for critical Brotli flaw</span><div class="foot"><span class="chip mine">2 releases</span></div></div>
+          <div class="card"><span class="src">MSRC</span><span class="tt">.NET 8 and 9 servicing update, out of band</span><div class="foot"><span class="chip">KB</span></div></div>
+          <div class="card"><span class="src">Node.js</span><span class="tt">Security releases for 20.x, 22.x and 24.x</span><div class="foot"><span class="chip mine">1 release</span></div></div>
+          <div class="card"><span class="src">The Hacker News</span><span class="tt">Two Critical Wasmtime Flaws Could Let Modules Escape Sandboxes</span><div class="foot"><span class="chip">+1</span></div></div>
+        </div></div>
+      <div class="band pur"><div class="lab"><b>Research &amp; tooling</b><span class="small">11</span><span class="ask">Read when you can</span></div>
+        <div class="cards">
+          <div class="card"><span class="src">r/ReverseEngineering</span><span class="tt">RzWeb: Rizin compiled to WebAssembly, analysis in a browser tab</span></div>
+          <div class="card"><span class="src">r/blueteamsec</span><span class="tt">Context Bombs: Making attacking agents pay</span></div>
+          <div class="card"><span class="src">r/ReverseEngineering</span><span class="tt">How obfstr and litcrypt behave in compiled Rust</span></div>
+          <div class="card"><span class="src">BleepingComputer</span><span class="tt">Kali Linux 2026.3 released with 7 new tools</span></div>
+        </div></div>
+      <div class="band"><div class="lab"><b>Industry &amp; policy</b><span class="small">15</span><span class="ask">Worth knowing</span></div>
+        <div class="cards">
+          <div class="card"><span class="src">The Register</span><span class="tt">UK Biobank back online soon, months after a data sale attempt</span></div>
+          <div class="card"><span class="src">SecurityWeek</span><span class="tt">Genesys Hack Exposes Customer Data From Internal Systems</span></div>
+          <div class="card"><span class="src">BleepingComputer</span><span class="tt">Chinese man extradited for role in $36 million cryptocurrency scam</span></div>
+          <div class="card"><span class="src">The Register</span><span class="tt">Britain bets big on AI to defend against the threats AI helps create</span></div>
+        </div></div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>Job-hunting threads sit beside KEV additions with equal weight. Bands put first the stories that call for action.</p></div><div class="costs"><h3>Costs</h3><p>A classifier at ingest. KEV, the notable rule in isNotable and vendor advisory sources give the first two bands for free. A keyword list decides research versus industry, and it will misfile some stories.</p></div><div><h3>Data</h3><p>Adds a band column on items. A source can set a default band: Reddit goes to research, and so do the RE and netsec subs.</p></div></div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="dir" id="d4">
+  <p class="kicker">News · 4</p>
+  <h2>Vendor week</h2>
+  <p class="thesis">The week as a grid: vendors down the side, days across, every story and KEV addition placed where it belongs. A row that goes red is a vendor having a bad week, and that tells you more than any single headline. Vendors are named from <code>vendors_json</code> on the CVEs each story names, and from a short alias list for stories that name none.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/?view=week</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span class="on">News</span><span>Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>The week by vendor</h3><span class="sub">20 – 26 October · <a href="#">← previous week</a> · sorted by heat</span></div>
+      <div class="vw">
+        <div class="h">Vendor</div><div class="h">Tue 20</div><div class="h">Wed 21</div><div class="h">Thu 22</div><div class="h">Fri 23</div><div class="h">Sat 24</div><div class="h">Sun 25</div><div class="h">Mon 26</div><div class="h" style="text-align:right">Items</div>
+        <div class="v">Plex<small>media_server · not in fleet</small></div><div class="heat0"></div><div class="heat2"><span class="pill k">4 KEV adds</span></div><div class="heat1"><span class="pill n">Patch notes</span></div><div class="heat2"><span class="pill k">2 due</span></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="tot">7</div>
+        <div class="v">Microsoft<small>.NET, Windows · in fleet</small></div><div class="heat0"></div><div class="heat1"><span class="pill n">MSRC revisions ×3</span></div><div class="heat0"></div><div class="heat1"><span class="pill n">Defender story</span></div><div class="heat0"></div><div class="heat0"></div><div class="heat3"><span class="pill p">.NET emergency fix</span><span class="pill n">Brotli ×3</span></div><div class="tot">9</div>
+        <div class="v">Fortinet<small>fortios, fortiproxy</small></div><div class="heat2"><span class="pill k">CVE-2025-61624 due</span></div><div class="heat1"><span class="pill n">PSIRT</span></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="tot">3</div>
+        <div class="v">Atlassian<small>Data Center products</small></div><div class="heat1"><span class="pill n">EPSS 99%</span></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="tot">1</div>
+        <div class="v">PHP<small>no CVE yet</small></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat1"><span class="pill n">Disclosure</span></div><div class="heat2"><span class="pill n">PoC</span></div><div class="heat3"><span class="pill k">Exploited ×5</span></div><div class="tot">7</div>
+        <div class="v">Siemens<small>software_center</small></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat2"><span class="pill k">KEV add</span></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="tot">1</div>
+        <div class="v">Bytecode Alliance<small>wasmtime · watchlist</small></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat0"></div><div class="heat2"><span class="pill p">38.0.3</span><span class="pill n">×2</span></div><div class="tot">3</div>
+      </div>
+      <p class="small" style="margin-top:10px">Red: a KEV addition or reported exploitation. Amber: a fix or advisory. Green chip: a release that fixes it. Vendors with nothing this week are left out.</p>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>Seeing a pattern across days. Plex's four KEV additions came in one day and disappeared into a busy timeline.</p></div><div class="costs"><h3>Costs</h3><p>A vendor alias table ("MSRC" → microsoft, "PHP2Shell" → php). Stories that name no vendor drop out of the grid.</p></div><div><h3>Data</h3><p>Uses the vulns table's vendors_json and the CVE ids already in items. The grid itself is one GROUP BY.</p></div></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="dir" id="d5">
+  <p class="kicker">Today · 5</p>
+  <h2>Deadline runway</h2>
+  <p class="thesis">Today as a calendar: the next three weeks, with what is overdue on the left. KEV due dates, the next Patch Tuesday, a quarterly STIG release, and your own triage dates all go on one strip. The fix list sits underneath, in date order, so the first card is always the next deadline.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today?view=runway</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>Two overdue, one due today, Patch Tuesday in 13 days</h3><span class="sub">Wednesday 28 October</span></div>
+      <div class="runway">
+        <div class="days"><span>17</span><span>18</span><span>19</span><span>…</span><span>26</span><span>27</span><span class="today">28</span><span>29</span><span>30</span><span class="wk">31</span><span class="wk">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="wk">7</span><span class="wk">8</span><span>9</span><span>10</span><span>11</span><span>12</span></div>
+        <div class="lanes">
+          <div class="ev over" style="grid-column:2 / span 3">Atlassian DC · CVE-2026-21589 · 10 days over</div>
+          <div class="ev over" style="grid-column:3 / span 3">FortiOS · CVE-2025-61624</div>
+          <div class="ev due" style="grid-column:5 / span 3">VeloCloud · Collabora: due 26 Oct</div>
+          <div class="ev pt" style="grid-column:7 / span 3">.NET emergency: triage says by 28</div>
+          <div class="ev due" style="grid-column:13 / span 4">Plex · Siemens: KEV due 3 Nov</div>
+          <div class="ev pt" style="grid-column:20 / span 3">Patch Tuesday · 10 Nov</div>
+          <div class="ev std" style="grid-column:15 / span 5">DISA quarterly STIG release (expected)</div>
+        </div>
+        <div class="lanelab"><span><i style="background:var(--del)"></i>overdue</span><span><i style="background:var(--warn)"></i>KEV due</span><span><i style="background:var(--acc)"></i>your dates and Patch Tuesday</span><span><i style="background:var(--purple)"></i>standards expected</span></div>
+      </div>
+      <div class="joblist">
+        <div class="job"><span class="when" style="color:var(--del)">10 days over · KEV</span><b>Upgrade Atlassian Data Center to the fixed build</b><span class="small">CVE-2026-21589 · EPSS 99% · 10 products named</span><div style="margin-top:8px"><span class="chip mine">watchlist: confluence</span></div></div>
+        <div class="job"><span class="when" style="color:var(--warn)">today · your date</span><b>Apply the .NET 8 and 9 emergency servicing update</b><span class="small">CVE-2026-111497 · 2 releases in the fleet</span><div style="margin-top:8px"><span class="chip mine">Windows Server 2025</span> <span class="chip mine">Windows 11 24H2</span></div></div>
+        <div class="job"><span class="when">in 6 days · KEV</span><b>Nothing in your fleet: Plex, Siemens</b><span class="small">Shown because KEV due dates apply to everyone; fold away</span></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>The fix list tells you what to do but not when. KEV due dates are in the database, yet Today never shows them as a date.</p></div><div class="costs"><h3>Costs</h3><p>A "by" date on triage entries. "Expected" standards releases come from each publisher's past cadence and are labelled as a guess.</p></div><div><h3>Data</h3><p>Uses vulns.kev_due_date, triage state, the second Tuesday of each month, and documents.published_at for cadence.</p></div></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="dir" id="d6">
+  <p class="kicker">Today · 6</p>
+  <h2>Fix × fleet</h2>
+  <p class="thesis">The fix list (one job per remedy) turned on its side. Each fleet release gets a column, so one glance says which machine needs which update. A filled cell is affected, with its CVE count; a dashed cell means the instance can't tell, which is a gap to close with an inventory report. A row you clear fades out but stays until the window moves on.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today?view=matrix</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span>News</span><span class="on">Today</span><span>Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>Four updates end eleven CVEs on your fleet</h3><span class="sub">Last 24 hours · <a href="#">7 days</a> · fleet from /fleet</span></div>
+      <table class="mx">
+        <thead><tr><th style="text-align:left">Remedy</th><th>Windows 11<small>24H2</small></th><th>Windows Server<small>2025</small></th><th>macOS<small>26</small></th><th>Ubuntu<small>24.04</small></th><th>Debian<small>13</small></th><th>iOS<small>26</small></th><th style="text-align:right">Cleared</th></tr></thead>
+        <tbody>
+          <tr><th><b>.NET 8.0.x / 9.0.x servicing update</b><span class="chip kev">exploited</span> <span class="small">CVE-2026-111497 +2</span></th><td><span class="cell a">3</span></td><td><span class="cell a">3</span></td><td><span class="cell n">·</span></td><td><span class="cell u">?</span></td><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td class="done"><span class="btn">Done</span></td></tr>
+          <tr><th><b>Node.js 22 security release</b><span class="small">CVE-2026-111497, Brotli</span></th><td><span class="cell n">·</span></td><td><span class="cell u">?</span></td><td><span class="cell a">1</span></td><td><span class="cell a">1</span></td><td><span class="cell a">1</span></td><td><span class="cell n">·</span></td><td class="done"><span class="btn">Done</span></td></tr>
+          <tr><th><b>wasmtime 38.0.3</b><span class="small">2 critical · watchlist</span></th><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell a">2</span></td><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td class="done"><span class="btn">Done</span></td></tr>
+          <tr><th><b>PHP 8.4 point release</b><span class="chip kev">exploited</span> <span class="small">PHP2Shell, no CVE yet</span></th><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell u">?</span></td><td><span class="cell a">2</span></td><td><span class="cell n">·</span></td><td class="done"><span class="btn">Done</span></td></tr>
+          <tr class="cleared"><th><b>Safari 26.0.2</b><span class="small">cleared 09:14</span></th><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell d">✓</span></td><td><span class="cell n">·</span></td><td><span class="cell n">·</span></td><td><span class="cell d">✓</span></td><td class="done small">done</td></tr>
+        </tbody>
+      </table>
+      <p class="small" style="margin-top:10px">Red: affected, with the number of CVEs. Dashed ?: the instance does not know, because no inventory report has been sent for that release. <a href="#">Send one</a>. A dot means not affected.</p>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>Today groups by remedy but leaves each release's share of the work to be worked out by reading. Here the columns show it.</p></div><div class="costs"><h3>Costs</h3><p>Wide: more than six releases calls for a horizontal scroll, or a fold by OS family. On a phone it turns into one card per release.</p></div><div><h3>Data</h3><p>fixlist.ts already joins remedy → CVE → platform. The only new piece is pivoting that join on platform.</p></div></div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="dir" id="d7">
+  <p class="kicker">Today · 7</p>
+  <h2>Pocket Today</h2>
+  <p class="thesis">The same page at 375 pixels, built for a phone first rather than shrunk from the desktop layout. Three jobs at most, each a card with two thumb-sized buttons; anything past three is one tap away. A bottom tab bar takes the place of the masthead menus, and Standards becomes a single line saying what moved.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/today · 375 × 760</div><div class="screen">
+    <div class="phones">
+      <div class="phone">
+        <div class="bar"><span>9:41</span><span>●●● ▮</span></div>
+        <div class="hd"><small>Today · Wed 28 Oct</small><h3>Three jobs for your fleet</h3></div>
+        <div class="body">
+          <div class="pc top"><span class="chip kev">exploited</span> <span class="chip mine">2 releases</span><b>Apply the .NET emergency servicing update</b><span class="small">Ends 3 CVEs on Windows 11 and Server 2025</span><div class="acts"><span class="pri">Done</span><span>Later</span></div></div>
+          <div class="pc"><span class="chip mine">3 releases</span><b>Update Node.js 22</b><span class="small">Brotli decoder RCE · CVE-2026-111497</span><div class="acts"><span class="pri">Done</span><span>Later</span></div></div>
+          <div class="pc"><span class="chip mine">watchlist</span><b>wasmtime 38.0.3</b><span class="small">2 critical sandbox escapes</span></div>
+          <div class="pc" style="padding:9px 14px"><span class="small"><b style="display:inline;font:600 13px var(--sans)">Standards moved:</b> 800-53 5.2.0 revised one control, SA-15(13). →</span></div>
+        </div>
+        <div class="tabbar"><span><b>☰</b>News</span><span class="on"><b>◉</b>Today</span><span><b>▤</b>Standards</span><span><b>⚠</b>Vulns</span></div>
+      </div>
+      <div class="phone">
+        <div class="bar"><span>9:42</span><span>●●● ▮</span></div>
+        <div class="hd"><small>Job · 1 of 3</small><h3>.NET emergency servicing update</h3></div>
+        <div class="body">
+          <div class="pc"><b style="font-size:15px">Why it's first</b><span class="small">Exploitation is reported, the fix has shipped, and two of your releases run it.</span></div>
+          <div class="pc"><b style="font-size:15px">CVEs it ends</b><span class="small">CVE-2026-111497 · CVSS 9.8 · Brotli decoder<br>+2 rated High in the same update</span></div>
+          <div class="pc"><b style="font-size:15px">On your fleet</b><span class="small">Windows 11 24H2 · Windows Server 2025<br>Ubuntu 24.04: unknown. Send an inventory report.</span></div>
+          <div class="pc"><b style="font-size:15px">Read about it</b><span class="small">BleepingComputer · SecurityWeek · 1 more</span></div>
+        </div>
+        <div class="tabbar"><span><b>☰</b>News</span><span class="on"><b>◉</b>Today</span><span><b>▤</b>Standards</span><span><b>⚠</b>Vulns</span></div>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>Below 768 pixels the masthead menus get tight, and Today's side boxes push the jobs below the fold. A phone is the most likely place to read the morning check.</p></div><div class="costs"><h3>Costs</h3><p>A second layout for under 600 pixels. The tab bar is CSS and links only. "Done" is a form post, so it needs the owner's session on the phone.</p></div><div><h3>Data</h3><p>None new. The job detail screen is the fix list entry drawn larger.</p></div></div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="dir" id="d8">
+  <p class="kicker">Standards · 8</p>
+  <h2>Ladder columns</h2>
+  <p class="thesis">The ladder from AGENTS.md as the page itself, in four columns like Finder's column view: standard, baseline, control, configuration setting. Picking in one column fills the next, and the URL keeps the whole path, so <code>/standards/nist-800-53/high/ac-2</code> is a link worth sharing. A control that changed in the latest release carries a marker in its column.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/standards/nist-800-53/high/ia-2</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span>News</span><span>Today</span><span class="on">Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>IA-2 Identification and Authentication (Organizational Users)</h3></div>
+      <div class="crumb"><span>NIST SP 800-53 · 5.2.0</span><i>→</i><span>High baseline</span><i>→</i><span>IA-2</span><i>→</i><span>Windows 11 · 4 settings</span><span class="small" style="margin-left:8px"><a href="#">What is the ladder?</a></span></div>
+      <div class="rungs">
+        <div class="rung"><div class="rh"><b>Standard</b><span>The rulebook</span></div>
+          <div class="opt sel"><span>NIST SP 800-53</span><span class="n">5.2.0</span></div>
+          <div class="opt"><span>NIST SP 800-171</span><span class="n">r3</span></div>
+          <div class="opt"><span>FedRAMP Rules</span><span class="n">2026.10</span></div>
+          <div class="opt"><span>DISA STIGs</span><span class="n">Oct 2026</span></div>
+          <div class="opt"><span>CIS Benchmarks</span><span class="n">upload</span></div>
+          <div class="opt"><span>Microsoft baselines</span><span class="n">25H2</span></div>
+          <div class="opt"><span>macOS Security (mSCP)</span><span class="n">Tahoe</span></div>
+          <div class="opt"><span>NASA policy</span><span class="n">public</span></div>
+        </div>
+        <div class="rung"><div class="rh"><b>Baseline</b><span>The rules chosen for a kind of system</span></div>
+          <div class="opt"><span>Low</span><span class="n">149</span></div>
+          <div class="opt"><span>Moderate</span><span class="n">287</span></div>
+          <div class="opt sel"><span>High</span><span class="n">370</span></div>
+          <div class="opt"><span>Privacy</span><span class="n">96</span></div>
+          <div class="opt"><span>Your own baseline</span><span class="n">builder</span></div>
+        </div>
+        <div class="rung"><div class="rh"><b>Control</b><span>One rule in that set</span></div>
+          <div class="opt"><span><code>IA-1</code> Policy and Procedures</span></div>
+          <div class="opt sel"><span><code>IA-2</code> Identification and Authentication</span></div>
+          <div class="opt"><span><code>IA-2(1)</code> MFA to Privileged Accounts</span></div>
+          <div class="opt"><span><code>IA-2(2)</code> MFA to Non-privileged Accounts</span></div>
+          <div class="opt"><span><code>IA-2(5)</code> Individual Authentication</span></div>
+          <div class="opt"><span><code>IA-2(8)</code> Replay Resistant Access</span></div>
+          <div class="opt"><span><code>IA-5(15)</code> GSA-approved Products</span><span class="changed">5.2.0</span></div>
+          <div class="opt"><span><code>IA-8(3)</code> FICAM-approved Products</span><span class="changed">5.2.0</span></div>
+        </div>
+        <div class="rung"><div class="rh"><b>Configuration setting</b><span>How the rule is enforced on a device</span></div>
+          <div class="opt"><span><b style="font-weight:600">Windows 11</b> · STIG <code>WN11-SO-000…</code><br><span class="small">Interactive logon: require Windows Hello for Business or smart card</span></span></div>
+          <div class="opt"><span><b style="font-weight:600">Windows 11</b> · Microsoft baseline<br><span class="small">Accounts: Block Microsoft accounts = Users can't add</span></span></div>
+          <div class="opt"><span><b style="font-weight:600">macOS</b> · mSCP <code>auth_smartcard_enforce</code><br><span class="small">com.apple.security.smartcard enforceSmartCard = true</span></span></div>
+          <div class="opt"><span><b style="font-weight:600">Intune</b> · DISA package<br><span class="small">Settings catalog definition, with its OMA-URI</span></span></div>
+          <div class="opt"><span class="small">Also: <a href="#">test plan</a> · <a href="#">your decision</a> · <a href="#">Atlas</a></span></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>The ladder is taught in /guide but spread across six Standards pages. Here the page itself is the lesson, and each column header carries its one-line definition.</p></div><div class="costs"><h3>Costs</h3><p>Under 900 pixels, four columns collapse into one column with a back link. A NIST control maps to settings by CCI and mSCP's 800-53 tags; where neither exists, the fourth column says so.</p></div><div><h3>Data</h3><p>Uses requirements.baselines_json, the CCI map (cci.ts), mSCP tags and the STIG and Intune packages, all of which exist today.</p></div></div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="dir" id="d9">
+  <p class="kicker">Standards · 9</p>
+  <h2>Revision scrubber</h2>
+  <p class="thesis">One control followed through every release of its catalog, now that the instance loads Revision 4 through 5.2.0. A strip at the top marks each release; amber means this control changed in it. Pick two and see the redline. The publisher's own reason is quoted beside the diff. A generated summary, when there is one, sits under it and always carries its label.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/register/nist-sp-800-53/sa-15.13?from=5.1.1%2Bu4&amp;to=5.2.0</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span>News</span><span>Today</span><span class="on">Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3><code style="font:500 20px var(--mono)">SA-15(13)</code> Logging Syntax <span class="small">(was: Minimize Personally Identifiable Information)</span></h3></div>
+      <div class="scrub">
+        <div class="line"></div><div class="sel" style="left:72%;width:14%"></div>
+        <div class="v" style="left:2%"><i></i>Rev 4<br>2015</div>
+        <div class="v ch" style="left:16%"><i></i>Rev 5<br>2020</div>
+        <div class="v" style="left:30%"><i></i>5.1.1<br>Oct 2023</div>
+        <div class="v" style="left:44%"><i></i>+u2<br>Dec 2023</div>
+        <div class="v" style="left:58%"><i></i>+u3<br>Dec 2023</div>
+        <div class="v on" style="left:72%"><i></i>+u4<br>Feb 2024</div>
+        <div class="v on ch" style="left:86%"><i></i>5.2.0<br>Aug 2025</div>
+        <div class="v" style="left:98%"><i></i>5.2.0<br>Oct 2026</div>
+      </div>
+      <div class="fields"><span>title</span><span class="on">statement</span><span>discussion</span><span>parameters</span><span>related</span><span>baselines</span><span class="small" style="border:0">Fields that changed between the two picked releases are outlined</span></div>
+      <div class="d9" style="margin-top:12px">
+        <div class="side"><h4>5.1.1+u4 · Feb 2024</h4><p>Require the developer of the system <del>or system component to minimize the use of personally identifiable information in development and test environments.</del></p></div>
+        <div class="side"><h4>5.2.0 · Aug 2025</h4><p>Require the developer of the system<ins>, system component, or system service to use [Assignment: secure logging format(s)] to log [Assignment: events types to log] at [Assignment: level of detail to log].</ins></p></div>
+        <div>
+          <div class="side"><h4>The publisher's reason</h4><blockquote>The publisher's change note for this release, quoted word for word from the release notes.</blockquote><p class="small" style="font:12px var(--sans);margin-top:6px">From the 5.2.0 release notes ↗</p></div>
+          <div class="side" style="margin-top:10px"><h4>Summary <span class="gen">generated</span></h4><p style="font:14px/1.5 var(--sans)">The enhancement keeps its number but its subject changes: it now asks for logging in a set format at a set level of detail. It no longer covers personal data in test environments.</p><p class="small" style="margin-top:6px">From the local model, written beside the quote above and never in its place.</p></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>The register shows one release diffed against the one before it. To ask how AC-2 has changed since Rev 4, you have to open seven pages.</p></div><div class="costs"><h3>Costs</h3><p>Diffing any two releases means a <code>changes</code> query across a range, or comparing the two requirements rows on the fly. The second is cheap for a single control.</p></div><div><h3>Data</h3><p>Uses documents for every 800-53 release (all nine are loaded) and requirements by ref. The two 5.2.0 rows are a re-publication, shown as such.</p></div></div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="dir" id="d10">
+  <p class="kicker">Standards · 10</p>
+  <h2>Coverage grid</h2>
+  <p class="thesis">The Standards landing page as a grid. Down the side are the 800-53 control families; across the top are the bodies that answer them, from the catalog's own High baseline to the configuration settings in STIG, CIS, Microsoft and mSCP. Darker cells mean more rules mapped; an amber dot means something there moved in the last 90 days. It shows where the rulebook is moving and where a platform's coverage comes from, and every cell links to that slice.</p>
+  <div class="frame"><div class="chrome"><i></i><i></i><i></i> cybercard.net/standards</div><div class="screen">
+    <div class="mast"><span class="name">BaselineWatch</span><nav><span>News</span><span>Today</span><span class="on">Standards ▾</span><span>Vulnerabilities</span></nav><span class="search">Search CVEs, controls, news</span><span class="desk">Desk ▾</span></div>
+    <div class="page">
+      <div class="ph"><h3>Standards</h3><span class="sub">Rows: 800-53 control families · Columns: who answers them · cells link to the slice</span></div>
+      <div class="cg">
+        <div class="h">Family</div><div class="h">800-53 High<small>baseline</small></div><div class="h">FedRAMP<small>2026 rules</small></div><div class="h">800-171 r3<small>derived</small></div><div class="h">STIG Win 11<small>settings</small></div><div class="h">Microsoft 25H2<small>settings</small></div><div class="h">CIS Win 11<small>upload</small></div><div class="h">mSCP Tahoe<small>settings</small></div>
+        <div class="f">AC<small>Access Control</small></div><div class="c c4">47</div><div class="c c4 mv">52</div><div class="c c3">22</div><div class="c c3">61</div><div class="c c2">38</div><div class="c c3">55</div><div class="c c2">29</div>
+        <div class="f">AU<small>Audit and Accountability</small></div><div class="c c3">27</div><div class="c c3">29</div><div class="c c2">9</div><div class="c c4">84</div><div class="c c3">51</div><div class="c c4">70</div><div class="c c3">41</div>
+        <div class="f">CM<small>Configuration Management</small></div><div class="c c3">33</div><div class="c c3 mv">35</div><div class="c c2">12</div><div class="c c4">112</div><div class="c c4">96</div><div class="c c4">101</div><div class="c c3">48</div>
+        <div class="f">IA<small>Identification and Authentication</small></div><div class="c c3 mv">31</div><div class="c c3">33</div><div class="c c2">14</div><div class="c c3">40</div><div class="c c2">22</div><div class="c c3">35</div><div class="c c3">37</div>
+        <div class="f">SA<small>System and Services Acquisition</small></div><div class="c c3 mv">30</div><div class="c c2 mv">18</div><div class="c c1">5</div><div class="c c0">·</div><div class="c c0">·</div><div class="c c0">·</div><div class="c c0">·</div>
+        <div class="f">SC<small>System and Communications Protection</small></div><div class="c c3">40</div><div class="c c3">42</div><div class="c c2">15</div><div class="c c3">58</div><div class="c c3">47</div><div class="c c3">50</div><div class="c c2">26</div>
+        <div class="f">SI<small>System and Information Integrity</small></div><div class="c c3">34</div><div class="c c3">36</div><div class="c c2">13</div><div class="c c2">25</div><div class="c c3">33</div><div class="c c2">21</div><div class="c c2">19</div>
+        <div class="f">SR<small>Supply Chain Risk Management</small></div><div class="c c2 mv">14</div><div class="c c2">12</div><div class="c c1">3</div><div class="c c0">·</div><div class="c c0">·</div><div class="c c0">·</div><div class="c c0">·</div>
+      </div>
+      <div class="legend"><span><i class="c1"></i>1–9 rules</span><span><i class="c2"></i>10–29</span><span><i class="c3"></i>30–59</span><span><i class="c4"></i>60 or more</span><span><i class="dotw" style="display:inline-block;width:8px;height:8px"></i> moved in 90 days</span><span>· no mapping</span><span style="margin-left:auto">Counts are illustrative</span></div>
+    </div>
+  </div></div>
+  <div class="notes"><div class="solves"><h3>Solves</h3><p>The Standards landing page is a set of folded lists. This grid answers a manager's first question: are we covered, and where is the change happening?</p></div><div class="costs"><h3>Costs</h3><p>The settings columns need each rule mapped to a family through CCI or tags, and some rules map to no family. It needs a "no mapping" count so the grid does not overstate coverage.</p></div><div><h3>Data</h3><p>Uses requirements.family, CCI to 800-53 (cci.ts), mSCP tags and changes.computed_at. The CIS column appears only for the owner, since CIS content is the owner's own copy.</p></div></div>
+</section>
+
+</div>
+</body>
+</html>
