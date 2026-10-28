@@ -205,7 +205,7 @@ export function robotsText(publicRead: boolean, baseUrl: string): string {
 export function sitemapDocument(db: DatabaseSync, baseUrl: string): string {
   const standards = (db.prepare("SELECT id FROM sources WHERE group_name = 'standards' AND enabled = 1 ORDER BY id").all() as { id: string }[]).map((s) => `/standards/${s.id}`);
   const paths = [
-    "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/guide", "/guide", "/feeds",
+    "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/traces", "/scan/guide", "/guide", "/feeds",
     ...standards,
     ...fleetPlatforms.map((p) => `/baselines/${p.id}`),
     ...["windows", "macos", "linux", "ios", "android"].map((os) => `/scan/guide/${os}`),

@@ -205,7 +205,10 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           address and what the router gives away. <a href="/scan/history">History</a> keeps every
           run. <a href="/scan/devices">A device</a> reads what a computer runs from a script's
           report you paste — the Windows build, the browsers, the packages — and says which CVEs
-          apply to those versions. Signals, not certificates: each row says what it saw, and nothing here contacts an
+          apply to those versions. <a href="/scan/traces">Traces</a> reads the files you pick — a
+          browser profile and its cache, the hosts file, a DNS dump, a registry export — against
+          the published AdFection and Candiru indicators in your tab, and grades each match by
+          where it was found and which tier it is. Signals, not certificates: each row says what it saw, and nothing here contacts an
           advertising or malware host or sends a packet to a device that did not ask.
         </p>
       </section>

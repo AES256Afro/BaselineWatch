@@ -1495,6 +1495,17 @@ a line M12 drew, it is a decision below, not a change made quietly.
   maker from the IEEE OUI list as a source, so the owner sees what is on the LAN without a
   packet sent to it; the device scripts (M12.6) generated from the lists, `/scan/devices`
   taking a report back.
+- **S8 Traces** (2026-10-28): the browser's half of Zero Breach's local scanner (`adint-scan`).
+  The files a person picks — a browser profile and its cache, the hosts file, a DNS-cache or
+  DNS-log dump, an HKCU CLSID export, the Downloads folder — read in the tab (`public/traces.js`)
+  against the `adfection-indicators` list the Register holds, served at
+  `/scan/traces/indicators.json`. The scanner's rules carried over: whole-name boundaries in
+  single-byte text and UTF-16LE, the most specific indicator wins, Chromium's hashed HSTS hosts
+  matched by the same one-way hash, every match graded by where it was found (on disk,
+  registered to run, contacted, DNS record, hosts mapping, mentioned) and weighed by its tier,
+  a file not read reported as unknown, never clean, and no indicator ever resolved or linked.
+  What stays with the scanner: copying locked databases, reading the registry and the DNS log
+  directly, per-row history parsing, the YARA-X pattern rules.
 - **S6 History, alerts, Today**: M12.7 — every run stored and diffed, alerts only on change, a
   tile, the phone layout.
 

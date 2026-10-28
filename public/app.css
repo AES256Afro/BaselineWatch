@@ -788,6 +788,22 @@ h1 .arrow { color: var(--mute); font-weight: 400; }
 .verdict .tally span { font-size: 11.5px; color: var(--mute); }
 .verdict h2 { margin: 0 0 4px; font-size: 20px; }
 .verdict p { margin: 0; color: var(--mute); font-size: 13.5px; max-width: 80ch; }
+.verdict[data-tone="bad"] { border-left-color: var(--del); }
+.verdict[data-tone="bad"] .tally { color: var(--del); }
+
+/* Traces: the picker, the drop target and the paste box; the run row stays in the box, not stuck to the screen. */
+.scan-traces #traces-pick { display: grid; gap: 8px; }
+.scan-traces .drop { display: grid; gap: 4px; padding: 18px 16px; border: 1.5px dashed var(--rule-2); border-radius: 10px; text-align: center; cursor: pointer; }
+.scan-traces .drop.over { border-color: var(--acc); background: var(--paper); }
+.scan-traces .pickers { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 14px; font-size: 13px; color: var(--mute); }
+.scan-traces .pickers label { display: grid; gap: 4px; min-width: 0; }
+.scan-traces .pickers input { max-width: 100%; font-size: 12.5px; }
+.scan-traces label[for="traces-paste"] { font-size: 13px; color: var(--mute); }
+.scan-traces textarea { width: 100%; box-sizing: border-box; font: 12.5px/1.5 var(--mono); padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); resize: vertical; }
+.scan-traces .scan-run { position: static; margin: 4px 0 0; }
+.scan-traces #traces-findings, .scan-traces #traces-coverage { margin-top: 14px; }
+.scan-traces details.fold .kv { margin: 0 0 12px; }
+.scan-traces details.fold .kv code { font-size: 12px; overflow-wrap: anywhere; }
 /* The fix panel under an open row, and the folded "how this row is tested". */
 .check .how { margin: 2px 0 0; }
 .check .how summary { font-size: 12.5px; color: var(--mute); cursor: pointer; }
