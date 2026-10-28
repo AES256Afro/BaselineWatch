@@ -478,7 +478,13 @@ details.box summary { cursor: pointer; }
 
 /* Today */
 .wire-top h1 small { display: block; font: 400 13.5px var(--sans); color: var(--mute); margin-top: 2px; }
-.stats.today > div, .stats.today > a { flex-basis: 150px; }
+/* An even grid, not flex: five tiles on a narrow screen wrap four and one, and a flex row stretched the one to the full width. */
+.stats.today { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+@media (min-width: 700px) { .stats.today { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* Each tile's label, figure and note share rows with its neighbours', so a label that wraps to two lines does not lift one figure above the rest. */
+.stats.today > .tile { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 2px; align-content: start; }
+.stats.today > .tile b { align-self: end; }
+.wire-top h1 a.show-all { font: 500 13px var(--sans); vertical-align: middle; margin-left: 4px; }
 .stats.today .tile { text-decoration: none; color: var(--ink); }
 .stats.today .tile span { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
 .stats.today .tile.bad b { color: var(--del); }

@@ -269,7 +269,7 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
     expect(app.db.prepare("SELECT platform FROM vuln_platforms WHERE vuln_id = (SELECT id FROM vulns WHERE cve_id = 'CVE-2026-91002')").all()).toEqual([{ platform: "apple" }]);
   });
 
-  it("narrows the News and Today to a platform with the same picker", async () => {
+  it("narrows the News and Today to a platform by address, without a picker on either", async () => {
     const insert = app.db.prepare("INSERT INTO items (source_id, kind, external_id, title, summary, url, published_at, fetched_at, signals_json) VALUES ('bleeping', 'article', ?, ?, ?, 'https://example.net', ?, ?, ?)");
     insert.run("w1", "Patch now: a Windows SMB flaw", null, now.toISOString(), now.toISOString(), null);
     insert.run("w2", "A long post about tooling", "It also mentions Windows in passing.", now.toISOString(), now.toISOString(), null);
@@ -282,13 +282,15 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
     // A headline that does not name the platform is not its story, whatever the summary says.
     expect(windows).not.toContain("A long post about tooling");
     expect(windows).not.toContain("Chrome ships a fix");
-    expect(windows).toContain('class="filters platform-pick"');
+    // The filter works from a link; the chips stay on Vulnerabilities, and the heading says how to undo it.
+    expect(windows).not.toContain('class="filters platform-pick"');
+    expect(windows).toContain(">show all</a>");
     const danger = await (await fetch(`${app.base}/?danger=1`)).text();
     expect(danger).toContain("Researchers detail a new widget flaw");
     expect(danger).not.toContain("Chrome ships a fix");
     const today = await (await fetch(`${app.base}/today?platform=browsers&since=168`)).text();
-    expect(today).toContain('class="filters platform-pick"');
-    expect(today).toContain('href="/today?since=168&amp;platform=windows"');
+    expect(today).not.toContain('class="filters platform-pick"');
+    expect(today).toContain('<a class="show-all" href="/today?since=168">show all</a>');
   });
 
   it("files a CVE by its CPE, not by a browser its description mentions", () => {
