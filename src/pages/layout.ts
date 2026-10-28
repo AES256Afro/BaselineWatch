@@ -27,6 +27,7 @@ export type Area =
   | "scan-guide"
   | "scan-history"
   | "scan-devices"
+  | "scan-traces"
   | "saved"
   | "triage"
   | "atlas"
@@ -65,6 +66,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   scan: { label: "This browser", path: "/scan", blurb: "ads, trackers and filtering DNS, seen from this tab" },
   "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
   "scan-devices": { label: "A device", path: "/scan/devices", blurb: "paste what it runs, see which CVEs apply" },
+  "scan-traces": { label: "Traces", path: "/scan/traces", blurb: "its saved data read against the spyware indicators, in this tab" },
   "scan-network": { label: "Your network", path: "/scan/network", blurb: "the LAN resolver, from this server, daily" },
   "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
   "scan-history": { label: "History", path: "/scan/history", blurb: "every run, and what changed between them" },
@@ -84,7 +86,7 @@ const standardsTools: Area[] = ["stigs", "register", "atlas"];
 const standardsLearn: Area[] = ["learn"];
 /** The owner's own work, then the instance, then how it is drawn. */
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
-const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-network", "scan-history", "scan-guide"];
+const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-traces", "scan-network", "scan-history", "scan-guide"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist", "saved"];
 const deskInstance: Area[] = ["sources", "digest"];
 const deskLook: Area[] = ["appearance", "branding"];
@@ -109,7 +111,7 @@ export interface PageOptions {
   canonical?: string | undefined;
   /**
    * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
-   * page passes one, under its own policy; every other page is served with script-src 'none'.
+   * page and Traces pass one, each under its own policy; every other page is served with script-src 'none'.
    */
   script?: string | undefined;
 }

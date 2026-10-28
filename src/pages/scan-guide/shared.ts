@@ -326,7 +326,7 @@ export function pastStep(platform: GuidePlatform): Step {
   }
   return {
     title: "If you need to know about the past",
-    do: html`Nothing above says whether anything already happened. The device script reads the state of the device today; the browser traces and indicator matching planned for the device scripts come later. For a phone, Amnesty's Mobile Verification Toolkit reads a backup against its indicators. A concrete reason to think you were targeted is a reason to use a helpline, not a tool.`,
+    do: html`Nothing above says whether anything already happened. The device script reads the state of the device today; <a href="/scan/traces">Traces</a> reads a browser's saved data, the hosts file and a DNS dump against the published spyware indicators, in your own tab. For a phone, Amnesty's Mobile Verification Toolkit reads a backup against its indicators. A concrete reason to think you were targeted is a reason to use a helpline, not a tool.`,
     more: "device",
     sources: [src.mvt, src.accessNow, src.citizenLab],
   };

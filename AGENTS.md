@@ -110,6 +110,7 @@ src/smtp.ts          the notifier's mail transport: one message, STARTTLS or TLS
 src/saved.ts         saved searches: a named list page with its filters, kept on the desk and on Today
 src/inventory.ts     is this device affected: the inventory script's report read against the guide, the vendors, endoflife.date and OSV
 src/versions.ts      dotted version numbers compared as people read them
+src/traces.ts        traces: the indicator list the Register holds, served to the page that reads a device's saved data in the tab (public/traces.js)
 src/devices.ts       the owner's devices over time: each reading's verdicts and CVE ids, never the report
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
@@ -123,6 +124,7 @@ src/sbom.ts          a CycloneDX or SPDX document's components as watchlist pack
 src/msrc.ts          Microsoft's Security Update Guide per CVE: the KB per product, exploited, disclosed
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
+public/scan.js       the browser check's script; public/traces.js reads picked files against the indicator list, in the tab
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1
 boxpilot/            the BoxPilot catalog manifest; scripts/validate-manifest.mjs checks it
 docs/                plan, the Learning section's plan (LEARN.md), sources, mockups

@@ -16,6 +16,8 @@ import { flashHeader, flashText } from "../flash.ts";
 import { renderScan, renderScanWhy } from "../pages/scan.ts";
 import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages/scan-guide.ts";
 import { renderScanDevices } from "../pages/scan-devices.ts";
+import { renderScanTraces } from "../pages/scan-traces.ts";
+import { traceIndicators } from "../traces.ts";
 import { renderScanHistory } from "../pages/scan-history.ts";
 import { isReleaseLine, latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
 import { deleteDevice, deviceName, latestReadings, readingChanges, readingsOf, recordReading } from "../devices.ts";
@@ -184,6 +186,18 @@ export function mountScan(r: RouteContext): void {
     if (!device || deleteDevice(db, device) === 0) return res.status(404).type("text").send("No readings under that name.");
     res.redirect(303, "/scan/devices");
   });
+  // Traces (S8): a device's saved data read in the visitor's tab against the indicator list the
+  // Register holds. The page's script asks this server for the list and for nothing else, and its
+  // policy says so: connect-src 'self', no outside host at all.
+  app.get("/scan/traces", (req, res) => {
+    res.setHeader("Content-Security-Policy", tracesPolicy);
+    res.setHeader("Cache-Control", "no-store");
+    res.type("html").send(renderScanTraces({ ...who(req, res), list: traceIndicators(db) }));
+  });
+  app.get("/scan/traces/indicators.json", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json(traceIndicators(db));
+  });
   // The browser check's version row asks what the vendor feeds say is newest (S1).
   app.get("/scan/browser-check", (req, res) => {
     const query = req.query as Record<string, unknown>;
@@ -306,6 +320,9 @@ export function mountScan(r: RouteContext): void {
   };
   for (const probePath of probePaths) app.get(probePath, probe);
 }
+
+/** Traces' policy: its one module script, and connections to this origin alone. */
+const tracesPolicy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
 /**
  * The Scan page's own policy, the one exception to script-src 'none': its single self-hosted module
