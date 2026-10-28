@@ -303,14 +303,18 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   Version from `! Version:`, date from `! Last modified:`. **Cadence**: weekly; the lists move
   several times a day but the twelve rarely do. **Licence**: EasyList's dual licence, GPLv3 or
   CC BY-SA 3.0 (`https://easylist.to/pages/licence.html`); twelve rules are quoted with attribution.
-- **Malware canaries (URLhaus)** (`canary-malware`). `https://urlhaus.abuse.ch/downloads/hostfile/`
-  (12 KB, CRLF; the hosts of malware URLs online right now, the list a Pi-hole takes). **Derivation**:
-  `127.0.0.1<TAB>host` lines reduced to registrable names (two labels once a leading `www.` is
-  dropped; no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a
-  resolver must not sinkhole), then the twelve that hash lowest. Version and date from
-  `# Last updated:`. **Cadence**: daily, because the host file turns over as sites go offline.
-  **Licence**: abuse.ch Community data, free under its fair-use terms (`https://urlhaus.abuse.ch/api/`);
-  commercial use may need the paid API.
+- **Malware canaries (URLhaus, via malware-filter)** (`canary-malware`).
+  `https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt` (54 KB, about 1,800
+  hosts, refreshed every twelve hours; URLhaus's hosts with Tranco's most popular names removed).
+  Until October 2026 this read URLhaus's own host file at `https://urlhaus.abuse.ch/downloads/hostfile/`;
+  abuse.ch then put every download behind a per-user Auth-Key and the old address answers 410
+  (migration 0050 repointed the row). **Derivation**: `0.0.0.0 host` lines (or URLhaus's
+  `127.0.0.1<TAB>host`) reduced to registrable names (two labels once a leading `www.` is dropped;
+  no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a resolver
+  must not sinkhole), then the twelve that hash lowest. Version and date from `# Updated:` (or
+  URLhaus's `# Last updated:`). **Cadence**: daily, because the list turns over as sites go
+  offline. **Licence**: CC0 1.0, URLhaus's data as abuse.ch publishes it, republished by the
+  malware-filter project (`https://gitlab.com/malware-filter/urlhaus-filter#license`).
 - **Phishing canaries (OpenPhish)** (`canary-phishing`, restricted, registered off).
   `https://openphish.com/feed.txt` (15 KB, 300 URLs, refreshed every twelve hours; redirects to the
   `openphish/public_feed` repository). **Derivation**: the URLs' hosts reduced the same way; each

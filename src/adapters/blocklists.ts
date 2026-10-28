@@ -244,7 +244,7 @@ export function filterListDomains(text: string): Candidate[] {
   return out;
 }
 
-/** The hosts of a hosts-format list (`127.0.0.1<TAB>host`, as URLhaus publishes it). */
+/** The hosts of a hosts-format list (`127.0.0.1<TAB>host` as URLhaus wrote it, `0.0.0.0 host` as malware-filter does). */
 export function hostfileHosts(text: string): Candidate[] {
   const out: Candidate[] = [];
   for (const raw of text.split(/\r?\n/)) {
@@ -316,9 +316,13 @@ function filterListVersion(text: string): ListVersion {
   return { label, publishedAt };
 }
 
-/** `# Last updated: 2026-10-20 01:17:09 (UTC)` from the URLhaus host file. */
+/**
+ * `# Last updated: 2026-10-20 01:17:09 (UTC)` from URLhaus's own host file, or
+ * `# Updated: 2026-10-28T12:13:03Z` from malware-filter's copy of it, which this source reads now.
+ */
 function hostfileVersion(text: string): ListVersion {
-  const m = /^#\s*Last updated:\s*(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2}) \(UTC\)/m.exec(text.slice(0, 2000));
+  const head = text.slice(0, 2000);
+  const m = /^#\s*Last updated:\s*(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}):(\d{2}) \(UTC\)/m.exec(head) ?? /^#\s*Updated:\s*(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})Z/m.exec(head);
   if (!m) return { label: null, publishedAt: null };
   return { label: `${m[1]} ${m[2]}:${m[3]} UTC`, publishedAt: `${m[1]}T${m[2]}:${m[3]}:${m[4]}.000Z` };
 }
