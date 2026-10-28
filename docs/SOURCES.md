@@ -456,7 +456,7 @@ exploited. Adapter `src/adapters/msrc.ts`; storage `src/msrc.ts`; fixtures `test
 | AWS Security Bulletins, `https://aws.amazon.com/security/security-bulletins/rss/feed/` (RSS, daily) | bulletins, each naming its CVEs | vulnerabilities |
 | Cisco Talos blog, `https://blog.talosintelligence.com/rss/` (RSS, hourly) | threat research | news |
 Adapters `src/adapters/apple-security.ts` and `mozilla-mfsa.ts`; the feeds go through the feed
-adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes, Adobe and the
+adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes (its CVE feed answered later; migration 0046), Adobe and the
 MSRC blog (HTML or bot walls at the documented feed paths), Oracle (refuses non-browser clients),
 the Azure blog (marketing), Google Cloud (404 at the security feed path).
 
@@ -527,7 +527,7 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 | Dark Reading | `https://www.darkreading.com/rss.xml` | |
 | SecurityWeek | `https://feeds.feedburner.com/securityweek` | |
 | Risky Business | `https://risky.biz/feeds/risky-business/` | Newsletter and podcast. |
-| Google Project Zero | `https://googleprojectzero.blogspot.com/feeds/posts/default` | |
+| Google Project Zero | `https://projectzero.google/feed.xml` | Moved from `googleprojectzero.blogspot.com` (which now only redirects); migration 0046 points the row here. About 11 MB a read for ten posts. |
 | MSRC Security Update Guide | `https://api.msrc.microsoft.com/update-guide/rss` | Checked 2026-10-14: the MSRC blog moved to microsoft.com with no feed. This feed lists every Microsoft CVE (thousands), so it is a vulnerability source for M2, off until then. |
 | Microsoft Security Baselines blog | Tech Community blog RSS (*verify*). | Doubles as the Register rationale source. |
 | /r/netsec | `https://www.reddit.com/r/netsec/new.rss?limit=50` | Checked 2026-10-14: the `.json` listing answers 403 to anything but a browser or an OAuth app; the Atom feed works with a descriptive `User-Agent`. Two requests within seconds get a 429, so the scheduler spaces requests to one host. |
@@ -538,6 +538,38 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 
 Reddit's API terms allow personal, low-volume, identified use. Do not store comment bodies;
 store the link post and link to the thread.
+
+### More research and CERT feeds (added 2026-10-28, migration 0046)
+
+From the sources survey of the audit of 28 October. Each answered with real XML on the day and
+reads through the feed adapter. Headlines and links only.
+
+| Source | Feed | Group |
+| --- | --- | --- |
+| Google Threat Intelligence (Mandiant) | `https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v` (about 1.4 MB) | news |
+| Check Point Research | `https://research.checkpoint.com/feed/` | news |
+| Sophos X-Ops | `https://www.sophos.com/en-us/category/threat-research/feed` | news |
+| PortSwigger Research | `https://portswigger.net/research/rss` | news |
+| Lobsters, security tag | `https://lobste.rs/t/security.rss` | news |
+| tl;dr sec (weekly) | `https://rss.beehiiv.com/feeds/xgTKUmMmUm.xml` | news |
+| Horizon3.ai attack research | `https://horizon3.ai/feed/` | news |
+| The DFIR Report | `https://thedfirreport.com/feed/` | news |
+| Ars Technica, security | `https://arstechnica.com/security/feed/` | news |
+| Ivanti security advisories | `https://www.ivanti.com/blog/topics/security-advisory/rss` | vulnerabilities |
+| Canadian Centre for Cyber Security | `https://www.cyber.gc.ca/api/cccs/atom/v1/get?feed=alerts_advisories&lang=en` (Atom; Crown copyright, attribution) | vulnerabilities |
+| CERT-EU advisories | `https://www.cert.europa.eu/publications/security-advisories-rss` | vulnerabilities |
+| JPCERT/CC, English | `https://www.jpcert.or.jp/english/rss/jpcert-en.rdf` (RDF) | vulnerabilities |
+| Kubernetes official CVE feed | `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/feed.xml` (CC BY 4.0) | vulnerabilities |
+
+The same migration stops the `talos` row, which fetched the same URL as `cisco-talos`.
+
+Not added, and why: VulnCheck KEV and abuse.ch's ThreatFox and URLhaus APIs now want a key;
+Packet Storm sits behind a terms click-through; NSA's feed carries no items; Shadowserver,
+HackerOne Hacktivity, Citrix, F5, SonicWall and Zyxel publish no usable feed. Worth an adapter
+of its own, in order: CISA's Vulnrichment (the ADP container `cvelist.ts` already downloads and
+does not read), ENISA's EUVD (an "exploited" list beside KEV; check its terms first), GitHub's
+reviewed advisories, CIRCL's sightings (for the "talked about" count), Red Hat CSAF, and Android
+through OSV's bulk export.
 
 ---
 
