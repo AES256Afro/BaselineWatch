@@ -6,7 +6,7 @@
  * ones the watchlist takes as kind "platform".
  */
 
-export type PlatformKey = "windows" | "apple" | "linux" | "android" | "chrome" | "firefox" | "edge" | "network";
+export type PlatformKey = "windows" | "apple" | "linux" | "android" | "chrome" | "firefox" | "edge" | "network" | "ai";
 
 const platformList: { id: PlatformKey; label: string; blurb: string }[] = [
   { id: "windows", label: "Windows", blurb: "Windows 10 and 11, Windows Server and the Windows components (kernel, SMB, Print Spooler, Defender)." },
@@ -17,6 +17,7 @@ const platformList: { id: PlatformKey; label: string; blurb: string }[] = [
   { id: "firefox", label: "Firefox", blurb: "Mozilla Firefox and Thunderbird." },
   { id: "edge", label: "Edge", blurb: "Microsoft Edge." },
   { id: "network", label: "Network devices", blurb: "Cisco, Juniper, Fortinet, Palo Alto Networks, F5, Ivanti, Citrix, SonicWall and the other edge devices." },
+  { id: "ai", label: "AI tooling", blurb: "Model servers and runtimes (Ollama, vLLM, llama.cpp, Triton), agent and RAG frameworks (LangChain, Langflow, Flowise, Dify, LiteLLM), chat front ends (Open WebUI, LibreChat), ML libraries, and MCP servers." },
 ];
 
 export const platformKeys: PlatformKey[] = platformList.map((p) => p.id);
@@ -48,6 +49,13 @@ export const platformChoices: { id: PlatformChoice; label: string; blurb: string
   { id: "browsers", label: "Browsers", blurb: "Chrome, Firefox and Edge", keys: ["chrome", "firefox", "edge"], newsTerms: ["chrome", "chromium", "firefox", "microsoft edge", "browser", "browsers"] },
   { id: "android", label: "Android", blurb: "Android and Pixel", keys: ["android"], newsTerms: ["android", "pixel"] },
   {
+    id: "ai",
+    label: "AI tooling",
+    blurb: "Model servers, agent frameworks and MCP servers",
+    keys: ["ai"],
+    newsTerms: ["ollama", "vllm", "llama.cpp", "langchain", "langflow", "litellm", "open webui", "comfyui", "flowise", "hugging face", "mcp", "model context protocol", "prompt injection"],
+  },
+  {
     id: "network",
     label: "Network devices",
     blurb: "Firewalls, VPNs and edge gear",
@@ -76,6 +84,15 @@ export function platformChoiceName(choice: PlatformChoice): string {
 }
 
 const networkVendors = new Set(["cisco", "juniper", "fortinet", "paloaltonetworks", "f5", "ivanti", "citrix", "sonicwall", "zyxel", "dlink", "d-link", "netgear", "mikrotik", "arista", "checkpoint", "pulsesecure", "barracuda", "sophos", "watchguard", "arraynetworks", "draytek", "tp-link", "ubiquiti", "hpe", "aruba"]);
+/**
+ * The software people run models and agents with. Vendors whose whole line is AI; then products by
+ * name, for the ones a general vendor ships (NVIDIA's Triton, Google's TensorFlow) and for MCP
+ * servers, which every vendor now publishes. n8n and Jupyter are left out: automation and notebooks
+ * that happen to host AI, and n8n's seventy CVEs would be most of the card.
+ */
+const aiVendors = new Set(["ollama", "vllm", "ggml", "langchain", "langflow", "llamaindex", "litellm", "openwebui", "comfyanonymous", "flowiseai", "dify", "langgenius", "mintplexlabs", "librechat", "lollms", "oobabooga", "gradio_project", "huggingface", "h2o", "bentoml", "anyscale", "keras", "anthropic", "openai"]);
+const aiProducts = /^(ollama|vllm|llama\.cpp|llama-factory|langchain.*|langflow.*|llamaindex|litellm|open_webui|comfyui|flowise|dify|anythingllm|librechat|lollms|gradio|transformers|sglang|tensorrt-llm|triton_inference_server|mlflow|bentoml|openllm|metagpt|pytorch|pytorch_lightning|tensorflow|keras|onnx|onnxruntime|text-generation-webui)$|(^|[_-])mcp([_-]|$)/;
+
 const linuxVendors = new Set(["linux", "redhat", "canonical", "debian", "suse", "opensuse", "fedoraproject", "almalinux", "rockylinux", "oraclelinux"]);
 
 /** The platforms one CPE criterion names, from its part, vendor and product. */
@@ -85,6 +102,7 @@ function platformsOfCpe(cpe: string): PlatformKey[] {
   const vendor = (parts[3] ?? "").toLowerCase();
   const product = (parts[4] ?? "").toLowerCase();
   const out: PlatformKey[] = [];
+  if (aiVendors.has(vendor) || aiProducts.test(product)) out.push("ai");
   if (vendor === "microsoft") {
     if (/^edge/.test(product)) out.push("edge");
     else if (part === "o" && /windows/.test(product)) out.push("windows");
@@ -113,6 +131,7 @@ const descriptionHints: { platform: PlatformKey; re: RegExp }[] = [
   { platform: "android", re: /\bAndroid\b/ },
   { platform: "chrome", re: /\bGoogle Chrome\b|\bChromium\b/ },
   { platform: "firefox", re: /\bFirefox\b|\bThunderbird\b/ },
+  { platform: "ai", re: /\b(Ollama|vLLM|llama\.cpp|LangChain|Langflow|LlamaIndex|LiteLLM|Open WebUI|ComfyUI|Flowise|Dify|AnythingLLM|LibreChat|MLflow|BentoML|SGLang|PyTorch|TensorFlow|Triton Inference Server|MCP server|Model Context Protocol)\b/ },
 ];
 
 /**
