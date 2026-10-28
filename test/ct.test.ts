@@ -43,7 +43,7 @@ describe("the watch", () => {
       expect(first.status).toBe("ok");
       expect(first.items).toBe(14);
       // The first read seeds; the newest certificate is three weeks old, so nothing is news. The domain crt.sh refused is named.
-      expect(first.detail).toBe("1 of 2 domain(s) read, 0 new certificate(s); crt.sh did not answer for example.org");
+      expect(first.detail).toBe("1 of 2 domain(s) read, 0 new certificate(s); crt.sh did not answer for 1 of them");
       expect(recentCerts(db, "cybercard.net").length).toBe(8);
       expect((db.prepare("SELECT COUNT(*) AS n FROM items WHERE source_id = 'crtsh'").get() as { n: number }).n).toBe(0);
 

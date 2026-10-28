@@ -105,40 +105,45 @@ export function listDocuments(db: DatabaseSync, sourceId: string): DocumentRow[]
   return db.prepare("SELECT * FROM documents WHERE source_id = ? ORDER BY document_key, published_at DESC, id DESC").all(sourceId) as unknown as DocumentRow[];
 }
 
+type RequirementRow = {
+  ref: string;
+  parent_ref: string | null;
+  family: string | null;
+  label: string | null;
+  title: string | null;
+  statement: string | null;
+  guidance: string | null;
+  params_json: string | null;
+  related_json: string | null;
+  sort_key: string | null;
+  status: string;
+  extra_json: string | null;
+};
+
+const toRequirement = (r: RequirementRow): NormalizedRequirement => ({
+  ref: r.ref,
+  parentRef: r.parent_ref,
+  family: r.family,
+  label: r.label ?? r.ref.toUpperCase(),
+  title: r.title ?? "",
+  statement: r.statement,
+  guidance: r.guidance,
+  params: parseJson(r.params_json, []),
+  related: parseJson(r.related_json, []),
+  sortKey: r.sort_key ?? r.ref,
+  status: r.status === "withdrawn" ? "withdrawn" : "active",
+  extra: parseJson(r.extra_json, {}),
+});
+
 /** Every requirement of a stored document, in the shape the differ and the pages use. */
 export function loadRequirements(db: DatabaseSync, documentId: number): NormalizedRequirement[] {
-  const rows = db.prepare("SELECT * FROM requirements WHERE document_id = ? ORDER BY sort_key, ref").all(documentId) as unknown as {
-    ref: string;
-    parent_ref: string | null;
-    family: string | null;
-    label: string | null;
-    title: string | null;
-    statement: string | null;
-    guidance: string | null;
-    params_json: string | null;
-    related_json: string | null;
-    sort_key: string | null;
-    status: string;
-    extra_json: string | null;
-  }[];
-  return rows.map((r) => ({
-    ref: r.ref,
-    parentRef: r.parent_ref,
-    family: r.family,
-    label: r.label ?? r.ref.toUpperCase(),
-    title: r.title ?? "",
-    statement: r.statement,
-    guidance: r.guidance,
-    params: parseJson(r.params_json, []),
-    related: parseJson(r.related_json, []),
-    sortKey: r.sort_key ?? r.ref,
-    status: r.status === "withdrawn" ? "withdrawn" : "active",
-    extra: parseJson(r.extra_json, {}),
-  }));
+  return (db.prepare("SELECT * FROM requirements WHERE document_id = ? ORDER BY sort_key, ref").all(documentId) as unknown as RequirementRow[]).map(toRequirement);
 }
 
+/** One requirement by its ref, through the (document_id, ref) index rather than the whole document. */
 export function requirementIn(db: DatabaseSync, documentId: number, ref: string): NormalizedRequirement | null {
-  return loadRequirements(db, documentId).find((r) => r.ref === ref) ?? null;
+  const row = db.prepare("SELECT * FROM requirements WHERE document_id = ? AND ref = ?").get(documentId, ref) as unknown as RequirementRow | undefined;
+  return row ? toRequirement(row) : null;
 }
 
 export interface StoredDocument {

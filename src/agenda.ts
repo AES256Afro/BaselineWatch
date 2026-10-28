@@ -68,22 +68,59 @@ export function nextActions(db: DatabaseSync, options: AgendaOptions): Action[] 
   const limit = options.limit ?? 6;
   const actions: Action[] = [];
 
-  // 1. A date this instance's owner already committed to, past due. Nothing outranks that.
+  // 1. A date this instance's owner already committed to, past due. Nothing outranks that. The
+  // date is set on a timeline item, a CVE or a control alike (the CVE page and the control page
+  // both carry the form), so all three are read; a date is past once the day after it begins.
   const overdue = db
     .prepare(
-      `SELECT t.due_at AS dueAt, t.state, i.id AS itemId, i.title, i.external_id AS externalId, i.kind
-         FROM triage t JOIN items i ON i.id = t.subject_id AND t.subject_kind = 'item'
-        WHERE t.due_at IS NOT NULL AND t.due_at <= ? AND t.state IN ('new', 'reviewing', 'affects')
+      `SELECT t.due_at AS dueAt, t.state, t.subject_kind AS subjectKind, t.subject_id AS subjectId, t.subject_key AS subjectKey,
+              i.title AS itemTitle, i.external_id AS externalId, i.kind AS itemKind,
+              v.cve_id AS cveId, v.description AS cveText,
+              d.source_id AS docSource, s.name AS docStandard, s.restricted AS docRestricted, r.label AS reqLabel, r.title AS reqTitle
+         FROM triage t
+         LEFT JOIN items i ON t.subject_kind = 'item' AND i.id = t.subject_id
+         LEFT JOIN vulns v ON t.subject_kind = 'vuln' AND v.id = t.subject_id
+         LEFT JOIN documents d ON t.subject_kind = 'control' AND d.id = t.subject_id
+         LEFT JOIN sources s ON s.id = d.source_id
+         LEFT JOIN requirements r ON t.subject_kind = 'control' AND r.document_id = t.subject_id AND r.ref = t.subject_key
+        WHERE t.due_at IS NOT NULL AND t.due_at < ? AND t.state IN ('new', 'reviewing', 'affects')
         ORDER BY t.due_at LIMIT 4`,
     )
-    .all(now.toISOString().slice(0, 10)) as { dueAt: string; state: string; itemId: number; title: string; externalId: string; kind: string }[];
+    .all(now.toISOString().slice(0, 10)) as {
+    dueAt: string;
+    state: string;
+    subjectKind: "item" | "vuln" | "control";
+    subjectId: number;
+    subjectKey: string;
+    itemTitle: string | null;
+    externalId: string | null;
+    itemKind: string | null;
+    cveId: string | null;
+    cveText: string | null;
+    docSource: string | null;
+    docStandard: string | null;
+    docRestricted: number | null;
+    reqLabel: string | null;
+    reqTitle: string | null;
+  }[];
   for (const row of overdue) {
+    const target =
+      row.subjectKind === "vuln"
+        ? { title: `${row.cveId ?? "A CVE"}${row.cveText ? ` · ${row.cveText.slice(0, 90)}` : ""}`, href: row.cveId ? `/vulnerabilities/${row.cveId}` : "/triage", itemId: null }
+        : row.subjectKind === "control"
+          ? {
+              // A restricted standard's requirement is named on its own page to the owner alone; here it is counted, not named.
+              title: row.docRestricted === 1 ? `A requirement of ${row.docStandard ?? "a restricted standard"}` : `${row.reqLabel ?? row.subjectKey.toUpperCase()} ${row.reqTitle ?? ""} (${row.docStandard ?? row.docSource ?? "standard"})`.trim(),
+              href: row.docRestricted === 1 || !row.docSource ? "/triage" : `/standards/${row.docSource}/${row.subjectId}/${row.subjectKey}`,
+              itemId: null,
+            }
+          : { title: row.itemTitle ?? "(item removed)", href: row.itemKind === "kev" || row.itemKind === "vulnerability" ? `/vulnerabilities/${row.externalId}` : "/triage", itemId: row.subjectId };
     actions.push({
       kind: "overdue",
-      title: row.title,
+      title: target.title,
       why: `You marked this ${row.state === "affects" ? "as affecting us" : row.state} and gave it ${row.dueAt}, which has passed.`,
-      href: row.kind === "kev" || row.kind === "vulnerability" ? `/vulnerabilities/${row.externalId}` : "/triage",
-      itemId: row.itemId,
+      href: target.href,
+      itemId: target.itemId,
       at: row.dueAt,
     });
   }
@@ -152,8 +189,8 @@ export function nextActions(db: DatabaseSync, options: AgendaOptions): Action[] 
 
   // 5. A standard that moved: the controls a baseline is built from are not fixed.
   const releases = db
-    .prepare("SELECT id AS itemId, title, url, summary, published_at AS at, signals_json AS signals FROM items WHERE kind = 'release' AND fetched_at >= ? ORDER BY published_at DESC LIMIT 6")
-    .all(since) as { itemId: number; title: string; url: string | null; summary: string | null; at: string | null; signals: string | null }[];
+    .prepare("SELECT id AS itemId, title, url, summary, published_at AS at, signals_json AS signals FROM items WHERE kind = 'release' AND fetched_at >= ? AND COALESCE(published_at, fetched_at) >= ? ORDER BY published_at DESC LIMIT 6")
+    .all(since, since) as { itemId: number; title: string; url: string | null; summary: string | null; at: string | null; signals: string | null }[];
   for (const row of releases) {
     const s = parseJson<{ added?: number; removed?: number; modified?: number }>(row.signals, {});
     const changed = (s.added ?? 0) + (s.removed ?? 0) + (s.modified ?? 0);

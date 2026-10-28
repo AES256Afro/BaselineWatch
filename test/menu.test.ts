@@ -210,8 +210,9 @@ describe("the window's CVEs by platform", () => {
     // meaning, and only the platforms this fleet runs are named.
     const today = await (await fetch(`${app.base}/today`)).text();
     expect(today).toContain('class="small plat-line"');
-    expect(today).toContain("Across the platforms you run");
-    expect(today).toContain('href="/vulnerabilities?platform=windows&amp;changed=1"');
+    expect(today).toContain("Across your fleet");
+    // `moved` is Today's own window (published or really changed), so the table opens on the count shown.
+    expect(today).toContain('href="/vulnerabilities?platform=windows&amp;moved=1"');
     expect(today).toContain("exploited)");
     // And the table itself answers that filter.
     const filtered = await (await fetch(`${app.base}/vulnerabilities?platform=windows`)).text();

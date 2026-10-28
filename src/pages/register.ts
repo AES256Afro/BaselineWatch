@@ -22,6 +22,7 @@ import {
   notedChangeCount,
   notesFor,
   releaseChanges,
+  requirementIn,
   withheldFrom,
   withheldLabel,
   type DocumentRow,
@@ -341,8 +342,8 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     return page({ title: `${withheldLabel} · ${source.name}`, active: "register", content, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}` } });
   }
   const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
-  const after = loadRequirements(db, documentId).find((r) => r.ref === ref) ?? null;
-  const before = previous ? (loadRequirements(db, previous.id).find((r) => r.ref === ref) ?? null) : null;
+  const after = requirementIn(db, documentId, ref);
+  const before = previous ? requirementIn(db, previous.id, ref) : null;
   if (!after && !before) return null;
   const shown = after ?? before!;
   const baselines = baselinesFor(db, ref);
@@ -398,7 +399,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${(() => {
       const t = getTriage(db, "control", documentId, ref);
       if (owner) return html`<details class="box triage-box" ${t ? "open" : ""}><summary>Triage${t ? html`: ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}` : ""}</summary>${triageForm({ kind: "control", id: documentId, key: ref }, t, `/standards/${sourceId}/${documentId}/${ref}`)}</details>`;
-      return t ? html`<div class="box triage-box"><b>Triage:</b> ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}${t.note ? html`<p class="small">${t.note}</p>` : ""}</div>` : "";
+      return t ? html`<div class="box triage-box"><b>Triage:</b> ${t.state}${t.due_at ? html`, due ${t.due_at}` : ""}</div>` : "";
     })()}
     ${field("title", "Title", before?.title ?? null, after?.title ?? null)}
     ${field("statement", "Control", before?.statement ?? null, after?.statement ?? null)}

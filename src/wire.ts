@@ -55,9 +55,20 @@ interface Built {
   params: (string | number)[];
 }
 
-function build(filters: WireFilters, options: { copies?: boolean } = {}): Built {
+/**
+ * Sources whose items are the owner's own facts, not news: crt.sh's items name the certificates
+ * logged for the owner's domains. They reach the owner's News and nobody else's — not a visitor's
+ * page, the feeds, the API or the MCP tools — as the digest has kept them since 0.53.0.
+ */
+export const ownerOnlySources: readonly string[] = ["crtsh"];
+
+function build(filters: WireFilters, options: { copies?: boolean; owner?: boolean } = {}): Built {
   const clauses: string[] = [];
   const params: (string | number)[] = [];
+  if (!options.owner) {
+    clauses.push(`i.source_id NOT IN (${ownerOnlySources.map(() => "?").join(", ")})`);
+    params.push(...ownerOnlySources);
+  }
   // Hide later copies of the same link (the same story from two feeds), unless every copy is wanted.
   if (!options.copies) clauses.push("(i.canonical_url IS NULL OR i.id = (SELECT MIN(d.id) FROM items d WHERE d.canonical_url = i.canonical_url))");
   if (filters.source) {
@@ -94,8 +105,11 @@ function build(filters: WireFilters, options: { copies?: boolean } = {}): Built 
   return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
 }
 
-/** The page's items; with `copies`, later copies of one address come too, for a page that names the other sources. */
-export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: { copies?: boolean } = {}): WireItem[] {
+/**
+ * The page's items; with `copies`, later copies of one address come too, for a page that names the
+ * other sources. Without `owner`, the owner-only sources are left out.
+ */
+export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: { copies?: boolean; owner?: boolean } = {}): WireItem[] {
   const { where, params } = build(filters, options);
   const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
   return db
@@ -110,7 +124,7 @@ export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: {
 
 export function markAllRead(db: DatabaseSync, filters: WireFilters = {}): number {
   // Every copy of a story is marked, so the unread count (which counts them all) can reach zero.
-  const { where, params } = build({ ...filters, before: undefined }, { copies: true });
+  const { where, params } = build({ ...filters, before: undefined }, { copies: true, owner: true });
   const result = db.prepare(`UPDATE items SET read = 1 WHERE id IN (SELECT i.id FROM items i ${where})`).run(...params);
   return Number(result.changes);
 }

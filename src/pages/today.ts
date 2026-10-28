@@ -102,10 +102,11 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   const fleetRows = breakdown.rows.filter((r) => r.inFleet);
 
   // What a remedy cannot express: a date the owner committed to, and a standard that moved.
-  const decisions: Action[] = nextActions(db, { since, now, fleet, limit: 10 }).filter((a) => a.kind === "overdue" || a.kind === "release");
+  // Asked for wide: the list is cut after sorting, and KEV and "worse" actions rank above releases.
+  const decisions: Action[] = nextActions(db, { since, now, fleet, limit: 40 }).filter((a) => a.kind === "overdue" || a.kind === "release");
   const releases = db
-    .prepare("SELECT title, url, summary, signals_json FROM items WHERE kind = 'release' AND fetched_at >= ? ORDER BY published_at DESC LIMIT 12")
-    .all(since) as { title: string; url: string | null; summary: string | null; signals_json: string | null }[];
+    .prepare("SELECT title, url, summary, signals_json FROM items WHERE kind = 'release' AND fetched_at >= ? AND COALESCE(published_at, fetched_at) >= ? ORDER BY published_at DESC LIMIT 12")
+    .all(since, since) as { title: string; url: string | null; summary: string | null; signals_json: string | null }[];
   const realReleases = releases.filter((r) => {
     const s = parseJson<{ added?: number; removed?: number; modified?: number }>(r.signals_json, {});
     return (s.added ?? 0) + (s.removed ?? 0) + (s.modified ?? 0) > 0;
@@ -113,12 +114,44 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   // Good news, which nothing on this page used to carry: what you finished inside the window.
   const cleared = (db.prepare("SELECT COUNT(*) AS n FROM triage WHERE state = 'done' AND updated_at >= ?").get(since) as { n: number }).n;
-  const clearedRows = db
-    .prepare(
-      `SELECT t.updated_at AS at, i.title, i.external_id AS externalId, i.kind FROM triage t JOIN items i ON i.id = t.subject_id AND t.subject_kind = 'item'
-        WHERE t.state = 'done' AND t.updated_at >= ? ORDER BY t.updated_at DESC LIMIT 4`,
-    )
-    .all(since) as { at: string; title: string; externalId: string; kind: string }[];
+  // The list reads what the count counts: a CVE or a control marked done, not only a timeline item.
+  const clearedRows = (
+    db
+      .prepare(
+        `SELECT t.updated_at AS at, t.subject_kind AS subjectKind, t.subject_id AS subjectId, t.subject_key AS subjectKey,
+                i.title AS itemTitle, i.external_id AS externalId, i.kind AS itemKind, v.cve_id AS cveId,
+                d.source_id AS docSource, s.name AS docStandard, s.restricted AS docRestricted, r.label AS reqLabel
+           FROM triage t
+           LEFT JOIN items i ON t.subject_kind = 'item' AND i.id = t.subject_id
+           LEFT JOIN vulns v ON t.subject_kind = 'vuln' AND v.id = t.subject_id
+           LEFT JOIN documents d ON t.subject_kind = 'control' AND d.id = t.subject_id
+           LEFT JOIN sources s ON s.id = d.source_id
+           LEFT JOIN requirements r ON t.subject_kind = 'control' AND r.document_id = t.subject_id AND r.ref = t.subject_key
+          WHERE t.state = 'done' AND t.updated_at >= ? ORDER BY t.updated_at DESC LIMIT 4`,
+      )
+      .all(since) as {
+      at: string;
+      subjectKind: string;
+      subjectId: number;
+      subjectKey: string;
+      itemTitle: string | null;
+      externalId: string | null;
+      itemKind: string | null;
+      cveId: string | null;
+      docSource: string | null;
+      docStandard: string | null;
+      docRestricted: number | null;
+      reqLabel: string | null;
+    }[]
+  ).map((c) =>
+    c.subjectKind === "vuln"
+      ? { at: c.at, title: c.cveId ?? "A CVE", href: c.cveId ? `/vulnerabilities/${c.cveId}` : "/triage?state=done" }
+      : c.subjectKind === "control"
+        ? c.docRestricted === 1 && !owner
+          ? { at: c.at, title: `A requirement of ${c.docStandard ?? "a restricted standard"}`, href: "/triage?state=done" }
+          : { at: c.at, title: `${c.reqLabel ?? c.subjectKey.toUpperCase()} (${c.docStandard ?? c.docSource ?? "standard"})`, href: c.docSource ? `/standards/${c.docSource}/${c.subjectId}/${c.subjectKey}` : "/triage?state=done" }
+        : { at: c.at, title: c.itemTitle ?? "(item removed)", href: c.itemKind === "kev" || c.itemKind === "vulnerability" ? `/vulnerabilities/${c.externalId}` : "/triage" },
+  );
 
   const counts = triageCounts(db);
   const inbox = triageInbox(db, 6);
@@ -135,7 +168,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
+      <h1>${fixListHeadline(list)}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
 
@@ -147,8 +180,8 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
       <a class="tile" href="/triage?state=done"><small>Cleared</small><b>${cleared}</b><span>you finished in the last ${windowWord}</span></a>
     </div>
     ${fleetRows.length
-      ? html`<p class="small plat-line">Across the platforms you run in the last ${windowWord}: ${fleetRows.map((r, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?platform=${r.key}&amp;changed=${hours === 24 ? 1 : hours}">${r.label} ${r.total}</a>${r.kev ? html` (${r.kev} exploited)` : ""}`)}. ${breakdown.total} CVEs changed in all.</p>`
-      : html`<p class="small plat-line">No CVE changed on a platform you run in the last ${windowWord}. ${breakdown.total} changed elsewhere, in <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">the table</a>.</p>`}
+      ? html`<p class="small plat-line">Across your fleet in the last ${windowWord}: ${fleetRows.map((r, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?platform=${r.key}&amp;moved=${hours === 24 ? 1 : hours}">${r.label} ${r.total}</a>${r.kev ? html` (${r.kev} exploited)` : ""}`)}. ${breakdown.total} CVEs changed in all.</p>`
+      : html`<p class="small plat-line">No CVE changed in your fleet in the last ${windowWord}. ${breakdown.total} changed elsewhere, in <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a>.</p>`}
 
     <div class="cols">
       <section class="main">
@@ -160,7 +193,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
           owner,
           back,
           `Nothing in the last ${windowWord} has a patch, a fixed version or a KB waiting for you.`,
-          html`<a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">The table</a> has every CVE in the window.`,
+          html`<a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has every CVE in the window.`,
         )}
         ${group(
           "published",
@@ -170,7 +203,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
           owner,
           back,
           "Every fix in this window names the version it lands in.",
-          html`<a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">The table</a> has every CVE in the window.`,
+          html`<a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has every CVE in the window.`,
         )}
         ${group(
           "mitigate",
@@ -190,7 +223,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
           back,
           "Everything that touches you in this window has either a fix or a published action.",
         )}
-        ${list.total > list.considered ? html`<p class="small">${list.considered} of ${list.total} CVEs that moved in this window, the most urgent first. <a href="/vulnerabilities?changed=${hours === 24 ? 1 : hours}">The table</a> has all of them.</p>` : ""}
+        ${list.total > list.considered ? html`<p class="small">${list.considered} of ${list.total} CVEs that moved in this window, the most urgent first. <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has all of them.</p>` : ""}
       </section>
 
       <aside class="side">
@@ -221,7 +254,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         <section class="box">
           <h2><a href="/triage?state=done">Cleared</a> <span class="count">in the last ${windowWord}</span></h2>
           ${clearedRows.length
-            ? html`<ul class="talked">${clearedRows.map((c) => html`<li><a href="${c.kind === "kev" || c.kind === "vulnerability" ? `/vulnerabilities/${c.externalId}` : "/triage"}">${c.title}</a> <span class="small">done ${relativeTime(c.at, now)}</span></li>`)}</ul>`
+            ? html`<ul class="talked">${clearedRows.map((c) => html`<li><a href="${c.href}">${c.title}</a> <span class="small">done ${relativeTime(c.at, now)}</span></li>`)}</ul>`
             : html`<p class="small">Nothing marked done in this window.</p>`}
         </section>
 

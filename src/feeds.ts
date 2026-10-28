@@ -164,6 +164,8 @@ export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch:
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", `PRODID:-//${productName}//KEV due dates//EN`, "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${icsText(`${productName} · KEV due dates${options.watch ? " (your stack)" : ""}`)}`];
   for (const r of rows) {
     const due = r.kev_due_date.slice(0, 10);
+    // A due date as the publisher typed it, unchecked at ingest: one "TBD" must not fail the whole calendar.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || Number.isNaN(Date.parse(`${due}T00:00:00Z`))) continue;
     const next = new Date(new Date(`${due}T00:00:00Z`).getTime() + 86_400_000).toISOString();
     const what = (r.description ?? "").replace(/\s+/g, " ").trim();
     lines.push(

@@ -435,6 +435,8 @@ if (-not $gateway) {
     Row 'upnp' 'ok' 'no UPnP Internet Gateway Device answered the search: UPnP is off, or the router does not offer it on this network'
   } else {
     foreach ($location in $locations) {
+      # A device on the LAN wrote this address: only http(s) is fetched.
+      if ($location -notmatch '^https?://') { Row 'upnp' 'info' 'a device answered the search with an address that is not http(s); it was not read'; continue }
       $description = ''
       try { $description = [string](Invoke-WebRequest -Uri $location -TimeoutSec 6 -UseBasicParsing -ErrorAction Stop).Content } catch { }
       if (-not $description) { Row 'upnp' 'info' ('a device answered at {0} but its description could not be read' -f $location); continue }

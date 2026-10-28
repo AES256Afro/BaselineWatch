@@ -211,7 +211,13 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     return true;
   };
 
+  // One tick at a time. `runOnce` hands every tick the sweep in progress, so without this a long
+  // sweep let a chain queue per minute behind it, and when it ended they all passed the network
+  // scan's and the alert's due checks together — the same LAN scan and notification run many times.
+  let ticking = false;
   const timer = setInterval(() => {
+    if (ticking) return;
+    ticking = true;
     // A full disk or a busy database throws from the sqlite calls; logged, never an unhandled rejection that ends the process.
     void runOnce()
       .then(() => runDigest())
@@ -219,7 +225,10 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
       .then(() => alertFailingSources())
       // Last on the tick: the pass takes the write lock for a moment, so it waits for the fetches.
       .then(() => runHousekeeping())
-      .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`));
+      .catch((error: unknown) => log(`[scheduler] tick failed: ${error instanceof Error ? error.message : String(error)}`))
+      .finally(() => {
+        ticking = false;
+      });
   }, options.tickMs ?? 60_000);
   timer.unref();
 

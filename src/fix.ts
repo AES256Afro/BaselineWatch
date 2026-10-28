@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { parse as parseYaml } from "yaml";
@@ -106,10 +106,31 @@ export interface FixContext {
   stigs: { stig: StigSummary; rules: NormalizedRequirement[] }[];
 }
 
+/**
+ * Built once and kept until the mitigations file or the STIGs change. News, Today, a CVE's page
+ * and the API each asked for it on every request, and it is every followed STIG's rules parsed
+ * from JSON — eleven milliseconds a time for data that moves only at ingest. The key is the
+ * file's modification time and the STIG documents' newest id and count, so an edit to the YAML
+ * shows on the next request (as it did) and a new STIG release on the first after it is stored.
+ */
+const fixContexts = new WeakMap<DatabaseSync, { key: string; value: FixContext }>();
+
 export function fixContext(db: DatabaseSync, file: string = mitigationsFile): FixContext {
+  let mtime = -1;
+  try {
+    mtime = statSync(file).mtimeMs;
+  } catch {
+    // No file is no entries; loadMitigations says the same.
+  }
+  const stigDocs = db.prepare("SELECT MAX(id) AS top, COUNT(*) AS n FROM documents WHERE source_id = 'disa-stigs'").get() as { top: number | null; n: number };
+  const key = `${file}|${mtime}|${stigDocs.top ?? 0}|${stigDocs.n}`;
+  const cached = fixContexts.get(db);
+  if (cached?.key === key) return cached.value;
   const entries = loadMitigations(file);
   const stigs = entries.length ? followedStigs(db).map((stig) => ({ stig, rules: loadRequirements(db, stig.latest.id) })) : [];
-  return { entries, stigs };
+  const value = { entries, stigs };
+  fixContexts.set(db, { key, value });
+  return value;
 }
 
 /** The entries that speak to a CVE, by id or by the words in its description and KEV name. */
@@ -176,5 +197,5 @@ export function fixSummary(fix: Fix): string {
   if (fix.advisories.length) parts.push(`vendor advisory: ${fix.advisories[0]!.source}`);
   if (fix.packages.length) parts.push(`fixed in ${fix.packages[0]!.name} ${fix.packages[0]!.fixed[0]}`);
   if (fix.mitigations.length) parts.push(`STIG: ${fix.mitigations[0]!.rules[0]!.rule.label}`);
-  return parts.length ? parts.join(" · ") : "Nothing published yet: no patch, advisory or mitigation reference, no vendor advisory on the Wire, no KEV action.";
+  return parts.length ? parts.join(" · ") : "Nothing published yet: no patch, advisory or mitigation reference, no vendor advisory in the News, no KEV action.";
 }

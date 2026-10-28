@@ -29,7 +29,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
     return page({ title, active: "search", content, owner, open, look });
   }
   const cves = listVulns(db, { q: query, limit: 10 });
-  const news = listWire(db, { q: query, limit: 10 });
+  const news = listWire(db, { q: query, limit: 10 }, { owner });
   const versions = latestVersions(db).filter((v) => !withheldFrom({ restricted: v.restricted }, owner));
   const controls = searchControls(db, versions, query, 15);
   const like = `%${query.toLowerCase()}%`;

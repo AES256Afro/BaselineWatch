@@ -68,8 +68,8 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   both("");
 
   const releases = db
-    .prepare("SELECT title, url, summary FROM items WHERE kind = 'release' AND fetched_at > ? AND fetched_at <= ? ORDER BY published_at DESC LIMIT 10")
-    .all(from, to) as { title: string; url: string | null; summary: string | null }[];
+    .prepare("SELECT title, url, summary FROM items WHERE kind = 'release' AND fetched_at > ? AND fetched_at <= ? AND COALESCE(published_at, fetched_at) > ? ORDER BY published_at DESC LIMIT 10")
+    .all(from, to, from) as { title: string; url: string | null; summary: string | null }[];
   both(`Standards: ${releases.length ? `${releases.length} release(s)` : "no releases"}`);
   for (const r of releases) both(`- ${r.title}${r.url ? ` ${baseUrl}${r.url}` : ""}`);
   both("");
@@ -150,7 +150,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
 
   const counts = triageCounts(db);
   const open = (["affects", "reviewing", "new"] as TriageState[]).map((s) => `${counts[s]} ${stateLabel[s].toLowerCase()}`).join(", ");
-  const due = db.prepare("SELECT COUNT(*) AS n FROM triage WHERE due_at IS NOT NULL AND due_at <= ? AND state NOT IN ('done', 'dismissed')").get(day(to)) as { n: number };
+  const due = db.prepare("SELECT COUNT(*) AS n FROM triage WHERE due_at IS NOT NULL AND due_at < ? AND state NOT IN ('done', 'dismissed')").get(day(to)) as { n: number };
   both(`Triage: ${open}${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`);
   // How long, not just which: an hour is a passing 403, a day is something to act on (M13.2).
   const failing = failingSources(db, new Date(to));

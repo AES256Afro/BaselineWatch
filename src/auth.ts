@@ -95,6 +95,39 @@ export function issueSession(config: Config, nowMs = Date.now()): string {
   return signSession(config.sessionSecret, nowMs + sessionDays * 24 * 60 * 60 * 1000);
 }
 
+/**
+ * A browser the owner has signed in from before. Behind a tunnel every visitor reaches the app
+ * from the same peer address, so the sign-in brake on that peer (forty failures in ten minutes,
+ * there to stop a LAN host rotating X-Forwarded-For) is one brake for the whole internet: eight
+ * addresses' worth of wrong guesses would close sign-in to the owner too. A browser carrying this
+ * mark is let past that one brake; its own address's brake still applies. The mark is a signed
+ * expiry like the session, under its own label so neither token passes for the other, and it says
+ * nothing but "signed in here once"; it grants no access.
+ */
+const knownCookie = "bw_known";
+const knownDays = 365;
+
+function knownMac(secret: string, expiresAtMs: number): string {
+  return createHmac("sha256", secret).update(`known-device:${expiresAtMs}`).digest("base64url");
+}
+
+export function isKnownDevice(req: Request, config: Config, nowMs: number): boolean {
+  const token = parseCookies(req.headers.cookie)[knownCookie];
+  if (!token) return false;
+  const dot = token.indexOf(".");
+  if (dot <= 0) return false;
+  const expiresAt = Number(token.slice(0, dot));
+  if (!Number.isFinite(expiresAt) || expiresAt < nowMs) return false;
+  const expected = Buffer.from(`${expiresAt}.${knownMac(config.sessionSecret, expiresAt)}`);
+  const given = Buffer.from(token);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
+export function knownDeviceCookieHeader(config: Config, nowMs: number, secure: boolean): string {
+  const expiresAt = nowMs + knownDays * 24 * 60 * 60 * 1000;
+  return `${knownCookie}=${expiresAt}.${knownMac(config.sessionSecret, expiresAt)}; Path=/login; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}; Max-Age=${knownDays * 24 * 60 * 60}`;
+}
+
 /** Refuses a state-changing request that did not come from this site's own pages. */
 export function sameOriginOnly(req: Request, res: Response, next: NextFunction): void {
   if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();

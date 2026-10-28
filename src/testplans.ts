@@ -264,6 +264,19 @@ export function releaseChoices(db: DatabaseSync, release: Release | null): { sti
   return out;
 }
 
+/**
+ * The plan as a visitor may see it: each decision stays (it is the teaching value) but its reason
+ * and the name of whoever signed it are the owner's, as on the decisions board (`publicDecisions`).
+ */
+export function planForVisitor(plan: TestPlan): TestPlan {
+  const bare = <T extends { decision?: { reason: string | null; owner: string | null } | null }>(i: T): T => (i.decision ? { ...i, decision: { ...i.decision, reason: null, owner: null } } : i);
+  return {
+    ...plan,
+    notApplied: plan.notApplied.map((i) => ({ ...i, applicable: { ok: false, reason: "not applied" } })),
+    decided: plan.decided.map(bare),
+  };
+}
+
 /** The plan: derived checks from the strict profile's STIG and mSCP items, then the owner's templates that apply, grouped by area. */
 export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDir: string = templatesDir, fleet: Fleet = loadFleet()): TestPlan {
   const { platform } = options;

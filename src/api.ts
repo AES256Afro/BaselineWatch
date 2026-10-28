@@ -46,17 +46,18 @@ const sinceOf = (v: unknown): string | undefined => {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 };
 
-export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+/** The News as JSON. The read and starred marks, and the owner-only sources, are in it for the owner alone. */
+export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string, owner = false) {
   const kind = str(q.kind);
   const filters: WireFilters = {
     source: str(q.source),
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? kind : undefined,
     q: str(q.q),
-    unread: str(q.unread) === "1",
+    unread: owner && str(q.unread) === "1",
     since: sinceOf(q.since),
     limit: limitOf(q.limit),
   };
-  return listWire(db, filters).map((i) => ({
+  return listWire(db, filters, { owner }).map((i) => ({
       id: i.id,
       source: i.source_id,
       sourceName: i.source_name,
@@ -68,8 +69,7 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
       publishedAt: i.published_at,
       fetchedAt: i.fetched_at,
       signals: parseJson<Record<string, unknown>>(i.signals_json, {}),
-      read: i.read === 1,
-      starred: i.starred === 1,
+      ...(owner ? { read: i.read === 1, starred: i.starred === 1 } : {}),
     }));
 }
 

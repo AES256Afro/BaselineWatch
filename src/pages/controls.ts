@@ -72,7 +72,9 @@ export interface ControlHit {
 export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: string, limit = 200): ControlHit[] {
   const ids = versions.map((v) => v.documentId);
   if (ids.length === 0 || q.trim() === "") return [];
-  const like = `%${q.trim().toLowerCase()}%`;
+  const exact = q.trim().toLowerCase();
+  const like = `%${exact}%`;
+  // "ac-2" typed whole puts AC-2 first, ahead of CTL-AC-20 and every AC-2(n) that merely contains it.
   return db
     .prepare(
       `SELECT s.id AS sourceId, s.name, d.id AS documentId, d.version_label AS versionLabel,
@@ -82,10 +84,10 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
          JOIN sources s ON s.id = d.source_id
         WHERE r.document_id IN (${ids.map(() => "?").join(", ")})
           AND (lower(r.ref) LIKE ? OR lower(r.title) LIKE ? OR lower(r.statement) LIKE ?)
-        ORDER BY (lower(r.ref) LIKE ?) DESC, (lower(r.title) LIKE ?) DESC, s.name, r.ref
+        ORDER BY (lower(r.ref) = ? OR lower(COALESCE(r.label, '')) = ?) DESC, (lower(r.ref) LIKE ?) DESC, (lower(r.title) LIKE ?) DESC, s.name, r.ref
         LIMIT ?`,
     )
-    .all(...ids, like, like, like, like, like, limit) as unknown as ControlHit[];
+    .all(...ids, like, like, like, exact, exact, like, like, limit) as unknown as ControlHit[];
 }
 
 interface StandardSource {

@@ -570,6 +570,13 @@ export interface VulnFilters {
   /** The windows above in hours, for the links and chips that carry them (24 when unset). */
   changedHours?: number | undefined;
   newHours?: number | undefined;
+  /**
+   * Only CVEs published or really changed since this instant: Today's window (`movedInWindowSql`),
+   * which leaves out a record NVD merely re-touched. Today's figures link here, so the list they
+   * open has the count they show.
+   */
+  movedSince?: string | undefined;
+  movedHours?: number | undefined;
   /** Only CVEs the watchlist marked with this label: the figure beside a watchlist entry is counted this way. */
   label?: string | undefined;
   q?: string | undefined;
@@ -611,6 +618,10 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
     clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ?)");
     params.push(filters.changedSince);
   }
+  if (filters.movedSince) {
+    clauses.push(movedInWindowSql);
+    params.push(filters.movedSince, filters.movedSince);
+  }
   if (filters.newSince) {
     clauses.push("v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field = 'new')");
     params.push(filters.newSince);
@@ -644,20 +655,22 @@ function vulnQuery(filters: VulnFilters): { where: string; params: (string | num
  * is a probability and not a severity; then CVSS; then recency to break the remaining ties.
  */
 const sortSql: Record<NonNullable<VulnFilters["sort"]>, string> = {
+  // Each written to match an index in 0045_risk_order_index.sql term for term, so a deep page is a walk, not a sort.
   risk: `v.kev DESC,
-         EXISTS (SELECT 1 FROM exploits e WHERE e.cve_id = v.cve_id) DESC,
+         v.has_exploit DESC,
          COALESCE(v.epss, 0) DESC,
          COALESCE(v.cvss_score, 0) DESC,
          v.last_modified_at DESC`,
   modified: "v.last_modified_at DESC",
   published: "v.published_at DESC",
-  cvss: "v.cvss_score DESC NULLS LAST, v.last_modified_at DESC",
-  epss: "v.epss DESC NULLS LAST, v.last_modified_at DESC",
+  cvss: "(v.cvss_score IS NULL), v.cvss_score DESC, v.last_modified_at DESC",
+  epss: "(v.epss IS NULL), v.epss DESC, v.last_modified_at DESC",
 };
 
-export function listVulns(db: DatabaseSync, filters: VulnFilters = {}): { rows: VulnRow[]; total: number } {
+/** A page of the table. A page is two hundred rows at most; the CSV export asks for more with `maxLimit`. */
+export function listVulns(db: DatabaseSync, filters: VulnFilters = {}, options: { maxLimit?: number } = {}): { rows: VulnRow[]; total: number } {
   const { where, params } = vulnQuery(filters);
-  const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+  const limit = Math.min(Math.max(filters.limit ?? 50, 1), options.maxLimit ?? 200);
   const offset = Math.max(filters.offset ?? 0, 0);
   const total = (db.prepare(`SELECT COUNT(*) AS n FROM vulns v ${where}`).get(...params) as { n: number }).n;
   const rows = db
@@ -789,7 +802,7 @@ export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChan
  * formats them, because the point of a CSV is that something else will do arithmetic on it.
  */
 export function vulnsCsv(db: DatabaseSync, filters: VulnFilters, baseUrl: string): string {
-  const { rows } = listVulns(db, { ...filters, limit: Math.min(filters.limit ?? 1000, 5000) });
+  const { rows } = listVulns(db, { ...filters, limit: Math.min(filters.limit ?? 1000, 5000) }, { maxLimit: 5000 });
   const exploited = new Set(
     rows.length
       ? (db.prepare(`SELECT DISTINCT cve_id FROM exploits WHERE cve_id IN (${rows.map(() => "?").join(", ")})`).all(...rows.map((r) => r.cve_id)) as { cve_id: string }[]).map((r) => r.cve_id)

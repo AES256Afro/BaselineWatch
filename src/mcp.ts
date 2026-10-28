@@ -163,7 +163,7 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
   server.registerTool(
     "search_wire",
     {
-      title: "The Wire",
+      title: "The News",
       description: "Timeline items: news and advisories, notable CVEs, KEV additions and standard releases, newest first. Full-text search with q.",
       inputSchema: {
         q: z.string().max(200).optional().describe("Full-text search"),
@@ -191,7 +191,7 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
         since,
         sort: z.enum(["modified", "published", "cvss", "epss"]).optional(),
         limit,
-        offset: z.number().int().min(0).optional(),
+        offset: z.number().int().min(0).max(100_000).optional(),
       },
       annotations: readOnly,
     },

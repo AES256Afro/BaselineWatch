@@ -24,7 +24,8 @@ export function saveSearchForm(db: DatabaseSync, path: string, owner: boolean): 
 
 export function renderSaved(options: { db: DatabaseSync; owner: boolean; open: boolean; look: LookState; notice?: string | undefined }): string {
   const { db, owner, open, look, notice } = options;
-  const saved = listSaved(db);
+  // The owner's own lists: a visitor is told they exist, not what they are.
+  const saved = owner ? listSaved(db) : [];
   const content = html`<div class="wire-top">
     <h1>Saved searches<small>The lists you come back to: a filtered table, a News filter, a search, a month's updates — named once, kept here and on Today.</small></h1>
   </div>

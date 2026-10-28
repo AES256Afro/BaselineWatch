@@ -55,6 +55,7 @@ function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {
   // A 24 h window is the "1" the links have always carried; a wider one (the Today page's 3 or 7 days) names its hours.
   if (f.changedSince) p.set("changed", f.changedHours && f.changedHours !== 24 ? String(f.changedHours) : "1");
   if (f.newSince) p.set("new", f.newHours && f.newHours !== 24 ? String(f.newHours) : "1");
+  if (f.movedSince) p.set("moved", f.movedHours && f.movedHours !== 24 ? String(f.movedHours) : "1");
   if (f.label) p.set("label", f.label);
   if (f.q) p.set("q", f.q);
   // The default is left out, so an unfiltered list keeps the bare /vulnerabilities address
@@ -82,7 +83,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   const epssDate = (db.prepare("SELECT value FROM app_settings WHERE key = 'epss.date'").get() as { value: string } | undefined)?.value;
   const cursor = (db.prepare("SELECT value FROM app_settings WHERE key = 'nvd.cursor'").get() as { value: string } | undefined)?.value;
   const offset = filters.offset ?? 0;
-  const none = !filters.watch && !filters.kev && !filters.exploit && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.label;
+  const none = !filters.watch && !filters.kev && !filters.exploit && filters.minCvss === undefined && !filters.severity && filters.minEpss === undefined && filters.maxEpss === undefined && !filters.noEpss && !filters.changedSince && !filters.newSince && !filters.movedSince && !filters.label;
   // A band the Today page sent us into, shown as a chip that takes it off again.
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const epssBand = filters.noEpss ? "no score" : filters.maxEpss !== undefined ? `${filters.minEpss !== undefined ? `${pct(filters.minEpss)} to ` : "under "}${pct(filters.maxEpss)}` : null;
@@ -135,7 +136,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       </form>
     </div>
     <div class="filters">
-      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, label: undefined, offset: 0 })}">All</a>
+      <a class="${none ? "on" : ""}" href="${query(filters, { watch: false, kev: false, exploit: false, minCvss: undefined, severity: undefined, minEpss: undefined, maxEpss: undefined, noEpss: false, changedSince: undefined, newSince: undefined, movedSince: undefined, movedHours: undefined, label: undefined, offset: 0 })}">All</a>
       <a class="${filters.watch ? "on" : ""}" href="${query(filters, { watch: !filters.watch, offset: 0 })}">My stack</a>
       <a class="${filters.kev ? "on" : ""}" href="${query(filters, { kev: !filters.kev, offset: 0 })}">Known exploited</a>
       <a class="${filters.exploit ? "on" : ""}" href="${query(filters, { exploit: !filters.exploit, offset: 0 })}">Public exploit</a>
@@ -143,6 +144,7 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
       <a class="${filters.minEpss === 0.5 ? "on" : ""}" href="${query(filters, { minEpss: filters.minEpss === 0.5 ? undefined : 0.5, offset: 0 })}">Likely exploited (EPSS ≥ 50%)</a>
       <a class="${filters.changedSince ? "on" : ""}" href="${query(filters, { changedSince: filters.changedSince ? undefined : since, changedHours: undefined, offset: 0 })}">Changed, ${windowWord(filters.changedSince ? filters.changedHours : undefined)}</a>
       <a class="${filters.newSince ? "on" : ""}" href="${query(filters, { newSince: filters.newSince ? undefined : since, newHours: undefined, offset: 0 })}">New, ${windowWord(filters.newSince ? filters.newHours : undefined)}</a>
+      ${filters.movedSince ? html`<a class="on" href="${query(filters, { movedSince: undefined, movedHours: undefined, offset: 0 })}" title="Published or really changed, as Today counts them">Moved, ${windowWord(filters.movedHours)} ×</a>` : ""}
       ${filters.label ? html`<a class="on" href="${query(filters, { label: undefined, offset: 0 })}">Watch: ${filters.label} ×</a>` : ""}
       ${filters.severity ? html`<a class="on" href="${query(filters, { severity: undefined, offset: 0 })}">CVSS ${filters.severity} ×</a>` : ""}
       ${epssBand ? html`<a class="on" href="${query(filters, { minEpss: undefined, maxEpss: undefined, noEpss: false, offset: 0 })}">EPSS ${epssBand} ×</a>` : ""}
@@ -295,7 +297,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
             const t = getTriage(db, "vuln", row.id);
             const board = t ? `/triage#${t.state}` : "/triage";
             if (owner) return html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2>${triageForm({ kind: "vuln", id: row.id }, t, `/vulnerabilities/${row.cve_id}`)}</section>`;
-            return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p>${t.note ? html`<p class="small">${t.note}</p>` : ""}</section>` : "";
+            return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p></section>` : "";
           })()}
         <section class="box" id="scores">
           <h2><a href="#scores">Scores</a></h2>
