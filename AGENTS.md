@@ -14,8 +14,8 @@ Decisions so far (2026-10-19): News is the home page at `/` (the Wire renamed; t
 `/register`, `/wire` a 301), with the top grouped as News · Today · Standards ▾ · Vulnerabilities
 plus the owner's Desk ▾ on the right; build follows the "middle path" in the plan (Register done
 properly, Wire and Vulnerabilities thin, server-rendered HTML first); public home is
-https://cybercard.net as a read-only information and teaching site, with writes behind the
-owner's sign-in (M7); installable from the BoxPilot catalog on BigBox. Article images arrive
+https://baselinewatch.org (cybercard.net until 2026-10-28, which now redirects there) as a
+read-only information and teaching site, with writes behind the owner's sign-in (M7); installable from the BoxPilot catalog on BigBox. Article images arrive
 passively at ingest (feed media, else og:image once per new item), live in the blob store and
 are served from `/img/<hash>`; nothing is ever hot-linked.
 
@@ -48,7 +48,7 @@ open item of M10 to M12, then M13 to M19 ending at 1.0. Take M13 first — reten
 housekeeping pass, a restore that has been done and dated, one release command that refuses a
 version the CHANGELOG does not carry, the pipeline on Today and in `/metrics` — because two of
 its items are losses, not gaps. A milestone is done when its "Done when" can be shown on
-cybercard.net, not when its dates are up.
+the public home (baselinewatch.org), not when its dates are up.
 
 **The site feeds itself** (2026-10-28) is M20 in the same plan, and a gate on 1.0: keeping the data
 current must need neither a coding agent editing this repository nor a model at run time. Before

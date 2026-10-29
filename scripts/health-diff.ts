@@ -1,7 +1,7 @@
 // Two instances side by side, for the restore rehearsal (docs/DEPLOY.md): the counts the live
 // instance reports against the counts the restored copy reports, and a verdict.
 //
-//   node scripts/health-diff.ts https://cybercard.net http://127.0.0.1:8795
+//   node scripts/health-diff.ts https://baselinewatch.org http://127.0.0.1:8795
 //   node scripts/health-diff.ts live.json http://127.0.0.1:8795 --tolerance 0.2
 //
 // A restored copy is a backup, so it is behind: every count may be lower by up to the tolerance

@@ -169,7 +169,7 @@ part of `npm run check`) and fails on any that no longer answers with its format
 ## What leaves the box
 
 - Requests to the sources on the Sources page, with the User-Agent
-  `BaselineWatch/<version> (+https://cybercard.net; ...)`, including the fallback addresses a
+  `BaselineWatch/<version> (+https://baselinewatch.org; ...)`, including the fallback addresses a
   source declares and the feeds the owner adds there.
 - While a feed fails, once a day, requests to that feed's own site looking for its new address
   (not for a 403, a 429 or a server error, which say the address is right):

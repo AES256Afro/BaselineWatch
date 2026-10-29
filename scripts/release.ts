@@ -8,7 +8,7 @@
 //                                            package.json = lock = manifest = the newest entry,
 //                                            and that entry has been written, not left as a draft
 //   node scripts/release.ts --check --tag v0.38.0    the same, plus: the tag names that version
-//   node scripts/release.ts --verify https://cybercard.net
+//   node scripts/release.ts --verify https://baselinewatch.org
 //                                            after the deploy: /health runs the version we released
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -193,7 +193,7 @@ async function main(argv: string[]): Promise<number> {
 
   if (argv.includes("--verify")) {
     if (!verify) {
-      console.error("--verify needs the instance's address, e.g. --verify https://cybercard.net");
+      console.error("--verify needs the instance's address, e.g. --verify https://baselinewatch.org");
       return 2;
     }
     const expected = readVersions().package;

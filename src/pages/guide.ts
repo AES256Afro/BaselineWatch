@@ -4,7 +4,7 @@ import { page } from "./layout.ts";
 
 /**
  * The teaching page: what the Register is, what the scores and severities mean, and how the
- * reading areas relate. Written for cybercard.net's learning audience, so every term links to
+ * reading areas relate. Written for baselinewatch.org's learning audience, so every term links to
  * the page that shows it in use. Plain prose, no data: it renders the same for everyone.
  */
 export function renderGuide(options: { owner: boolean; open: boolean; look: LookState }): string {

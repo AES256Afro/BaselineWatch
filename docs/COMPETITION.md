@@ -11,7 +11,7 @@ each do one or two of those well. One sentence each on what to borrow, and what 
 **OpenCVE** (open source CVE tracker with subscriptions per vendor and product, change history
 per CVE, and alerts): borrow the per-vendor subscription that produces an alert the moment a
 CVE touching it appears or changes (M9.5's platform entries do this for whole platforms);
-deliberately do not copy its account-per-user model, since cybercard.net is one owner and
+deliberately do not copy its account-per-user model, since baselinewatch.org is one owner and
 public readers.
 
 **Vulners** (an aggregated vulnerability database with a search language, exploit and patch

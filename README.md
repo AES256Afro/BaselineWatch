@@ -8,28 +8,28 @@ and why, quoted from the publisher's own release notes.
 Runs on its own (one container, one SQLite volume) or from the
 [BoxPilot](https://github.com/AES256Afro/BoxPilot) catalog.
 
-**Public home**: https://cybercard.net, a read-only information and teaching site; writes are the
+**Public home**: https://baselinewatch.org, a read-only information and teaching site; writes are the
 owner's, behind a sign-in. The plan and the ledger of what shipped are in
 [docs/PLAN.md](docs/PLAN.md); every source with its terms is in [docs/SOURCES.md](docs/SOURCES.md).
 
 ## What it does today
 
-**Reading.** [News](https://cybercard.net/) is the timeline: the feeds, Reddit, Hacker News, the
+**Reading.** [News](https://baselinewatch.org/) is the timeline: the feeds, Reddit, Hacker News, the
 vendor advisories, CISA's advisories and the KEV catalog, and the CVEs worth an entry of their
-own, one card per story however many sources carry it. [Today](https://cybercard.net/today) is the
+own, one card per story however many sources carry it. [Today](https://baselinewatch.org/today) is the
 last day in one glance: what to do next, CVEs by the platform they touch, what the News is
-talking about, the pipeline's own health. [Vulnerabilities](https://cybercard.net/vulnerabilities)
+talking about, the pipeline's own health. [Vulnerabilities](https://baselinewatch.org/vulnerabilities)
 is every CVE NVD modifies with CVSS, EPSS, KEV, the platform it touches, whether a **public
 exploit** exists (Exploit-DB, Metasploit, PoC-in-GitHub), and on each CVE page a **Fix** panel:
 the patch, advisory, KEV action, fixed package version, mitigating STIG rule and **Microsoft's
 update** (the KB per product from the Security Update Guide) already published, or "nothing
-published yet". [Patch Tuesday](https://cybercard.net/vulnerabilities/microsoft) lays each month
+published yet". [Patch Tuesday](https://baselinewatch.org/vulnerabilities/microsoft) lays each month
 out by update and product, your own Windows releases first. One search from the masthead covers
 CVEs, the News, every standard's controls, Microsoft's updates and the sources.
 
 **The standards themselves.** A *standard* is the rulebook, a *baseline* the set of its rules
 chosen for a kind of system, a *control* one rule in that set, a *configuration setting* how the
-control is enforced on a device — the ladder the [guide](https://cybercard.net/guide#ladder)
+control is enforced on a device — the ladder the [guide](https://baselinewatch.org/guide#ladder)
 teaches and the menu is built from. The Register keeps every release of NIST SP 800-53 and its
 800-53B baselines (OSCAL), SP 800-171, FedRAMP's rules, the DISA STIGs you follow (rule by rule),
 every Microsoft Security Baseline (setting by setting), NIST's macOS rules and the CIS Benchmarks
@@ -140,7 +140,7 @@ Read-only JSON, same read gating as the pages, for BoxPilot's agents and your ow
 The same reads are an MCP server at `/mcp` (Streamable HTTP, stateless, no sessions), with the
 tools `list_standards`, `release`, `requirement`, `standard_changes`, `search_wire`,
 `vulnerabilities`, `vulnerability`, `triage` and `digest`, every one marked read-only. From
-Claude Code: `claude mcp add --transport http baselinewatch https://cybercard.net/mcp`. Nothing
+Claude Code: `claude mcp add --transport http baselinewatch https://baselinewatch.org/mcp`. Nothing
 on it writes, uploads or fetches, and neither the API nor the tools return the entries of a
 licence-restricted source (`sources.restricted`): those are shown to the signed-in owner on the
 pages alone, while everyone else sees the versions and counts.

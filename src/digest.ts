@@ -29,7 +29,7 @@ export interface DigestRow {
  * over the same rows, because two passes would drift.
  *
  * The split exists because `/digest` and `/api/v1/digest` are gated for *reading*, not for the
- * owner, so on a read-open instance (cybercard.net is one) anyone could fetch the digest — and it
+ * owner, so on a read-open instance (baselinewatch.org is one) anyone could fetch the digest — and it
  * names the devices with something open on them, the certificates logged for the owner's domains,
  * their watchlist's products and the LAN's sinkhole changes. `/scan/network`, `/scan/history` and
  * `/scan/devices` each hide exactly those facts from a visitor; the digest handed all three over
