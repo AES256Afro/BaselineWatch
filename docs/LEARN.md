@@ -1,6 +1,6 @@
 # The Learning section: plan and milestones
 
-baselinewatch.org's stated mission is a public information and teaching site, and the teaching is the
+cybercard.net's stated mission is a public information and teaching site, and the teaching is the
 part that has been built last. This is the plan for finishing it. The milestones are numbered L1 to
 L7 so they can be taken in any order against the main plan's M13 to M19; where they overlap M17
 ("The teaching site earns the name"), this document is the detail and `PLAN.md` keeps the gate.
@@ -276,7 +276,7 @@ The visual centrepiece, and the page somebody would send a colleague.
   privacy; **by status** — active, withdrawn, incorporated into another control; **by what this
   instance can check** — whether a followed STIG rule reaches the control through its CCI, which
   `cciMap()` already computes. That last lens is the one no other reference site can draw, and it
-  is the reason this is baselinewatch.org's page and not a copy of somebody else's.
+  is the reason this is cybercard.net's page and not a copy of somebody else's.
 - Every cell is a link, with a `<title>` carrying the label, the title and the lens's number. The
   Atlas's lesson about a four-pixel mark needing a twelve-pixel target applies here too.
 - A legend that states the scale **in words**, and a count per family.

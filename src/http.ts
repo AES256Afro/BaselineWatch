@@ -5,7 +5,7 @@ import { isIP } from "node:net";
 import { productVersion } from "./version.ts";
 
 /** Every outbound request identifies itself; feed publishers and Reddit require it. */
-export const userAgent = `BaselineWatch/${productVersion} (+https://baselinewatch.org; security news and baseline change tracker)`;
+export const userAgent = `BaselineWatch/${productVersion} (+https://cybercard.net; security news and baseline change tracker)`;
 
 export interface HttpOptions {
   /** Sent as If-None-Match when set. */

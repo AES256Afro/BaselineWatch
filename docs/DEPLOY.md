@@ -1,34 +1,26 @@
-# BaselineWatch on baselinewatch.org
+# BaselineWatch on cybercard.net
 
 *Written 2026-10-14 as a plan; rewritten 2026-10-15 after the switch, as a description of what
-runs and how to change it; updated 2026-10-16 when the app moved under BoxPilot, and 2026-10-28
-when the public home moved from cybercard.net to baselinewatch.org.*
+runs and how to change it; updated 2026-10-16 when the app moved under BoxPilot.*
 
-baselinewatch.org is BaselineWatch's public home: a read-only information, learning and teaching
-site with no private data. It serves BaselineWatch from BigBox through a Cloudflare Tunnel. Since
+cybercard.net is BaselineWatch's public home: a read-only information, learning and teaching
+site with no private data. Until 2026-10-15 the domain served the FinancialAuthority demo from
+GitHub Pages; it now serves BaselineWatch from BigBox through a Cloudflare Tunnel. Since
 2026-10-16 the app is one BoxPilot installed from its catalog, so BoxPilot installs, updates,
 backs up and restores it like any other app on the box.
 
-cybercard.net was the home from 2026-10-15 to 2026-10-28 (before that it served the
-FinancialAuthority demo from GitHub Pages). The same container answers both names through the same
-tunnel, because the app never checks the host it is reached by: `BW_BASE_URL` only decides its
-absolute links (canonical tags, feeds, sitemap, the API's `url` fields, the digest) and whether
-cookies are `Secure`. Since 2026-10-28 cybercard.net answers every path with a 301 to the same path
-on baselinewatch.org, at Cloudflare's edge; it is to be retired later. See "Moving to
-baselinewatch.org" below.
-
 ## What is there
 
-| Piece | State |
+| Piece | State since 2026-10-16 |
 | --- | --- |
 | App | BaselineWatch installed from the BoxPilot catalog on BigBox: container `bp-baselinewatch` from `ghcr.io/aes256afro/baselinewatch:<version>`, project files and data under `/var/lib/boxpilot-managed/catalog/baselinewatch/` (`compose.yaml`, `.env`, `boxpilot.json`, `data/`), port 8790 on loopback and the LAN. Settings live on the app's card in BoxPilot. |
-| Tunnel | Cloudflare Tunnel named `Baseline Watch`, dashboard-managed, run by BoxPilot's Cloudflare Tunnel app (container `bp-cloudflared`, host network). Routes, matched top to bottom: `cybercard.net`, `www.cybercard.net`, `baselinewatch.org` and `www.baselinewatch.org` (the last two since 2026-10-28), each → `http://127.0.0.1:8790`. |
-| DNS in Cloudflare | Both zones: proxied `CNAME` records for the apex and `www` to the tunnel, created by the tunnel's routes. cybercard.net also has the no-mail set (`v=spf1 -all`, `*._domainkey` with an empty key, `_dmarc` at `p=reject` with Cloudflare's DMARC reports, a null `MX`), CAA for letsencrypt.org, pki.goog and ssl.com, and DNSSEC. baselinewatch.org has the same set since 2026-10-28 (its `_dmarc` has no report address yet) and DNSSEC, validating the same day. Its old GitHub Pages `A` records are gone. |
-| Zone settings | Identical on both zones since 2026-10-28 (compared through the dashboard's settings API): Always Use HTTPS on, minimum TLS 1.2, HSTS at the edge (six months, include subdomains, no preload, nosniff), browser cache TTL "Respect existing headers", hotlink protection on. Encryption mode left at Cloudflare's Automatic (reads "Full"); tunnel traffic does not use it, cloudflared speaks plain HTTP to the container on loopback. Redirect rule 1 "Redirect from WWW to root" active (`www` → apex); redirect rule 2 "cybercard.net to rustyschool.com" **disabled, not deleted**: re-enabling it sends the whole site to rustyschool.com. Since 2026-10-28 cybercard.net's rule 1 is "cybercard.net to baselinewatch.org" (every request, 301 to `concat("https://baselinewatch.org", http.request.uri.path)`, query string kept), replacing its www → apex rule; baselinewatch.org has its own "Redirect from WWW to root". |
+| Tunnel | Cloudflare Tunnel named `Baseline Watch`, dashboard-managed, run by BoxPilot's Cloudflare Tunnel app (container `bp-cloudflared`, host network). Routes: `cybercard.net` and `www.cybercard.net` → `http://127.0.0.1:8790`. |
+| DNS in Cloudflare | Proxied `CNAME` records for the apex and `www` to the tunnel, created by the tunnel's routes. The old GitHub Pages `A` records and the `www` CNAME are gone. `_dmarc` TXT stays. |
+| Zone settings | Always Use HTTPS on. Encryption mode left at Cloudflare's Automatic (reads "Full"); tunnel traffic does not use it, cloudflared speaks plain HTTP to the container on loopback. Redirect rule 1 "Redirect from WWW to root" active (`www` → apex); redirect rule 2 "cybercard.net to rustyschool.com" **disabled, not deleted**: re-enabling it sends the whole site to rustyschool.com. |
 | Backups | BoxPilot's per-app backup from the card: the Compose project, `.env` and the `data` volume, archived under `/var/lib/boxpilot-managed/backups/catalog` and copied off the box with the rest of BoxPilot's backups. |
 | Old instance | Gone. The hand-run compose project in `/opt/baselinewatch` (compose file, `.env`, `data/`) was stopped for the move and removed the same day once the managed instance was confirmed, with the images before 0.17.0. |
 | Demo | GitHub Pages for `AES256Afro/financialauthority-demo-cybercard` has no custom domain any more; `FinancialAuthority/scripts/publish-demo.sh` and `docs/DEMO.md` name only demo.aes256afro.com. |
-| Categorisation | cybercard.net: requested 2026-10-15 in Security Center → Investigate, Education and Information Security. baselinewatch.org: requested 2026-10-28, Education and Information Security (the form takes two at most); until Cloudflare reviews it the domain reads "Newly Seen Domains". |
+| Categorisation | Requested 2026-10-15 in Security Center → Investigate: Education and Information Security. Cloudflare reviews it. |
 
 ## How it is set up
 
@@ -63,9 +55,9 @@ version or later (System page → update).
 
 Apps → Add an app → BaselineWatch → Install, with:
 
-| Setting | Value for the public home |
+| Setting | Value for cybercard.net |
 | --- | --- |
-| Address people use (`BW_BASE_URL`) | `https://baselinewatch.org` (was `https://cybercard.net` until the move) |
+| Address people use (`BW_BASE_URL`) | `https://cybercard.net` |
 | Time zone (`TZ`) | `America/New_York` |
 | Anyone on the network can read (`BW_PUBLIC_READ`) | on |
 | Owner password, Session signing secret | generated by BoxPilot; the card's Sign in shows the password |
@@ -144,47 +136,6 @@ Security Center → Investigate → `cybercard.net` → Add category → Educati
 Security → Submit. The guide is
 https://developers.cloudflare.com/security-center/investigate/change-categorization/.
 
-## Moving to baselinewatch.org
-
-Started 2026-10-28, the day the name was registered at Cloudflare (same account and nameservers as
-cybercard.net, so the zone was active at once). Done that day, in the Cloudflare dashboard:
-
-1. Two published-application routes on the `Baseline Watch` tunnel, `baselinewatch.org` and
-   `www.baselinewatch.org` → `http://127.0.0.1:8790`, which created their proxied CNAMEs.
-   `https://baselinewatch.org/health` answered from the same container within a minute.
-2. The zone settings copied from cybercard.net (the table above), SSL/TLS → Edge Certificates,
-   Caching → Configuration and Security → Settings.
-3. DNS → Records → the "Set up SPF, DKIM, and DMARC records" recommendation (no report address),
-   and DNS → Settings → Enable DNSSEC, which adds the DS record itself for a Cloudflare-registered
-   name.
-
-Also done that day: the null `MX` and the six CAA records; baselinewatch.org's "Redirect from WWW to
-root" rule (query string kept); the categorisation request; and cybercard.net's rule 1 turned into
-the move itself (every request, 301 to the same path on baselinewatch.org, query string kept, one
-hop from `www` too). Checked from outside: both cybercard.net names and every path tried answer 301
-to baselinewatch.org; baselinewatch.org answers 200 with the app's CSP and HSTS; DNSSEC validates.
-
-Left:
-
-1. **On the instance**: `/scan/domain`, add baselinewatch.org to the owner's domains so its
-   certificates are watched. (The card's address, `BW_BASE_URL`, was set to
-   `https://baselinewatch.org` the same day; it had held the default `http://localhost:8790`, so
-   canonical tags, feeds and the sitemap had named localhost until then.)
-2. **Workplace filters**: Cloudflare's own category is requested, but a workplace proxy uses its own
-   vendor's list, which may block a newly registered or uncategorised name for its first weeks.
-   Check the site from work; if it is blocked, submit it to that vendor's "submit a URL for review"
-   form (Zscaler, Palo Alto Networks, Cisco Talos, Fortinet, Broadcom/Symantec, Forcepoint and
-   Trellix each have one). Until then cybercard.net's redirect sends work visitors to the blocked
-   name; disabling cybercard.net's rule 1 puts the site back on the old name at once.
-3. **Search and readers**: in Google Search Console, verify baselinewatch.org and use Change of
-   Address from cybercard.net. RSS readers and MCP clients follow the 301 but should be pointed
-   at the new address. Optionally Email → DMARC Management on baselinewatch.org, which adds
-   Cloudflare's report address to `_dmarc` as cybercard.net has.
-4. **Retiring cybercard.net**, later: keep the redirect at least as long as the HSTS max-age (six
-   months) and while anything still arrives there. Keep its proxied CNAMEs (Cloudflare must answer
-   for the name to redirect it); its two tunnel routes can go, since the rule answers before the
-   tunnel is reached. Then let the name lapse or keep it parked with the redirect.
-
 ## Upgrading
 
 A release is a tag; CI publishes the image. From there the version reaches BigBox through
@@ -245,7 +196,7 @@ BoxPilot's catalog, and the chain below is the one that took 0.39.0 to 0.48.0 th
    compares that with the version this tree released:
 
    ```bash
-   npm run release -- --verify https://baselinewatch.org
+   npm run release -- --verify https://cybercard.net
    ```
 
 After a version that adds a standard, the standard loads itself on its first scheduled fetch; to
@@ -297,7 +248,7 @@ against a scratch directory, and the live container is not touched.
 4. **Compare it with the live instance.** From the development machine:
 
    ```bash
-   node --disable-warning=ExperimentalWarning scripts/health-diff.ts https://baselinewatch.org http://<bigbox>:8795
+   node --disable-warning=ExperimentalWarning scripts/health-diff.ts https://cybercard.net http://<bigbox>:8795
    ```
 
    It prints the counts side by side and gives a verdict: the restored copy is a backup, so every
@@ -325,13 +276,13 @@ against a scratch directory, and the live container is not touched.
 ## Checks
 
 ```bash
-curl -sI https://baselinewatch.org/ | grep -i "^HTTP\|content-security-policy\|strict-transport"
+curl -sI https://cybercard.net/ | grep -i "^HTTP\|content-security-policy\|strict-transport"
 ```
 
 The answer is `200` with the app's `Content-Security-Policy` header, and its
 `Strict-Transport-Security` header once the address on the card is an `https://` one;
-`https://baselinewatch.org/health` reports the running version and the database counts, and
-`https://baselinewatch.org/login` takes the owner password from the card. A browser that visited
+`https://cybercard.net/health` reports the running version and the database counts, and
+`https://cybercard.net/login` takes the owner password from the card. A browser that visited
 the domain while the rustyschool redirect was active may replay the cached 301 until its cache
 is cleared; a private window shows the live answer.
 
