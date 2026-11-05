@@ -2,6 +2,15 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.54.1 — 2026-11-05
+
+- **The domain check no longer stops the site.** It reads the certificate of the domain it is
+  asked about inside a callback that no request's error handling covers, so a certificate with a
+  field that was not what it should be could end the process, and the container's restart only
+  waited for the next such request. Anyone can ask about any domain on `/scan/domain`. The read
+  now leaves an unreadable field out, and the callback answers with an error instead of throwing.
+  A release of its own, ahead of the rest of the audit of 5 November.
+
 ## 0.54.0 — 2026-10-26
 
 - **Today is the work, keyed by the fix that ends it.** It used to open on five counts and close
