@@ -50,6 +50,12 @@ version the CHANGELOG does not carry, the pipeline on Today and in `/metrics` â€
 its items are losses, not gaps. A milestone is done when its "Done when" can be shown on
 cybercard.net, not when its dates are up.
 
+**The site feeds itself** (2026-10-28) is M20 in the same plan, and a gate on 1.0: keeping the data
+current must need neither a coding agent editing this repository nor a model at run time. Before
+adding another version name, word list or source row in code, check whether M20 means it should be
+discovered, proposed to the owner, or entered on the running instance instead, and name any new
+hand-kept list in the commit so M20.1's ledger can carry it.
+
 ## Conventions
 
 - **Stack**: Node â‰¥ 24 running TypeScript directly (type stripping, so `erasableSyntaxOnly`: no
@@ -66,7 +72,11 @@ cybercard.net, not when its dates are up.
   (one document in, timeline items out; the ingester does the GET, the snapshot and the upsert)
   or `pull()` (the adapter runs its own requests against a stream such as the NVD API), a row in
   a migration, a line in `src/adapters/index.ts`, and a fixture test that replays a real captured
-  response. No bespoke code paths per source outside the adapter.
+  response. No bespoke code paths per source outside the adapter. **A new feed** (RSS, RSS 1.0
+  or Atom) needs none of that: the owner adds it on the Sources page, where it is probed before
+  it is saved (`src/newsource.ts`, M20.2), and a migration row is only for one that every
+  instance should read. A source whose document also lives elsewhere declares those addresses in
+  `sources.fallback_urls`, tried in order when its own fails (`src/repairs.ts`, M20.3).
 - **The Wire is for what matters.** Every CVE goes in the Vulnerabilities table; only notable
   ones (`isNotable` in `src/vulns.ts`: KEV, watchlist, new criticals, EPSS over 50%, active
   exploitation per SSVC) become timeline items.
@@ -91,6 +101,9 @@ src/server.ts        start: config, data dir, migrations, listen
 src/app.ts           Express app: headers, body limits, the MCP endpoint, assets, API, health, sign-in, the read gate; then the mounts
 src/routes/          one module per area (news, today, standards, scan, baselines, vulnerabilities, desk), each a mount function taking RouteContext
 src/json.ts          the one reader for a column that should hold JSON
+src/curated.ts       the hand-kept ledger: every store of data typed into the repository, how it goes stale, what replaces it (M20.1)
+src/newsource.ts     a feed the owner adds on the Sources page, probed before it is saved, and the log of changes made there (M20.2)
+src/repairs.ts       a failing source's fallbacks, and the repairs the instance finds and proposes for a failing feed (M20.3)
 src/config.ts        BW_* environment variables
 src/db.ts            open, migrate, counts
 src/blobs.ts         content-addressed snapshot store
@@ -110,6 +123,7 @@ src/smtp.ts          the notifier's mail transport: one message, STARTTLS or TLS
 src/saved.ts         saved searches: a named list page with its filters, kept on the desk and on Today
 src/inventory.ts     is this device affected: the inventory script's report read against the guide, the vendors, endoflife.date and OSV
 src/versions.ts      dotted version numbers compared as people read them
+src/traces.ts        traces: the indicator list the Register holds, served to the page that reads a device's saved data in the tab (public/traces.js)
 src/devices.ts       the owner's devices over time: each reading's verdicts and CVE ids, never the report
 src/testplans.ts     test plans by area from STIG and mSCP checks plus data/test-plans/*.yaml
 src/report.ts        one block model rendered as LaTeX, Word (.docx) and PDF, in eleven looks
@@ -123,6 +137,7 @@ src/sbom.ts          a CycloneDX or SPDX document's components as watchlist pack
 src/msrc.ts          Microsoft's Security Update Guide per CVE: the KB per product, exploited, disclosed
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
+public/scan.js       the browser check's script; public/traces.js reads picked files against the indicator list, in the tab
 test/                vitest; fixtures under test/fixtures/<adapter>/ from M1
 boxpilot/            the BoxPilot catalog manifest; scripts/validate-manifest.mjs checks it
 docs/                plan, the Learning section's plan (LEARN.md), sources, mockups

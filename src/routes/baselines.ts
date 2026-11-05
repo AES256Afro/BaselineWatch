@@ -6,7 +6,7 @@ import { renderDecide, renderDecisionBoard } from "../pages/decisions.ts";
 import { decisionsCsv, isDecisionKind, saveDecision } from "../decisions.ts";
 import { renderTestPlan } from "../pages/testplans.ts";
 import { renderPlatforms } from "../pages/platforms.ts";
-import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, type PlanOptions } from "../testplans.ts";
+import { buildTestPlan, exportPlan, isArea, isPlanFormat, isPlanPlatform, planForVisitor, type PlanOptions, type TestPlan } from "../testplans.ts";
 import { buildProfile, isBuilderPlatform, isSectionId, sectionOf, type ProfileOptions } from "../baselines.ts";
 import { exportProfile, isExportFormat, isFlavour, publicDecisions, publicProfile, type Flavour } from "../exports.ts";
 
@@ -167,11 +167,13 @@ export function mountBaselines(r: RouteContext): void {
     }
     return drop.length ? { ...base, drop } : base;
   };
+  // A decision's reason and signer are the owner's, in the page and in every export format alike.
+  const visible = (res: Response, plan: TestPlan): TestPlan => (res.locals.owner === true ? plan : planForVisitor(plan));
   const drawPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
     if (!isPlanPlatform(platform)) return next();
     const area = str(fields.section, 20) ?? str(fields.shown, 20);
-    res.type("html").send(renderTestPlan({ db, plan: buildTestPlan(db, planOptions(platform, fields)), area: isArea(area) ? area : undefined, ...who(req, res) }));
+    res.type("html").send(renderTestPlan({ db, plan: visible(res, buildTestPlan(db, planOptions(platform, fields))), area: isArea(area) ? area : undefined, ...who(req, res) }));
   };
   // Renamed from Platforms to Fleet (it is the owner's own inventory, and src/fleet.ts always
   // called it that); the old address keeps working the way /wire does.
@@ -186,7 +188,7 @@ export function mountBaselines(r: RouteContext): void {
   const sendPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
     if (!isPlanPlatform(platform)) return next();
-    const out = exportPlan(buildTestPlan(db, planOptions(platform, fields)), isPlanFormat(fields.format) ? fields.format : "json", { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
+    const out = exportPlan(visible(res, buildTestPlan(db, planOptions(platform, fields))), isPlanFormat(fields.format) ? fields.format : "json", { baseUrl: config.baseUrl, generatedAt: now().toISOString(), version: productVersion });
     res.setHeader("Content-Disposition", `attachment; filename="${safeFilename(out.filename)}"`);
     res.setHeader("Cache-Control", "no-store");
     res.type(out.contentType).send(typeof out.body === "string" ? out.body : Buffer.from(out.body));

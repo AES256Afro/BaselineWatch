@@ -60,9 +60,16 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
     case "spf":
       return {
         kind: "dns",
-        text: finding.text.includes("no SPF") || finding.text.includes("No SPF")
+        // Each finding of judgeSpf has its own remedy; "end it in -all" answers only the record that ends permissively.
+        text: /no SPF/i.test(finding.text)
           ? "Publish one SPF record saying who may send as this domain. A domain that sends no mail says so with a bare hard fail."
-          : "Tighten the record: end it in -all so a receiver refuses mail from anywhere the record does not name.",
+          : /SPF records:/.test(finding.text)
+            ? "Merge the records into one. Receivers treat two v=spf1 records as a permanent error, so neither counts: put every sender's include: in a single record."
+            : /DNS lookups/.test(finding.text)
+              ? "Cut the lookups to ten or fewer: drop includes for services that no longer send as you, and replace an include that expands to a few fixed addresses with those ip4:/ip6: terms."
+              : /no all term/.test(finding.text)
+                ? "End the record with an all term, -all to refuse mail from anywhere the record does not name."
+                : "Tighten the record: end it in -all so a receiver refuses mail from anywhere the record does not name.",
         lines: [`${domain}. IN TXT "v=spf1 -all"    ; a domain that sends no mail`, `${domain}. IN TXT "v=spf1 include:YOUR-PROVIDER -all"    ; one that does`],
         caution: "Replace YOUR-PROVIDER with every service that sends as you — the mail host, the newsletter, the ticketing system, the monitoring that mails you. Anything missing from the record has its mail refused, and ten DNS lookups is the limit a receiver will follow.",
         source: rfc(7208, "Sender Policy Framework"),
@@ -70,9 +77,13 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
     case "dmarc":
       return {
         kind: "dns",
-        text: finding.text.includes("No DMARC") || finding.text.includes("no DMARC")
+        text: /no DMARC/i.test(finding.text)
           ? "Publish a DMARC record. Start at p=none with reports coming back, read them for a few weeks, then move to quarantine and reject once nothing legitimate is failing."
-          : "Move the policy on, once the reports show nothing legitimate failing: none, then quarantine, then reject.",
+          : /no readable p= policy/.test(finding.text)
+            ? "Give the record a policy it can be read by: p=none, p=quarantine or p=reject, spelled exactly, as the second tag after v=DMARC1."
+            : /Policy reject/.test(finding.text)
+              ? "Take out the pct= tag (or set it to 100), so the reject policy covers all failing mail rather than a sample of it."
+              : "Move the policy on, once the reports show nothing legitimate failing: none, then quarantine, then reject.",
         lines: [`_dmarc.${domain}. IN TXT "v=DMARC1; p=none; rua=mailto:dmarc@${domain}; fo=1"`],
         caution: "p=reject before the reports are clean refuses your own mail. The rua address receives a daily XML report from every large receiver, so point it somewhere a person or a parser will actually read.",
         source: rfc(7489, "Domain-based Message Authentication, Reporting and Conformance"),
@@ -90,7 +101,7 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
         kind: "file",
         text: "MTA-STS is a DNS record pointing at a policy file, so a sending server knows to insist on TLS to your mail exchangers rather than accept a downgrade.",
         lines: [
-          `_mta-sts.${domain}. IN TXT "v=STSv1; id=$(date +%Y%m%d%H%M%S)"`,
+          `_mta-sts.${domain}. IN TXT "v=STSv1; id=1"    ; any short string: change it whenever the policy file changes`,
           `# then, at https://mta-sts.${domain}/.well-known/mta-sts.txt, served over valid HTTPS:`,
           "version: STSv1",
           "mode: testing",

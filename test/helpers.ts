@@ -57,6 +57,53 @@ export function fakeHttp(routes: Record<string, FakeRoute>): HttpGet & { calls: 
   return Object.assign(get, { calls });
 }
 
+/**
+ * The commit each pinned release of the SP 800-53 catalog is loaded from, against the fixture that
+ * holds that release's slice of it. Every fixture carries the same controls — AC-1, the SA-15 and
+ * SI-2 and SI-7 families, and SA-24 where it exists — so a diff between two of them is the
+ * publisher's change and not a difference in how the fixture was cut.
+ */
+const nistReleaseFixtures: [sha: string, catalog: string, profile: string][] = [
+  ["601b282bee", "oscal-catalog-5.1.2.json", "oscal-profile-moderate-5.1.2.json"],
+  ["bae69b5a53", "oscal-catalog-5.1.1-patch.json", "oscal-profile-moderate-5.1.1-patch.json"],
+  ["1763607deb", "oscal-catalog-5.1.1-u2.json", "oscal-profile-moderate-5.1.1-u2.json"],
+  ["b517381112", "oscal-catalog-5.1.1-u3.json", "oscal-profile-moderate-5.1.1-u3.json"],
+  ["941c978d14", "oscal-catalog-5.1.1.json", "oscal-profile-moderate-5.1.1.json"],
+  ["bc8a528770", "oscal-catalog-5.2.0-first.json", "oscal-profile-moderate-5.2.0-first.json"],
+];
+
+/**
+ * An HttpGet that answers the whole NIST history: Revision 4 under its own key, every pinned
+ * release of Revision 5, and the live URL — which carries no commit — as the current release, the
+ * way a scheduled fetch sees it.
+ */
+export function nistFixtureHttp(): HttpGet {
+  return async (url) => {
+    const release = nistReleaseFixtures.find(([sha]) => url.includes(sha));
+    let name: string;
+    if (url.includes("rev4")) name = "oscal-catalog-rev4.json";
+    else if (url.includes("_catalog.json")) name = release ? release[1] : "oscal-catalog-5.2.0.json";
+    else if (url.includes("baseline_profile.json")) name = release ? release[2] : "oscal-profile-moderate-5.2.0.json";
+    else throw new Error(`no fixture for ${url}`);
+    return { url, status: 200, notModified: false, bytes: fixture(name), etag: null, lastModified: null, contentType: "application/json" };
+  };
+}
+
+/**
+ * Most tests want one diff rather than the whole back catalogue: the 5.1.1+u4 release and the
+ * 5.2.0 release after it. Walking every pinned release has its own test in register.test.ts.
+ */
+export function nistOneDiff(target: { url: string }): boolean {
+  return target.url.includes("941c978d14") || target.url.includes("bc8a528770");
+}
+
+/** The release the current catalog's bytes belong to, for a test that wants only that one. */
+export function nistCurrentRelease<T extends { url: string }>(targets: T[]): T {
+  const target = targets.find((t) => t.url.includes("bc8a528770"));
+  if (!target) throw new Error("the 5.2.0 release is no longer pinned in the adapter");
+  return target;
+}
+
 export interface TestApp {
   base: string;
   db: DatabaseSync;

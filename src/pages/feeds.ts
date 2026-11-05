@@ -1,6 +1,6 @@
 import { html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
-import { platformKeys } from "../platforms.ts";
+import { platformChoices } from "../platforms.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -34,11 +34,11 @@ export function renderFeeds({ baseUrl, owner, open, look }: { baseUrl: string; o
             ${row("Every CVE, newest change first", "/vulnerabilities/feed.xml")}
             ${row("Known exploited (CISA KEV)", "/vulnerabilities/feed.xml?kev=1")}
             ${row("With a public exploit", "/vulnerabilities/feed.xml?exploit=1")}
-            ${row("Your stack", "/vulnerabilities/feed.xml?watch=1", "the watchlist's matches")}
+            ${row("Most dangerous", "/vulnerabilities/feed.xml?danger=1", "exploited, exploit public, or EPSS at or over 50%")}
             ${row("Critical, new this week", "/vulnerabilities/feed.xml?severity=critical&new=168")}
             ${row("Likely exploited", "/vulnerabilities/feed.xml?min_epss=0.5", "EPSS at or over 50%")}
           </ul>
-          <p class="small">By platform: ${platformKeys.map((k, i) => html`${i ? " · " : ""}<a href="/vulnerabilities/feed.xml?platform=${k}">${k}</a>`)}. Every filter of the <a href="/vulnerabilities">table</a> works: <code>kev</code>, <code>exploit</code>, <code>watch</code>, <code>platform</code>, <code>severity</code>, <code>min_cvss</code>, <code>min_epss</code>, <code>changed</code>, <code>new</code>, <code>q</code>. A CVE comes round again when it changes, because the change is the news.</p>
+          <p class="small">By platform: ${platformChoices.map((c, i) => html`${i ? " · " : ""}<a href="/vulnerabilities/feed.xml?platform=${c.id}">${c.label}</a>`)}; add <code>danger=1</code> for only the dangerous ones there. Every filter of the <a href="/vulnerabilities">table</a> works: <code>kev</code>, <code>exploit</code>, <code>danger</code>, <code>platform</code>, <code>severity</code>, <code>min_cvss</code>, <code>min_epss</code>, <code>changed</code>, <code>new</code>, <code>q</code>. A CVE comes round again when it changes, because the change is the news.</p>
         </section>
       </section>
       <aside class="side">
@@ -46,7 +46,7 @@ export function renderFeeds({ baseUrl, owner, open, look }: { baseUrl: string; o
           <h2>Calendar</h2>
           <ul class="feeds">
             ${row("KEV due dates", "/vulnerabilities/kev.ics", "all-day events, from a month ago on")}
-            ${row("KEV due dates, your stack", "/vulnerabilities/kev.ics?watch=1")}
+${owner ? row("KEV due dates, your stack", "/vulnerabilities/kev.ics?watch=1", "signed in only: a calendar app sends no session, so subscribe to the full one") : ""}
           </ul>
           <p class="small">Subscribe to the address rather than importing the file, so a CVE added to the catalog tomorrow is on the calendar tomorrow.</p>
         </section>

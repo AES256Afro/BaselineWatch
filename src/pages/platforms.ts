@@ -49,8 +49,11 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
     const releases = releasesOf(fleet, p.id);
     const hardware = hardwareOf(fleet, p.id);
     const forPlatform = templates.filter((t) => t.platforms.includes("all") || t.platforms.includes(p.id));
-    return html`<section class="std platform" id="${p.id}">
-      <div class="std-head"><b><a href="#${p.id}">${p.label}</a></b><span class="small"><a href="#${p.id}">${releases.length} release${releases.length === 1 ? "" : "s"}</a> · <a href="#${hardware.length ? `${p.id}-hardware` : p.id}">${hardware.length} hardware famil${hardware.length === 1 ? "y" : "ies"}</a> · <a href="/baselines/${p.id}/tests">${forPlatform.length} template${forPlatform.length === 1 ? "" : "s"}</a></span></div>
+    // Each platform folds to one line — its counts and anything ending soon — so the page is a
+    // list of platforms first and a platform's releases second.
+    const endingHere = ending.filter((e) => releases.includes(e.release)).length;
+    return html`<details class="fold platform" id="${p.id}">
+      <summary><b>${p.label}</b><span class="fold-meta">${releases.length} release${releases.length === 1 ? "" : "s"} · ${hardware.length} hardware famil${hardware.length === 1 ? "y" : "ies"} · ${forPlatform.length} template${forPlatform.length === 1 ? "" : "s"}${endingHere ? html` · <span class="chip na">${endingHere} ending within 90 days</span>` : ""}</span></summary>
       <p class="std-note">${p.blurb}</p>
       <div class="std-meta">${isBuilderPlatform(p.id) ? html`<a href="/baselines/${p.id}">Baseline builder</a>` : ""}<a href="/baselines/${p.id}/tests">Test plan</a></div>
       ${releases.length
@@ -75,7 +78,7 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
       ${hardware.length
         ? html`<ul class="hw" id="${p.id}-hardware">${hardware.map((h) => html`<li><b>${h.label}</b>${h.secureElement ? html` <span class="chip ok">secure element</span>` : html` <span class="chip na">no secure element</span>`}${h.note ? html`<div class="note">${h.note}</div>` : ""}</li>`)}</ul>`
         : ""}
-    </section>`;
+    </details>`;
   });
 
   const content = html`

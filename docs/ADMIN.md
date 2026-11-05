@@ -124,7 +124,29 @@ npm run fetch -- due
 
 The owner can fetch any source immediately from the Sources page, and turn one off or on there
 (Turn off takes it out of the schedule and keeps what was loaded; Turn on puts it back, and the
-scheduler picks the change up on its next pass). A source marked restricted (its licence forbids
+scheduler picks the change up on its next pass).
+
+**Adding a feed** needs no release. Under **Add a source** on the Sources page, give the feed's
+address (RSS, RSS 1.0 or Atom), where its entries go (the News or Vulnerabilities), whether it is
+on the AI beat, how often to check it, and its licence if it states one. **Probe it** fetches the
+address once, from public hosts only, and shows the feed's title and newest entries; nothing is
+saved until **Add it**, which probes again, writes the row (marked "added here") and fetches it at
+once. Every later fetch of an added feed is held to public hosts too.
+
+**When a source fails**, it first tries the other addresses it declared for the same document
+(`canary-malware` carries two mirrors), and the first that answers serves the fetch: the row says
+"Answered from its fallback", with what its own address said, until that address answers again;
+**Make it the address** keeps the fallback for good. A feed that still fails — for any reason but a 403, a 429 or a
+server error, which say its address is right — is looked into once a day while it fails — a permanent redirect, the feeds its page and its site's home page announce,
+the usual feed addresses on the same site — and every candidate that parses with entries is a
+**Proposed repair** under the source, with **Use it**. The day-old failure notification names the
+repair when there is one, and Today's pipeline tile says one is proposed. Nothing changes a
+source's address without the owner's click, except a declared fallback.
+
+Every add, move and turn on or off is listed under **Changes made here** on the Sources page.
+**Kept by hand**, on the same page and public, lists the data this site ships typed into the
+repository rather than fetched — the fleet file, the followed STIG names, the platform word lists
+— with what checks each one and which part of the plan's M20 replaces it. A source marked restricted (its licence forbids
 showing its entries to third parties, such as the OpenPhish canary set) shows its entries to the
 signed-in owner only; visitors see versions and counts, and the API and MCP tools return neither
 names nor text. A standard's first fetch loads
@@ -147,7 +169,12 @@ part of `npm run check`) and fails on any that no longer answers with its format
 ## What leaves the box
 
 - Requests to the sources on the Sources page, with the User-Agent
-  `BaselineWatch/<version> (+https://cybercard.net; ...)`.
+  `BaselineWatch/<version> (+https://cybercard.net; ...)`, including the fallback addresses a
+  source declares and the feeds the owner adds there.
+- While a feed fails, once a day, requests to that feed's own site looking for its new address
+  (not for a 403, a 429 or a server error, which say the address is right):
+  the failing address, the site's home page, the feeds they link and six usual feed paths, all
+  on the same site and through the public-only path.
 - Alerts and the digest to `BW_NOTIFY_URL` (ntfy, Gotify or a webhook), with titles, short
   bodies and links back to this instance.
 - Prompts to `BW_LLM_URL` when a local model is configured: the before/after text and the

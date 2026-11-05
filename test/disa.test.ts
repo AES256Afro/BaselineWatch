@@ -98,4 +98,16 @@ describe("DISA adapter end to end", () => {
     expect(http.calls.length).toBe(calls + 1); // the listing only; the zip was not fetched again
     expect(disaAdapter.id).toBe("disa-stig");
   });
+
+  it("does not let an mSCP entry or a baseline that names no STIG leave DISA following nothing", async () => {
+    const source = getSource(db, "disa-stigs")!;
+    const at = new Date().toISOString();
+    db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('baseline', 'mscp: ios_27', NULL, ?)").run(at);
+    expect(followedPatterns({ db })).toEqual(defaultStigs);
+    db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('baseline', 'CIS Microsoft Windows 11 Enterprise', NULL, ?)").run(at);
+    expect(followedPatterns({ db })).toEqual(["CIS Microsoft Windows 11 Enterprise"]);
+    const http = fakeHttp({ [source.url]: { bytes: fixture("disa-listing.json") } });
+    const targets = await disaAdapter.documents!(source, { db, http, now: () => new Date("2026-10-15T02:00:00Z") } as never);
+    expect(targets.map((t) => t.key)).toEqual(selectStigs(listing(), defaultStigs).map((t) => t.key));
+  });
 });

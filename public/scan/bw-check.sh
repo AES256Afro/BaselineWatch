@@ -240,8 +240,10 @@ PY
 }
 
 # upnp_call CONTROL_URL SERVICE_TYPE ACTION ARGUMENTS -> the SOAP response body
+# A device on the LAN chose these addresses, so curl is held to http(s), redirects included: its
+# other schemes (file, gopher, dict, smb...) would let that device aim this machine at itself.
 upnp_call() {
-  curl -s -m 6 -X POST -H 'Content-Type: text/xml; charset="utf-8"' -H "SOAPAction: \"$2#$3\"" \
+  curl -s --proto =http,https --proto-redir =http,https -m 6 -X POST -H 'Content-Type: text/xml; charset="utf-8"' -H "SOAPAction: \"$2#$3\"" \
     --data "<?xml version=\"1.0\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:$3 xmlns:u=\"$2\">$4</u:$3></s:Body></s:Envelope>" \
     "$1" 2>/dev/null
 }
@@ -485,7 +487,13 @@ else
       row upnp info 'a UPnP device answered, but curl is not installed, so its description was not read'
     else
       for location in $locations; do
-        description=$(curl -s -m 6 "$location" 2>/dev/null)
+        # Whatever answered the search wrote this line: no control characters reach the terminal, and only http(s) is fetched.
+        location=$(printf '%s' "$location" | tr -d '\000-\037\177')
+        case "$location" in
+          http://*|https://*) ;;
+          *) row upnp info 'a device answered the search with an address that is not http(s); it was not read'; continue ;;
+        esac
+        description=$(curl -s --proto =http,https --proto-redir =http,https -m 6 "$location" 2>/dev/null)
         if [ -z "$description" ]; then row upnp info "a device answered at $location but its description could not be read"; continue; fi
         model="$(xml_field "$description" manufacturer) $(xml_field "$description" modelName) $(xml_field "$description" modelNumber)"
         friendly=$(xml_field "$description" friendlyName)

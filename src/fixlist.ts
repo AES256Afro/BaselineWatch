@@ -1,10 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { fixTags, loadMitigations, matchingEntries, type MitigationEntry } from "./fix.ts";
+import { fixContext, fixTags, matchingEntries, type MitigationEntry } from "./fix.ts";
 import { parseJson } from "./json.ts";
 import { kbUrl, type MsrcFix } from "./msrc.ts";
-import { loadRequirements } from "./register.ts";
-import { followedStigs } from "./stigs.ts";
-import { movedInWindowSql, notableInWindowSql, type AffectedPackage, type VulnRow } from "./vulns.ts";
+import { movedInWindowSql, notableInWindowSql, scopeSql, type AffectedPackage, type VulnRow } from "./vulns.ts";
+import type { PlatformChoice } from "./platforms.ts";
 
 /**
  * Today's work, keyed by the remedy rather than by the CVE.
@@ -95,20 +94,31 @@ export const candidateLimit = 150;
  * week and they are answered by taking your distribution's updates, not by reading 113 rows.
  * They are all still in the table, which is where every CVE belongs.
  */
-export function fixListCandidates(db: DatabaseSync, since: string, limit = candidateLimit): VulnRow[] {
+/** A CVE the owner marked done or not theirs has left the work, by Today's own button or the CVE page's. */
+const settledSql = "NOT EXISTS (SELECT 1 FROM triage t WHERE t.subject_kind = 'vuln' AND t.subject_id = v.id AND t.subject_key = '' AND t.state IN ('done', 'dismissed'))";
+
+/** Today narrowed to one platform, or to the most dangerous, as the picker on the page says. */
+export interface FixScope {
+  platform?: PlatformChoice | undefined;
+  danger?: boolean | undefined;
+}
+
+export function fixListCandidates(db: DatabaseSync, since: string, limit = candidateLimit, scope: FixScope = {}): VulnRow[] {
+  const narrowed = scopeSql(scope);
   return db
     .prepare(
       `SELECT v.* FROM vulns v
-        WHERE ${movedInWindowSql} AND ${notableInWindowSql}
+        WHERE ${movedInWindowSql} AND ${notableInWindowSql} AND ${settledSql}${narrowed.sql}
         ORDER BY v.kev DESC, v.watch_hit DESC, v.epss IS NULL, v.epss DESC, v.cvss_score DESC
         LIMIT ?`,
     )
-    .all(since, since, since, limit) as unknown as VulnRow[];
+    .all(since, since, since, ...narrowed.params, limit) as unknown as VulnRow[];
 }
 
 /** How many there were in all, so a truncated list can say what it is a prefix of. */
-export function fixListTotal(db: DatabaseSync, since: string): number {
-  return (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE ${movedInWindowSql} AND ${notableInWindowSql}`).get(since, since, since) as { n: number }).n;
+export function fixListTotal(db: DatabaseSync, since: string, scope: FixScope = {}): number {
+  const narrowed = scopeSql(scope);
+  return (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE ${movedInWindowSql} AND ${notableInWindowSql} AND ${settledSql}${narrowed.sql}`).get(since, since, since, ...narrowed.params) as { n: number }).n;
 }
 
 /** Microsoft's published fixes for a set of CVEs, in one query rather than one per CVE. */
@@ -164,9 +174,9 @@ function advisoriesByCve(db: DatabaseSync, cveIds: string[], since: string): Map
 
 /** The mitigation entries whose STIG rules actually resolve, worked out once for the whole page. */
 function resolvedMitigations(db: DatabaseSync): { entry: MitigationEntry; label: string }[] {
-  const entries = loadMitigations();
+  // The same rules the CVE page's Fix panel reads, from the same cache.
+  const { entries, stigs } = fixContext(db);
   if (entries.length === 0) return [];
-  const stigs = followedStigs(db).map((stig) => ({ stig, rules: loadRequirements(db, stig.latest.id) }));
   const out: { entry: MitigationEntry; label: string }[] = [];
   for (const entry of entries) {
     const phrase = entry.ruleTitleContains.toLowerCase();
@@ -324,7 +334,7 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
           verb: null,
           what: "No patch, advisory or mitigation published",
           where: null,
-          detail: "Nothing on NVD tagged Patch, Vendor Advisory or Mitigation, no vendor advisory on the Wire, no KEV action, no fixed package version. BaselineWatch does not guess at one.",
+          detail: "Nothing on NVD tagged Patch, Vendor Advisory or Mitigation, no vendor advisory in the News, no KEV action, no fixed package version. BaselineWatch does not guess at one.",
           url: null,
         },
         cve,

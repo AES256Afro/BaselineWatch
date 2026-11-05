@@ -6,7 +6,7 @@ import { nistCatalogAdapter } from "../src/adapters/oscal-nist.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { latestDocument } from "../src/register.ts";
 import { compareControlRefs, controlLabel, directivePlatforms, kevPlatform, platformOf, productOf, stigRulesForControl, cciMap } from "../src/stigs.ts";
-import { fakeHttp, fixture, startTestApp, type TestApp } from "./helpers.ts";
+import { fakeHttp, fixture, nistCurrentRelease, startTestApp, type TestApp } from "./helpers.ts";
 
 const text = (name: string) => new TextDecoder().decode(fixture(name));
 
@@ -99,8 +99,9 @@ describe("STIG pages", () => {
     expect((await ingestSource(app.db, app.dataDir, getSource(app.db, "cisa-directives")!, { http, now: () => at })).status).toBe("ok");
     // The SP 800-53 catalog fixture, so control links have a page to point at.
     const nist = getSource(app.db, "nist-sp-800-53")!;
-    const nistHttp = fakeHttp({ [nistCatalogAdapter.history!(nist)[1]!.url]: { bytes: fixture("oscal-catalog-5.2.0.json") } });
-    await ingestDocumentTarget(app.db, app.dataDir, nist, nistCatalogAdapter, nistCatalogAdapter.history!(nist)[1]!, { http: nistHttp, now: () => at });
+    const current = nistCurrentRelease(nistCatalogAdapter.history!(nist));
+  const nistHttp = fakeHttp({ [current.url]: { bytes: fixture("oscal-catalog-5.2.0.json") } });
+    await ingestDocumentTarget(app.db, app.dataDir, nist, nistCatalogAdapter, current, { http: nistHttp, now: () => at });
     macDoc = latestDocument(app.db, "disa-stigs", "stig:apple-macos-26-tahoe")!.id;
     ws25Doc = latestDocument(app.db, "disa-stigs", "stig:microsoft-windows-server-2025")!.id;
     catalogDoc = latestDocument(app.db, "nist-sp-800-53", "catalog")!.id;

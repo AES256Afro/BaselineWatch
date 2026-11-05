@@ -8,6 +8,11 @@ Shape key: `article` (news), `vulnerability`, `requirement-set` (controls, rules
 recommendations), `setting-set` (configuration values), `listing` (a page we watch only to find
 new downloads).
 
+This register lists the sources every instance is seeded with. Since M20 an owner can add
+feeds on their own instance's Sources page; those are recorded there, under **Changes made
+here**, not here. A seeded source may also declare fallback addresses for the same document
+(`sources.fallback_urls`), named in its entry below.
+
 ---
 
 ## A. Standards and baselines (the Register)
@@ -303,14 +308,21 @@ network check (M12.3), never loaded and never linked from a page. Fixtures in
   Version from `! Version:`, date from `! Last modified:`. **Cadence**: weekly; the lists move
   several times a day but the twelve rarely do. **Licence**: EasyList's dual licence, GPLv3 or
   CC BY-SA 3.0 (`https://easylist.to/pages/licence.html`); twelve rules are quoted with attribution.
-- **Malware canaries (URLhaus)** (`canary-malware`). `https://urlhaus.abuse.ch/downloads/hostfile/`
-  (12 KB, CRLF; the hosts of malware URLs online right now, the list a Pi-hole takes). **Derivation**:
-  `127.0.0.1<TAB>host` lines reduced to registrable names (two labels once a leading `www.` is
-  dropped; no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a
-  resolver must not sinkhole), then the twelve that hash lowest. Version and date from
-  `# Last updated:`. **Cadence**: daily, because the host file turns over as sites go offline.
-  **Licence**: abuse.ch Community data, free under its fair-use terms (`https://urlhaus.abuse.ch/api/`);
-  commercial use may need the paid API.
+- **Malware canaries (URLhaus, via malware-filter)** (`canary-malware`).
+  `https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt` (54 KB, about 1,800
+  hosts, refreshed every twelve hours; URLhaus's hosts with Tranco's most popular names removed).
+  Until October 2026 this read URLhaus's own host file at `https://urlhaus.abuse.ch/downloads/hostfile/`;
+  abuse.ch then put every download behind a per-user Auth-Key and the old address answers 410
+  (migration 0050 repointed the row). **Derivation**: `0.0.0.0 host` lines (or URLhaus's
+  `127.0.0.1<TAB>host`) reduced to registrable names (two labels once a leading `www.` is dropped;
+  no addresses; no subdomain of a shared platform such as github.io or r2.dev, which a resolver
+  must not sinkhole), then the twelve that hash lowest. Version and date from `# Updated:` (or
+  URLhaus's `# Last updated:`). **Cadence**: daily, because the list turns over as sites go
+  offline. **Fallbacks** (migration 0051): the project's copies on GitHub Pages
+  (`https://curbengh.github.io/malware-filter/urlhaus-filter-hosts.txt`) and Cloudflare Pages
+  (`https://malware-filter.pages.dev/urlhaus-filter-hosts.txt`, which lagged by two weeks when
+  checked). **Licence**: CC0 1.0, URLhaus's data as abuse.ch publishes it, republished by the
+  malware-filter project (`https://gitlab.com/malware-filter/urlhaus-filter#license`).
 - **Phishing canaries (OpenPhish)** (`canary-phishing`, restricted, registered off).
   `https://openphish.com/feed.txt` (15 KB, 300 URLs, refreshed every twelve hours; redirects to the
   `openphish/public_feed` repository). **Derivation**: the URLs' hosts reduced the same way; each
@@ -456,7 +468,7 @@ exploited. Adapter `src/adapters/msrc.ts`; storage `src/msrc.ts`; fixtures `test
 | AWS Security Bulletins, `https://aws.amazon.com/security/security-bulletins/rss/feed/` (RSS, daily) | bulletins, each naming its CVEs | vulnerabilities |
 | Cisco Talos blog, `https://blog.talosintelligence.com/rss/` (RSS, hourly) | threat research | news |
 Adapters `src/adapters/apple-security.ts` and `mozilla-mfsa.ts`; the feeds go through the feed
-adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes, Adobe and the
+adapter. Probed and not added: NVIDIA, VMware/Broadcom, Atlassian, Kubernetes (its CVE feed answered later; migration 0046), Adobe and the
 MSRC blog (HTML or bot walls at the documented feed paths), Oracle (refuses non-browser clients),
 the Azure blog (marketing), Google Cloud (404 at the security feed path).
 
@@ -527,7 +539,7 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 | Dark Reading | `https://www.darkreading.com/rss.xml` | |
 | SecurityWeek | `https://feeds.feedburner.com/securityweek` | |
 | Risky Business | `https://risky.biz/feeds/risky-business/` | Newsletter and podcast. |
-| Google Project Zero | `https://googleprojectzero.blogspot.com/feeds/posts/default` | |
+| Google Project Zero | `https://projectzero.google/feed.xml` | Moved from `googleprojectzero.blogspot.com` (which now only redirects); migration 0046 points the row here. About 11 MB a read for ten posts. |
 | MSRC Security Update Guide | `https://api.msrc.microsoft.com/update-guide/rss` | Checked 2026-10-14: the MSRC blog moved to microsoft.com with no feed. This feed lists every Microsoft CVE (thousands), so it is a vulnerability source for M2, off until then. |
 | Microsoft Security Baselines blog | Tech Community blog RSS (*verify*). | Doubles as the Register rationale source. |
 | /r/netsec | `https://www.reddit.com/r/netsec/new.rss?limit=50` | Checked 2026-10-14: the `.json` listing answers 403 to anything but a browser or an OAuth app; the Atom feed works with a descriptive `User-Agent`. Two requests within seconds get a 429, so the scheduler spaces requests to one host. |
@@ -538,6 +550,68 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 
 Reddit's API terms allow personal, low-volume, identified use. Do not store comment bodies;
 store the link post and link to the thread.
+
+### More research and CERT feeds (added 2026-10-28, migration 0046)
+
+From the sources survey of the audit of 28 October. Each answered with real XML on the day and
+reads through the feed adapter. Headlines and links only.
+
+| Source | Feed | Group |
+| --- | --- | --- |
+| Google Threat Intelligence (Mandiant) | `https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v` (about 1.4 MB) | news |
+| Check Point Research | `https://research.checkpoint.com/feed/` | news |
+| Sophos X-Ops | `https://www.sophos.com/en-us/category/threat-research/feed` | news |
+| PortSwigger Research | `https://portswigger.net/research/rss` | news |
+| Lobsters, security tag | `https://lobste.rs/t/security.rss` | news |
+| tl;dr sec (weekly) | `https://rss.beehiiv.com/feeds/xgTKUmMmUm.xml` | news |
+| Horizon3.ai attack research | `https://horizon3.ai/feed/` | news |
+| The DFIR Report | `https://thedfirreport.com/feed/` | news |
+| Ars Technica, security | `https://arstechnica.com/security/feed/` | news |
+| Ivanti security advisories | `https://www.ivanti.com/blog/topics/security-advisory/rss` | vulnerabilities |
+| Canadian Centre for Cyber Security | `https://www.cyber.gc.ca/api/cccs/atom/v1/get?feed=alerts_advisories&lang=en` (Atom; Crown copyright, attribution) | vulnerabilities |
+| CERT-EU advisories | `https://www.cert.europa.eu/publications/security-advisories-rss` | vulnerabilities |
+| JPCERT/CC, English | `https://www.jpcert.or.jp/english/rss/jpcert-en.rdf` (RDF) | vulnerabilities |
+| Kubernetes official CVE feed | `https://kubernetes.io/docs/reference/issues-security/official-cve-feed/feed.xml` (CC BY 4.0) | vulnerabilities |
+
+The same migration stops the `talos` row, which fetched the same URL as `cisco-talos`.
+
+Not added, and why: VulnCheck KEV and abuse.ch's ThreatFox and URLhaus APIs now want a key;
+Packet Storm sits behind a terms click-through; NSA's feed carries no items; Shadowserver,
+HackerOne Hacktivity, Citrix, F5, SonicWall and Zyxel publish no usable feed. Worth an adapter
+of its own, in order: CISA's Vulnrichment (the ADP container `cvelist.ts` already downloads and
+does not read), ENISA's EUVD (an "exploited" list beside KEV; check its terms first), GitHub's
+reviewed advisories, CIRCL's sightings (for the "talked about" count), Red Hat CSAF, and Android
+through OSV's bulk export.
+
+### AI (added 2026-10-28, migration 0048)
+
+AI is a beat of its own in the News: these sources carry `topic = 'ai'`, and a story from any
+other source joins the beat when its headline uses one of the words in `src/topics.ts` (prompt
+injection, LLM, Claude, Ollama and the rest). The News shows the beat as a chip and an "AI lately"
+box, and a reader can leave it out with the Hide AI switch (a cookie, `bw_ai=hide`) or `ai=hide`
+on a link or a feed. Each feed answered on the day; Reddit's throttled quick checks with 429, as it
+does, and the adapter spaces its requests.
+
+| Source | Feed |
+| --- | --- |
+| OpenAI news | `https://openai.com/news/rss.xml` (about 800 KB) |
+| Google DeepMind blog | `https://deepmind.google/blog/rss.xml` |
+| Google, AI | `https://blog.google/technology/ai/rss/` |
+| Hugging Face blog | `https://huggingface.co/blog/feed.xml` |
+| Ollama blog | `https://ollama.com/blog/rss.xml` |
+| NVIDIA, generative AI | `https://blogs.nvidia.com/blog/category/generative-ai/feed/` |
+| Simon Willison | `https://simonwillison.net/atom/everything/` |
+| Embrace The Red (attacks on AI systems) | `https://embracethered.com/blog/index.xml` |
+| The Decoder | `https://the-decoder.com/feed/` |
+| MIT Technology Review, AI | `https://www.technologyreview.com/topic/artificial-intelligence/feed` |
+| The Verge, AI | `https://www.theverge.com/rss/ai-artificial-intelligence/index.xml` |
+| Ars Technica, AI | `https://arstechnica.com/ai/feed/` |
+| Import AI, Latent Space, Interconnects (weekly) | their Substack feeds |
+| Hacker News, AI over 100 points | Algolia, `query=AI` |
+| r/LocalLLaMA, r/ollama, r/StableDiffusion, r/MachineLearning, r/artificial, r/OpenAI, r/ClaudeAI, r/singularity | `/r/<sub>/new.rss?limit=50` |
+
+Probed and not added: Anthropic, Meta AI, HiddenLayer, Lakera and Protect AI publish no feed at
+the usual paths; VentureBeat's AI feed answered 429.
 
 ---
 

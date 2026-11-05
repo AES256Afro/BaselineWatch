@@ -14,6 +14,13 @@ export function openDatabase(file: string): DatabaseSync {
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
   db.exec("PRAGMA busy_timeout = 5000");
+  // WAL makes NORMAL durable against a crash of the process (a power cut may lose the last commit,
+  // never corrupt the file), and saves an fsync on every one of the many small commits a sweep makes.
+  db.exec("PRAGMA synchronous = NORMAL");
+  // 32 MB of page cache rather than 2 MB: the pages read the same few hundred thousand rows over and over.
+  db.exec("PRAGMA cache_size = -32768");
+  // The weekly VACUUM left a WAL the size of the database behind; this trims it back after a checkpoint.
+  db.exec("PRAGMA journal_size_limit = 67108864");
   return db;
 }
 

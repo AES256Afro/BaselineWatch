@@ -2,29 +2,20 @@ import type { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { nistBaselinesAdapter, nistCatalogAdapter } from "../src/adapters/oscal-nist.ts";
 import { expectedNext, familyHeatmap, releaseTimeline, velocity } from "../src/atlas.ts";
-import type { HttpGet } from "../src/http.ts";
 import { getSource, ingestDocumentTarget, ingestSource } from "../src/ingest.ts";
 import { latestDocument } from "../src/register.ts";
-import { fakeHttp, fixture, startTestApp, type TestApp } from "./helpers.ts";
+import { fakeHttp, fixture, nistFixtureHttp, nistOneDiff, startTestApp, type TestApp } from "./helpers.ts";
 
 const at = new Date("2026-10-15T07:00:00Z");
 
-function nistHttp(): HttpGet {
-  return async (url) => {
-    let name: string;
-    if (url.includes("_catalog.json")) name = url.includes("941c978d14") ? "oscal-catalog-5.1.1.json" : "oscal-catalog-5.2.0.json";
-    else if (url.includes("baseline_profile.json")) name = url.includes("941c978d14") ? "oscal-profile-moderate-5.1.1.json" : "oscal-profile-moderate-5.2.0.json";
-    else throw new Error(`no fixture for ${url}`);
-    return { url, status: 200, notModified: false, bytes: fixture(name), etag: null, lastModified: null, contentType: "application/json" };
-  };
-}
-
 async function loadNist(db: DatabaseSync, dataDir: string): Promise<void> {
-  const http = nistHttp();
+  const http = nistFixtureHttp();
   const catalog = getSource(db, "nist-sp-800-53")!;
-  for (const target of nistCatalogAdapter.history!(catalog)) await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at });
+  for (const target of nistCatalogAdapter.history!(catalog).filter(nistOneDiff)) {
+    await ingestDocumentTarget(db, dataDir, catalog, nistCatalogAdapter, target, { http, now: () => at });
+  }
   const baselines = getSource(db, "nist-sp-800-53b")!;
-  for (const target of nistBaselinesAdapter.history!(baselines).filter((t) => t.key === "profile:moderate")) {
+  for (const target of nistBaselinesAdapter.history!(baselines).filter((t) => t.key === "profile:moderate" && nistOneDiff(t))) {
     await ingestDocumentTarget(db, dataDir, baselines, nistBaselinesAdapter, target, { http, now: () => at });
   }
 }
@@ -64,7 +55,7 @@ describe("Atlas data", () => {
     expect(v.kevAdditions).toBe(2); // two of the three fixture entries were added after 2024
     const due = expectedNext(app.db, at);
     expect(due.map((d) => d.what)).toEqual(expect.arrayContaining(["DISA quarterly STIG release", "NIST SP 800-53 patch release", "EPSS scores", "CISA KEV additions"]));
-    expect(due.find((d) => d.what === "NIST SP 800-53 patch release")?.basis).toContain("last catalog change 2026-05-11");
+    expect(due.find((d) => d.what === "NIST SP 800-53 patch release")?.basis).toContain("last catalog change 2025-08-26");
 
     const atlas = await (await fetch(`${app.base}/atlas`)).text();
     expect(atlas).toContain("<svg");

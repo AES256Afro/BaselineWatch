@@ -23,7 +23,7 @@ afterAll(async () => {
 function tables(html: string): { caption: boolean; headersWithoutScope: number; headRow: boolean }[] {
   return [...html.matchAll(/<table[^>]*>([\s\S]*?)<\/table>/g)].map((m) => ({
     caption: /<caption/.test(m[1]!),
-    headersWithoutScope: [...m[1]!.matchAll(/<th(\s[^>]*)?>/g)].filter((th) => !/scope="(col|row)"/.test(th[1] ?? "")).length,
+    headersWithoutScope: [...m[1]!.matchAll(/<th(\s[^>]*)?>/g)].filter((th) => !/scope="(col|row|rowgroup)"/.test(th[1] ?? "")).length,
     // Column headers belong in a thead; a table of row headers alone (the storage table) has none.
     headRow: !/<th scope="col"/.test(m[1]!) || /<thead>[\s\S]*?<th scope="col"[\s\S]*?<\/thead>/.test(m[1]!),
   }));

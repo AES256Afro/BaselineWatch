@@ -1,4 +1,4 @@
-import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type DomainReport } from "../domaincheck.ts";
+import { checkDomain, nodeDns, nodeTls, parseSelectors, validDomain, type DnsLookup, type DomainReport } from "../domaincheck.ts";
 import { HttpError, httpGet } from "../http.ts";
 import { renderScanDomain } from "../pages/scan-domain.ts";
 import { lookUpExposure, whatWasSeen, type RequestFacts } from "../seen.ts";
@@ -16,6 +16,8 @@ import { flashHeader, flashText } from "../flash.ts";
 import { renderScan, renderScanWhy } from "../pages/scan.ts";
 import { isGuidePlatform, renderScanGuide, renderScanGuideIndex } from "../pages/scan-guide.ts";
 import { renderScanDevices } from "../pages/scan-devices.ts";
+import { renderScanTraces } from "../pages/scan-traces.ts";
+import { traceIndicators } from "../traces.ts";
 import { renderScanHistory } from "../pages/scan-history.ts";
 import { isReleaseLine, latestBrowser, readDevice, readReport, type LatestRelease } from "../inventory.ts";
 import { deleteDevice, deviceName, latestReadings, readingChanges, readingsOf, recordReading } from "../devices.ts";
@@ -75,6 +77,9 @@ export function mountScan(r: RouteContext): void {
   app.post("/scan/exposure", async (req, res) => {
     const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
     if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
+    // A visitor asks about the address they came from; the owner may ask about any.
+    const own = (req.ip ?? "").replace(/^::ffff:/, "");
+    if (res.locals.owner !== true && ip !== own) return res.status(403).type("text").send("A visitor may look up the address they are visiting from, and no other.");
     if (!lookedUp.allow(throttleKey(req.ip), now().getTime())) return res.status(429).type("text").send("Six lookups in ten minutes from this address; try again later.");
     if (!everyone.allow("scan", now().getTime())) return res.status(429).set("Retry-After", "600").type("text").send(ceiling);
     try {
@@ -88,6 +93,17 @@ export function mountScan(r: RouteContext): void {
   // Check a domain (S3): lookups only, from this server. A visitor may ask about any public name,
   // so each answer is kept ten minutes and each address gets a dozen checks in that time.
   const domainDeps = { dns: ctx.dns ?? nodeDns(), tls: ctx.tls ?? nodeTls(), http: ctx.http ?? httpGet, now };
+  // The resolver is the host's, which on a home server is the LAN's: a split-horizon name under a
+  // real domain (nas.example.com → 192.168.1.20) answers with the inside address. A visitor is told
+  // the name has one and not what it is; the owner, whose network it is, sees it.
+  const outsideView = (dns: DnsLookup): DnsLookup => async (name, type) => {
+    const answer = await dns(name, type);
+    if (type !== "A" && type !== "AAAA") return answer;
+    const shown = answer.records.filter((a) => !privateAddress(a));
+    const hidden = answer.records.length - shown.length;
+    return hidden === 0 ? answer : { ...answer, records: shown, detail: `${hidden} private address${hidden === 1 ? "" : "es"} not shown` };
+  };
+  const visitorDomainDeps = { ...domainDeps, dns: outsideView(domainDeps.dns) };
   const reports = new Map<string, { at: number; report: DomainReport }>();
   const tenMinutes = 10 * 60_000;
   const asked = new RateWindow(12, tenMinutes);
@@ -96,7 +112,8 @@ export function mountScan(r: RouteContext): void {
     const query = req.query as Record<string, unknown>;
     const typed = str(query.name, 260);
     const selectorText = str(query.selectors, 200) ?? "";
-    const own = ownDomains();
+    // The owner's list of domains, and the certificates logged for them, are the owner's to see.
+    const own = res.locals.owner === true ? ownDomains() : [];
     const base = { ...who(req, res), selectors: selectorText, own };
     res.setHeader("Cache-Control", "no-store");
     if (!typed) return res.type("html").send(renderScanDomain({ ...base, domain: null, report: null, problem: null }));
@@ -104,13 +121,15 @@ export function mountScan(r: RouteContext): void {
     const certs = domain && own.includes(domain) ? recentCerts(db, domain) : [];
     if (!domain) return res.status(400).type("html").send(renderScanDomain({ ...base, domain: typed.slice(0, 80), report: null, problem: `“${typed.slice(0, 80)}” is not a public domain name this check can read.` }));
     const selectors = parseSelectors(selectorText);
-    const key = `${domain}|${selectors.join(",")}`;
+    const owner = res.locals.owner === true;
+    // Kept apart: the owner's answer can carry inside addresses a visitor's must not.
+    const key = `${owner ? "owner" : "visitor"}|${domain}|${selectors.join(",")}`;
     const t = now().getTime();
     const cached = reports.get(key);
     if (cached && t - cached.at < tenMinutes) return res.type("html").send(renderScanDomain({ ...base, domain, report: cached.report, problem: null, certs }));
     if (!asked.allow(throttleKey(req.ip), t)) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
     if (!everyone.allow("scan", t)) return res.status(429).set("Retry-After", "600").type("html").send(renderScanDomain({ ...base, domain, report: null, problem: ceiling }));
-    const report = await checkDomain(domain, domainDeps, { selectors });
+    const report = await checkDomain(domain, owner ? domainDeps : visitorDomainDeps, { selectors });
     if (reports.size >= 200) reports.delete(reports.keys().next().value as string);
     reports.set(key, { at: t, report });
     res.type("html").send(renderScanDomain({ ...base, domain, report, problem: null, certs }));
@@ -166,6 +185,18 @@ export function mountScan(r: RouteContext): void {
     const device = deviceName(((req.body ?? {}) as Record<string, unknown>).device);
     if (!device || deleteDevice(db, device) === 0) return res.status(404).type("text").send("No readings under that name.");
     res.redirect(303, "/scan/devices");
+  });
+  // Traces (S8): a device's saved data read in the visitor's tab against the indicator list the
+  // Register holds. The page's script asks this server for the list and for nothing else, and its
+  // policy says so: connect-src 'self', no outside host at all.
+  app.get("/scan/traces", (req, res) => {
+    res.setHeader("Content-Security-Policy", tracesPolicy);
+    res.setHeader("Cache-Control", "no-store");
+    res.type("html").send(renderScanTraces({ ...who(req, res), list: traceIndicators(db) }));
+  });
+  app.get("/scan/traces/indicators.json", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json(traceIndicators(db));
   });
   // The browser check's version row asks what the vendor feeds say is newest (S1).
   app.get("/scan/browser-check", (req, res) => {
@@ -289,6 +320,9 @@ export function mountScan(r: RouteContext): void {
   };
   for (const probePath of probePaths) app.get(probePath, probe);
 }
+
+/** Traces' policy: its one module script, and connections to this origin alone. */
+const tracesPolicy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
 /**
  * The Scan page's own policy, the one exception to script-src 'none': its single self-hosted module

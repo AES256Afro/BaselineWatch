@@ -46,17 +46,25 @@ const sinceOf = (v: unknown): string | undefined => {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 };
 
-export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+/** An item's signals without the watchlist's labels, which are the owner's. */
+function withoutWatch(signals: Record<string, unknown>): Record<string, unknown> {
+  const rest = { ...signals };
+  delete rest.watch;
+  return rest;
+}
+
+/** The News as JSON. The read and starred marks, and the owner-only sources, are in it for the owner alone. */
+export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string, owner = false) {
   const kind = str(q.kind);
   const filters: WireFilters = {
     source: str(q.source),
     kind: kind === "article" || kind === "kev" || kind === "vulnerability" || kind === "release" ? kind : undefined,
     q: str(q.q),
-    unread: str(q.unread) === "1",
+    unread: owner && str(q.unread) === "1",
     since: sinceOf(q.since),
     limit: limitOf(q.limit),
   };
-  return listWire(db, filters).map((i) => ({
+  return listWire(db, filters, { owner }).map((i) => ({
       id: i.id,
       source: i.source_id,
       sourceName: i.source_name,
@@ -67,9 +75,8 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
       summary: publicSummary(i),
       publishedAt: i.published_at,
       fetchedAt: i.fetched_at,
-      signals: parseJson<Record<string, unknown>>(i.signals_json, {}),
-      read: i.read === 1,
-      starred: i.starred === 1,
+      signals: owner ? parseJson<Record<string, unknown>>(i.signals_json, {}) : withoutWatch(parseJson<Record<string, unknown>>(i.signals_json, {})),
+      ...(owner ? { read: i.read === 1, starred: i.starred === 1 } : {}),
     }));
 }
 
@@ -79,8 +86,8 @@ export function apiItems(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
  * EPSS band, the "new" and "changed" windows in hours — and the two cannot come to disagree about
  * what a filter means. `limit` and `since` are this reader's own: a page scrolls, an agent asks.
  */
-export function apiVulns(db: DatabaseSync, q: ApiQuery, now: Date = new Date()) {
-  const page = vulnFilters(q as Record<string, unknown>, now);
+export function apiVulns(db: DatabaseSync, q: ApiQuery, now: Date = new Date(), owner = false) {
+  const page = vulnFilters(q as Record<string, unknown>, now, owner);
   const filters: VulnFilters = {
     ...page,
     // `since` has meant "changed since" on this endpoint since it existed; `changed` (hours) is
@@ -89,10 +96,11 @@ export function apiVulns(db: DatabaseSync, q: ApiQuery, now: Date = new Date()) 
     limit: limitOf(q.limit),
   };
   const { rows, total } = listVulns(db, filters);
-  return { total, vulns: rows.map(vulnJson) };
+  return { total, vulns: rows.map((v) => vulnJson(v, owner)) };
 }
 
-function vulnJson(v: NonNullable<ReturnType<typeof getVuln>>) {
+/** One CVE as JSON. The watchlist's labels are the owner's and travel only to them. */
+function vulnJson(v: NonNullable<ReturnType<typeof getVuln>>, owner = false) {
   return {
     cve: v.cve_id,
     published: v.published_at,
@@ -106,16 +114,17 @@ function vulnJson(v: NonNullable<ReturnType<typeof getVuln>>) {
     cwes: parseJson<string[]>(v.cwes_json, []),
     vendors: parseJson<string[]>(v.vendors_json, []),
     products: parseJson<string[]>(v.products_json, []),
-    watch: parseJson<string[]>(v.watch_labels_json, []),
+    ...(owner ? { watch: parseJson<string[]>(v.watch_labels_json, []) } : {}),
+    platforms: parseJson<string[]>(v.platforms_json, []),
   };
 }
 
-export function apiVuln(db: DatabaseSync, cveId: string) {
+export function apiVuln(db: DatabaseSync, cveId: string, owner = false) {
   const v = getVuln(db, cveId);
   if (!v) return null;
   const fix = fixesFor(db, fixContext(db), v);
   return {
-    ...vulnJson(v),
+    ...vulnJson(v, owner),
     cpes: parseJson<string[]>(v.cpes_json, []),
     references: parseJson<{ url: string; tags: string[] }[]>(v.references_json, []),
     history: vulnChanges(db, v.cve_id).map((c) => ({ at: c.observed_at, field: c.field, before: c.before_text, after: c.after_text })),
