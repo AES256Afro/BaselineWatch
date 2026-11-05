@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkDomain, commonSelectors, judgeDmarc, judgeHeaders, judgeHsts, judgeSpf, judgeTls, parseSelectors, validDomain, type DnsLookup, type TlsProbe } from "../src/domaincheck.ts";
+import { certificateDate, checkDomain, commonSelectors, judgeDmarc, judgeHeaders, judgeHsts, judgeSpf, judgeTls, parseSelectors, peerFacts, validDomain, type DnsLookup, type TlsProbe } from "../src/domaincheck.ts";
 import { fakeHttp, startTestApp } from "./helpers.ts";
 
 /**
@@ -184,5 +184,31 @@ describe("the page", () => {
     } finally {
       await app.close();
     }
+  });
+});
+
+describe("a certificate the probe cannot read", () => {
+  // The handshake callback runs outside any request, so one throw there ended the process: a
+  // certificate whose notAfter is not a date (month 13) did it for anyone who asked about the
+  // domain serving it. Reproduced against a real TLS server before the fix; this holds the parts.
+  const socket = (cert: Record<string, unknown>) => ({
+    getPeerCertificate: () => cert as never,
+    getProtocol: () => "TLSv1.3",
+    getCipher: () => ({ name: "TLS_AES_256_GCM_SHA384", standardName: "TLS_AES_256_GCM_SHA384", version: "TLSv1.3" }),
+    authorized: false,
+    authorizationError: new Error("ERROR_IN_CERT_NOT_AFTER_FIELD"),
+  });
+
+  it("reads a date that is not one as missing, rather than throwing", () => {
+    expect(certificateDate("Jan 13 23:59:59 2027 GMT")).toBe("2027-01-13T23:59:59.000Z");
+    expect(certificateDate("Mon 13 05 23:59:59 2027 GMT")).toBeNull();
+    expect(certificateDate("")).toBeNull();
+    expect(certificateDate(undefined)).toBeNull();
+  });
+
+  it("returns the facts it could read, with the expiry left out", () => {
+    const facts = peerFacts(socket({ valid_to: "not a date", subject: { CN: "bad.example" }, issuer: { CN: "bad.example" }, subjectaltname: 7 }));
+    expect(facts).toMatchObject({ validTo: null, subject: "bad.example", names: [], authorized: false, authorizationError: "Error: ERROR_IN_CERT_NOT_AFTER_FIELD" });
+    expect(judgeTls(facts, "bad.example", new Date("2026-11-05T00:00:00Z")).state).toBeDefined();
   });
 });
