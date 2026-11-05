@@ -126,6 +126,29 @@ export type AddressLookup = (host: string) => Promise<{ address: string }[]>;
 /** What the probe answers for a name that points inside a private network: it is not touched. */
 export const privateAddressError = "private address";
 
+/** An ISO date from a certificate's validity string, or null when the string is not a date. */
+export function certificateDate(value: string | undefined): string | null {
+  if (!value) return null;
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? null : at.toISOString();
+}
+
+/** What the handshake learned, read off the socket. A malformed field reads as missing. */
+export function peerFacts(socket: Pick<tls.TLSSocket, "getPeerCertificate" | "getProtocol" | "getCipher" | "authorized" | "authorizationError">): TlsFacts {
+  const cert = socket.getPeerCertificate(false);
+  const names = (typeof cert.subjectaltname === "string" ? cert.subjectaltname : "").split(",").map((s) => s.trim().replace(/^DNS:/, "")).filter((s) => s);
+  return {
+    protocol: socket.getProtocol(),
+    cipher: socket.getCipher()?.name ?? null,
+    issuer: one(cert.issuer?.O) ?? one(cert.issuer?.CN),
+    subject: one(cert.subject?.CN),
+    validTo: certificateDate(cert.valid_to),
+    names,
+    authorized: socket.authorized,
+    authorizationError: socket.authorizationError ? String(socket.authorizationError) : null,
+  };
+}
+
 /**
  * One TLS handshake with the domain's own name, reading the protocol, the cipher and the
  * certificate; nothing is sent after. The name is resolved first and the handshake goes to the
@@ -152,19 +175,16 @@ export function nodeTls(resolveAddresses: AddressLookup = (host) => lookup(host,
         resolve(facts);
       };
       const socket = tls.connect({ host: address, port: 443, servername: host, timeout: 8000, rejectUnauthorized: false }, () => {
-        const cert = socket.getPeerCertificate(false);
-        const names = (cert.subjectaltname ?? "").split(",").map((s) => s.trim().replace(/^DNS:/, "")).filter((s) => s);
-        done({
-          protocol: socket.getProtocol(),
-          cipher: socket.getCipher()?.name ?? null,
-          issuer: one(cert.issuer?.O) ?? one(cert.issuer?.CN),
-          subject: one(cert.subject?.CN),
-          validTo: cert.valid_to ? new Date(cert.valid_to).toISOString() : null,
-          names,
-          authorized: socket.authorized,
-          authorizationError: socket.authorizationError ? String(socket.authorizationError) : null,
-        });
-        socket.end();
+        // This callback runs outside any request's error handling: a throw here ends the process,
+        // and the certificate is the other side's to write. Whatever it holds, the answer is a fact
+        // or an error, never an exception.
+        try {
+          done(peerFacts(socket));
+        } catch {
+          done({ error: "the certificate could not be read" });
+        } finally {
+          socket.end();
+        }
       });
       socket.on("timeout", () => {
         socket.destroy();
