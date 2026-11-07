@@ -11,7 +11,7 @@ const sample: Block[] = [
   { type: "code", text: "system_profiler SPHardwareDataType\nsudo bputil -d" },
   { type: "p", runs: [{ text: "Success looks like: ", bold: true }, "Full Security, 100% of the time"] },
   { type: "bullet", runs: ["A note with <angle> brackets and a “quote”"] },
-  { type: "table", header: ["Role", "Name"], rows: [["Prepared by", ""], ["Approved by", "Chris"]] },
+  { type: "table", header: ["Role", "Name"], rows: [["Prepared by", ""], ["Approved by", "Sam"]] },
 ];
 
 describe("report renderers", () => {
