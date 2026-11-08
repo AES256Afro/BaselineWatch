@@ -73,6 +73,12 @@ cybercard.net, not when its dates are up.
 - **Schema** changes are new files in `src/migrations/NNNN_name.sql`; never edit an applied one.
 - **Generated text is always labelled.** A model may summarise a change only beside the quoted
   official rationale, and the badge is not optional.
+- **No page is a dead end.** Anything that shows a control, a rule or a setting ends at the
+  publisher: `src/sourcelinks.ts` gives the rule's own address where the publisher has one, the
+  exact document this instance read, then the body that wrote it. A deep link is built only from a
+  pattern checked against the publisher's site and only for a label of that shape — an invented
+  address is worse than none — and a restricted source's entries are never linked, only its
+  public address.
 - **Licensing**: CIS and Microsoft content is the user's own copy; it is quoted on screen and
   never redistributed or exposed through the API. NVD, CVE, CISA and FIRST attributions stay in
   the footer.
@@ -97,6 +103,7 @@ src/blobs.ts         content-addressed snapshot store
 src/html.ts          html`` template with escaping
 src/pages/           server-rendered pages (layout, home, sources, not-found); pages/scan-guide/ holds the manual guide's prose, one module per platform
 src/authorities.ts   where a rule comes from: the publishers, the rung each sits on, what derives from what (/learn)
+src/sourcelinks.ts   where to read a control in the publisher's own words: the rule's own address, the document read, the publisher
 src/fleet.ts         the fleet: each OS release and the hardware it runs on (data/platforms.yaml)
 src/netscan.ts       the network check: canaries through the LAN resolver, daily, opt-in (M12.3)
 src/domaincheck.ts   check a domain: DNS, mail and web posture by lookups alone, each record quoted (Scan 2.0)

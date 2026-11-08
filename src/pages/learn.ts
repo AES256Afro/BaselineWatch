@@ -21,6 +21,7 @@ import {
 } from "../authorities.ts";
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
+import type { SourceLink } from "../sourcelinks.ts";
 import { relativeTime } from "../time.ts";
 import { page } from "./layout.ts";
 
@@ -189,6 +190,25 @@ function bodyCard(a: Authority, held: Map<string, Held>, now: Date): Html {
             : html`<a href="/standards/${a.tracked}">tracked as a source</a>, <span class="mute-t">nothing loaded yet</span>`}</dd>`
         : ""}
     </dl>
+  </section>`;
+}
+
+/**
+ * The addresses a control's own page ends at, drawn the way the authority box draws a publisher's
+ * links: the rule at the publisher, the document it was read from, then the body that wrote it.
+ * Every page that shows a rule carries this, so no rule is a dead end; an empty list draws a line
+ * saying so rather than nothing, since silence reads as an oversight.
+ */
+export function sourceBox(links: SourceLink[], options: { heading?: string; lede?: string } = {}): Html {
+  const heading = options.heading ?? "Read it at the publisher";
+  return html`<section class="box authority" id="at-publisher">
+    <div class="std-head"><b>${heading}</b><span class="small">${links.length} address${links.length === 1 ? "" : "es"}</span></div>
+    ${options.lede ? html`<p class="small">${options.lede}</p>` : ""}
+    ${links.length
+      ? html`<ul class="plain srcs">${links.map(
+          (l) => html`<li><a href="${l.href}" ${newTab}>${l.label}</a> ${accessChip(l.access)}${l.note ? html` <span class="small mute-t">${l.note}</span>` : ""}</li>`,
+        )}</ul>`
+      : html`<p class="small">This publisher gives no public address for its text; what is on this page was read from the copy named above it.</p>`}
   </section>`;
 }
 

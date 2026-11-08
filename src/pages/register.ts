@@ -27,10 +27,11 @@ import {
   type DocumentRow,
 } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
+import { controlAtPublisher, documentSources, publisherLinks, requirementSources } from "../sourcelinks.ts";
 import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
 import type { LookState } from "../look.ts";
-import { authorityBox } from "./learn.ts";
+import { authorityBox, sourceBox } from "./learn.ts";
 import { page } from "./layout.ts";
 import { mappingLine } from "./stigs.ts";
 import { triageForm } from "./triage.ts";
@@ -155,7 +156,11 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
         <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
         <div class="when">${doc.requirement_count} entries · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
       </div>
-      ${withheldBox(source, open)}`;
+      ${withheldBox(source, open)}
+      ${sourceBox(publisherLinks(source), {
+        heading: "Where to read it yourself",
+        lede: "The entries are withheld here, not hidden: these are the publisher's own addresses, and a licensed copy from them carries the text this page may not show.",
+      })}`;
     return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${doc.requirement_count} entries`, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}/browse` } });
   }
   const all = loadRequirements(db, documentId);
@@ -163,12 +168,13 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
   const needle = q?.toLowerCase();
   const rows = all.filter((r) => (!family || r.family === family) && (!needle || r.label.toLowerCase().includes(needle) || r.title.toLowerCase().includes(needle) || (r.statement ?? "").toLowerCase().includes(needle)));
   const changed = new Set(releaseChanges(db, documentId).map((c) => c.ref));
+  const versionSources = documentSources(source, doc);
   const link = (f?: string) => `/standards/${sourceId}/${documentId}/browse${f ? `?family=${encodeURIComponent(f)}` : ""}${q ? `${f ? "&" : "?"}q=${encodeURIComponent(q)}` : ""}`;
 
   const content = html`
     <div class="rel">
       <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
-      <div class="when"><a href="/standards/${sourceId}/${documentId}/browse">${doc.requirement_count} requirements</a> · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
+      <div class="when"><a href="/standards/${sourceId}/${documentId}/browse">${doc.requirement_count} requirements</a> · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a>${versionSources[0] ? html` · <a href="${versionSources[0].href}" ${newTab}>Read this version at the publisher</a>` : ""}</div>
     </div>
     <div class="wire-top">
       <form method="get" action="/standards/${sourceId}/${documentId}/browse" class="search" role="search">
@@ -192,7 +198,8 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
         </tr>`,
       )}</tbody>
     </table></div>
-    <p class="small">${rows.length > 400 ? `Showing 400 of ${rows.length}; narrow with the search or a family.` : `${rows.length} of ${all.length}.`}</p>`;
+    <p class="small">${rows.length > 400 ? `Showing 400 of ${rows.length}; narrow with the search or a family.` : `${rows.length} of ${all.length}.`}</p>
+    ${sourceBox(versionSources, { lede: "Every control below opens its own page, which names where that one rule lives at the publisher. These are the addresses for the version as a whole." })}`;
 
   return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open, look });
 }
@@ -285,7 +292,8 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
           ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
               <div class="table-wrap"><table><caption class="visually-hidden">Discussion, related-control and assessment updates</caption><thead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
           : ""}`}
-    <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
+    <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>
+    ${sourceBox(documentSources(source, doc), { lede: "Each control in the tables above opens its own page, which names where that rule lives at the publisher. These are the addresses for this release." })}`;
 
   // The look switch on a withheld release leads back to the bare page, not to a family someone typed into the address.
   return page({
@@ -317,7 +325,11 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
         <h1><code class="ref">${withheldLabel}</code> Entry shown to the owner only</h1>
         <div class="when">${source.name} ${doc.version_label ?? ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
       </div>
-      ${withheldBox(source, open)}`;
+      ${withheldBox(source, open)}
+      ${sourceBox(publisherLinks(source), {
+        heading: "Where to read it yourself",
+        lede: "The entry is withheld here, not hidden: these are the publisher's own addresses, and a licensed copy from them carries the text this page may not show.",
+      })}`;
     return page({ title: `${withheldLabel} · ${source.name}`, active: "register", content, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}` } });
   }
   const previous = doc.previous_document_id ? getDocument(db, doc.previous_document_id) : null;
@@ -329,6 +341,12 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   const changedFields = new Set(releaseChanges(db, documentId).filter((c) => c.ref === ref).map((c) => c.field ?? c.kind));
   const kind = !before ? (previous ? "added" : "first") : !after ? "removed" : changedFields.size ? "modified" : "unchanged";
   const notes = notesFor(db, documentId, ref);
+  // Where the rule itself lives at the publisher. Always at least the document it was read from,
+  // so a control page is never the end of the trail. The pill leads straight out only when the
+  // publisher addresses this one rule; a rule that exists only inside a package would otherwise
+  // promise a page and hand over a zip, so that one leads to the box below instead.
+  const ruleAtPublisher = controlAtPublisher(source, doc, shown);
+  const sources = requirementSources(source, doc, shown);
   // The CCI join, both ways: a STIG rule names the controls it implements; a control lists the followed rules that implement it.
   const map = sourceId === "disa-stigs" || sourceId === "nist-sp-800-53" ? cciMap(db) : null;
   const mapping = map && sourceId === "disa-stigs" ? html`<p class="rule-controls">${mappingLine(shown, map, controlPageBase(db))}</p>` : html``;
@@ -372,8 +390,16 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       ${shown.status === "withdrawn" ? html`<span class="pill del">withdrawn</span>` : ""}
       ${baselines.map((b) => html`<a class="pill" href="/standards/nist-sp-800-53b">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</a>`)}
       ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
+      ${ruleAtPublisher
+        ? html`<a class="pill src" href="${ruleAtPublisher.href}" ${newTab}>Read ${shown.label} at the publisher</a>`
+        : sources.length
+          ? html`<a class="pill src" href="#at-publisher">Where to read this at the publisher</a>`
+          : ""}
     </div>
     ${mapping}
+    ${sourceBox(sources, {
+      lede: `What this page shows was read from ${source.name}${doc.version_label ? ` ${doc.version_label}` : ""}; these lead to the publisher's own words, so nothing here has to be taken on trust.`,
+    })}
     ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" ${newTabIf(n.source_url)}>${n.source_url}</a></cite>` : ""}</div>`)}
     ${(() => {
       const t = getTriage(db, "control", documentId, ref);
@@ -387,8 +413,8 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("related", "Related controls", before?.related.length ? [...before.related].sort().join(", ") : null, after?.related.length ? [...after.related].sort().join(", ") : null)}
     ${field("extra", "Fix", typeof before?.extra.fix === "string" ? before.extra.fix : null, typeof after?.extra.fix === "string" ? after.extra.fix : null)}
     ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}
-    ${typeof shown.extra.url === "string" && /^https?:\/\//i.test(shown.extra.url) ? html`<section class="field"><h3>Published at</h3><p class="prose"><a href="${shown.extra.url}" ${newTabIf(shown.extra.url)}>${shown.extra.url}</a></p></section>` : ""}
-    ${implementedBy}`;
+    ${implementedBy}
+    ${authorityBox(sourceId)}`;
 
   const shortTitle = shown.title.length > 70 ? `${shown.title.slice(0, 69).trimEnd()}…` : shown.title;
   return page({ title: `${shown.label} ${shortTitle}`, active: "register", content, owner, open, look });
