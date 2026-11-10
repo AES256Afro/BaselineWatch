@@ -230,8 +230,13 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   const watchLabels = hits.map((h) => h.label);
   const watchPlatforms = hits.filter((h) => h.kind === "platform").map((h) => h.label);
   const changes: VulnChange[] = [];
+  // A row the KEV catalogue made before NVD sent one: NVD filling it in is not a change to report,
+  // the catalogue's own item was the news.
+  const placeholder = existing?.vuln_status === kevOnlyStatus;
 
-  if (!existing) {
+  if (placeholder) {
+    // nothing: the first full record of a CVE already in the table
+  } else if (!existing) {
     const summary = [n.cvss ? `CVSS ${n.cvss.score.toFixed(1)}` : "unscored", n.kev ? "in KEV" : null, n.vendors.length ? n.vendors.slice(0, 3).join(", ") : null]
       .filter(Boolean)
       .join(" · ");
@@ -424,17 +429,53 @@ export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedA
   return { key, isNew: result.isNew, changes, watchLabels: result.watchLabels, watchPlatforms: result.watchPlatforms, row };
 }
 
-/** Flags a CVE as in CISA's KEV from the KEV catalog, for CVEs NVD has not marked yet. */
-export function applyKev(db: DatabaseSync, entries: { cveId: string; dateAdded: string | null; dueDate: string | null; ransomware: boolean }[], observedAt: string): number {
+/** The status of a row the KEV catalogue made because NVD had not sent the CVE; NVD's first record replaces it. */
+export const kevOnlyStatus = "KEV only";
+
+/**
+ * Flags a CVE as in CISA's KEV from the KEV catalog, for CVEs NVD has not marked yet. An entry
+ * whose CVE has no row gets one from the catalogue's own words, so "every KEV entry is in the
+ * table" is true: before this, 1,639 of 1,780 on the public instance had no row and their links 404'd.
+ */
+export function applyKev(
+  db: DatabaseSync,
+  entries: { cveId: string; dateAdded: string | null; dueDate: string | null; ransomware: boolean; description?: string | null; vendor?: string | null; product?: string | null }[],
+  observedAt: string,
+): number {
   const select = db.prepare("SELECT kev FROM vulns WHERE cve_id = ?");
+  const insert = db.prepare(
+    `INSERT INTO vulns (cve_id, source_identifier, published_at, last_modified_at, vuln_status, description, cwes_json, cpes_json, vendors_json, products_json,
+        references_json, kev, kev_date_added, kev_due_date, kev_ransomware, watch_hit, first_seen_at, last_seen_at)
+     VALUES (?, 'CISA KEV', ?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, 0, ?, ?)`,
+  );
   const update = db.prepare("UPDATE vulns SET kev = 1, kev_date_added = COALESCE(kev_date_added, ?), kev_due_date = COALESCE(?, kev_due_date), kev_ransomware = ? WHERE cve_id = ?");
   const change = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'kev', NULL, ?)");
+  const arrived = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'new', NULL, ?)");
   let flagged = 0;
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const e of entries) {
       const row = select.get(e.cveId) as { kev: number } | undefined;
-      if (!row) continue;
+      if (!row) {
+        if (!cveIdPattern.test(e.cveId)) continue;
+        insert.run(
+          e.cveId,
+          e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt,
+          observedAt,
+          kevOnlyStatus,
+          e.description ?? null,
+          JSON.stringify(e.vendor ? [e.vendor.toLowerCase()] : []),
+          JSON.stringify(e.product ? [e.product.toLowerCase()] : []),
+          JSON.stringify([{ url: `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${e.cveId}`, tags: ["CISA KEV"] }]),
+          e.dateAdded,
+          e.dueDate,
+          e.ransomware ? 1 : 0,
+          observedAt,
+          observedAt,
+        );
+        arrived.run(e.cveId, observedAt, `in KEV${e.dueDate ? `, due ${e.dueDate}` : ""}; NVD's record not yet received`);
+        continue;
+      }
       update.run(e.dateAdded, e.dueDate, e.ransomware ? 1 : 0, e.cveId);
       if (row.kev === 0) {
         change.run(e.cveId, observedAt, `added to CISA KEV${e.dueDate ? `, due ${e.dueDate}` : ""}`);

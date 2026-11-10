@@ -177,8 +177,8 @@ describe("uploads and the API over HTTP", () => {
     expect(items.items[0]?.signals.dueDate).toBeTruthy();
 
     const vulns = (await (await fetch(`${app.base}/api/v1/vulns?kev=1`)).json()) as { total: number; vulns: { cve: string; kev: unknown; cvss: { score: number } }[] };
-    expect(vulns.total).toBe(1);
-    expect(vulns.vulns[0]).toMatchObject({ cve: "CVE-2021-44228", cvss: { score: 10 } });
+    expect(vulns.total).toBe(3);
+    expect(vulns.vulns.find((v) => v.cve === "CVE-2021-44228")).toMatchObject({ cvss: { score: 10 } });
     const one = (await (await fetch(`${app.base}/api/v1/vulns/cve-2021-44228`)).json()) as { cve: string; cpes: string[]; history: { field: string }[] };
     expect(one.cve).toBe("CVE-2021-44228");
     expect(one.cpes.length).toBeGreaterThan(0);

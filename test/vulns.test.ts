@@ -114,7 +114,7 @@ describe("vulnerability store", () => {
     expect(storeNvdRecords({ db, now: () => later }, [{ cve: changed }])).toMatchObject({ inserted: 0, updated: 0, alerts: [] });
   });
 
-  it("joins KEV and EPSS onto known CVEs only, and re-marks the watchlist", () => {
+  it("joins KEV and EPSS onto known CVEs, gives a KEV-only CVE its own row, and re-marks the watchlist", () => {
     storeNvdRecords({ db, now: () => at }, windowFixture().vulnerabilities!);
     const flagged = applyKev(db, [{ cveId: "CVE-2015-0204", dateAdded: "2026-10-14", dueDate: "2026-11-04", ransomware: false }, { cveId: "CVE-1999-0001", dateAdded: null, dueDate: null, ransomware: false }], at.toISOString());
     expect(flagged).toBe(1);
@@ -135,7 +135,9 @@ describe("vulnerability store", () => {
     db.prepare("DELETE FROM watchlist").run();
     expect(recomputeWatchHits(db)).toBe(1);
 
-    expect(listVulns(db, { kev: true }).total).toBe(2);
+    // Every KEV entry has a row: the catalogue makes one, "KEV only", for a CVE NVD has not sent.
+    expect(listVulns(db, { kev: true }).total).toBe(3);
+    expect(listVulns(db, { kev: true }).rows.filter((r) => r.vuln_status === "KEV only")).toHaveLength(1);
     expect(listVulns(db, { minCvss: 9 }).rows.map((r) => r.cve_id)).toEqual(["CVE-2021-44228"]);
     expect(listVulns(db, { severity: "critical" }).rows.map((r) => r.cve_id)).toEqual(["CVE-2021-44228"]);
     // The severity words and the EPSS bands each tile the table: every CVE falls in exactly one.

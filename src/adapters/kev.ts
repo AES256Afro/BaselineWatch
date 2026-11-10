@@ -63,8 +63,8 @@ export const kevAdapter: Adapter = {
     applyKev(
       db,
       items.map((i) => {
-        const s = (i.signals ?? {}) as { dueDate?: string; ransomware?: boolean };
-        return { cveId: i.externalId, dateAdded: i.publishedAt?.slice(0, 10) ?? null, dueDate: s.dueDate ?? null, ransomware: s.ransomware === true };
+        const s = (i.signals ?? {}) as { dueDate?: string; ransomware?: boolean; vendor?: string; product?: string };
+        return { cveId: i.externalId, dateAdded: i.publishedAt?.slice(0, 10) ?? null, dueDate: s.dueDate ?? null, ransomware: s.ransomware === true, description: i.summary ?? i.title, vendor: s.vendor ?? null, product: s.product ?? null };
       }),
       now.toISOString(),
     );
