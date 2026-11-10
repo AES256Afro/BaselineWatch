@@ -83,10 +83,12 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
  * line with a count, not twenty-five. The newest of each group is shown; numbers are ignored when
  * telling two titles apart.
  */
-function groupAlerts<T extends { kind: string; title: string; status: string }>(alerts: T[]): { a: T; times: number }[] {
+function groupAlerts<T extends { kind: string; title: string; status: string; url: string | null; sent_at: string }>(alerts: T[]): { a: T; times: number }[] {
   const groups = new Map<string, { a: T; times: number }>();
   for (const a of alerts) {
-    const key = `${a.kind}|${a.status}|${a.title.replace(/\d+/g, "#")}`;
+    // Only the repeated failure notices are one story told again; two KEV alerts with the same
+    // title are two CVEs, and the address tells them apart.
+    const key = a.kind === "source" ? `${a.kind}|${a.status}|${a.title.replace(/\d+/g, "#")}` : `${a.kind}|${a.title}|${a.url ?? ""}|${a.sent_at}`;
     const g = groups.get(key);
     if (g) g.times += 1;
     else groups.set(key, { a, times: 1 });

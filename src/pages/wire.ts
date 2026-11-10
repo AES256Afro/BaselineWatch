@@ -264,7 +264,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
           ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
-                <input type="hidden" name="upto" value="${newestId}">
+                <input type="hidden" name="upto" value="${newestId}"><input type="hidden" name="drawn" value="${now.toISOString()}">
                 ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
                 ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
                 ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}

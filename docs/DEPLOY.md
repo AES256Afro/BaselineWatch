@@ -236,19 +236,24 @@ against a scratch directory, and the live container is not touched.
    ```
 
 3. **Run the copy on a spare port**, with the scheduler off so it fetches nothing and sends no
-   alerts, and with no notifier and no keys from the live instance:
+   alerts, and with no notifier and no keys from the live instance. Bind it to the box itself and
+   give it a throwaway password: it is a full copy of the owner's data (domains, exposure, devices,
+   notes), and without one it would be open, as the owner, to everything that reaches the port.
+   The image runs as `node` (uid 1000), so `chown -R 1000:1000` the unpacked data first. Compare
+   from the box, or through an SSH tunnel to `127.0.0.1:8795`:
 
    ```bash
-   docker run --rm -d --name bw-restore -p 8795:8790 \
-     -e BW_SCHEDULER=false -e BW_PUBLIC_READ=true \
+   docker run --rm -d --name bw-restore -p 127.0.0.1:8795:8790 \
+     -e BW_SCHEDULER=false -e BW_PUBLIC_READ=true -e BW_ADMIN_PASSWORD="$(openssl rand -hex 12)" \
      -v ~/restore-test/<path to data>:/data \
      ghcr.io/aes256afro/baselinewatch:<the live version>
    ```
 
-4. **Compare it with the live instance.** From the development machine:
+4. **Compare it with the live instance.** From the development machine, with a tunnel to the copy
+   (`ssh -N -L 8795:127.0.0.1:8795 <bigbox>` in another terminal):
 
    ```bash
-   node --disable-warning=ExperimentalWarning scripts/health-diff.ts https://cybercard.net http://<bigbox>:8795
+   node --disable-warning=ExperimentalWarning scripts/health-diff.ts https://cybercard.net http://127.0.0.1:8795
    ```
 
    It prints the counts side by side and gives a verdict: the restored copy is a backup, so every
@@ -261,11 +266,12 @@ against a scratch directory, and the live container is not touched.
    rehearsal, which is what stops the digest asking:
 
    ```bash
-   npm run rehearsal -- today "restored 2026-10-21 archive on bigbox, health-diff clean"
+   docker exec bp-baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts rehearsal today "restored 2026-10-21 archive on bigbox, health-diff clean"
    ```
 
-   Run it against the live instance's database (`BW_DATA_DIR`), or on the box:
-   `docker exec bp-baselinewatch node --disable-warning=ExperimentalWarning src/cli.ts rehearsal today "..."`.
+   It must run against the live instance's database: run from a development checkout,
+   `npm run rehearsal` records into that checkout's own `./data`, and the live digest keeps
+   asking. The command prints the data directory it wrote to; check it.
    Until one is recorded, and again ninety days after the last, the digest carries a line asking
    for it.
 

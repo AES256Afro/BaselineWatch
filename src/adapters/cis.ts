@@ -112,6 +112,12 @@ export const cisAdapter: Adapter = {
 
 /** "CIS Ubuntu Linux 24.04 LTS Benchmark" → cis:ubuntu-linux-24-04-lts */
 export function cisKey(title: string | null, filename: string): string {
-  const base = (title ?? filename.replace(/\.pdf$/i, "")).replace(/^CIS\s+/i, "").replace(/\s+Benchmark.*$/i, "");
+  // A WorkBench filename joins words with underscores and carries the version
+  // ("CIS_Microsoft_Windows_11_Enterprise_Benchmark_v4.0.0.pdf"); left in, each version would key
+  // a series of its own and nothing would ever be compared.
+  const base = (title ?? filename.replace(/\.pdf$/i, "").replace(/_/g, " "))
+    .replace(/^CIS\s+/i, "")
+    .replace(/\s+Benchmark.*$/i, "")
+    .replace(/\s+v\d[\d.]*\s*$/i, "");
   return `cis:${base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "benchmark"}`;
 }

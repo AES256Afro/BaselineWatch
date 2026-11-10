@@ -957,12 +957,15 @@ export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChan
        VALUES ('nvd-cves', 'vulnerability', ?, ?, ?, NULL, ?, ?, ?, ?)`,
     ).run(row.cve_id, title, `https://nvd.nist.gov/vuln/detail/${row.cve_id}`, summary, publishedAt, observedAt, JSON.stringify(signals));
   } else {
-    db.prepare(`UPDATE items SET title = ?, summary = ?, published_at = ?, signals_json = ?, read = CASE WHEN ? THEN 0 ELSE read END WHERE id = ?`).run(
+    const resurfaced = changes.length > 0 ? 1 : 0;
+    db.prepare(`UPDATE items SET title = ?, summary = ?, published_at = ?, signals_json = ?, read = CASE WHEN ? THEN 0 ELSE read END, surfaced_at = CASE WHEN ? THEN ? ELSE surfaced_at END WHERE id = ?`).run(
       title,
       summary,
       publishedAt,
       JSON.stringify(signals),
-      changes.length > 0 ? 1 : 0,
+      resurfaced,
+      resurfaced,
+      observedAt,
       existing.id,
     );
   }

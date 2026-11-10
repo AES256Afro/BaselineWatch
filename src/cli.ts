@@ -48,6 +48,8 @@ if (command === "rehearsal") {
   const previous = lastRehearsal(db);
   const recorded = recordRehearsal(db, when.toISOString(), note);
   console.log(`[rehearsal] recorded ${recorded.at.slice(0, 10)}${recorded.note ? `: ${recorded.note}` : ""}${previous ? ` (previous: ${previous.at.slice(0, 10)})` : " (the first one)"}`);
+  // Recorded into whichever database this process opened; from a development checkout that is not the live one.
+  console.log(`[rehearsal] into ${path.resolve(config.dataDir)}`);
 } else if (command === "backfill") {
   const source = getSource(db, target);
   const adapter = source ? adapterFor(source) : null;

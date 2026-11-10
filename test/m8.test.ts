@@ -64,7 +64,9 @@ describe("CIS Benchmarks", () => {
     expect(reqs[0]?.related).toEqual(["v8 4.8"]);
     expect(reqs[0]?.extra).toMatchObject({ level: "L1", assessment: "Automated", profiles: "Level 1 - Server" });
     expect(cisKey("CIS Ubuntu Linux 24.04 LTS Benchmark", "x.pdf")).toBe("cis:ubuntu-linux-24-04-lts");
-    expect(cisKey(null, "CIS_Microsoft_Windows_11_Benchmark_v3.pdf")).toBe("cis:cis-microsoft-windows-11-benchmark-v3");
+    // A WorkBench filename: underscores read as spaces, and the version leaves the key so each version diffs against the last.
+    expect(cisKey(null, "CIS_Microsoft_Windows_11_Enterprise_Benchmark_v4.0.0.pdf")).toBe("cis:microsoft-windows-11-enterprise");
+    expect(cisKey(null, "CIS_Microsoft_Windows_11_Enterprise_Benchmark_v3.0.0.pdf")).toBe(cisKey(null, "CIS_Microsoft_Windows_11_Enterprise_Benchmark_v4.0.0.pdf"));
     expect(parseCisText("nothing here").recommendations).toEqual([]);
   });
 

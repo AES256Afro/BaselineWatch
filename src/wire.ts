@@ -154,13 +154,18 @@ export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: {
     .all(...params, limit) as unknown as WireItem[];
 }
 
-export function markAllRead(db: DatabaseSync, filters: WireFilters = {}, upto?: number): number {
+export function markAllRead(db: DatabaseSync, filters: WireFilters = {}, upto?: number, drawnAt?: string): number {
   // Every copy of a story is marked, so the unread count (which counts them all) can reach zero.
   // Only up to the newest the page showed: what arrived after it loaded has not been seen, and a
   // KEV entry marked read would leave the triage inbox unread by anyone.
   const { where, params } = build({ ...filters, before: undefined }, { copies: true, owner: true });
+  // And an older item that came back unread after the page was drawn (its CVE changed) was not
+  // seen either: it keeps its id, so only the time it resurfaced tells.
   const bound = upto !== undefined && Number.isInteger(upto) && upto > 0 ? " AND id <= ?" : "";
-  const result = db.prepare(`UPDATE items SET read = 1 WHERE id IN (SELECT i.id FROM items i ${where})${bound}`).run(...params, ...(bound ? [upto!] : []));
+  const drawn = drawnAt && !Number.isNaN(Date.parse(drawnAt)) ? " AND (surfaced_at IS NULL OR surfaced_at <= ?)" : "";
+  const result = db
+    .prepare(`UPDATE items SET read = 1 WHERE id IN (SELECT i.id FROM items i ${where})${bound}${drawn}`)
+    .run(...params, ...(bound ? [upto!] : []), ...(drawn ? [drawnAt!] : []));
   return Number(result.changes);
 }
 

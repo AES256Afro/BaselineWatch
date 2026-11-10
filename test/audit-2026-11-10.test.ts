@@ -135,6 +135,13 @@ describe("the audit of 10 November", () => {
       { external_id: "CVE-2026-2000", read: 1 },
       { external_id: "CVE-2026-2001", read: 0 },
     ]);
+    // An older item that came back unread after the page was drawn keeps its id; its time tells.
+    db.prepare("UPDATE items SET read = 0, surfaced_at = '2026-11-10T12:00:00.000Z' WHERE external_id = 'CVE-2026-2000'").run();
+    markAllRead(db, {}, shown + 1, "2026-11-10T11:00:00.000Z");
+    expect(db.prepare("SELECT external_id, read FROM items ORDER BY id").all()).toEqual([
+      { external_id: "CVE-2026-2000", read: 0 },
+      { external_id: "CVE-2026-2001", read: 1 },
+    ]);
   });
 
   it("offers the feeds a pasted home page names, when the page itself is not a feed", async () => {
