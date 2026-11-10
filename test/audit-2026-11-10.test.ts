@@ -136,4 +136,12 @@ describe("the audit of 10 November", () => {
       { external_id: "CVE-2026-2001", read: 0 },
     ]);
   });
+
+  it("offers the feeds a pasted home page names, when the page itself is not a feed", async () => {
+    const { probeFeed } = await import("../src/newsource.ts");
+    const page = '<html><head><link rel="alternate" type="application/rss+xml" href="/feed.xml"><title>A blog</title></head><body>Hello</body></html>';
+    const http = (async () => ({ bytes: new TextEncoder().encode(page) })) as unknown as Parameters<typeof probeFeed>[0];
+    const probe = await probeFeed(http, "https://blog.example/");
+    expect(probe).toMatchObject({ ok: false, found: ["https://blog.example/feed.xml"] });
+  });
 });

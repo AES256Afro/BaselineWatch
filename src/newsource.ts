@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { feedAdapter } from "./adapters/feed.ts";
 import type { SourceRow } from "./adapters/types.ts";
 import type { HttpGet } from "./http.ts";
+import { alternateFeeds } from "./repairs.ts";
 
 /**
  * A source the owner adds on the running instance (M20.2): a feed's address, probed before it is
@@ -43,7 +44,8 @@ export interface FeedPreview {
   items: { title: string; url: string | null; publishedAt: string | null }[];
 }
 
-export type FeedProbe = { ok: true; feed: FeedPreview } | { ok: false; error: string };
+/** A failed probe of a web page may still name its feeds (`<link rel="alternate">`); those are `found`. */
+export type FeedProbe = { ok: true; feed: FeedPreview } | { ok: false; error: string; found?: string[] };
 
 /** Atom by its root element; RSS 2.0 and RSS 1.0 are both read as `rss`. */
 function feedFormat(xml: string): "rss" | "atom" {
@@ -96,7 +98,9 @@ export async function probeFeed(http: HttpGet, url: string): Promise<FeedProbe> 
   try {
     items = feedAdapter.parse!(bytes, { url } as SourceRow, new Date()).items;
   } catch (error) {
-    return { ok: false, error: `${error instanceof Error ? error.message : String(error)}: the address answered, but not with a feed` };
+    // A blog's home page is what people paste; it usually names its own feed in its <head>.
+    const found = alternateFeeds(xml, url).slice(0, 5);
+    return { ok: false, error: `${error instanceof Error ? error.message : String(error)}: the address answered, but not with a feed`, ...(found.length ? { found } : {}) };
   }
   if (items.length === 0) return { ok: false, error: "the feed answered and holds no entries, so there is nothing to show that it is the right one" };
   return {

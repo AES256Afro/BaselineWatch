@@ -254,7 +254,13 @@ export function renderSourceProbe({ owner, open, look, input, probe, duplicate }
           ${input
             ? html`<form method="post" action="/sources/add" class="stack">${hidden(input)}<p class="small">It will be named "${input.name || probe.feed.title || hostOf(input.url)}", go to ${input.group === "vulnerabilities" ? "Vulnerabilities" : "the News"}${input.topic === "ai" ? " on the AI beat" : ""} and be checked ${input.schedule}. It is fetched once on adding, so its entries arrive now.</p><button type="submit" class="primary">Add it</button></form>`
             : ""}`
-      : html`<div class="notice error">Not added: ${probe?.error ?? "the form could not be read"}.</div>`;
+      : html`<div class="notice error">Not added: ${probe?.error ?? "the form could not be read"}.</div>${
+          probe && !probe.ok && probe.found?.length
+            ? html`<div class="notice">That page names ${probe.found.length === 1 ? "a feed" : `${probe.found.length} feeds`} of its own:<ul>${probe.found.map(
+                (url) => html`<li><form method="post" action="/sources/probe" class="inline">${hidden({ ...input!, url })}<code>${url}</code> <button type="submit">Try this one</button></form></li>`,
+              )}</ul></div>`
+            : ""
+        }`;
   const content = html`
     <h1>Add a source</h1>
     <p class="lede">${input ? html`<code>${input.url}</code>` : "A feed by its address."}</p>

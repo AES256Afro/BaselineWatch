@@ -69,11 +69,27 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
         <section class="box" id="alerts">
           <h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">${alerts.length}</a></span></h2>
           ${alerts.length
-            ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>`
+            ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · <b>${times} times</b>` : ""}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>`
             : html`<p class="small">None yet. KEV additions, watched CVE changes and standard releases are sent as they arrive, after a source's first load.</p>`}
         </section>
       </aside>
     </div>`;
 
   return page({ title: "Digest", active: "digest", content, meta: latest ? html`last ${relativeTime(latest.generated_at, now)}` : html`none yet`, owner, open, look });
+}
+
+/**
+ * Alerts that say the same thing, grouped: a source failing for 26 h, then 27 h, then 28 h is one
+ * line with a count, not twenty-five. The newest of each group is shown; numbers are ignored when
+ * telling two titles apart.
+ */
+function groupAlerts<T extends { kind: string; title: string; status: string }>(alerts: T[]): { a: T; times: number }[] {
+  const groups = new Map<string, { a: T; times: number }>();
+  for (const a of alerts) {
+    const key = `${a.kind}|${a.status}|${a.title.replace(/\d+/g, "#")}`;
+    const g = groups.get(key);
+    if (g) g.times += 1;
+    else groups.set(key, { a, times: 1 });
+  }
+  return [...groups.values()];
 }
