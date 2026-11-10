@@ -482,11 +482,14 @@ export function applyKev(
       const row = select.get(e.cveId) as { kev: number } | undefined;
       if (!row) {
         if (!cveIdPattern.test(e.cveId)) continue;
+        // No publication date is known until the CVE list or NVD says it; the catalogue's date
+        // added is when it changed, not when the CVE was published.
+        const added = e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt;
         insert.run(
           e.cveId,
           kevSourceIdentifier,
-          e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt,
-          observedAt,
+          null,
+          added,
           kevOnlyStatus,
           e.description ?? null,
           JSON.stringify(e.vendor ? [e.vendor.toLowerCase()] : []),
@@ -498,6 +501,8 @@ export function applyKev(
           observedAt,
           observedAt,
         );
+        // A recent addition is movement Today should see; the catalogue's back-catalogue is not.
+        if (e.dateAdded && Date.parse(observedAt) - Date.parse(added) <= 7 * 24 * 60 * 60 * 1000) change.run(e.cveId, observedAt, `added to CISA KEV${e.dueDate ? `, due ${e.dueDate}` : ""}`);
         continue;
       }
       update.run(e.dateAdded, e.dueDate, e.ransomware ? 1 : 0, e.cveId);
@@ -867,8 +872,8 @@ export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; 
     // table by triggers (0045), so it counts the same CVEs the DISTINCT over exploits did.
     ...tallies,
     // Any change observed in the window, first sightings included: the same set ?changed=1 lists and the Today tile counts.
-    changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ?", sinceIso),
-    newSince: n("SELECT COUNT(*) AS n FROM vuln_changes WHERE observed_at >= ? AND field = 'new'", sinceIso),
+    changedSince: n(`SELECT COUNT(DISTINCT c.cve_id) AS n FROM vuln_changes c JOIN vulns v ON v.cve_id = c.cve_id WHERE c.observed_at >= ? AND ${liveSql}`, sinceIso),
+    newSince: n(`SELECT COUNT(*) AS n FROM vuln_changes c JOIN vulns v ON v.cve_id = c.cve_id WHERE c.observed_at >= ? AND c.field = 'new' AND ${liveSql}`, sinceIso),
   };
 }
 

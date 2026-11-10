@@ -117,17 +117,17 @@ export interface PageOptions {
 }
 
 /** The Register's newest changes, for the ribbon under the masthead and anywhere else that glances at it. */
-export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[] {
+export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; documentKey: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[] {
   const rows = db
     .prepare(
-      `SELECT d.id AS documentId, d.source_id AS sourceId, s.name, d.version_label AS versionLabel,
+      `SELECT d.id AS documentId, d.source_id AS sourceId, d.document_key AS documentKey, s.name, d.version_label AS versionLabel,
               COALESCE(d.published_at, d.parsed_at) AS at, d.previous_document_id AS previousId,
               (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
        FROM documents d JOIN sources s ON s.id = d.source_id
        WHERE s.group_name = 'standards'
        ORDER BY at DESC, d.id DESC LIMIT ?`,
     )
-    .all(limit) as { documentId: number; sourceId: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
+    .all(limit) as { documentId: number; sourceId: string; documentKey: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
   return rows;
 }
 
@@ -138,7 +138,9 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   const seen = new Set<string>();
   const rows = latestRegisterChanges(db, 12)
     .filter((r) => {
-      const key = `${r.sourceId}|${r.versionLabel ?? ""}`;
+      // Only a profile family is one release in several documents; two STIGs that share a
+      // version label (V2R11 of Windows 11 and of Server 2022) are two releases.
+      const key = `${r.sourceId}|${r.versionLabel ?? ""}|${r.documentKey.startsWith("profile:") ? "profile" : r.documentKey}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
