@@ -431,6 +431,27 @@ export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedA
   return { key, isNew: result.isNew, changes, watchLabels: result.watchLabels, watchPlatforms: result.watchPlatforms, row };
 }
 
+/**
+ * KEV entries already stored as items whose CVE has no row: the catalogue is parsed only when its
+ * bytes change, so on the first start after an upgrade the rows applyKev now makes would wait for
+ * CISA's next addition. Read from the items this instance holds; nothing is fetched.
+ */
+export function backfillKevRows(db: DatabaseSync, observedAt: string): number {
+  const rows = db
+    .prepare("SELECT i.external_id AS cveId, i.published_at, i.summary, i.title, i.signals_json FROM items i WHERE i.kind = 'kev' AND NOT EXISTS (SELECT 1 FROM vulns v WHERE v.cve_id = i.external_id)")
+    .all() as { cveId: string; published_at: string | null; summary: string | null; title: string; signals_json: string | null }[];
+  if (rows.length === 0) return 0;
+  applyKev(
+    db,
+    rows.map((r) => {
+      const s = parseJson<{ dueDate?: string; ransomware?: boolean; vendor?: string; product?: string }>(r.signals_json, {});
+      return { cveId: r.cveId, dateAdded: r.published_at?.slice(0, 10) ?? null, dueDate: s.dueDate ?? null, ransomware: s.ransomware === true, description: r.summary ?? r.title, vendor: s.vendor ?? null, product: s.product ?? null };
+    }),
+    observedAt,
+  );
+  return rows.length;
+}
+
 /** The status of a row the KEV catalogue made because NVD had not sent the CVE; NVD's first record replaces it. */
 export const kevOnlyStatus = "KEV only";
 /** The source_identifier of such a row; NVD's record replaces it with the CNA's. */

@@ -261,7 +261,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : html`<p class="small">No standard moved${releases.length ? ` (${releases.length === 1 ? "1 first version" : `${releases.length} first versions`} loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows what is due next.</p>`}
         </section>
 
-        <section class="box">
+        <section class="box" id="needs">
           <h2><a href="/triage">${owner ? "Needs you" : "On the owner's desk"}</a> <span class="count">${counts.affects + counts.reviewing} placed, ${inbox.length} not</span></h2>
           ${decisions.length
             ? html`<ul class="talked">${decisions.map((d) => html`<li><a href="${d.href}">${d.title}</a> <span class="small">${d.why}</span></li>`)}</ul>`
@@ -270,7 +270,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             ? html`<ul class="need">${inbox.map((i) => html`<li class="${i.kind === "kev" ? "kev" : i.kind === "release" ? "std" : ""}">
                 <div class="need-main"><b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
                   <span class="small"><a href="/?source=${i.source_id}">${i.source_name}</a> · ${relativeTime(i.published_at, now)}</span></div>
-                ${owner ? triageButtons({ kind: "item", id: i.id }, null, back, { compact: true }) : ""}
+                ${owner ? triageButtons({ kind: "item", id: i.id }, null, `${back}#needs`, { compact: true }) : ""}
               </li>`)}</ul>`
             : decisions.length
               ? ""

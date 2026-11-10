@@ -27,6 +27,9 @@ describe("/search", () => {
       const unheld = await fetch(`${app.base}/search?q=CVE-2026-9999`, { redirect: "manual" });
       expect(unheld.status).toBe(200);
       expect(await unheld.text()).toContain('<a href="/vulnerabilities/CVE-2026-9999">Where to read it</a>');
+      // One the KEV catalogue lists says so on the search page itself.
+      app.db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at) VALUES ('cisa-kev', 'kev', 'CVE-2026-9998', 'Vendor: a flaw', NULL, '2026-10-01T00:00:00Z', '2026-10-01T00:00:00Z')").run();
+      expect(await (await fetch(`${app.base}/search?q=CVE-2026-9998`)).text()).toContain("is on CISA's list of vulnerabilities exploited in the wild, added 2026-10-01");
       const notHeld = await fetch(`${app.base}/vulnerabilities/CVE-2026-9999`);
       expect(notHeld.status).toBe(404);
       const notHeldPage = await notHeld.text();

@@ -1,10 +1,9 @@
-import { cveIdPattern } from "../vulns.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { counted, html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { withheldFrom } from "../register.ts";
 import { relativeTime } from "../time.ts";
-import { listVulns } from "../vulns.ts";
+import { cveIdPattern, listVulns } from "../vulns.ts";
 import { listWire } from "../wire.ts";
 import { latestVersions, searchControls } from "./controls.ts";
 import { page } from "./layout.ts";
@@ -47,7 +46,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
       <form method="get" action="/search" class="search" role="search"><label class="visually-hidden" for="q">Search</label><input type="search" id="q" name="q" value="${query}"><button type="submit">Search</button></form>
       ${saveSearchForm(db, `/search?q=${encodeURIComponent(query)}`, owner)}
     </div>
-    ${cveIdPattern.test(query) ? html`<p class="notice"><b>${query.toUpperCase()}</b> has no row in the table. <a href="/vulnerabilities/${query.toUpperCase()}">Where to read it</a>; what this instance does hold about it is below.</p>` : ""}
+    ${cveIdPattern.test(query) ? notHeldNotice(db, query.toUpperCase(), total > 0) : ""}
     <div class="cols">
       <section class="main">
         ${cves.total
@@ -71,4 +70,10 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
       </aside>
     </div>`;
   return page({ title, active: "search", content, owner, open, look });
+}
+
+/** A CVE id with no row: whether CISA lists it as exploited, said first, and where to read the rest. */
+function notHeldNotice(db: DatabaseSync, cveId: string, more: boolean): Html {
+  const kev = db.prepare("SELECT published_at FROM items WHERE kind = 'kev' AND external_id = ? ORDER BY id DESC LIMIT 1").get(cveId) as { published_at: string | null } | undefined;
+  return html`<p class="notice${kev ? " error" : ""}"><b>${cveId}</b> ${kev ? html`is on CISA's list of vulnerabilities exploited in the wild${kev.published_at ? html`, added ${kev.published_at.slice(0, 10)}` : ""}. Its details are not loaded here yet:` : "is not loaded here."} <a href="/vulnerabilities/${cveId}">Where to read it</a>${more ? "; what this site does hold about it is below." : "."}</p>`;
 }

@@ -10,7 +10,7 @@ import { maybeRunExposureScan } from "./exposure.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
-import { recomputePlatforms } from "./vulns.ts";
+import { backfillKevRows, recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 import { counted } from "./words.ts";
@@ -34,6 +34,9 @@ for (const source of listSources(db)) {
   if (out.relinked > 0) console.log(`[register] ${source.id}: ${counted(out.relinked, "version")} relinked into publication order`);
 }
 // Migration 0032 added the platform a CVE affects; rows that predate it are filled once here.
+// Every KEV entry has a row (2026-11-10): those already held as items get theirs once, here.
+const kevRows = backfillKevRows(db, new Date().toISOString());
+if (kevRows > 0) console.log(`[vulns] gave ${counted(kevRows, "KEV entry", "KEV entries")} a row of its own`);
 const platformed = recomputePlatforms(db);
 if (platformed > 0) console.log(`[vulns] read the platform of ${counted(platformed, "CVE")}`);
 if (!config.adminPassword) {
