@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { microsoftBrowsers, microsoftOffice, microsoftServers } from "./platforms.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
 import { latestDocument, loadRequirements, type DocumentRow } from "./register.ts";
 import { parseJson } from "./json.ts";
@@ -51,9 +52,6 @@ export function platformOf(name: string): PlatformId {
   return "applications";
 }
 
-const microsoftBrowsers = /\b(edge|internet explorer|mshtml|scripting engine|silverlight)\b/i;
-const microsoftOffice = /\b(office|word|excel|powerpoint|outlook|publisher|project|visio|access|wordpad|visual basic|vba|mscomctl)\b/i;
-const microsoftServers = /exchange|sharepoint|sql server|configuration manager|partner center|power pages|skype|lync|dynamics|azure|forefront|open management|\bomi\b|\.net|visual studio|internet information|\biis\b/i;
 
 /**
  * The platform a KEV entry's vendor and product belong to, so a platform page can show CISA's

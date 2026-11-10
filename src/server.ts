@@ -39,7 +39,7 @@ const kevRows = backfillKevRows(db, new Date().toISOString());
 if (kevRows > 0) console.log(`[vulns] gave ${counted(kevRows, "KEV entry", "KEV entries")} a row of its own`);
 const platformed = recomputePlatforms(db);
 // KEV-only rows made before 0058 were never matched against the watchlist; once, on that upgrade.
-if (migration.applied.includes("0058_kev_only_platforms")) recomputeWatchHits(db);
+if (migration.applied.some((m) => m === "0058_kev_only_platforms" || m === "0059_kev_only_microsoft")) recomputeWatchHits(db);
 if (platformed > 0) console.log(`[vulns] read the platform of ${counted(platformed, "CVE")}`);
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");

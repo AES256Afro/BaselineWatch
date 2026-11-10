@@ -155,6 +155,11 @@ export function platformsOf(v: { cpes: string[]; vendors: string[]; products: st
   return [...out];
 }
 
+/** CISA's Microsoft product words, read one way for the STIG pages (src/stigs.ts) and the table. */
+export const microsoftBrowsers = /\b(edge|internet explorer|mshtml|scripting engine|silverlight)\b/i;
+export const microsoftOffice = /\b(office|word|excel|powerpoint|outlook|publisher|project|visio|access|wordpad|visual basic|vba|mscomctl)\b/i;
+export const microsoftServers = /exchange|sharepoint|sql server|configuration manager|partner center|power pages|skype|lync|dynamics|azure|forefront|open management|\bomi\b|\.net|visual studio|internet information|\biis\b/i;
+
 /**
  * The platforms of a KEV entry, from CISA's own vendor and product words ("Microsoft | Win32k",
  * "Apple | Multiple Products"), which are not CPE slugs and match nothing in platformsOfCpe. Used
@@ -163,7 +168,13 @@ export function platformsOf(v: { cpes: string[]; vendors: string[]; products: st
 export function kevPlatformKeys(vendor: string | null | undefined, product: string | null | undefined): PlatformKey[] {
   const v = (vendor ?? "").trim().toLowerCase();
   const p = (product ?? "").trim().toLowerCase();
-  if (v === "microsoft") return /\bedge\b/.test(p) ? ["edge"] : ["windows"];
+  if (v === "microsoft") {
+    // Windows only for what the STIG pages also call Windows: Exchange, Office, SQL Server and
+    // Internet Explorer are not "patch Windows" (and NVD's own rows for them carry no platform).
+    if (/\bedge\b/.test(p)) return ["edge"];
+    if (microsoftBrowsers.test(p) || microsoftOffice.test(p) || microsoftServers.test(p)) return [];
+    return ["windows"];
+  }
   if (v === "apple") return ["apple"];
   if (v === "google") return /chrom/.test(p) ? ["chrome"] : /android|pixel/.test(p) ? ["android"] : [];
   if (v === "android" || v === "samsung") return ["android"];

@@ -154,11 +154,13 @@ export function watchLabel(entry: Pick<WatchEntry, "kind" | "value" | "label">):
 
 /** The entries a vulnerability matches, with their kinds, so a platform match can be told from a product one. */
 export function matchWatchDetailed(
-  v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null; packages?: { ecosystem: string; name: string }[] },
+  v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null; packages?: { ecosystem: string; name: string }[]; platforms?: string[] },
   entries: WatchEntry[],
 ): { label: string; kind: WatchEntry["kind"] }[] {
   const hits: { label: string; kind: WatchEntry["kind"] }[] = [];
-  const platforms: string[] = entries.some((e) => e.kind === "platform") ? platformsOf(v) : [];
+  // The row's own platforms when it has them, so a watch on a platform agrees with the platform view
+  // (a KEV-only row is placed from CISA's words, which platformsOf does not read).
+  const platforms: string[] = entries.some((e) => e.kind === "platform") ? (v.platforms ?? platformsOf(v)) : [];
   const vendors = new Set(v.vendors.map((x) => x.toLowerCase()));
   const products = new Set(v.products.map((x) => x.toLowerCase()));
   const pairs = new Set(v.cpes.map((c) => c.split(":").slice(3, 5).join(":").toLowerCase()));
@@ -491,9 +493,9 @@ export function applyKev(
         const added = e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt;
         const vendors = e.vendor ? [e.vendor.toLowerCase()] : [];
         const products = e.product ? [e.product.toLowerCase()] : [];
-        const hits = matchWatchDetailed({ cpes: [], vendors, products, description: e.description ?? null }, watch).map((h) => h.label);
         const keys = kevPlatformKeys(e.vendor, e.product);
         const platforms = keys.length ? keys : platformsOf({ cpes: [], vendors, products, description: e.description ?? null });
+        const hits = matchWatchDetailed({ cpes: [], vendors, products, description: e.description ?? null, platforms }, watch).map((h) => h.label);
         insert.run(
           e.cveId,
           kevSourceIdentifier,
@@ -600,7 +602,8 @@ export function recomputePlatforms(db: DatabaseSync, limit = 100_000): number {
 
 export function recomputeWatchHits(db: DatabaseSync): number {
   const entries = loadWatchlist(db);
-  const rows = db.prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description, watch_hit, watch_labels_json, packages_json FROM vulns").all() as {
+  const rows = db.prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description, watch_hit, watch_labels_json, packages_json, platforms_json FROM vulns").all() as {
+    platforms_json: string | null;
     cve_id: string;
     cpes_json: string | null;
     vendors_json: string | null;
@@ -622,6 +625,7 @@ export function recomputeWatchHits(db: DatabaseSync): number {
           products: parseJson<string[]>(r.products_json, []),
           description: r.description,
           packages: parseJson<AffectedPackage[]>(r.packages_json, []),
+          ...(r.platforms_json !== null ? { platforms: parseJson<string[]>(r.platforms_json, []) } : {}),
         },
         entries,
       );

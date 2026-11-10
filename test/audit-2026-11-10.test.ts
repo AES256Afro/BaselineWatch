@@ -235,4 +235,20 @@ describe("the audit of 10 November", () => {
     expect(getVuln(db, "CVE-2026-5001")).toMatchObject({ watch_hit: 0, platforms_json: '["windows"]' });
     expect(db.prepare("SELECT platform FROM vuln_platforms vp JOIN vulns v ON v.id = vp.vuln_id WHERE v.cve_id = 'CVE-2026-5001'").all()).toEqual([{ platform: "windows" }]);
   });
+
+  it("reads Microsoft KEV products as the STIG pages do, and a platform watch agrees with the platform view", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { applyKev, getVuln, recomputeWatchHits } = await import("../src/vulns.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('platform', 'windows', NULL, '2026-11-10')").run();
+    applyKev(db, [
+      { cveId: "CVE-2026-6000", dateAdded: "2026-11-09", dueDate: null, ransomware: false, description: "Exchange flaw", vendor: "Microsoft", product: "Exchange Server" },
+      { cveId: "CVE-2026-6001", dateAdded: "2026-11-09", dueDate: null, ransomware: false, description: "Win32k flaw", vendor: "Microsoft", product: "Win32k" },
+    ], "2026-11-10T00:00:00.000Z");
+    expect(getVuln(db, "CVE-2026-6000")).toMatchObject({ platforms_json: "[]", watch_hit: 0 });
+    expect(getVuln(db, "CVE-2026-6001")).toMatchObject({ platforms_json: '["windows"]', watch_hit: 1 });
+    recomputeWatchHits(db);
+    expect(getVuln(db, "CVE-2026-6001")?.watch_hit).toBe(1);
+  });
 });
