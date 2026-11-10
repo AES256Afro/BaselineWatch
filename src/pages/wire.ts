@@ -147,6 +147,9 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     return kev?.requiredAction ? html`<p class="wi-fix"><b>Fix:</b> CISA: ${kev.requiredAction}${kev.dueDate ? html` (due ${kev.dueDate})` : ""}</p>` : html``;
   };
 
+  // The newest item id when the page was drawn: the page is sorted by date, not id, so the highest
+  // id on it is not the bound. Anything stored after this was not on screen when the button was.
+  const newestId = (db.prepare("SELECT COALESCE(MAX(id), 0) AS n FROM items").get() as { n: number }).n;
   const rows = listed.map((item, index) => {
     // Acting on a card returns to that card, not to the top of a fifty-item page. Under "Unread
     // only" a card marked read leaves the list, so the way back is to the card after it.
@@ -261,7 +264,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
           ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
-                <input type="hidden" name="upto" value="${Math.max(...fetched.map((i) => i.id))}">
+                <input type="hidden" name="upto" value="${newestId}">
                 ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
                 ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
                 ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}

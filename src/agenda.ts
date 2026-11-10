@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
-import { movedInWindowSql } from "./vulns.ts";
+import { liveSql, movedInWindowSql } from "./vulns.ts";
 import { counted, epssPercent } from "./words.ts";
 
 /**
@@ -276,7 +276,7 @@ export function platformBreakdown(db: DatabaseSync, since: string, fleet: Fleet 
     .prepare(
       `SELECT v.platforms_json AS platforms, v.kev, v.watch_hit AS watchHit
          FROM vulns v
-        WHERE ${movedInWindowSql}`,
+        WHERE ${movedInWindowSql} AND ${liveSql}`,
     )
     .all(since, since) as { platforms: string | null; kev: number; watchHit: number }[];
   const mine = fleetPlatformKeys(fleet);
