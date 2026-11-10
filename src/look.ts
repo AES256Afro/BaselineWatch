@@ -86,8 +86,8 @@ export const schemeLabels: Record<Scheme, { label: string; title: string }> = {
   dark: { label: "Dark", title: "Always dark" },
 };
 export const lookLabels: Record<Look, { label: string; title: string }> = {
-  register: { label: "Paper", title: "The Register look: paper, serif headings, one column" },
-  console: { label: "Console", title: "The Console look: dense panels, charts and large figures" },
+  register: { label: "Paper", title: "Serif headings, one column, like a printed page" },
+  console: { label: "Console", title: "Dense panels, charts and large figures, like a security console" },
 };
 
 /**

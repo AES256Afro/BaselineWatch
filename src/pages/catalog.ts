@@ -172,7 +172,7 @@ export function renderCatalog(options: { db: DatabaseSync; now?: Date; fleet?: F
         <h1>All standards</h1>
         <p class="lede">
           Every standard this instance follows, in one place: per operating system the hardening standards and their current versions,
-          the NIST publications with the drafts open for comment, and NASA's cybersecurity document set as OCIO publishes it. A
+          the NIST publications with the drafts open for comment, and NASA's cybersecurity document set as its Office of the Chief Information Officer publishes it. A
           <span class="chip ok">new</span> version is one published in the last ${newForDays} days; a <span class="chip na">draft</span>
           is not yet the standard. For where each of these comes from — the law, the policy and the
           catalogue above it, and the other bodies that answer the same step —

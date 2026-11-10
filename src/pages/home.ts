@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
 import { latestDigest } from "../digest.ts";
-import { figure, formatBytes, html, newTabIf } from "../html.ts";
+import { counted, figure, formatBytes, html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
@@ -110,7 +110,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
         : html`<span class="state ok">${s.latest_version ?? "latest"}${s.latest_published ? html` · ${s.latest_published.slice(0, 10)}` : ""}</span>`;
     return html`<li class="std">
       <div class="std-head"><b><a href="/standards/${s.id}">${s.name}</a></b>${state}</div>
-      <div class="std-meta"><span>${formatLabel[s.format] ?? s.format}</span><a href="/sources#src-${s.id}">${s.schedule === "manual" ? "manual" : `checked ${s.schedule}`}</a><a class="n" href="/standards/${s.id}">${s.snapshot_count} snapshots · ${s.change_count} changes</a>${s.restricted ? html`<a href="/sources#src-${s.id}">entries shown to the owner only (licence)</a>` : ""}</div>
+      <div class="std-meta"><span>${formatLabel[s.format] ?? s.format}</span><a href="/sources#src-${s.id}">${s.schedule === "manual" ? "manual" : `checked ${s.schedule}`}</a><a class="n" href="/standards/${s.id}">${counted(s.snapshot_count, "snapshot")} · ${counted(s.change_count, "change")}</a>${s.restricted ? html`<a href="/sources#src-${s.id}">entries shown to the owner only (licence)</a>` : ""}</div>
       ${s.notes ? html`<p class="std-note">${s.notes}</p>` : ""}
     </li>`;
   });

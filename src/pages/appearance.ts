@@ -53,6 +53,5 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
       </section>
     </div>`;
 
-  const { defaultLook: _default, ...pageOptions } = options;
-  return page({ title: "Appearance", active: "appearance", content, meta: html`${lookLabels[look.look].label} · ${schemeLabels[look.scheme].label}`, ...pageOptions });
+  return page({ title: "Appearance", active: "appearance", content, meta: html`${lookLabels[look.look].label} · ${schemeLabels[look.scheme].label}`, owner: options.owner, open: options.open, look });
 }

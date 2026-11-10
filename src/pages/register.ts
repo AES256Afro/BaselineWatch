@@ -273,7 +273,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
 
   const content = html`
     <div class="rel">
-      <h1>${source.name} <span class="arrow">${previous ? html`${previous.version_label ?? "previous"} → ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
+      <h1>${source.name} <span class="arrow">${previous && previous.version_label !== doc.version_label ? html`${previous.version_label ?? "previous"} → ` : previous ? html`republished · ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
       <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key, doc.title)} source</a></div>
     </div>
     <div class="pills">

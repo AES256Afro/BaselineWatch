@@ -93,7 +93,7 @@ function keptByHand(db: DatabaseSync, now: Date): Html {
   const status = new Map((db.prepare("SELECT id, name, last_status FROM sources").all() as { id: string; name: string; last_status: string | null }[]).map((r) => [r.id, r]));
   return html`<section id="by-hand">
       <h2><a href="#by-hand">Kept by hand</a> <span class="count">${curatedStores.length}</span></h2>
-      <p class="note">What this site shows that no publisher sends it: data typed into the repository and shipped with each release. Each row says how it goes stale, what checks it, and which part of the plan's M20 is meant to replace it with something this instance fetches or the owner enters; the rest are kept by hand on purpose.</p>
+      <p class="note">What this site shows that no publisher sends it: data typed into the repository and shipped with each release. Each row says how it goes stale, what checks it, and what is meant to replace it: something this site fetches, or something the owner enters; the rest are kept by hand on purpose.</p>
       <div class="table-wrap"><table><caption class="visually-hidden">Data kept by hand</caption>
         <thead><tr><th scope="col">Where</th><th scope="col">Holds</th><th scope="col">Goes stale when</th><th scope="col">Checked by</th><th scope="col">Reviewed</th><th scope="col">Replaced by</th></tr></thead>
         <tbody>${curatedStores.map((c) => {

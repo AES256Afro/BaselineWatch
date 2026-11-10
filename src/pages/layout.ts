@@ -67,7 +67,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
   "scan-devices": { label: "A device", path: "/scan/devices", blurb: "paste what it runs, see which CVEs apply" },
   "scan-traces": { label: "Traces", path: "/scan/traces", blurb: "its saved data read against the spyware indicators, in this tab" },
-  "scan-network": { label: "Your network", path: "/scan/network", blurb: "the LAN resolver, from this server, daily" },
+  "scan-network": { label: "The server's network", path: "/scan/network", blurb: "the resolver of the network this site runs on, daily" },
   "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
   "scan-history": { label: "History", path: "/scan/history", blurb: "every run, and what changed between them" },
   triage: { label: "Triage", path: "/triage", blurb: "what needs a decision" },
@@ -133,11 +133,21 @@ export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId
 
 /** The amber Register ribbon: the latest standards changes ride the page, each linking into its diff. */
 export function registerStrip(db: DatabaseSync, now: Date): Html {
-  const rows = latestRegisterChanges(db, 3);
+  // A publisher that issues one version as several documents (800-53B's three baselines) is one
+  // entry here; three identical lines in a row read as a fault.
+  const seen = new Set<string>();
+  const rows = latestRegisterChanges(db, 12)
+    .filter((r) => {
+      const key = `${r.sourceId}|${r.versionLabel ?? ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
   if (rows.length === 0) return html``;
   const entries = rows.map(
     (r, i) =>
-      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount > 0 ? html`${r.changeCount} changed` : r.previousId === null ? "first version" : "no control-level changes"}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
+      html`${i > 0 ? html`<span class="dot">·</span>` : ""}<a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}: ${r.changeCount > 0 ? html`${r.changeCount} changed` : r.previousId === null ? "first version" : "republished, nothing changed"}</a> <span class="when">${relativeTime(r.at, now)}</span>`,
   );
   // The strip scrolls sideways when the releases do not fit, which on a phone is always. It is a
   // labelled, focusable region so a keyboard can reach and scroll it, and it ends in the way out:

@@ -282,8 +282,8 @@ export function renderLearn(options: LearnOptions): string {
       <p class="small">
         Nothing is obliged to use the whole chain. A private business usually joins at the framework
         or the setting and has no policy rung at all; a DoD system has every rung and a second
-        committee besides. That is what "normalised" means in practice, and the three traces below
-        walk it.
+        committee besides. That is why one table can line them up side by side, and the three
+        traces below walk it.
       </p>
     </section>
 

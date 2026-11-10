@@ -200,7 +200,7 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           same page shows what this server learned from your request. <a href="/scan/domain">A
           domain</a> reads any domain by lookups alone — SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA,
           HSTS, the certificate — and quotes every record beside its verdict.
-          <a href="/scan/network">Your network</a> is the owner's: the LAN resolver tested with
+          <a href="/scan/network">The server's network</a> is the owner's: the LAN resolver tested with
           canary names from this server, and once a day what the internet sees of the public
           address and what the router gives away. <a href="/scan/history">History</a> keeps every
           run. <a href="/scan/devices">A device</a> reads what a computer runs from a script's

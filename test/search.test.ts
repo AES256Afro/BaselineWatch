@@ -30,7 +30,7 @@ describe("/search", () => {
       const notHeld = await fetch(`${app.base}/vulnerabilities/CVE-2026-9999`);
       expect(notHeld.status).toBe(404);
       const notHeldPage = await notHeld.text();
-      expect(notHeldPage).toContain("CVE-2026-9999 is not in this table");
+      expect(notHeldPage).toContain("CVE-2026-9999 is not loaded here");
       expect(notHeldPage).toContain("https://www.cve.org/CVERecord?id=CVE-2026-9999");
       expect(notHeldPage).toContain("https://nvd.nist.gov/vuln/detail/CVE-2026-9999");
 

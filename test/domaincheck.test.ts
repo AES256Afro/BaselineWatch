@@ -180,7 +180,7 @@ describe("the page", () => {
       // The Scan page points here, and the menu has the four entries.
       const scan = await (await fetch(`${app.base}/scan`)).text();
       expect(scan).toContain('<a href="/scan/domain">check a domain</a>');
-      expect(scan).toContain("<b>Your network</b>");
+      expect(scan).toContain("<b>The server&#39;s network</b>");
     } finally {
       await app.close();
     }

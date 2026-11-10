@@ -373,15 +373,15 @@ export function renderVulnNotHeld(options: { db: DatabaseSync; cveId: string; ow
   const q = encodeURIComponent(cveId);
   const content = html`
     <nav class="crumbs small" aria-label="Breadcrumb"><a href="/vulnerabilities">Vulnerabilities</a> › ${cveId}</nav>
-    <h1>${cveId} is not in this table</h1>
-    <p class="lede">This instance has no row for it. That is not a verdict about the CVE: the table holds what NVD and the other feeds published or changed since this instance began reading them, so an older CVE that has not moved since has none. Read it where it is kept:</p>
+    <h1>${cveId} is not loaded here</h1>
+    <p class="lede">This site has not loaded this CVE's details. That says nothing about the CVE: the list holds what NVD and the other feeds published or changed since this site began reading them, so an older CVE that has not changed since is missing. Read the full record where it is kept:</p>
     <ul class="read-at">
       <li><a href="https://www.cve.org/CVERecord?id=${q}" ${newTab}>CVE.org record</a> <span class="small">the authoritative entry, in the words of the body that assigned it</span></li>
       <li><a href="https://nvd.nist.gov/vuln/detail/${q}" ${newTab}>NVD</a> <span class="small">CVSS, CWE and affected configurations as NIST analysed them</span></li>
       <li><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${q}" ${newTab}>CISA KEV catalogue</a> <span class="small">listed means exploited in the wild; US federal agencies have a due date</span></li>
       <li><a href="https://api.first.org/data/v1/epss?cve=${q}" ${newTab}>FIRST EPSS</a> <span class="small">the estimated probability of exploitation in the next 30 days</span></li>
     </ul>
-    ${kev ? html`<section class="box"><h2>In CISA's KEV catalogue</h2><p>${kev.title}${kev.published_at ? html` <span class="small">added ${kev.published_at.slice(0, 10)}</span>` : ""}</p><p class="small">The catalogue is read whole; the CVE's own row has not arrived from NVD yet.</p></section>` : ""}
+    ${kev ? html`<section class="box"><h2>In CISA's KEV catalogue</h2><p>${kev.title}${kev.published_at ? html` <span class="small">added ${kev.published_at.slice(0, 10)}</span>` : ""}</p><p class="small">It is on CISA's list of vulnerabilities exploited in the wild; NVD's details for it have not been loaded here yet.</p></section>` : ""}
     ${news.length ? html`<section class="box"><h2>In the News</h2><ul>${news.map((n) => html`<li><a href="${n.url ?? "#"}" ${newTab}>${n.title}</a> <span class="small">${n.source_name}</span></li>`)}</ul></section>` : ""}
     <p class="small">Looking for something else? <a href="/search?q=${q}">Search for ${cveId}</a> or <a href="/vulnerabilities">open the table</a>.</p>`;
   return page({ title: `${cveId} not held`, active: "vulnerabilities", content, owner, open, look });
