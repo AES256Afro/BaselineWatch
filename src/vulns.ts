@@ -453,7 +453,7 @@ export function backfillKevRows(db: DatabaseSync, observedAt: string): number {
 }
 
 /** The status of a row the KEV catalogue made because NVD had not sent the CVE; NVD's first record replaces it. */
-export const kevOnlyStatus = "KEV only";
+const kevOnlyStatus = "KEV only";
 /** The source_identifier of such a row; NVD's record replaces it with the CNA's. */
 export const kevSourceIdentifier = "CISA KEV";
 
@@ -728,11 +728,11 @@ function countPlatformFigures(db: DatabaseSync, since: string): PlatformFigures[
       .prepare(
         `SELECT COUNT(*) AS total, COALESCE(SUM(v.kev), 0) AS kev, COALESCE(SUM(v.has_exploit), 0) AS exploit,
                 COALESCE(SUM(CASE WHEN v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field = 'new') THEN 1 ELSE 0 END), 0) AS recent
-           FROM vulns v WHERE ${where}`,
+           FROM vulns v WHERE ${liveSql} AND (${where})`,
       )
       .get(since, ...params) as { total: number; kev: number; exploit: number; recent: number };
   const worst = (where: string, params: string[]) =>
-    (db.prepare(`SELECT v.cve_id, v.cvss_score, v.kev, v.description, v.vendors_json, v.products_json FROM vulns v WHERE ${where} ORDER BY ${sortSql.risk} LIMIT 1`).get(...params) as PlatformFigures["worst"] | undefined) ?? null;
+    (db.prepare(`SELECT v.cve_id, v.cvss_score, v.kev, v.description, v.vendors_json, v.products_json FROM vulns v WHERE ${liveSql} AND (${where}) ORDER BY ${sortSql.risk} LIMIT 1`).get(...params) as PlatformFigures["worst"] | undefined) ?? null;
   const out: PlatformFigures[] = platformChoices.map((c) => {
     const where = `v.id IN (SELECT vuln_id FROM vuln_platforms WHERE platform IN (${c.keys.map(() => "?").join(", ")}))`;
     return { id: c.id, label: c.label, blurb: c.blurb, ...figures(where, c.keys), worst: worst(where, c.keys) };
@@ -858,11 +858,14 @@ export function vulnChanges(db: DatabaseSync, cveId: string, limit = 50): VulnCh
 
 export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; kev: number; exploit: number; watch: number; changedSince: number; newSince: number } {
   const n = (sql: string, ...params: string[]) => (db.prepare(sql).get(...params) as { n: number }).n;
+  const row = db
+    .prepare(`SELECT COUNT(*) AS total, COALESCE(SUM(kev = 1), 0) AS kev, COALESCE(SUM(has_exploit = 1), 0) AS exploit, COALESCE(SUM(watch_hit = 1), 0) AS watch FROM vulns v WHERE ${liveSql}`)
+    .get() as { total: number; kev: number; exploit: number; watch: number };
+  const tallies = { total: row.total, kev: row.kev, exploit: row.exploit, watch: row.watch };
   return {
-    total: n(`SELECT COUNT(*) AS n FROM vulns v WHERE ${liveSql}`),
-    kev: n(`SELECT COUNT(*) AS n FROM vulns v WHERE kev = 1 AND ${liveSql}`),
-    exploit: n(`SELECT COUNT(DISTINCT cve_id) AS n FROM exploits WHERE cve_id IN (SELECT cve_id FROM vulns v WHERE ${liveSql})`),
-    watch: n(`SELECT COUNT(*) AS n FROM vulns v WHERE watch_hit = 1 AND ${liveSql}`),
+    // One pass over the covering index (migration 0054); has_exploit is kept equal to the exploits
+    // table by triggers (0045), so it counts the same CVEs the DISTINCT over exploits did.
+    ...tallies,
     // Any change observed in the window, first sightings included: the same set ?changed=1 lists and the Today tile counts.
     changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ?", sinceIso),
     newSince: n("SELECT COUNT(*) AS n FROM vuln_changes WHERE observed_at >= ? AND field = 'new'", sinceIso),

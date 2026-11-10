@@ -43,7 +43,7 @@ export function latestVersions(db: DatabaseSync): LatestVersion[] {
               d.version_label AS versionLabel, COALESCE(d.published_at, d.parsed_at) AS publishedAt, d.requirement_count AS requirementCount
          FROM documents d
          JOIN sources s ON s.id = d.source_id
-        WHERE s.kind IN ('requirement-set', 'setting-set')
+        WHERE s.kind IN ('requirement-set', 'setting-set', 'listing')
           AND d.id = (SELECT d2.id FROM documents d2
                        WHERE d2.source_id = d.source_id AND d2.document_key = d.document_key
                        ORDER BY COALESCE(d2.published_at, d2.parsed_at) DESC, d2.id DESC LIMIT 1)
@@ -74,6 +74,10 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
   if (ids.length === 0 || q.trim() === "") return [];
   const exact = q.trim().toLowerCase();
   const like = `%${exact}%`;
+  // A control id as people write it, as the catalogues key it: "AC-2(1)" and "AC-02" are ac-2.1
+  // and ac-2. Anything else searches as typed.
+  const id = /^([a-z]{2,3})-0*(\d+)(?:\s*\(\s*0*(\d+)\s*\)|\.0*(\d+))?$/.exec(exact);
+  const canonical = id ? `${id[1]}-${id[2]}${id[3] ?? id[4] ? `.${id[3] ?? id[4]}` : ""}` : exact;
   // "ac-2" typed whole puts AC-2 first, ahead of CTL-AC-20 and every AC-2(n) that merely contains it.
   return db
     .prepare(
@@ -83,11 +87,11 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
          JOIN documents d ON d.id = r.document_id
          JOIN sources s ON s.id = d.source_id
         WHERE r.document_id IN (${ids.map(() => "?").join(", ")})
-          AND (lower(r.ref) LIKE ? OR lower(r.title) LIKE ? OR lower(r.statement) LIKE ?)
-        ORDER BY (lower(r.ref) = ? OR lower(COALESCE(r.label, '')) = ?) DESC, (lower(r.ref) LIKE ?) DESC, (lower(r.title) LIKE ?) DESC, s.name, r.ref
+          AND (lower(r.ref) LIKE ? OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) LIKE ? OR lower(r.title) LIKE ? OR lower(r.statement) LIKE ?)
+        ORDER BY (lower(r.ref) = ? OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) = ?) DESC, (lower(r.ref) LIKE ?) DESC, (lower(r.title) LIKE ?) DESC, s.name, r.ref
         LIMIT ?`,
     )
-    .all(...ids, like, like, like, exact, exact, like, like, limit) as unknown as ControlHit[];
+    .all(...ids, like, canonical, like, like, like, exact, canonical, exact, like, like, limit) as unknown as ControlHit[];
 }
 
 interface StandardSource {

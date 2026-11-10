@@ -283,7 +283,7 @@ export async function queryOsv(http: HttpGet, ecosystem: string, packages: Inven
 
 /** A hit's reference: the CVE page here when the advisory id carries a CVE id this instance knows, else OSV's page. */
 function refFor(db: DatabaseSync, id: string): { id: string; href: string; note: string | null } {
-  const cve = /CVE-\d{4}-\d{4,7}/.exec(id)?.[0] ?? null;
+  const cve = /CVE-\d{4}-\d{4,}/.exec(id)?.[0] ?? null;
   const row = cve ? (db.prepare("SELECT cvss_score, kev FROM vulns WHERE cve_id = ?").get(cve) as { cvss_score: number | null; kev: number } | undefined) : undefined;
   if (cve && row) return { id: cve, href: `/vulnerabilities/${cve}`, note: `${row.cvss_score !== null ? `CVSS ${row.cvss_score.toFixed(1)}` : "unscored"}${row.kev ? " · KEV" : ""}` };
   return { id, href: `https://osv.dev/vulnerability/${encodeURIComponent(id)}`, note: null };

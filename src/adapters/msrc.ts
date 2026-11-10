@@ -129,7 +129,7 @@ export function parseMsrcRelease(text: string, release: MsrcRelease): { vulns: M
   const vulns: MsrcVulnDraft[] = [];
   for (const v of doc.Vulnerability) {
     const cveId = (v.CVE ?? "").trim().toUpperCase();
-    if (!/^CVE-\d{4}-\d{4,7}$/.test(cveId)) continue;
+    if (!/^CVE-\d{4}-\d{4,}$/.test(cveId)) continue;
     const notes = v.Notes ?? [];
     const tag = (type: number): string | null => notes.find((n) => n.Type === type)?.Title?.trim() || null;
     let severity: string | null = null;

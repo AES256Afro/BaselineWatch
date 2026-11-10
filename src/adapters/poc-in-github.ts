@@ -14,7 +14,7 @@ export function parsePocInGithub(text: string): ExploitDraft[] {
   const drafts: ExploitDraft[] = [];
   let cve: string | null = null;
   for (const line of text.split("\n")) {
-    const head = /^### (CVE-\d{4}-\d{4,7})/.exec(line);
+    const head = /^### (CVE-\d{4}-\d{4,})/.exec(line);
     if (head) {
       cve = head[1]!.toUpperCase();
       continue;

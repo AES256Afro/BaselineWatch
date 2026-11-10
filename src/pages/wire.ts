@@ -204,7 +204,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
         <ul class="kev-list">
           ${kevRows.map((k) => {
             const due = signals(k).dueDate;
-            const href = /^CVE-\d{4}-\d{4,7}$/.test(k.external_id) ? `/vulnerabilities/${k.external_id}` : (k.url ?? "/vulnerabilities?kev=1");
+            const href = /^CVE-\d{4}-\d{4,}$/.test(k.external_id) ? `/vulnerabilities/${k.external_id}` : (k.url ?? "/vulnerabilities?kev=1");
             return html`<li><a href="${href}">${k.title}</a><span class="when">${relativeTime(k.published_at ?? k.fetched_at, now)}${due ? html` · due ${due}` : ""}</span></li>`;
           })}
         </ul>

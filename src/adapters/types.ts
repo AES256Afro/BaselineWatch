@@ -167,7 +167,7 @@ export interface Adapter {
   parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument | Promise<ParsedDocument>;
 }
 
-export const cvePattern = /\bCVE-\d{4}-\d{4,7}\b/g;
+export const cvePattern = /\bCVE-\d{4}-\d{4,}\b/g;
 
 /** Every CVE id mentioned in a text, uppercased and unique, in order of first appearance. */
 export function cveIdsIn(text: string): string[] {

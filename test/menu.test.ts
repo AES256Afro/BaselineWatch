@@ -29,6 +29,7 @@ function seedStandard(): void {
     "INSERT INTO requirements (document_id, ref, family, title, statement) VALUES (?, ?, ?, ?, ?)",
   );
   requirement.run(Number(doc.lastInsertRowid), "ia-2", "IA", "Identification and Authentication (Organizational Users)", "Uniquely identify and authenticate organizational users and associate that unique identification with processes.");
+  requirement.run(Number(doc.lastInsertRowid), "ia-2.1", "IA", "Multi-factor Authentication to Privileged Accounts", "Implement multi-factor authentication for access to privileged accounts.");
   requirement.run(Number(doc.lastInsertRowid), "ac-11", "AC", "Device Lock", "Prevent further access to the system by initiating a device lock after a period of inactivity.");
 }
 
@@ -104,6 +105,10 @@ describe("the Controls page", () => {
     expect(byLabel).toContain("IA-2");
     expect(byLabel).toContain("Identification and Authentication");
     expect(byLabel).not.toContain("Device Lock");
+
+    // As people write a control id, not as the catalogue keys it.
+    expect(await (await fetch(`${app.base}/controls?q=IA-02`)).text()).toContain("Identification and Authentication");
+    for (const typed of ["ia-2(1)", "IA-2 (1)", "IA-02.1"]) expect(await (await fetch(`${app.base}/controls?q=${encodeURIComponent(typed)}`)).text(), typed).toContain("Multi-factor Authentication to Privileged Accounts");
 
     const byWords = await (await fetch(`${app.base}/controls?q=device%20lock`)).text();
     expect(byWords).toContain("AC-11");

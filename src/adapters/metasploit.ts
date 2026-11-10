@@ -27,7 +27,7 @@ export function parseMetasploit(text: string): ExploitDraft[] {
   const modules = JSON.parse(text) as Record<string, MsfModule>;
   const drafts: ExploitDraft[] = [];
   for (const m of Object.values(modules)) {
-    const cves = (m.references ?? []).filter((r) => /^CVE-\d{4}-\d{4,7}$/i.test(r)).map((r) => r.toUpperCase());
+    const cves = (m.references ?? []).filter((r) => /^CVE-\d{4}-\d{4,}$/i.test(r)).map((r) => r.toUpperCase());
     if (cves.length === 0 || !m.fullname) continue;
     const path = (m.path ?? "").replace(/^\//, "");
     for (const cve of cves) {

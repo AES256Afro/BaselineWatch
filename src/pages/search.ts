@@ -33,9 +33,12 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
   const versions = latestVersions(db).filter((v) => !withheldFrom({ restricted: v.restricted }, owner));
   const controls = searchControls(db, versions, query, 15);
   const like = `%${query.toLowerCase()}%`;
+  // Microsoft stores a KB by its number; "KB5127648" is how people type it.
+  const kb = /^kb\s*(\d{6,8})$/i.exec(query)?.[1];
+  const microsoftLike = kb ? `%"kb":"${kb}"%` : like;
   const microsoft = db
     .prepare("SELECT cve_id, title, release_id, severity, exploited FROM msrc_vulns WHERE lower(title) LIKE ? OR lower(cve_id) LIKE ? OR lower(fixes_json) LIKE ? ORDER BY released_at DESC, cve_id LIMIT 10")
-    .all(like, like, like) as { cve_id: string; title: string; release_id: string; severity: string | null; exploited: number }[];
+    .all(like, like, microsoftLike) as { cve_id: string; title: string; release_id: string; severity: string | null; exploited: number }[];
   const sources = db.prepare("SELECT id, name, group_name FROM sources WHERE enabled = 1 AND lower(name) LIKE ? ORDER BY name LIMIT 10").all(like) as { id: string; name: string; group_name: string }[];
   const total = cves.total + news.length + controls.length + microsoft.length + sources.length;
   const section = (heading: string, count: number | string, more: { href: string; label: string } | null, body: Html): Html =>

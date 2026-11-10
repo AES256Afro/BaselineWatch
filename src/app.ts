@@ -406,7 +406,8 @@ export function createApp(ctx: AppContext): Express {
   // that would hold the event loop does. The owner is not counted.
   const heavyReads = new RateWindow(90, 60_000);
   app.use((req, res, next) => {
-    if (res.locals.owner === true || (req.method !== "GET" && req.method !== "POST") || !/^\/(vulnerabilities|search|baselines)(\/|\.csv|$)/.test(req.path)) return next();
+    // Case-blind and HEAD-aware, as Express's own routing is: /SEARCH and a HEAD do the same work.
+    if (res.locals.owner === true || (req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST") || !/^\/(vulnerabilities|search|baselines)(\/|\.csv|$)/i.test(req.path)) return next();
     if (heavyReads.allow(throttleKey(req.ip), now().getTime())) return next();
     res.status(429).set("Retry-After", "60").type("text").send("Too many requests from this address for these pages; ninety a minute is the allowance. Try again in a minute.");
   });

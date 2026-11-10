@@ -29,6 +29,17 @@ describe("the audit of 10 November", () => {
     expect(isNotable(row, true, "2026-11-10T00:00:00Z")).toBe(false);
     expect(isNotable({ ...row, vuln_status: "Analyzed" }, true, "2026-11-10T00:00:00Z")).toBe(true);
     expect(notableInWindowSql).toContain(liveSql);
+
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { listVulns, vulnStats } = await import("../src/vulns.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    const add = db.prepare("INSERT INTO vulns (cve_id, last_modified_at, vuln_status, kev, has_exploit, first_seen_at, last_seen_at) VALUES (?, '2026-11-10', ?, 0, 1, '2026-11-10', '2026-11-10')");
+    add.run("CVE-2026-1000", "Analyzed");
+    add.run("CVE-2026-1001", "Rejected");
+    expect(listVulns(db, {}).rows.map((r) => r.cve_id)).toEqual(["CVE-2026-1000"]);
+    expect(listVulns(db, { rejected: true }).rows.map((r) => r.cve_id)).toEqual(["CVE-2026-1001"]);
+    expect(vulnStats(db, "2026-11-01")).toMatchObject({ total: 1, exploit: 1 });
   });
 
   it("counts each call in an MCP batch, and takes no long batch from a stranger", async () => {
@@ -38,6 +49,9 @@ describe("the audit of 10 November", () => {
       const post = (body: unknown) => fetch(`${app.base}/mcp`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" }, body: JSON.stringify(body) });
       const long = await post(Array.from({ length: 11 }, (_, i) => call(i)));
       expect(long.status).toBe(400);
+      // Twelve batches of ten spend the allowance of 120; one more single call is refused.
+      for (let i = 0; i < 12; i++) expect((await post(Array.from({ length: 10 }, (_, j) => call(j)))).status).not.toBe(429);
+      expect((await post(call(1))).status).toBe(429);
       expect(((await long.json()) as { error: { message: string } }).error.message).toContain("more than ten");
     } finally {
       await app.close();
@@ -76,6 +90,13 @@ describe("the audit of 10 November", () => {
       for (let i = 0; i < 91; i++) last = (await fetch(`${app.base}/search?q=x${i}`)).status;
       expect(last).toBe(429);
       expect((await fetch(`${app.base}/sources`)).status).toBe(200);
+      // The same work by another spelling or method is the same allowance.
+      expect((await fetch(`${app.base}/SEARCH?q=y`)).status).toBe(429);
+      expect((await fetch(`${app.base}/search?q=z`, { method: "HEAD" })).status).toBe(429);
+      // The owner is never counted.
+      const cookie = cookieFrom(await formPost(app.base, "/login", { password: "owner-pass", next: "/" }));
+      for (let i = 0; i < 91; i++) last = (await fetch(`${app.base}/search?q=o${i}`, { headers: { cookie } })).status;
+      expect(last).toBe(200);
     } finally {
       await app.close();
     }
