@@ -201,7 +201,8 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           domain</a> reads any domain by lookups alone — SPF, DMARC, DKIM, MTA-STS, DNSSEC, CAA,
           HSTS, the certificate — and quotes every record beside its verdict.
           <a href="/scan/network">The server's network</a> is the owner's: the LAN resolver tested with
-          canary names from this server, and once a day what the internet sees of the public
+          canary names (real ad, tracker and malware domains taken from public blocklists, which a
+          filtering resolver should refuse) from this server, and once a day what the internet sees of the public
           address and what the router gives away. <a href="/scan/history">History</a> keeps every
           run. <a href="/scan/devices">A device</a> reads what a computer runs from a script's
           report you paste — the Windows build, the browsers, the packages — and says which CVEs
