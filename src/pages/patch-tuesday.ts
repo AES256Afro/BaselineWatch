@@ -36,11 +36,22 @@ interface KbSummary extends MsrcFix {
 /** The release's updates, one line per KB (or per other fix), with what each closes. */
 function byUpdate(rows: MsrcVuln[]): KbSummary[] {
   const out = new Map<string, KbSummary>();
+  // A KB is listed once per product it ships to (24H2, 25H2, 26H2 each name KB5127648), so a CVE
+  // is counted once per KB, not once per entry: 3,025 read where 1,009 CVEs were meant (B19).
+  const counted = new Map<string, Set<string>>();
   for (const row of rows) {
     for (const fix of row.fixes) {
       const key = fix.kb ?? fix.url ?? fix.label ?? "";
       if (!key) continue;
       const s = out.get(key) ?? { ...fix, products: [...fix.products], cves: 0, exploited: 0, critical: 0 };
+      const seen = counted.get(key) ?? new Set<string>();
+      counted.set(key, seen);
+      if (seen.has(row.cve_id)) {
+        for (const p of fix.products) if (!s.products.includes(p)) s.products.push(p);
+        out.set(key, s);
+        continue;
+      }
+      seen.add(row.cve_id);
       s.cves += 1;
       if (row.exploited) s.exploited += 1;
       if (row.severity === "Critical") s.critical += 1;

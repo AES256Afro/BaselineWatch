@@ -297,6 +297,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
           ${ssvc.exploitation ? html`<span class="chip ${ssvc.exploitation === "active" ? "kev" : ""}">SSVC exploitation: ${ssvc.exploitation}</span>` : ""}
           <span class="chip">${row.vuln_status ?? "status unknown"}</span>
         </div>
+        ${row.vuln_status === "KEV only" ? html`<p class="notice warn">CISA lists this CVE as exploited in the wild, but NVD's record of it is not loaded here yet, so the scores, products and history below are empty rather than unknown to NVD. <a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" ${newTab}>Read it at NVD</a>.</p>` : ""}
       </div>
       <div class="links">${isCve ? html`<a href="https://nvd.nist.gov/vuln/detail/${row.cve_id}" ${newTab}>NVD</a> · <a href="https://www.cve.org/CVERecord?id=${row.cve_id}" ${newTab}>CVE.org</a>` : ""}${row.kev ? html` · <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${row.cve_id}" ${newTab}>CISA KEV</a>` : ""}${ghsa ? html`${isCve ? " · " : ""}<a href="https://github.com/advisories/${ghsa}" ${newTab}>GitHub advisory</a>` : ""}${osvId ? html` · <a href="https://osv.dev/vulnerability/${osvId}" ${newTab}>OSV</a>` : ""}</div>
     </div>

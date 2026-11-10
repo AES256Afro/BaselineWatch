@@ -240,7 +240,7 @@ ins { color: var(--ins); background: var(--ins-bg); text-decoration: underline; 
 .chip.mod { color: var(--warn); background: var(--warn-bg); border-color: transparent; }
 .why { border-left: 3px solid var(--acc); padding: 10px 16px; background: var(--card); border-radius: 0 8px 8px 0; margin: 0 0 16px; }
 .why small { display: block; font: 600 10.5px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--acc); margin-bottom: 4px; }
-.why p { margin: 0; font: 400 15px/1.55 var(--serif); max-width: 80ch; }
+.why p { margin: 0; font: 400 15px/1.55 var(--serif); max-width: 80ch; white-space: pre-line; }
 .why cite { display: block; font: 12px var(--sans); color: var(--mute); margin-top: 6px; font-style: normal; }
 .why.gen { border-left-style: dashed; border-left-color: var(--gen); }
 .why.gen small { color: var(--gen); }
@@ -1177,3 +1177,7 @@ dl.collide ul.plain > li { padding: 3px 0; line-height: 1.55; color: var(--ink);
 /* At phone width a masthead menu opens across the screen rather than from its summary, which may
    sit far right after the nav wraps and would push the page sideways (or off the left edge). */
 @media (max-width: 560px) { .mast .menu, .mast .menu.wide, .mast .menu.right { position: fixed; left: 12px; right: 12px; min-width: 0; top: auto; margin-top: 8px; max-height: 70vh; overflow-y: auto; } }
+
+/* The Atlas charts are drawn 1000 units wide; at phone width they scroll sideways in their own box
+   rather than shrink their labels to 4 px and their dots to 8 px targets. */
+@media (max-width: 560px) { .atlas-scroll { overflow-x: auto; } .atlas-scroll .atlas-svg { min-width: 720px; } }

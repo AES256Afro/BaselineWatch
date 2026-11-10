@@ -30,7 +30,7 @@ function timelineSvg(db: DatabaseSync, from: Date, to: Date): Html {
   const x = (iso: string) => labelW + ((new Date(iso).getTime() - from.getTime()) / span) * (W - labelW - 20);
   const quarters: Date[] = [];
   for (let d = new Date(Date.UTC(from.getUTCFullYear(), Math.floor(from.getUTCMonth() / 3) * 3 + 3, 1)); d < to; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 1))) quarters.push(d);
-  return html`<svg class="atlas-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Release timeline per standard">
+  return html`<div class="atlas-scroll" tabindex="0" role="region" aria-label="Release timeline, scrolls sideways on a narrow screen"><svg class="atlas-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Release timeline per standard">
     ${quarters.map((q) => html`<line class="grid" x1="${x(q.toISOString()).toFixed(1)}" y1="${top - 8}" x2="${x(q.toISOString()).toFixed(1)}" y2="${H - 24}"></line><text class="axis" x="${x(q.toISOString()).toFixed(1)}" y="${H - 8}" text-anchor="middle">${quarterLabel(q)}</text>`)}
     ${rows.map((row, i) => {
       const y = top + i * rowH + rowH / 2;
@@ -44,7 +44,7 @@ function timelineSvg(db: DatabaseSync, from: Date, to: Date): Html {
         })}
       </g>`;
     })}
-  </svg>`;
+  </svg></div>`;
 }
 
 /**
@@ -63,7 +63,7 @@ function heatmapSvg(db: DatabaseSync): Html {
   const W = labelW + map.families.length * cell + 10;
   const H = 24 + map.rows.length * cell + 6;
   const level = (n: number) => (n === 0 ? 0 : map.max <= 1 ? 4 : Math.min(4, 1 + Math.floor((n / map.max) * 3.99)));
-  return html`<svg class="atlas-svg heat" viewBox="0 0 ${W} ${H}" role="img" aria-label="Changed controls per family per release">
+  return html`<div class="atlas-scroll" tabindex="0" role="region" aria-label="Changes by family, scrolls sideways on a narrow screen"><svg class="atlas-svg heat" viewBox="0 0 ${W} ${H}" role="img" aria-label="Changed controls per family per release">
     ${map.families.map((f, i) => html`<a href="${familyControls(latest.documentId, f)}"><title>${f}: every control in the family, ${latest.version ?? "latest version"}</title><text class="axis" x="${labelW + i * cell + cell / 2}" y="16" text-anchor="middle">${f}</text></a>`)}
     ${map.rows.map((r, j) => {
       const y = 24 + j * cell;
@@ -76,7 +76,7 @@ function heatmapSvg(db: DatabaseSync): Html {
         })}
       </g>`;
     })}
-  </svg>`;
+  </svg></div>`;
 }
 
 export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; look: LookState }): string {
