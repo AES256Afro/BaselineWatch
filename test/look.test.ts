@@ -47,8 +47,8 @@ describe("the look and the scheme", () => {
     expect(text).not.toContain('q="x"');
   });
 
-  it("default to the console and the device's scheme, from BW_LOOK and BW_SCHEME, and refuse other words", () => {
-    expect(loadConfig({})).toMatchObject({ look: "console", scheme: "system" });
+  it("default to the paper look and the device's scheme, from BW_LOOK and BW_SCHEME, and refuse other words", () => {
+    expect(loadConfig({})).toMatchObject({ look: "register", scheme: "system" });
     expect(loadConfig({ BW_LOOK: "register", BW_SCHEME: " Dark " })).toMatchObject({ look: "register", scheme: "dark" });
     expect(() => loadConfig({ BW_LOOK: "neon" })).toThrow(/BW_LOOK must be one of register, console/);
     expect(() => loadConfig({ BW_SCHEME: "auto" })).toThrow(/BW_SCHEME must be one of system, light, dark/);
@@ -69,7 +69,7 @@ describe("the switch on the site", () => {
 
   it("draws every page in the instance's defaults until a browser chooses", async () => {
     const text = await (await fetch(`${app.base}/today`)).text();
-    expect(text).toContain('<html lang="en" data-look="console">');
+    expect(text).toContain('<html lang="en" data-look="register">');
     expect(text).not.toContain("data-scheme");
     expect(text).toContain('<meta name="color-scheme" content="light dark">');
     // The switch left the masthead for the Desk's Appearance page (M17); no page but that one carries it.
@@ -80,7 +80,7 @@ describe("the switch on the site", () => {
     expect(appearance).toContain('value="/appearance"');
     const missing = await fetch(`${app.base}/nope`);
     expect(missing.status).toBe(404);
-    expect(await missing.text()).toContain('<html lang="en" data-look="console">');
+    expect(await missing.text()).toContain('<html lang="en" data-look="register">');
   });
 
   it("keeps a choice in two cookies and comes back to the page it was made on", async () => {
@@ -88,7 +88,7 @@ describe("the switch on the site", () => {
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("/wire?kind=kev");
     expect(response.headers.getSetCookie()).toEqual([
-      "bw_look=console; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax",
+      "bw_look=register; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax",
       "bw_scheme=dark; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax",
     ]);
     const page = await (await fetch(`${app.base}/wire`, { headers: { cookie: "bw_look=console; bw_scheme=dark" } })).text();
@@ -96,6 +96,7 @@ describe("the switch on the site", () => {
     expect(page).toContain('<meta name="color-scheme" content="dark">');
     const chooser = await (await fetch(`${app.base}/appearance`, { headers: { cookie: "bw_look=console; bw_scheme=dark" } })).text();
     expect(chooser).toContain('name="scheme" value="dark" aria-pressed="true"');
+    expect(chooser).toContain("<b>Paper</b> (the default here)");
     // Changing the look keeps the scheme already chosen, and the other way round.
     const next = await formPost(app.base, "/look", { look: "register", back: "/" }, "bw_look=console; bw_scheme=dark");
     expect(next.headers.getSetCookie().map((c) => c.split(";")[0])).toEqual(["bw_look=register", "bw_scheme=dark"]);

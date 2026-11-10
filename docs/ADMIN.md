@@ -293,10 +293,11 @@ their steps along with any carried drops of them. A form that sends every kept i
 
 ## Looks
 
-Pages come in two looks, each in light and dark: **console**, the dense dashboard with panels,
-charts and large figures, and **register**, the paper look with a serif masthead. `BW_LOOK` and
-`BW_SCHEME` set the instance's defaults (`console` and `system`, where `system` follows the
-device's own light or dark setting). The switch in the masthead lets each browser choose for
+Pages come in two looks, each in light and dark: **register**, the paper look with a serif
+masthead and the default since 2026-11-10 (the mockups under `docs/mockups/2026-11-10` are drawn in
+it), and **console**, the dense dashboard with panels, charts and large figures. `BW_LOOK` and
+`BW_SCHEME` set the instance's defaults (`register` and `system`, where `system` follows the
+device's own light or dark setting). The switch on the Appearance page lets each browser choose for
 itself: two cookies, `bw_look` and `bw_scheme`, a year long, holding one of a few fixed words
 and nothing else. No script is involved; the stylesheet reads `data-look` and `data-scheme` on
 the page, so the content security policy stays as strict as before.

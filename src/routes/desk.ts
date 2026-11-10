@@ -52,7 +52,7 @@ export function mountDesk(r: RouteContext): void {
   const { app, config, db, now, ctx, lookOf, who, requireOwner, secureCookies, brandMarks } = r;
   app.get("/appearance", (req, res) => {
     const state = authState(req, config, now().getTime());
-    res.type("html").send(renderAppearance({ owner: state.owner, open: state.open, look: lookOf(req) }));
+    res.type("html").send(renderAppearance({ owner: state.owner, open: state.open, look: lookOf(req), defaultLook: config.look }));
   });
 
   // The watchlist says what the owner runs, which is exactly what a visitor should not learn: the

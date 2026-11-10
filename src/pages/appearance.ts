@@ -1,5 +1,5 @@
 import { html } from "../html.ts";
-import { lookLabels, lookSwitch, looks, schemeLabels, type LookState } from "../look.ts";
+import { lookLabels, lookSwitch, looks, schemeLabels, type Look, type LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -8,8 +8,8 @@ import { page } from "./layout.ts";
  * The controls are the same two forms the masthead carried, so the cookies and the POST are
  * unchanged; what is new is the room to say what each look is for.
  */
-export function renderAppearance(options: { owner: boolean; open: boolean; look: LookState }): string {
-  const { look } = options;
+export function renderAppearance(options: { owner: boolean; open: boolean; look: LookState; defaultLook?: Look }): string {
+  const { look, defaultLook } = options;
   const content = html`
     <h1>Appearance</h1>
     <p class="lede">
@@ -29,7 +29,7 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
       <section class="box" id="look">
         <h2>Look <span class="count">${lookLabels[look.look].label}</span></h2>
         <p>
-          The same pages, drawn to different habits. ${looks.map((l, i) => html`${i > 0 ? " " : ""}<b>${lookLabels[l].label}</b> — ${lookLabels[l].title}.`)}
+          The same pages, drawn to different habits. ${looks.map((l, i) => html`${i > 0 ? " " : ""}<b>${lookLabels[l].label}</b>${l === defaultLook ? " (the default here)" : ""} — ${lookLabels[l].title}.`)}
         </p>
       </section>
       <section class="box wide" id="choose">
@@ -53,5 +53,6 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
       </section>
     </div>`;
 
-  return page({ title: "Appearance", active: "appearance", content, meta: html`${lookLabels[look.look].label} · ${schemeLabels[look.scheme].label}`, ...options });
+  const { defaultLook: _default, ...pageOptions } = options;
+  return page({ title: "Appearance", active: "appearance", content, meta: html`${lookLabels[look.look].label} · ${schemeLabels[look.scheme].label}`, ...pageOptions });
 }

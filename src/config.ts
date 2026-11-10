@@ -162,7 +162,7 @@ export function loadConfig(env: Env = process.env): Config {
     llmModel: text(env, "BW_LLM_MODEL", "llama3.2:3b"),
     digest: choice(env, "BW_DIGEST", ["daily", "weekly", "off"] as const, "daily"),
     digestHour: hour(env, "BW_DIGEST_HOUR", 7),
-    look: choice(env, "BW_LOOK", looks, "console"),
+    look: choice(env, "BW_LOOK", looks, "register"),
     scheme: choice(env, "BW_SCHEME", schemes, "system"),
     probeOrigin: origin(env, "BW_PROBE_ORIGIN"),
   };
