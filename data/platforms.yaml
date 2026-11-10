@@ -406,7 +406,7 @@ platforms:
           - DISA Google Android 17 STIG (verify it has been published)
           - DISA Samsung Android 17 with Knox STIG (verify)
           - CIS Google Android Benchmark
-        documents: { stig: "stig:google-android-17-cobo" }
+        documents: { stig: "stig:google-android-17" }
         notes:
           - A Galaxy still waiting for One UI 9 is on Android 16 with the current security patch level; test the patch level, not the major version. Knox 3.14 on Samsung devices.
         sources:
@@ -422,7 +422,7 @@ platforms:
           - DISA Google Android 16 STIG (COBO V1R3 of 2026-05-13, COPE V1R2 of 2026-04-01)
           - DISA Samsung Android 16 with Knox 3.x STIG (COPE V1R2 of 2026-04-01)
           - CIS Google Android Benchmark v1.6.0 (one benchmark for every version)
-        documents: { stig: "stig:google-android-16-cobo" }
+        documents: { stig: "stig:google-android-16" }
         notes:
           - Knox 3.12 and 3.13 on Samsung devices.
         sources:
@@ -436,7 +436,7 @@ platforms:
         baselines:
           - DISA Google Android 15 STIG
           - DISA Samsung Android 15 with Knox 3.x STIG (COPE, COBO and a BYOAD variant)
-        documents: { stig: "stig:google-android-15-cobo" }
+        documents: { stig: "stig:google-android-15" }
         notes:
           - AOSP 2024-09-03, Pixel 2024-10-15. Knox 3.11 on Samsung devices.
         sources:
@@ -450,7 +450,7 @@ platforms:
         baselines:
           - DISA Google Android 14 STIG
           - DISA Samsung Android 14 with Knox STIG
-        documents: { stig: "stig:google-android-14-cobo" }
+        documents: { stig: "stig:google-android-14" }
         notes: []
         sources:
           - { title: "Android Security Bulletins", url: "https://source.android.com/docs/security/bulletin" }
