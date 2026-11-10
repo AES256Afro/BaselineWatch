@@ -41,8 +41,25 @@ if (!config.adminPassword) {
 }
 
 const app = createApp({ config, db, migrations: migration.known, startedAt: Date.now() });
-const server = app.listen(config.port, config.host, () => {
+// Express 5 hands a listen error to this callback rather than throwing it; unread, a port that
+// is taken was reported as "listening" and the process then exited 0 with nothing served.
+const server = app.listen(config.port, config.host, (error?: Error) => {
+  if (error) {
+    console.error(`[server] could not listen on ${config.host}:${config.port}: ${error.message}`);
+    process.exit(1);
+  }
   console.log(`${productName} ${productVersion} listening on http://${config.host}:${config.port} (data: ${path.resolve(config.dataDir)})`);
+});
+
+// The last line of defence: a fault that escapes every handler is logged with its stack before
+// the process goes, so the container's restart is not the only trace it leaves. A rejection
+// nobody awaited is logged and the process stays up; the scheduler retries on its next tick.
+process.on("uncaughtException", (error) => {
+  console.error("[server] uncaught exception, exiting:", error);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[server] unhandled rejection:", reason);
 });
 
 let scheduler: Scheduler | null = null;

@@ -54,7 +54,9 @@ const entities: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"'
 
 /** The first `<title>` in the document, which is the channel's or the feed's before any item's. */
 export function feedTitle(xml: string): string | null {
-  const m = /<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i.exec(xml);
+  // The channel's title is near the top; reading only the head keeps a document of "<title"s
+  // with no close from costing a rescan to the end for each one.
+  const m = /<title(?:\s[^<>]{0,500})?>([\s\S]{0,2000}?)<\/title>/i.exec(xml.slice(0, 65536));
   if (!m) return null;
   const text = m[1]!
     .replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, "$1")

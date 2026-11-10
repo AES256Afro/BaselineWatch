@@ -107,8 +107,12 @@ export async function send(transport: Transport | null, n: Notification, http: H
   }
 }
 
-/** Sends and records. The alerts table is the audit trail the Today view and the Sources page show. */
-export async function notify(db: DatabaseSync, transport: Transport | null, n: Notification, http: HttpGet = httpGet, now: () => Date = () => new Date()): Promise<void> {
+/**
+ * Sends and records. The alerts table is the audit trail the Today view and the Sources page show.
+ * Returns what happened, so a caller that marks something "alerted" can tell a failed send from a
+ * delivered one (or from no transport at all, where the log is the delivery).
+ */
+export async function notify(db: DatabaseSync, transport: Transport | null, n: Notification, http: HttpGet = httpGet, now: () => Date = () => new Date()): Promise<string> {
   const result = await send(transport, n, http);
   db.prepare("INSERT INTO alerts (kind, title, body, url, sent_at, status, error) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
     n.kind,
@@ -119,6 +123,7 @@ export async function notify(db: DatabaseSync, transport: Transport | null, n: N
     result.status,
     result.error,
   );
+  return result.status;
 }
 
 export interface AlertRow {

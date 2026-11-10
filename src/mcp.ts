@@ -245,7 +245,7 @@ export const maxMcpRequestBytes = 256 * 1024;
  * closes. The SDK's types leave `| undefined` off their optional members, which this project's
  * `exactOptionalPropertyTypes` insists on, so the transport is handed over through one cast here.
  */
-export async function handleMcpRequest(db: DatabaseSync, baseUrl: string, req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleMcpRequest(db: DatabaseSync, baseUrl: string, req: IncomingMessage, res: ServerResponse, parsedBody?: unknown): Promise<void> {
   const server = buildMcpServer(db, baseUrl);
   const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true, maxRequestBodySize: maxMcpRequestBytes });
   res.on("close", () => {
@@ -253,5 +253,5 @@ export async function handleMcpRequest(db: DatabaseSync, baseUrl: string, req: I
     void server.close();
   });
   await server.connect(transport as unknown as Parameters<McpServer["connect"]>[0]);
-  await transport.handleRequest(req, res);
+  await transport.handleRequest(req, res, parsedBody);
 }

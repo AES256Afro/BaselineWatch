@@ -69,7 +69,9 @@ const attr = (tag: string, name: string): string | null => {
 /** The feeds a page announces with `<link rel="alternate" type="application/rss+xml">` (or Atom), as absolute URLs. */
 export function alternateFeeds(page: string, base: string): string[] {
   const out: string[] = [];
-  for (const tag of page.match(/<link\b[^>]*>/gi) ?? []) {
+  // Bounded: an unbounded [^>]* rescans to the end of the page from every "<link" with no ">",
+  // which a failing feed's 5 MB error page turns into minutes with the event loop held.
+  for (const tag of page.match(/<link\b[^<>]{0,2000}>/gi) ?? []) {
     const rel = (attr(tag, "rel") ?? "").toLowerCase().split(/\s+/);
     const type = (attr(tag, "type") ?? "").toLowerCase();
     const href = attr(tag, "href");

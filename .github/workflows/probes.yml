@@ -35,11 +35,15 @@ jobs:
       - name: Feeds still answer XML
         id: feeds
         continue-on-error: true
+        # shell: bash runs with -o pipefail, so tee no longer hides the probe's own exit code.
+        shell: bash
         run: npm run check:feeds 2>&1 | tee feeds.txt
 
       - name: Cited pages still answer
         id: templates
         continue-on-error: true
+        # shell: bash runs with -o pipefail, so tee no longer hides the probe's own exit code.
+        shell: bash
         run: npm run check:templates 2>&1 | tee templates.txt
 
       # One issue, updated, rather than one a night: a publisher that rate-limits CI for a week

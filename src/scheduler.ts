@@ -187,8 +187,15 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     const stuck = sourcesToAlert(db, now());
     for (const source of stuck) {
       const at = now().toISOString();
+      // A send that failed is retried, but hourly: the scheduler ticks each minute, and every
+      // attempt is a row in the alert log.
+      const hourAgo = new Date(now().getTime() - 60 * 60 * 1000).toISOString();
+      const triedLately = db
+        .prepare("SELECT 1 FROM alerts WHERE kind = 'source' AND status = 'failed' AND title LIKE ? AND sent_at > ? LIMIT 1")
+        .get(`${source.name} has been failing for %`, hourAgo);
+      if (triedLately) continue;
       const repair = proposedRepairs(db, source.id)[0];
-      await notify(
+      const status = await notify(
         db,
         options.transport ?? null,
         {
@@ -202,6 +209,11 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
         options.http ?? httpGet,
         now,
       );
+      // A send that failed is tried again on the next tick; marked, the episode would pass unheard.
+      if (status === "failed") {
+        log(`[scheduler] ${source.id} has failed for ${source.hours} h; the alert could not be sent and will be tried again`);
+        continue;
+      }
       markAlerted(db, source.id, at);
       log(`[scheduler] ${source.id} has failed for ${source.hours} h (over ${alertAfterHours}); notified once for this episode`);
     }

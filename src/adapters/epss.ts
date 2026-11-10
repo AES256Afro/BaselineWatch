@@ -33,7 +33,7 @@ export const epssAdapter: Adapter = {
     const bytes = response.bytes;
     const isGzip = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
     // The scores file is tens of megabytes uncompressed; a cap keeps a hostile gzip from inflating without bound.
-    const text = new TextDecoder("utf-8").decode(isGzip ? gunzipSync(bytes, { maxOutputLength: 512 * 1024 * 1024 }) : bytes);
+    const text = new TextDecoder("utf-8").decode(isGzip ? gunzipSync(bytes, { maxOutputLength: 96 * 1024 * 1024 }) : bytes);
     const parsed = parseEpssCsv(text);
     if (parsed.scores.length === 0) throw new Error("EPSS file had no scores");
     const scoreDate = parsed.scoreDate?.slice(0, 10) ?? ctx.now().toISOString().slice(0, 10);

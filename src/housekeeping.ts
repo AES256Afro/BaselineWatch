@@ -308,7 +308,15 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   const runs = sweepRuns(db, now, retention);
   const blobs = sweepBlobs(db, dataDir, now, retention);
   optimize(db);
-  const vacuumed = maybeVacuum(db, retention);
+  // A VACUUM can fail (a full disk, a reader holding the file); the sweep before it did its work,
+  // so the pass is recorded either way. Thrown, it would skip the last-run mark below and the
+  // scheduler would start the whole weekly pass again on its next minute's tick, forever.
+  let vacuumed = false;
+  try {
+    vacuumed = maybeVacuum(db, retention);
+  } catch (error) {
+    log(`[housekeeping] the file was not rewritten: ${error instanceof Error ? error.message : String(error)}`);
+  }
   const result: HousekeepingResult = {
     ranAt: now.toISOString(),
     snapshotsDeleted,

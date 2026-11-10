@@ -259,8 +259,18 @@ export function registryFromCheck(check: string | null): RegistryValue[] {
 /** The Group Policy path a Windows STIG fix names: "Computer Configuration >> ... >> "Setting"". */
 export function gpoPathFromFix(fix: string | null): { path: string; setting: string } | null {
   if (!fix) return null;
-  const m = /((?:Computer|User) Configuration(?:\s*>>\s*[^>"\n]+?)+)\s*>>\s*"([^"]+)"/.exec(fix);
-  return m ? { path: m[1]!.replace(/\s*>>\s*/g, " >> ").trim(), setting: m[2]!.trim() } : null;
+  // Read without a nested quantifier: the regex this replaces, (?:\s*>>\s*[^>"\n]+?)+, backtracked
+  // exponentially on a fix with many ">>" and no closing quote, and a fix is stored text from a
+  // downloaded package that a public page reads.
+  for (const start of fix.matchAll(/(?:Computer|User) Configuration/g)) {
+    const rest = fix.slice(start.index);
+    const end = /\s*>>\s*"([^"]+)"/.exec(rest);
+    if (!end) return null;
+    const parts = rest.slice(0, end.index).split(/\s*>>\s*/);
+    if (parts.length < 2 || parts[0] !== start[0] || parts.some((p) => p === "" || /[>"\n]/.test(p))) continue;
+    return { path: parts.join(" >> ").trim(), setting: end[1]!.trim() };
+  }
+  return null;
 }
 
 const hiveShort: Record<string, string> = { HKEY_LOCAL_MACHINE: "hklm", HKEY_CURRENT_USER: "hkcu", HKLM: "hklm", HKCU: "hkcu" };

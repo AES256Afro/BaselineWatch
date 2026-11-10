@@ -248,7 +248,7 @@ describe("NVD and EPSS pulls", () => {
     expect(result.status).toBe("ok");
     expect(result.detail).toContain("3 CVEs updated");
     expect(result.detail).toContain("1 notable jumps");
-    expect(getVuln(db, "CVE-2015-0204")?.epss).toBe(0.99);
+    expect(getVuln(db, "CVE-2015-0204")?.epss).toBe(0.98685);
     expect(getVuln(db, "CVE-2021-44228")?.epss_date).toBe("2026-10-14");
     expect(vulnChanges(db, "CVE-2021-44228").find((c) => c.field === "epss")).toMatchObject({ before_text: "0.50", after_text: "1.00" });
     expect(epssAdapter.id).toBe("epss");

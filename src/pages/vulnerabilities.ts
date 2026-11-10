@@ -59,7 +59,7 @@ function platformCard(f: PlatformFigures): Html {
 
 function epssText(row: VulnRow): string {
   if (row.epss === null) return "—";
-  return `${(row.epss * 100).toFixed(row.epss < 0.01 ? 2 : 1)}%`;
+  return `${(row.epss * 100).toFixed(row.epss < 0.001 ? 3 : row.epss < 0.01 ? 2 : 1)}%`;
 }
 
 function query(filters: VulnFilters, overrides: Partial<VulnFilters>): string {

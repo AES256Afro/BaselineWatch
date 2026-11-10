@@ -30,7 +30,7 @@ export function appleLine(name: string): string | null {
 
 export function parseAppleReleases(html: string, limit = appleReleaseLimit): ParsedItem[] {
   const items: ParsedItem[] = [];
-  for (const row of html.matchAll(/<tr[^<>]*>([\s\S]*?)<\/tr>/g)) {
+  for (const row of html.matchAll(/<tr[^<>]{0,500}>([\s\S]{0,50000}?)<\/tr>/g)) {
     const cells = [...row[1]!.matchAll(/<td[^<>]*>([\s\S]*?)<\/td>/g)].map((c) => c[1]!);
     if (cells.length < 3) continue;
     const link = /<a\s[^<>]*href="(https:\/\/support\.apple\.com\/[^"]+)"[^<>]*>([\s\S]*?)<\/a>/.exec(cells[0]!);

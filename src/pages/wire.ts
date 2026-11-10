@@ -271,9 +271,9 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
             : ""}
         </div>
         ${items.length === 0
-          ? html`<div class="empty"><b>Nothing here yet.</b><p>${filters.q || filters.source || filters.kind || filters.unread ? "No items match these filters." : "The first fetch has not run. Sources are fetched on their schedule; the owner can fetch one now from the Sources page."}</p></div>`
+          ? html`<div class="empty"><b>Nothing here yet.</b><p>${filters.before ? "Nothing older than this." : filters.q || filters.source || filters.kind || filters.unread || filters.group || filters.topic ? "No items match these filters." : "The first fetch has not run. Sources are fetched on their schedule; the owner can fetch one now from the Sources page."}</p></div>`
           : html`<ul class="wire-list">${rows}</ul>`}
-        ${items.length === 50 && last ? html`<p class="more"><a href="${query(filters, { before: last.id })}">Older</a></p>` : ""}
+        ${fetched.length === 50 && last ? html`<p class="more"><a href="${query(filters, { before: last.id })}">Older</a></p>` : ""}
       </section>
       <aside class="side">
         ${kevBox}

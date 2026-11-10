@@ -186,8 +186,12 @@ export function matchWatchDetailed(
   return hits;
 }
 
-function round(n: number): number {
-  return Math.round(n * 100) / 100;
+/**
+ * EPSS kept to FIRST's own precision (five places). Rounding to two read 18,151 of 22,232 scores
+ * as 0.00%, tied the sort, and called a 0.4% CVE and a 0.004% one the same.
+ */
+function epssPlaces(n: number): number {
+  return Math.round(n * 100000) / 100000;
 }
 
 function cvssText(v: { version: string; score: number; vector: string | null } | null): string | null {
@@ -466,7 +470,7 @@ export function applyEpss(db: DatabaseSync, scores: Iterable<EpssScore>, scoreDa
     for (const s of scores) {
       const current = known.get(s.cveId);
       if (!current) continue;
-      update.run(round(s.epss), round(s.percentile), scoreDate, s.cveId);
+      update.run(epssPlaces(s.epss), epssPlaces(s.percentile), scoreDate, s.cveId);
       updated += 1;
       if (current.notable && current.epss !== null && Math.abs(current.epss - s.epss) >= 0.1) {
         change.run(s.cveId, observedAt, current.epss.toFixed(2), s.epss.toFixed(2));

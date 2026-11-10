@@ -11,7 +11,7 @@ import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
 import { type HttpGet } from "./http.ts";
 
-import { handleMcpRequest } from "./mcp.ts";
+import { handleMcpRequest, maxMcpRequestBytes } from "./mcp.ts";
 
 import { renderLogin } from "./pages/login.ts";
 import { renderNotFound } from "./pages/not-found.ts";
@@ -152,19 +152,29 @@ export function createApp(ctx: AppContext): Express {
   // of the same-origin guard, so it carries its own allowance: generous enough that an agent
   // working through a question never notices, narrow enough that it is not a free amplifier.
   const mcpCalls = new RateWindow(120, 60_000);
-  app.post("/mcp", async (req, res) => {
+  // Parsed here, not by the transport, so a batch can be counted before any of it runs.
+  app.post("/mcp", express.json({ limit: maxMcpRequestBytes }), async (req, res) => {
     const state = authState(req, config, now().getTime());
     if (!config.publicRead && !state.owner) {
       res.status(401).json({ jsonrpc: "2.0", error: { code: -32001, message: "Reading is not public on this instance; sign in first." }, id: null });
       return;
     }
-    if (!state.owner && !mcpCalls.allow(throttleKey(req.ip), now().getTime())) {
+    // A JSON-RPC batch is many calls in one POST; each one counts, and a stranger's batch is short.
+    const calls = Array.isArray(req.body) ? req.body.length : 1;
+    if (!state.owner && calls > 10) {
+      res.status(400).json({ jsonrpc: "2.0", error: { code: -32600, message: "A batch of more than ten calls is not taken from an anonymous caller." }, id: null });
+      return;
+    }
+    let allowed = true;
+    for (let i = 0; i < calls && allowed; i++) allowed = state.owner || mcpCalls.allow(throttleKey(req.ip), now().getTime());
+    if (!allowed) {
       res.status(429).set("Retry-After", "60").json({ jsonrpc: "2.0", error: { code: -32000, message: "Too many calls from this address; a hundred and twenty a minute is the allowance." }, id: null });
       return;
     }
     try {
-      await handleMcpRequest(db, config.baseUrl, req, res);
-    } catch {
+      await handleMcpRequest(db, config.baseUrl, req, res, req.body);
+    } catch (error) {
+      console.error("[mcp]", error instanceof Error ? error.message : String(error));
       if (!res.headersSent) res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error." }, id: null });
     }
   });

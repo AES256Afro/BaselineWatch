@@ -59,7 +59,8 @@ export function wireFeed(db: DatabaseSync, baseUrl: string, filters: WireFilters
   const words = [filters.group, filters.source, filters.kind, filters.q ? `“${filters.q}”` : null].filter((w) => w);
   return rssDocument(
     { title: `${productName} · News${words.length ? ` · ${words.join(" · ")}` : ""}`, link: `${baseUrl}/`, description: "News, advisories and CVEs that matter, as BaselineWatch reads them.", self },
-    items.map((i) => ({ title: i.title, link: i.url ?? `${baseUrl}/`, guid: `${i.source_id}:${i.external_id}`, date: i.published_at ?? i.fetched_at, description: publicSummary(i), category: i.source_name })),
+    // A release item's address is a path on this site; a feed reader has no page to resolve it against.
+    items.map((i) => ({ title: i.title, link: i.url ? (i.url.startsWith("/") ? `${baseUrl}${i.url}` : i.url) : `${baseUrl}/`, guid: `${i.source_id}:${i.external_id}`, date: i.published_at ?? i.fetched_at, description: publicSummary(i), category: i.source_name })),
   );
 }
 
