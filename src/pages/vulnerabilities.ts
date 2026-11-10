@@ -204,13 +204,21 @@ export function renderVulnList({ db, filters, owner, open, now, look }: VulnList
   return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${stats.total} CVEs · ${stats.kev} in KEV`, owner, open, look, feed, canonical: "/vulnerabilities", description: "Every CVE as NVD, CISA and FIRST describe it: CVSS, EPSS, KEV, public exploits, and the fix published for each." });
 }
 
+/**
+ * Public exploits, in a box of their own below the Fix panel: a reader looking for the patch is
+ * not handed the attack first. Each line links to the index that lists it, never to code.
+ */
+function exploitsBox(fix: Fix): Html {
+  return fix.exploits.length
+    ? html`<section class="box" id="exploits"><h2>Public exploits <span class="count">${fix.exploits.length}</span></h2>
+        <ul class="refs">${fix.exploits.slice(0, 20).map((e) => html`<li><a href="${e.url}" ${newTab}>${e.title}</a> <span class="small">${exploitSourceLabel[e.source_id] ?? e.source_id}${e.verified ? " · verified" : ""}${e.published_at ? html` · ${e.published_at.slice(0, 10)}` : ""}</span></li>`)}${fix.exploits.length > 20 ? html`<li class="small">and ${fix.exploits.length - 20} more</li>` : ""}</ul>
+        <p class="small">Each line links to the index that lists it, never to exploit code. Exploit-DB's "verified" and a Metasploit rank of good or better count as verified; a PoC-in-GitHub entry is a repository's claim.</p>
+</section>`
+    : html``;
+}
+
 /** The Fix panel: what has been published that fixes or mitigates the CVE, quoted and linked, or an honest empty. */
 function fixPanel(fix: Fix): Html {
-  const exploits = fix.exploits.length
-    ? html`<h3 class="small">Public exploits <span class="count">${fix.exploits.length}</span></h3>
-        <ul class="refs">${fix.exploits.slice(0, 20).map((e) => html`<li><a href="${e.url}" ${newTab}>${e.title}</a> <span class="small">${exploitSourceLabel[e.source_id] ?? e.source_id}${e.verified ? " · verified" : ""}${e.published_at ? html` · ${e.published_at.slice(0, 10)}` : ""}</span></li>`)}${fix.exploits.length > 20 ? html`<li class="small">and ${fix.exploits.length - 20} more</li>` : ""}</ul>
-        <p class="small">Each line links to the index that lists it, never to exploit code. Exploit-DB's "verified" and a Metasploit rank of good or better count as verified; a PoC-in-GitHub entry is a repository's claim.</p>`
-    : html``;
   const ms = fix.microsoft;
   const microsoft = ms?.fixes.length
     ? html`<h3 class="small">Microsoft's update${ms.severity ? html` · ${ms.severity}` : ""}${ms.exploited ? html` · exploited` : ""}${ms.disclosed ? html` · publicly disclosed` : ""}</h3>
@@ -218,12 +226,11 @@ function fixPanel(fix: Fix): Html {
         <p class="small">From the <a href="${releaseNoteUrl(ms.release_id)}" ${newTab}>${ms.release_id} release note</a> of Microsoft's Security Update Guide${ms.revised_at ? html`, revised ${ms.revised_at.slice(0, 10)}` : ""}${ms.exploitability ? html` · ${ms.exploitability}` : ""}.</p>`
     : html``;
   if (fix.empty) {
-    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p>${exploits}</section>`;
+    return html`<section class="box fix empty-fix"><h2>Fix</h2><p class="small">Nothing published yet: no patch, vendor advisory or mitigation reference on NVD, no vendor advisory in the News for this CVE, not in CISA's KEV, no fixed package version. BaselineWatch does not guess at one.</p></section>`;
   }
   return html`<section class="box fix">
     <h2>Fix</h2>
     ${microsoft}
-    ${exploits}
     ${fix.kev?.requiredAction
       ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
       : ""}
@@ -297,6 +304,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
       <section class="main">
         <p class="lede">${row.description ?? "No description."}</p>
         ${fixPanel(fix)}
+        ${exploitsBox(fix)}
         ${news.length
           ? html`<section class="box" id="news"><h2>In the news <span class="count">${news.length}</span></h2>
               <ul class="refs">${news.map((n) => html`<li>${n.url ? html`<a href="${n.url}" ${newTabIf(n.url)}>${n.title}</a>` : n.title} <span class="small"><a href="/?source=${n.source_id}">${n.source_name}</a>${n.published_at ? html` · ${n.published_at.slice(0, 10)}` : ""}</span></li>`)}</ul>
