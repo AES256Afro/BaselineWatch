@@ -1569,20 +1569,19 @@ The loop rule was met by none of the categories in this pass: each sweep of code
 found at least one medium, and most of those were in the week's own new code, caught before release.
 That is the rule working. The ledger is `docs/audit-2026-11-10.local.md`.
 
-### M23: The morning page (planned 2026-11-10)
+### M23: Today, version history and the monthly register (planned 2026-11-10)
 
 The mockups of 10 November (`docs/mockups/2026-11-10/`) and the features sweep, joined into one
-milestone, because together they are why a practitioner would open this site first each day. After
-M21; it shares M22.3 and M22.6 and closes them.
+milestone. After M21; it shares M22.3 and M22.6 and closes them.
 
-- **M23.1 Since your last visit.** Today's window defaults to the last visit (a date cookie, nothing
+- **M23.1 Window since last visit.** Today's window defaults to the last visit (a date cookie, nothing
   else), and `?since=` does the same for visitors and feeds with nothing stored (P7). A "data as of"
   strip on every page that turns amber when a source is late, with the owner's "silent until" and
   reason (mockup 1). *S.*
-- **M23.2 A control's life.** `/standards/:s/:ref` across every version, any two compared by URL, its
+- **M23.2 Control version history.** `/standards/:s/:ref` across every version, any two compared by URL, its
   own feed, a citation that names the snapshot hash; version addresses by label, never row id
   (mockup 3). *M.*
-- **M23.3 The month in the standards.** `/register/2026-11`, from change rows and the publishers'
+- **M23.3 Monthly standards changes.** `/register/2026-11`, from change rows and the publishers'
   words, no model (mockup 4). *S.*
 - **M23.4 Decisions reopened.** A release that changes a rule the owner has decided flags the
   decision, with before and after, and Today counts them (P1). *S.*
@@ -1605,7 +1604,7 @@ M21; it shares M22.3 and M22.6 and closes them.
 ### The order, and what the dates are worth
 
 ```
-M21 say only what is true ──► M22 easy to read ──► M23 the morning page ──► everything below, M19 above all
+M21 say only what is true ──► M22 easy to read ──► M23 Today and history ──► everything below, M19 above all
 
 M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
                   ├──► M15 Mine ──────► M16 evidence ───────┤
@@ -1621,7 +1620,7 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 | --- | --- | --- | --- |
 | M21 Say only what is true | first | 6 days; thin slice 1 day | Three fresh sweeps each of code, bugs and security empty on the released code. |
 | M22 Easy to read, quick to use | after M21 | 6 days; thin slice 1 day | The audit's ten visitor tasks finish without a stall, at phone width too. |
-| M23 The morning page | after M22 | 5 days; thin slice 1 day | The four mockups of 10 November live, and a week away fits on one screen. |
+| M23 Today, version history, monthly register | after M22 | 5 days; thin slice 1 day | The four mockups of 10 November live; a week of changes visible on one page. |
 | M13 The platform keeps itself | 2026-10-25 | 3 days | A dated restore, a bounded database, one release command. |
 | M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
 | M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |

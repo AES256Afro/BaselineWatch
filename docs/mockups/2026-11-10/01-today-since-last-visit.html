@@ -30,7 +30,7 @@
 .undo .card { display: flex; gap: 12px; align-items: center; box-shadow: 0 6px 24px rgb(0 0 0 / .12); }
 @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } .setup { grid-template-columns: 1fr; } }
 </style></head><body>
-<div class="note"><b>Mockup 1 of 4 · Today, since your last visit.</b> Tests M22.6 (the owner's morning) and M22.3's "data as of". Static: buttons go nowhere.</div>
+<div class="note"><b>Mockup 1 of 4 · Today, window = since last visit.</b> Covers M22.6 and the data-as-of strip (M22.3). Static: buttons go nowhere.</div>
 <header class="mast"><div class="in">
   <a class="name" href="#">BaselineWatch</a>
   <nav><a href="#">News</a><a href="#" aria-current="page">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities ▾</a><a href="#">Scan ▾</a><a href="#">Desk ▾</a></nav>
@@ -40,8 +40,8 @@
 <main class="wrap">
   <div class="top">
     <div>
-      <h1>Since your last visit</h1>
-      <p class="since">You were last here <b>Monday 09:12</b>, 47 hours ago. Five things need a fix you can apply; two are new to KEV.</p>
+      <h1>Since last visit: Mon 09:12 UTC</h1>
+      <p class="since">Window 47 h. 5 remedies to apply; 2 new KEV entries.</p>
     </div>
     <nav class="win" aria-label="Window"><a href="#" aria-current="page">Since Mon 09:12</a><a href="#">24 h</a><a href="#">7 days</a></nav>
   </div>
@@ -50,7 +50,7 @@
   <section class="card setup" aria-labelledby="setup-h">
     <div>
       <h2 id="setup-h">Finish setting up · 3 of 5</h2>
-      <p class="small" style="margin:4px 0 0">Until these are done, an empty Today means "not told", not "nothing touches you".</p>
+      <p class="small" style="margin:4px 0 0">Until these are set, an empty Today can mean missing data, not zero matches.</p>
       <ol>
         <li class="done"><span class="tick">✓</span><span class="t">A password for writes</span><span class="small">set</span></li>
         <li class="done"><span class="tick">✓</span><span class="t">The fleet: what you run</span><span class="small">4 releases</span></li>
@@ -104,14 +104,14 @@
 
     <aside class="grid" style="align-content:start">
       <section class="card" aria-labelledby="std-h">
-        <h2 id="std-h">The standards moved</h2>
+        <h2 id="std-h">Standards releases</h2>
         <div class="quiet">
           <div><a href="#">Windows 11 STIG V2R5</a><span class="small">14 rules · 2 CAT I</span></div>
           <div><a href="#">800-53 5.2.1 (draft)</a><span class="small">comment by 5 Dec</span></div>
         </div>
       </section>
       <section class="card" aria-labelledby="q-h">
-        <h2 id="q-h">Quiet, and why</h2>
+        <h2 id="q-h">Zero counts, with reasons</h2>
         <div class="quiet">
           <div><span>Nothing published, watching</span><span class="small">0</span></div>
           <div><span>Cleared by you since Mon</span><span class="small">6</span></div>

@@ -42,7 +42,7 @@ function setupBox(steps: SetupStep[]): Html {
   const done = steps.filter((s) => s.done).length;
   return html`<section class="box setup" aria-labelledby="setup-h">
     <h2 id="setup-h">Finish setting up <span class="count">${done} of ${steps.length}</span></h2>
-    <p class="small">Until these are done, a quiet Today may mean "not told", not "nothing touches you". Each line ticks itself from this instance's own state.</p>
+    <p class="small">Until these are set, an empty Today can mean missing data rather than zero matches. Each line is read from the instance's own state.</p>
     <ol class="setup-steps">${steps.map((s) => html`<li class="${s.done ? "done" : "todo"}"><span class="tick" aria-hidden="true">${s.done ? "✓" : "○"}</span><span>${s.done ? s.label : html`<a href="${s.href}">${s.label}</a>`}${s.optional ? html` <span class="small">(optional)</span>` : ""}</span><span class="small">${s.done ? "done" : "to do"}: ${s.state}</span></li>`)}</ol>
   </section>`;
 }
