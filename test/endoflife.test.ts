@@ -40,7 +40,7 @@ describe("a product's file", () => {
 describe("the fleet's releases", () => {
   it("map to endoflife.date's cycles, Windows to its two editions", () => {
     expect(eolCyclesFor("windows", "24H2")).toEqual([{ product: "windows", cycle: "11-24h2-w", edition: "Home and Pro" }, { product: "windows", cycle: "11-24h2-e", edition: "Enterprise and Education" }]);
-    expect(eolCyclesFor("windows", "10-22H2").map((c) => c.cycle)).toEqual(["10-22h2-w", "10-22h2-e"]);
+    expect(eolCyclesFor("windows", "10-22H2").map((c) => c.cycle)).toEqual(["10-22h2-w", "10-22h2-e", "10-22h2"]);
     expect(eolCyclesFor("macos", "27")).toEqual([{ product: "macos", cycle: "27", edition: null }]);
     expect(eolCyclesFor("linux", "rhel-9")).toEqual([{ product: "rhel", cycle: "9", edition: null }]);
     expect(eolCyclesFor("linux", "ubuntu-24.04")).toEqual([{ product: "ubuntu", cycle: "24.04", edition: null }]);

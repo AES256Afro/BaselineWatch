@@ -34,7 +34,11 @@ export function eolCyclesFor(platform: FleetPlatform, releaseId: string): { prod
     const win10 = /^10-(\d{2}H\d)$/i.exec(id);
     const win11 = /^(\d{2}H\d)$/i.exec(id);
     const base = win10 ? `10-${win10[1]!.toLowerCase()}` : win11 ? `11-${win11[1]!.toLowerCase()}` : null;
-    return base ? [{ product: "windows", cycle: `${base}-w`, edition: "Home and Pro" }, { product: "windows", cycle: `${base}-e`, edition: "Enterprise and Education" }] : [];
+    if (!base) return [];
+    // endoflife.date splits a Windows 11 release by edition (-w, -e); Windows 10 22H2 is one cycle,
+    // "10-22h2", so a Windows 10 release is asked for both forms and keeps whichever exists.
+    const split = [{ product: "windows", cycle: `${base}-w`, edition: "Home and Pro" }, { product: "windows", cycle: `${base}-e`, edition: "Enterprise and Education" }];
+    return win10 ? [...split, { product: "windows", cycle: base, edition: null }] : split;
   }
   if (platform === "macos" || platform === "ios" || platform === "ipados" || platform === "android") return /^\d+(\.\d+)?$/.test(id) ? [{ product: platform, cycle: id, edition: null }] : [];
   if (platform === "linux") {

@@ -84,7 +84,9 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
             : /Policy reject/.test(finding.text)
               ? "Take out the pct= tag (or set it to 100), so the reject policy covers all failing mail rather than a sample of it."
               : "Move the policy on, once the reports show nothing legitimate failing: none, then quarantine, then reject.",
-        lines: [`_dmarc.${domain}. IN TXT "v=DMARC1; p=none; rua=mailto:dmarc@${domain}; fo=1"`],
+        // The record to publish is the starting one only when there is none; otherwise it is the
+        // reader's own record with the one change the text names, never a step down from reject.
+        lines: dmarcLines(finding, domain),
         caution: "p=reject before the reports are clean refuses your own mail. The rua address receives a daily XML report from every large receiver, so point it somewhere a person or a parser will actually read.",
         source: rfc(7489, "Domain-based Message Authentication, Reporting and Conformance"),
       };
@@ -162,7 +164,14 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
     case "tls":
       return {
         kind: "setting",
-        text: "The certificate needs attention: renew it before it expires, and make sure the chain it serves includes the intermediate certificates, which is the usual cause of a chain a browser will not accept.",
+        // Chosen by what the check found: a protocol, an unreachable port and a certificate are different fixes.
+        text: /was negotiated/.test(finding.text)
+          ? "Turn on TLS 1.3 in the web server or the load balancer in front of it (nginx: ssl_protocols TLSv1.2 TLSv1.3; Apache: SSLProtocol -all +TLSv1.2 +TLSv1.3). Keep 1.2 for older clients; nothing older."
+          : /No TLS handshake/.test(finding.text)
+            ? "Nothing completed a TLS handshake on port 443. If the site should be served over HTTPS, check that the server listens on 443 and that a firewall or the DNS record does not point elsewhere."
+            : /does not name/.test(finding.text)
+              ? "Issue a certificate whose names (Subject Alternative Names) include this exact host, or a wildcard at its level, and serve it for this name."
+              : "The certificate needs attention: renew it before it expires, and make sure the chain it serves includes the intermediate certificates, which is the usual cause of a chain a browser will not accept.",
         lines: [],
         caution: "A certificate that validates in a browser can still fail elsewhere: browsers fill in a missing intermediate from their own cache, and a command-line client or another language's TLS stack will not.",
         source: { label: "Mozilla: server-side TLS configuration", url: "https://wiki.mozilla.org/Security/Server_Side_TLS" },
@@ -179,3 +188,15 @@ export const fixKindLabel: Record<DomainFix["kind"], string> = {
   file: "Serve this",
   setting: "Change this setting",
 };
+
+/** The DMARC line to publish for a finding: a starting record, the reader's record one step on, or nothing. */
+function dmarcLines(finding: { text: string; quoted: string[] }, domain: string): string[] {
+  if (/no DMARC/i.test(finding.text)) return [`_dmarc.${domain}. IN TXT "v=DMARC1; p=none; rua=mailto:dmarc@${domain}; fo=1"`];
+  const current = /^TXT "(.*)"$/.exec(finding.quoted[0] ?? "")?.[1];
+  if (!current) return [];
+  let next: string | null = null;
+  if (/Policy reject/.test(finding.text)) next = current.replace(/;\s*pct=\d+/i, "");
+  else if (/Policy none/.test(finding.text)) next = current.replace(/\bp=none\b/i, "p=quarantine");
+  else if (/Policy quarantine/.test(finding.text)) next = current.replace(/\bp=quarantine\b/i, "p=reject").replace(/;\s*pct=\d+/i, "");
+  return next && next !== current ? [`_dmarc.${domain}. IN TXT "${next}"`] : [];
+}

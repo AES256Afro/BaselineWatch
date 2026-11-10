@@ -164,8 +164,10 @@ export function kevFor(db: DatabaseSync, cveId: string): Fix["kev"] {
   const notes = (s.notes ?? "")
     .split(/\s*;\s*/)
     .flatMap((part) =>
-      [...part.matchAll(/https?:\/\/[^\s)<>"]+/gi)].map((m) => {
-        const url = m[0].replace(/[.,;:]+$/, "");
+      [...part.matchAll(/https?:\/\/[^\s<>"]+/gi)].map((m) => {
+        // A closing bracket is the address's own only when it opened one ("...-(cve-2020-14472)").
+        let url = m[0].replace(/[.,;:]+$/, "");
+        while (url.endsWith(")") && (url.match(/\(/g) ?? []).length < (url.match(/\)/g) ?? []).length) url = url.slice(0, -1).replace(/[.,;:]+$/, "");
         const labelled = /^([^():]{2,60}):\s*$/.exec(part.slice(0, m.index));
         return { url, label: labelled ? labelled[1]!.trim() : null };
       }),

@@ -187,13 +187,14 @@ describe("the audit of 10 November", () => {
     const { kevFor } = await import("../src/fix.ts");
     const db = openDatabase(":memory:");
     migrate(db);
-    const signals = { requiredAction: "Apply mitigations per BOD 26-04 (see URL in Notes).", notes: "https://vendor.example/advisory ; BOD 26-04: https://www.cisa.gov/bod-26-04 ; Reference CISA's ED 21-04 (https://www.cisa.gov/ed-21-04). https://nvd.nist.gov/vuln/detail/CVE-2026-3000" };
+    const signals = { requiredAction: "Apply mitigations per BOD 26-04 (see URL in Notes).", notes: "https://vendor.example/advisory ; BOD 26-04: https://www.cisa.gov/bod-26-04 ; Reference CISA's ED 21-04 (https://www.cisa.gov/ed-21-04). https://nvd.nist.gov/vuln/detail/CVE-2026-3000 ; https://vendor.example/advisory-(cve-2026-3000)" };
     db.prepare("INSERT INTO items (source_id, kind, external_id, title, published_at, fetched_at, signals_json) VALUES ('cisa-kev', 'kev', 'CVE-2026-3000', 'Vendor: flaw', '2026-11-01', '2026-11-01', ?)").run(JSON.stringify(signals));
     expect(kevFor(db, "CVE-2026-3000")?.notes).toEqual([
       { url: "https://vendor.example/advisory", label: null },
       { url: "https://www.cisa.gov/bod-26-04", label: "BOD 26-04" },
       { url: "https://www.cisa.gov/ed-21-04", label: null },
       { url: "https://nvd.nist.gov/vuln/detail/CVE-2026-3000", label: null },
+      { url: "https://vendor.example/advisory-(cve-2026-3000)", label: null },
     ]);
   });
 
@@ -207,5 +208,16 @@ describe("the audit of 10 November", () => {
     add.run("CVE-2026-4001", JSON.stringify({ vendor: "Apple", product: "macOS" }));
     expect(kevForPlatform(db, "mobile").entries.map((e) => e.cve)).toEqual(["CVE-2026-4000"]);
     expect(kevForPlatform(db, "macos").total).toBe(2);
+  });
+
+  it("gives domain advice that fits the finding: no step down from reject, no certificate advice for a protocol", async () => {
+    const { fixFor } = await import("../src/domainfix.ts");
+    const { judgeDmarc } = await import("../src/domaincheck.ts");
+    const reject = fixFor(judgeDmarc(["v=DMARC1; p=reject; pct=50; rua=mailto:d@example.com"], true), "example.com");
+    expect(reject?.lines).toEqual(['_dmarc.example.com. IN TXT "v=DMARC1; p=reject; rua=mailto:d@example.com"']);
+    const none = fixFor(judgeDmarc(["v=DMARC1; p=none; rua=mailto:d@example.com"], true), "example.com");
+    expect(none?.lines).toEqual(['_dmarc.example.com. IN TXT "v=DMARC1; p=quarantine; rua=mailto:d@example.com"']);
+    const tls = fixFor({ id: "tls", group: "web", title: "TLS", state: "warn", text: "TLSv1.2 was negotiated; TLS 1.3 is the current standard.", quoted: [] }, "example.com");
+    expect(tls?.text).toContain("Turn on TLS 1.3");
   });
 });
