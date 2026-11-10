@@ -401,6 +401,15 @@ export function createApp(ctx: AppContext): Express {
     res.status(403).type("html").send(renderLogin({ next: sent ? from : safeBack(req.originalUrl, "/"), open: false, error: sent ? "Only the owner can do that. If you were signed in, the sign-in has lapsed: sign in again and you will be taken back. What you sent was not saved." : "That page is the owner's. Sign in to see it.", look: lookOf(req) }));
   };
   const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookOf(req) });
+  // The pages a stranger can make the database work hardest on (the table under any filter, its CSV,
+  // search, the baseline builder) carry an allowance per address: a reader never meets it, a loop
+  // that would hold the event loop does. The owner is not counted.
+  const heavyReads = new RateWindow(90, 60_000);
+  app.use((req, res, next) => {
+    if (res.locals.owner === true || (req.method !== "GET" && req.method !== "POST") || !/^\/(vulnerabilities|search|baselines)(\/|\.csv|$)/.test(req.path)) return next();
+    if (heavyReads.allow(throttleKey(req.ip), now().getTime())) return next();
+    res.status(429).set("Retry-After", "60").type("text").send("Too many requests from this address for these pages; ninety a minute is the allowance. Try again in a minute.");
+  });
   const routeContext: RouteContext = { app, config, db, now, ctx, lookOf, who, requireOwner, secureCookies, brandMarks };
   mountNews(routeContext);
   mountReading(routeContext);

@@ -56,7 +56,7 @@ export class HttpError extends Error {
 }
 
 /** A response's headers as a plain object, names lowercased. */
-export function headersOf(response: Response): Record<string, string> {
+function headersOf(response: Response): Record<string, string> {
   const out: Record<string, string> = {};
   response.headers.forEach((value, name) => {
     out[name.toLowerCase()] = value;

@@ -1,6 +1,7 @@
 
 
 
+import { cveIdPattern } from "../vulns.ts";
 import { renderPatchTuesday } from "../pages/patch-tuesday.ts";
 import { renderVulnDetail, renderVulnNotHeld, renderVulnList } from "../pages/vulnerabilities.ts";
 
@@ -37,7 +38,7 @@ export function mountVulnerabilities(r: RouteContext): void {
   });
   app.get("/vulnerabilities/:cve", (req, res, next) => {
     const cveId = String(req.params.cve).toUpperCase();
-    if (!/^CVE-\d{4}-\d{4,7}$/.test(cveId)) return next();
+    if (!cveIdPattern.test(cveId)) return next();
     const html = renderVulnDetail({ db, cveId, ...who(req, res), now: now() });
     if (html) return void res.type("html").send(html);
     // A well-formed id with no row is a question with an answer elsewhere, not a missing page.

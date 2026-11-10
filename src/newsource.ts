@@ -46,7 +46,7 @@ export interface FeedPreview {
 export type FeedProbe = { ok: true; feed: FeedPreview } | { ok: false; error: string };
 
 /** Atom by its root element; RSS 2.0 and RSS 1.0 are both read as `rss`. */
-export function feedFormat(xml: string): "rss" | "atom" {
+function feedFormat(xml: string): "rss" | "atom" {
   return /<feed[\s>]/.test(xml.slice(0, 4000)) ? "atom" : "rss";
 }
 

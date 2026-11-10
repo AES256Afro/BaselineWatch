@@ -69,12 +69,20 @@ const obj = (v: unknown): Json => (v !== null && typeof v === "object" && !Array
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => str(x)).filter((x): x is string => x !== null) : []);
 
-/** The owner's mitigation entries; a file that will not read gives none. */
+/** The owner's mitigation entries; a file that will not read gives none, and a file that will not parse says why in the log. */
 export function loadMitigations(file: string = mitigationsFile): MitigationEntry[] {
+  let text: string;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    return [];
+  }
   let doc: unknown;
   try {
-    doc = parseYaml(readFileSync(file, "utf8"));
-  } catch {
+    doc = parseYaml(text);
+  } catch (error) {
+    // One typo would otherwise make every mitigation vanish from every CVE page without a word.
+    console.error(`[fix] ${path.basename(file)} does not parse, so no mitigation is shown: ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
   if (!Array.isArray(doc)) return [];

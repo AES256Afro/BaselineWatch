@@ -6,7 +6,7 @@
  * here: OSV compares those, by the distribution's own rules, when asked.
  */
 
-export function versionParts(value: string): number[] {
+function versionParts(value: string): number[] {
   return (value.trim().match(/^\d+(\.\d+)*/)?.[0] ?? "").split(".").filter((p) => p !== "").map((p) => Number(p));
 }
 

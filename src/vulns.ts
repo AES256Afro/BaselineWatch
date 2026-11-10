@@ -845,6 +845,9 @@ export const notableSql = "(COALESCE(v.vuln_status, '') <> 'Rejected' AND (v.kev
  * A CVE its assigner has not withdrawn. NVD keeps rejected ids with status "Rejected" (6,787 of
  * the local table); they were listed, counted and ranked as live, one with "1 public exploit".
  */
+/** A CVE id as MITRE assigns them: four digits of year, four or more of sequence. One pattern for every route. */
+export const cveIdPattern = /^CVE-\d{4}-\d{4,}$/i;
+
 export const liveSql = "COALESCE(v.vuln_status, '') <> 'Rejected'";
 
 export const notableInWindowSql = `(${liveSql} AND (v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active' OR (v.published_at >= ? AND COALESCE(v.cvss_score, 0) >= 9)))`;

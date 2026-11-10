@@ -57,7 +57,7 @@ const shown: [string, string][] = [
 
 const first = (value: string | string[] | undefined): string | null => (Array.isArray(value) ? (value[0] ?? null) : (value ?? null));
 
-export function isTorExit(db: DatabaseSync, ip: string | null): boolean {
+function isTorExit(db: DatabaseSync, ip: string | null): boolean {
   if (!ip) return false;
   return db.prepare("SELECT 1 FROM tor_exits WHERE ip = ?").get(ip) !== undefined;
 }

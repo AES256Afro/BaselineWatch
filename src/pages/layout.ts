@@ -151,7 +151,7 @@ export function setSiteBase(baseUrl: string): void {
   siteBase = baseUrl.replace(/\/+$/, "");
 }
 
-export const productDescription = "News, advisories and CVEs in one timeline, and a change register for the security standards themselves: what each control said before and after, and why.";
+const productDescription = "News, advisories and CVEs in one timeline, and a change register for the security standards themselves: what each control said before and after, and why.";
 
 export function page({ title, active, content, meta, owner, open, strip, look, script, feed, description, canonical }: PageOptions): string {
   const link = (area: Area, cls?: string): Html => {

@@ -181,7 +181,7 @@ function browserKey(name: string): LatestRelease["browser"] | null {
   return null;
 }
 
-export function matchBrowsers(db: DatabaseSync, report: InventoryReport): DeviceFinding[] {
+function matchBrowsers(db: DatabaseSync, report: InventoryReport): DeviceFinding[] {
   return report.browsers.map((b) => {
     const key = browserKey(b.name);
     return key ? judgeBrowser(b.name, b.version, latestBrowser(db, key, b.version)) : { id: `browser-${b.name.toLowerCase().replace(/[^a-z]+/g, "-")}`, title: b.name, state: "na" as const, text: `${b.name} ${b.version}: no vendor feed for it here.`, refs: [], quoted: [] };

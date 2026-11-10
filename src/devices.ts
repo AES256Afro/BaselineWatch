@@ -30,7 +30,7 @@ export interface StoredFinding {
 const rank: Record<DeviceFinding["state"], number> = { bad: 3, warn: 2, na: 1, ok: 0 };
 
 /** The reading's verdict: the worst row that was read; "na" only when nothing could be read at all. */
-export function worstOf(findings: { state: DeviceFinding["state"] }[]): DeviceReading["worst"] {
+function worstOf(findings: { state: DeviceFinding["state"] }[]): DeviceReading["worst"] {
   const read = findings.filter((f) => f.state !== "na");
   if (read.length === 0) return "na";
   return read.reduce<DeviceReading["worst"]>((w, f) => (rank[f.state] > rank[w] ? f.state : w), "ok");

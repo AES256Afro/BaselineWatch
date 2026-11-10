@@ -1,3 +1,4 @@
+import { cveIdPattern } from "../vulns.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { counted, html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
@@ -46,7 +47,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
       <form method="get" action="/search" class="search" role="search"><label class="visually-hidden" for="q">Search</label><input type="search" id="q" name="q" value="${query}"><button type="submit">Search</button></form>
       ${saveSearchForm(db, `/search?q=${encodeURIComponent(query)}`, owner)}
     </div>
-    ${/^CVE-\d{4}-\d{4,7}$/i.test(query) ? html`<p class="notice"><b>${query.toUpperCase()}</b> has no row in the table. <a href="/vulnerabilities/${query.toUpperCase()}">Where to read it</a>; what this instance does hold about it is below.</p>` : ""}
+    ${cveIdPattern.test(query) ? html`<p class="notice"><b>${query.toUpperCase()}</b> has no row in the table. <a href="/vulnerabilities/${query.toUpperCase()}">Where to read it</a>; what this instance does hold about it is below.</p>` : ""}
     <div class="cols">
       <section class="main">
         ${cves.total
