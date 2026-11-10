@@ -1,3 +1,6 @@
+import { mkdtempSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { migrate, openDatabase } from "../src/db.ts";
@@ -15,13 +18,15 @@ const now = new Date("2026-10-21T12:00:00Z");
 const ago = (hours: number): string => new Date(now.getTime() - hours * 3_600_000).toISOString();
 
 let db: DatabaseSync;
+/** Snapshots land in the system temp directory, not a fixed /tmp path a sandbox may refuse. */
+const scratch = mkdtempSync(path.join(os.tmpdir(), "bw-pipeline-"));
 
 /** Puts a source into a failing or answering state the way an ingest run would. */
 async function fetchOnce(id: string, route: { text?: string; status?: number }, at: Date): Promise<void> {
   const source = getSource(db, id);
   if (!source) throw new Error(`no such source: ${id}`);
   const http = fakeHttp({ [source.url]: route });
-  await ingestSource(db, "/tmp/bw-unused", source, { http, now: () => at });
+  await ingestSource(db, scratch, source, { http, now: () => at });
 }
 
 beforeEach(() => {

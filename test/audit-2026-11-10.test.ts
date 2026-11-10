@@ -151,4 +151,15 @@ describe("the audit of 10 November", () => {
     const probe = await probeFeed(http, "https://blog.example/");
     expect(probe).toMatchObject({ ok: false, found: ["https://blog.example/feed.xml"] });
   });
+
+  it("starts a new failure episode when a source is turned back on", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { setSourceEnabled } = await import("../src/ingest.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    db.prepare("UPDATE sources SET failing_since = '2026-10-01T00:00:00Z', failing_alerted_at = '2026-10-02T00:00:00Z' WHERE id = 'cisa-kev'").run();
+    setSourceEnabled(db, "cisa-kev", false);
+    setSourceEnabled(db, "cisa-kev", true);
+    expect(db.prepare("SELECT failing_since, failing_alerted_at FROM sources WHERE id = 'cisa-kev'").get()).toEqual({ failing_since: null, failing_alerted_at: null });
+  });
 });

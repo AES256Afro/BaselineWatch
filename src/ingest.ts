@@ -229,9 +229,14 @@ export function listSources(db: DatabaseSync, options: { enabledOnly?: boolean }
   return db.prepare(sql).all() as unknown as SourceRow[];
 }
 
-/** Turns a source on or off; the scheduler reads the flag on its next pass. Returns whether the source exists. */
+/**
+ * Turns a source on or off; the scheduler reads the flag on its next pass. Returns whether the
+ * source exists. Either way the failure episode ends: a source turned back on that fails again
+ * starts a new one, rather than inheriting a start weeks old (alerted at once as "failing for
+ * 506 h") or a mark that it was already alerted (never alerted at all).
+ */
 export function setSourceEnabled(db: DatabaseSync, id: string, enabled: boolean): boolean {
-  return Number(db.prepare("UPDATE sources SET enabled = ? WHERE id = ?").run(enabled ? 1 : 0, id).changes) > 0;
+  return Number(db.prepare("UPDATE sources SET enabled = ?, failing_since = NULL, failing_alerted_at = NULL WHERE id = ?").run(enabled ? 1 : 0, id).changes) > 0;
 }
 
 function recordOutcome(
