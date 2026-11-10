@@ -598,7 +598,7 @@ migrations re-read the KEV catalogue's rows on first start; the start-up log say
 - **All the standards in one place.** `/standards` is now the all-standards catalog ("All
   standards" in the Standards menu, in place of the redirect to `/register`): per operating system
   the current, new and draft standards already tracked, the NIST publications with CSRC's drafts
-  open for comment, and NASA's cybersecurity document set. Chris's "CSET" is NASA OCIO's
+  open for comment, and NASA's cybersecurity document set. The "CSET" meant here is NASA OCIO's
   Cybersecurity Standards and Engineering Team, and its ASCS standards are NASA-internal, so the
   public layer joins the Register instead: the quarterly Cybersecurity Policy Reference on nasa.gov,
   which lists every NASA cybersecurity document with its dates and status notes, is source
