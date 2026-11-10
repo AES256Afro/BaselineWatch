@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { isPlatformKey, platformChoices, platformKeysOf, platformName, platformsOf, type PlatformChoice } from "./platforms.ts";
+import { isPlatformKey, kevPlatformKeys, platformChoices, platformKeysOf, platformName, platformsOf, type PlatformChoice } from "./platforms.ts";
 import { parseJson } from "./json.ts";
 import { csvLine } from "./csv.ts";
 import { ftsQuery } from "./wire.ts";
@@ -470,9 +470,13 @@ export function applyKev(
   const select = db.prepare("SELECT kev FROM vulns WHERE cve_id = ?");
   const insert = db.prepare(
     `INSERT INTO vulns (cve_id, source_identifier, published_at, last_modified_at, vuln_status, description, cwes_json, cpes_json, vendors_json, products_json,
-        references_json, kev, kev_date_added, kev_due_date, kev_ransomware, watch_hit, first_seen_at, last_seen_at)
-     VALUES (?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, 0, ?, ?)`,
+        references_json, kev, kev_date_added, kev_due_date, kev_ransomware, watch_hit, watch_labels_json, platforms_json, first_seen_at, last_seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
+  // A catalogue row is matched against the watchlist and given its platforms as it is made, as an
+  // NVD row is: otherwise a watched product's exploited CVE stayed out of "your stack" until the
+  // watchlist was next edited, and out of the platform views until the next restart.
+  const watch = loadWatchlist(db);
   const update = db.prepare("UPDATE vulns SET kev = 1, kev_date_added = COALESCE(kev_date_added, ?), kev_due_date = COALESCE(?, kev_due_date), kev_ransomware = ? WHERE cve_id = ?");
   const change = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'kev', NULL, ?)");
   let flagged = 0;
@@ -485,6 +489,11 @@ export function applyKev(
         // No publication date is known until the CVE list or NVD says it; the catalogue's date
         // added is when it changed, not when the CVE was published.
         const added = e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt;
+        const vendors = e.vendor ? [e.vendor.toLowerCase()] : [];
+        const products = e.product ? [e.product.toLowerCase()] : [];
+        const hits = matchWatchDetailed({ cpes: [], vendors, products, description: e.description ?? null }, watch).map((h) => h.label);
+        const keys = kevPlatformKeys(e.vendor, e.product);
+        const platforms = keys.length ? keys : platformsOf({ cpes: [], vendors, products, description: e.description ?? null });
         insert.run(
           e.cveId,
           kevSourceIdentifier,
@@ -492,12 +501,15 @@ export function applyKev(
           added,
           kevOnlyStatus,
           e.description ?? null,
-          JSON.stringify(e.vendor ? [e.vendor.toLowerCase()] : []),
-          JSON.stringify(e.product ? [e.product.toLowerCase()] : []),
+          JSON.stringify(vendors),
+          JSON.stringify(products),
           JSON.stringify([{ url: `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${e.cveId}`, tags: ["CISA KEV"] }]),
           e.dateAdded,
           e.dueDate,
           e.ransomware ? 1 : 0,
+          hits.length ? 1 : 0,
+          hits.length ? JSON.stringify(hits) : null,
+          JSON.stringify(platforms),
           observedAt,
           observedAt,
         );
@@ -562,14 +574,15 @@ export function applyEpss(db: DatabaseSync, scores: Iterable<EpssScore>, scoreDa
  */
 export function recomputePlatforms(db: DatabaseSync, limit = 100_000): number {
   const rows = db
-    .prepare("SELECT cve_id, cpes_json, vendors_json, products_json, description FROM vulns WHERE platforms_json IS NULL LIMIT ?")
-    .all(limit) as { cve_id: string; cpes_json: string | null; vendors_json: string | null; products_json: string | null; description: string | null }[];
+    .prepare("SELECT cve_id, source_identifier, cpes_json, vendors_json, products_json, description FROM vulns WHERE platforms_json IS NULL LIMIT ?")
+    .all(limit) as { cve_id: string; source_identifier: string | null; cpes_json: string | null; vendors_json: string | null; products_json: string | null; description: string | null }[];
   if (rows.length === 0) return 0;
   const update = db.prepare("UPDATE vulns SET platforms_json = ? WHERE cve_id = ?");
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const row of rows) {
-      const platforms = platformsOf({
+      const kevKeys = row.source_identifier === kevSourceIdentifier ? kevPlatformKeys(parseJson<string[]>(row.vendors_json, [])[0], parseJson<string[]>(row.products_json, [])[0]) : [];
+      const platforms = kevKeys.length ? kevKeys : platformsOf({
         cpes: parseJson<string[]>(row.cpes_json, []),
         vendors: parseJson<string[]>(row.vendors_json, []),
         products: parseJson<string[]>(row.products_json, []),

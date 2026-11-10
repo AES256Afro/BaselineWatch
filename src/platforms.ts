@@ -154,3 +154,22 @@ export function platformsOf(v: { cpes: string[]; vendors: string[]; products: st
   }
   return [...out];
 }
+
+/**
+ * The platforms of a KEV entry, from CISA's own vendor and product words ("Microsoft | Win32k",
+ * "Apple | Multiple Products"), which are not CPE slugs and match nothing in platformsOfCpe. Used
+ * for a row the catalogue made before NVD sent the CVE; the same reading the STIG pages use.
+ */
+export function kevPlatformKeys(vendor: string | null | undefined, product: string | null | undefined): PlatformKey[] {
+  const v = (vendor ?? "").trim().toLowerCase();
+  const p = (product ?? "").trim().toLowerCase();
+  if (v === "microsoft") return /\bedge\b/.test(p) ? ["edge"] : ["windows"];
+  if (v === "apple") return ["apple"];
+  if (v === "google") return /chrom/.test(p) ? ["chrome"] : /android|pixel/.test(p) ? ["android"] : [];
+  if (v === "android" || v === "samsung") return ["android"];
+  if (v === "mozilla") return ["firefox"];
+  if (v === "linux" || v === "canonical" || v === "debian" || v === "suse") return ["linux"];
+  if (v === "red hat" || v === "oracle") return /linux|kernel|polkit/.test(p) ? ["linux"] : [];
+  if (/^(cisco|f5|fortinet|palo alto networks|juniper|juniper networks|ivanti|citrix|sonicwall|zyxel|d-link|netgear|mikrotik|arista|check point|pulse secure|barracuda|sophos|watchguard|array networks)$/.test(v)) return ["network"];
+  return [];
+}

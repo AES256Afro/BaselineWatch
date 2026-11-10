@@ -10,7 +10,7 @@ import { maybeRunExposureScan } from "./exposure.ts";
 import { maybeRunNetworkScan } from "./netscan.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
-import { backfillKevRows, recomputePlatforms } from "./vulns.ts";
+import { backfillKevRows, recomputePlatforms, recomputeWatchHits } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
 import { counted } from "./words.ts";
@@ -38,6 +38,8 @@ for (const source of listSources(db)) {
 const kevRows = backfillKevRows(db, new Date().toISOString());
 if (kevRows > 0) console.log(`[vulns] gave ${counted(kevRows, "KEV entry", "KEV entries")} a row of its own`);
 const platformed = recomputePlatforms(db);
+// KEV-only rows made before 0058 were never matched against the watchlist; once, on that upgrade.
+if (migration.applied.includes("0058_kev_only_platforms")) recomputeWatchHits(db);
 if (platformed > 0) console.log(`[vulns] read the platform of ${counted(platformed, "CVE")}`);
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");

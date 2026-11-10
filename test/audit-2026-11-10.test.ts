@@ -220,4 +220,19 @@ describe("the audit of 10 November", () => {
     const tls = fixFor({ id: "tls", group: "web", title: "TLS", state: "warn", text: "TLSv1.2 was negotiated; TLS 1.3 is the current standard.", quoted: [] }, "example.com");
     expect(tls?.text).toContain("Turn on TLS 1.3");
   });
+
+  it("matches a KEV-only row against the watchlist and gives it the catalogue's platform", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { applyKev, getVuln } = await import("../src/vulns.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('product', 'fortinet', NULL, '2026-11-10')").run();
+    applyKev(db, [
+      { cveId: "CVE-2026-5000", dateAdded: "2026-11-09", dueDate: null, ransomware: false, description: "FortiOS flaw", vendor: "Fortinet", product: "FortiOS" },
+      { cveId: "CVE-2026-5001", dateAdded: "2026-11-09", dueDate: null, ransomware: false, description: "Win32k flaw", vendor: "Microsoft", product: "Win32k" },
+    ], "2026-11-10T00:00:00.000Z");
+    expect(getVuln(db, "CVE-2026-5000")).toMatchObject({ watch_hit: 1, platforms_json: '["network"]' });
+    expect(getVuln(db, "CVE-2026-5001")).toMatchObject({ watch_hit: 0, platforms_json: '["windows"]' });
+    expect(db.prepare("SELECT platform FROM vuln_platforms vp JOIN vulns v ON v.id = vp.vuln_id WHERE v.cve_id = 'CVE-2026-5001'").all()).toEqual([{ platform: "windows" }]);
+  });
 });
