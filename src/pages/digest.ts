@@ -69,7 +69,7 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
         <section class="box" id="alerts">
           <h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">${alerts.length}</a></span></h2>
           ${alerts.length
-            ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · <b>${times} times</b>` : ""}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>`
+            ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · <b>${times} times</b>` : ""}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>`
             : html`<p class="small">None yet. KEV additions, watched CVE changes and standard releases are sent as they arrive, after a source's first load.</p>`}
         </section>
       </aside>
@@ -83,7 +83,7 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
  * line with a count, not twenty-five. The newest of each group is shown; numbers are ignored when
  * telling two titles apart.
  */
-function groupAlerts<T extends { kind: string; title: string; status: string; url: string | null; sent_at: string }>(alerts: T[]): { a: T; times: number }[] {
+export function groupAlerts<T extends { kind: string; title: string; status: string; url: string | null; sent_at: string }>(alerts: T[]): { a: T; times: number }[] {
   const groups = new Map<string, { a: T; times: number }>();
   for (const a of alerts) {
     // Only the repeated failure notices are one story told again; two KEV alerts with the same
@@ -94,4 +94,18 @@ function groupAlerts<T extends { kind: string; title: string; status: string; ur
     else groups.set(key, { a, times: 1 });
   }
   return [...groups.values()];
+}
+
+/**
+ * An alert's link as a path on this site when it points here: the address was stored with the base
+ * URL of the moment it was sent (a dev host, a domain since changed), and a path survives that.
+ */
+export function alertHref(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.pathname.startsWith("/") && /^\/(sources|vulnerabilities|standards|scan|register|digest|today)\b/.test(u.pathname) ? `${u.pathname}${u.search}${u.hash}` : url;
+  } catch {
+    return url.startsWith("/") ? url : null;
+  }
 }

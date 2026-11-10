@@ -34,7 +34,7 @@ describe("the page", () => {
       expect(page).toContain("Patch Tuesday · October 2026");
       expect(page).toContain("<small>Microsoft CVEs</small><b>15</b>");
       expect(page).toContain("<small>Exploited</small><b>1</b>");
-      expect(page).toContain("<small>Republished</small><b>4</b>");
+      expect(page).toContain("<small>Republished (Chromium, Azure Linux)</small><b>4</b>");
       // The fleet's Windows 11 24H2 finds its month's KB.
       expect(page).toContain("Your Windows releases");
       expect(page).toContain("<b>Windows 11, version 24H2</b>");

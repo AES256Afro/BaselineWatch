@@ -114,7 +114,7 @@ export function renderPatchTuesday(options: PatchTuesdayOptions): string | null 
       <a href="${href({ family: undefined, q: "", all: false })}"><small>Critical</small><b>${figure(current.critical)}</b></a>
       <div class="${current.exploited ? "bad" : ""}"><small>Exploited</small><b>${figure(current.exploited)}</b></div>
       <div><small>Publicly disclosed</small><b>${figure(current.disclosed)}</b></div>
-      <a href="${href({ all: true })}"><small>Republished</small><b>${figure(republished)}</b></a>
+      <a href="${href({ all: true })}"><small>Republished (Chromium, Azure Linux)</small><b>${figure(republished)}</b></a>
       <div><small>Released</small><b class="date">${current.released_at?.slice(0, 10) ?? "—"}</b></div>
     </div>
     ${mine.length

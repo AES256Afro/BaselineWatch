@@ -149,7 +149,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
       </section>
 
       <aside class="side">
-        <section class="box">
+        ${owner ? html`<section class="box">
           <h2><a href="/triage">Needs you</a></h2>
           <dl class="kv">
             <dt>Affects us</dt><dd><a href="/triage#affects">${counts.affects}</a></dd>
@@ -158,7 +158,7 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
             <dt>Last digest</dt><dd>${digest ? html`<a href="/digest#latest">${relativeTime(digest.generated_at, now)}</a>` : html`<a href="/digest">none yet</a>`}</dd>
             ${alerts.length ? html`<dt>Last alert</dt><dd><a href="/digest#alerts">${alerts[0]!.title}</a> <span class="small">(${alerts[0]!.status}, ${relativeTime(alerts[0]!.sent_at, now)})</span></dd>` : ""}
           </dl>
-        </section>
+        </section>` : ""}
         <section class="box">
           <h2><a href="/?kind=kev">Known exploited, newest</a>${kevVersion ? html` <span class="count"><a href="/standards/cisa-kev">catalog ${kevVersion}</a></span>` : ""}</h2>
           ${kev.length ? html`<ul class="kev-list">${kevList}</ul><p class="small"><a href="/?kind=kev">All KEV additions in the News</a></p>` : html`<p class="small">Nothing fetched yet. The CISA catalog is checked hourly.</p>`}

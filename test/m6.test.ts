@@ -315,7 +315,9 @@ describe("triage and digest pages", () => {
     expect(digestAfter).toContain('<h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">1</a></span></h2>');
     // The digest's own URLs are links on the page, this instance's as paths.
     expect(digestAfter).toContain('<a href="/triage">/triage</a>');
-    const home = await (await fetch(`${app.base}/register`)).text();
+    // The owner's box is the owner's: a visitor's /register does not show the inbox or the alerts.
+    expect(await (await fetch(`${app.base}/register`)).text()).not.toContain("Needs you");
+    const home = await (await fetch(`${app.base}/register`, { headers: { cookie } })).text();
     expect(home).toContain("Needs you");
     expect(home).toMatch(/<dt>Inbox<\/dt><dd><a href="\/triage#new">\d+ not yet placed<\/a><\/dd>/);
     expect(home).toContain('<dt>Last digest</dt><dd><a href="/digest#latest">');

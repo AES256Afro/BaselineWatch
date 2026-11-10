@@ -19,6 +19,7 @@ import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
 import { setupPending, type SetupStep } from "../setup.ts";
+import { alertHref, groupAlerts } from "./digest.ts";
 
 /**
  * The Today page: the window's work, grouped by the remedy that ends it.
@@ -304,7 +305,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             <li><span><a href="/digest">Last digest</a></span><b>${digest ? relativeTime(digest.generated_at, now) : "none yet"}</b></li>
           </ul>
           ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span>${owner && f.repairs ? html` · <a href="/sources#src-${f.id}">a repair is proposed</a>` : ""}</li>`)}</ul>` : ""}
-          ${alerts.length ? html`<ul class="alerts">${alerts.map((a) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}</span>${a.url ? html`<a href="${a.url}" ${newTabIf(a.url)}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
+          ${alerts.length ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · ${times} times` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
         </section>
       </aside>
     </div>`;

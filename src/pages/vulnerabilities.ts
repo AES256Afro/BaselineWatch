@@ -232,7 +232,7 @@ function fixPanel(fix: Fix): Html {
     <h2>Fix</h2>
     ${microsoft}
     ${fix.kev?.requiredAction
-      ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
+      ? html`<div class="fix-kev"><h3 class="small">CISA KEV required action${fix.kev.dueDate ? html` · due ${fix.kev.dueDate}` : ""}</h3><p>${fix.kev.requiredAction}</p>${fix.kev.notes?.length ? html`<p class="small">CISA's notes: ${fix.kev.notes.map((u, i) => html`${i ? " · " : ""}<a href="${u}" ${newTab}>${u.replace(/^https?:\/\//, "").slice(0, 70)}</a>`)}</p>` : ""}${fix.kev.dateAdded ? html`<p class="small">Added to the catalog ${fix.kev.dateAdded}. <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${fix.cveId}" ${newTab}>CISA KEV</a></p>` : ""}</div>`
       : ""}
     ${fix.references.length
       ? html`<h3 class="small">Patch, vendor advisory and mitigation references on NVD <span class="count">${fix.references.length}</span></h3>

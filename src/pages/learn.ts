@@ -79,9 +79,11 @@ const accessChip = (access: Access): Html =>
 const sectorChips = (list: Sector[]): Html =>
   html`${list.map((id) => html`<a class="chip sect" href="/learn?sector=${id}">${sectors.find((s) => s.id === id)?.label ?? id}</a>`)}`;
 
+// "/learn#body-x", not "#body-x": on /learn itself it is the same in-page jump, and on a filtered
+// /learn, where that body may be hidden, it opens the whole page at it instead of going nowhere.
 const bodyLink = (id: string): Html => {
   const a = authorityById(id);
-  return a ? html`<a href="#body-${a.id}">${a.name}</a>` : html`${id}`;
+  return a ? html`<a href="/learn#body-${a.id}">${a.name}</a>` : html`${id}`;
 };
 
 /** The chain in one picture: seven stages, left to right, each the step a rule passes through. */
@@ -128,7 +130,7 @@ function matrix(sector: Sector | undefined): Html {
         <th scope="row"><a href="/learn?rung=${r.id}">${r.label}</a><small>${r.line}</small></th>
         ${columns.map((s) => {
           const here = onRung(r.id, s.id);
-          return html`<td>${here.length === 0 ? html`<span class="small mute-t">—</span>` : html`<span class="chips">${here.map((a) => html`<a class="chip" href="#body-${a.id}">${a.name}</a>`)}</span>`}</td>`;
+          return html`<td>${here.length === 0 ? html`<span class="small mute-t">—</span>` : html`<span class="chips">${here.map((a) => html`<a class="chip" href="/learn#body-${a.id}">${a.name}</a>`)}</span>`}</td>`;
         })}
       </tr>`,
     )}</tbody>
@@ -189,7 +191,7 @@ function bodyCard(a: Authority, held: Map<string, Held>, now: Date, open: boolea
         ? html`<dt>On this instance</dt>
           <dd>${mine && mine.documentId !== null
             ? html`<a href="/standards/${a.tracked}/${mine.documentId}"><b>${mine.versionLabel ?? "the loaded version"}</b></a> · ${mine.versions} version${mine.versions === 1 ? "" : "s"} held · <a href="/standards/${a.tracked}">every version and what changed</a>${mine.parsedAt ? html` <span class="when">loaded ${relativeTime(mine.parsedAt, now)}</span>` : ""}`
-            : html`<a href="/standards/${a.tracked}">tracked as a source</a>, <span class="mute-t">nothing loaded yet</span>`}</dd>`
+            : html`<a href="/sources#src-${a.tracked}">tracked as a source</a>, <span class="mute-t">nothing loaded yet</span>`}</dd>`
         : ""}
     </dl>
   </details>`;

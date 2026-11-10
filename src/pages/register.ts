@@ -173,7 +173,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
     // and the look switch leads back to the bare page rather than echoing a search for a name.
     const content = html`
       <div class="rel">
-        <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
+        <h1>${source.kind === "listing" && doc.title ? doc.title : source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
         <div class="when">${doc.requirement_count} entries · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
       </div>
       ${withheldBox(source, open)}`;
@@ -188,7 +188,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
 
   const content = html`
     <div class="rel">
-      <h1>${source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
+      <h1>${source.kind === "listing" && doc.title ? doc.title : source.name} <span class="arrow">${doc.version_label ?? "version unknown"}</span></h1>
       <div class="when"><a href="/standards/${sourceId}/${documentId}/browse">${doc.requirement_count} requirements</a> · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
     </div>
     <div class="wire-top">
@@ -273,7 +273,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
 
   const content = html`
     <div class="rel">
-      <h1>${source.name} <span class="arrow">${previous && previous.version_label !== doc.version_label ? html`${previous.version_label ?? "previous"} → ` : previous ? html`republished · ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
+      <h1>${source.kind === "listing" && doc.title ? doc.title : source.name} <span class="arrow">${previous && previous.version_label !== doc.version_label ? html`${previous.version_label ?? "previous"} → ` : previous ? html`republished · ` : ""}${doc.version_label ?? "version unknown"}</span></h1>
       <div class="when">Published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br>Snapshot taken ${shortStamp(doc.parsed_at)} · <a href="${doc.source_url ?? source.url}" ${newTabIf(doc.source_url ?? source.url)}>${keyLabel(doc.document_key, doc.title)} source</a></div>
     </div>
     <div class="pills">
