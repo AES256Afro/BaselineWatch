@@ -68,7 +68,7 @@ export function mountNews(r: RouteContext): void {
   app.post("/items/:id/unstar", requireOwner, itemAction("unstar"));
   app.post("/wire/read-all", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    markAllRead(db, wireFilters(body));
+    markAllRead(db, wireFilters(body), Number(body.upto));
     res.redirect(303, safeBack(body.back, "/"));
   });
 }

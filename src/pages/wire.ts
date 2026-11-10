@@ -146,9 +146,12 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     return kev?.requiredAction ? html`<p class="wi-fix"><b>Fix:</b> CISA: ${kev.requiredAction}${kev.dueDate ? html` (due ${kev.dueDate})` : ""}</p>` : html``;
   };
 
-  const rows = listed.map((item) => {
-    // Acting on a card returns to that card, not to the top of a fifty-item page.
-    const back = html`<input type="hidden" name="back" value="${current}#item-${item.id}">`;
+  const rows = listed.map((item, index) => {
+    // Acting on a card returns to that card, not to the top of a fifty-item page. Under "Unread
+    // only" a card marked read leaves the list, so the way back is to the card after it.
+    const neighbour = listed[index + 1] ?? listed[index - 1];
+    const landing = filters.unread && !item.read && neighbour ? neighbour.id : item.id;
+    const back = html`<input type="hidden" name="back" value="${current}#item-${landing}">`;
     return html`<li id="item-${item.id}" class="wi ${owner && item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
       ${item.image_blob ? html`<a class="wi-img" href="${item.url ?? `/img/${item.image_blob}`}" ${newTabIf(item.url)} tabindex="-1" aria-hidden="true"><img src="/img/${item.image_blob}" alt="" loading="lazy"></a>` : ""}
       <div class="wi-body">
@@ -257,6 +260,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
           ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
+                <input type="hidden" name="upto" value="${Math.max(...fetched.map((i) => i.id))}">
                 ${filters.source ? html`<input type="hidden" name="source" value="${filters.source}">` : ""}
                 ${filters.group ? html`<input type="hidden" name="group" value="${filters.group}">` : ""}
                 ${filters.kind ? html`<input type="hidden" name="kind" value="${filters.kind}">` : ""}

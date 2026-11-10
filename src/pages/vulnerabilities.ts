@@ -333,7 +333,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
         ${(() => {
             const t = getTriage(db, "vuln", row.id);
             const board = t ? `/triage#${t.state}` : "/triage";
-            if (owner) return html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2>${triageForm({ kind: "vuln", id: row.id }, t, `/vulnerabilities/${row.cve_id}`)}</section>`;
+            if (owner) return html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2>${triageForm({ kind: "vuln", id: row.id }, t, `/vulnerabilities/${row.cve_id}#triage`)}</section>`;
             return t ? html`<section class="box" id="triage"><h2><a href="${board}">Triage</a></h2><p><a class="chip" href="${board}">${t.state}</a>${t.due_at ? html` due ${t.due_at}` : ""}</p></section>` : "";
           })()}
         <section class="box" id="scores">

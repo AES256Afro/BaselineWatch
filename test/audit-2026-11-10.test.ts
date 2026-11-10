@@ -121,4 +121,19 @@ describe("the audit of 10 November", () => {
     expect(vulnChanges(db, id)).toEqual([]);
     expect(db.prepare("SELECT COUNT(*) AS n FROM items WHERE external_id LIKE ?").get(`%${id}%`)).toEqual({ n: 0 });
   });
+
+  it("marks read only what the page showed, so a later KEV entry stays in the inbox", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { markAllRead } = await import("../src/wire.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    const add = db.prepare("INSERT INTO items (source_id, kind, external_id, title, published_at, fetched_at) VALUES ('cisa-kev', 'kev', ?, 'x', '2026-11-10', '2026-11-10')");
+    const shown = Number(add.run("CVE-2026-2000").lastInsertRowid);
+    add.run("CVE-2026-2001");
+    markAllRead(db, {}, shown);
+    expect(db.prepare("SELECT external_id, read FROM items ORDER BY id").all()).toEqual([
+      { external_id: "CVE-2026-2000", read: 1 },
+      { external_id: "CVE-2026-2001", read: 0 },
+    ]);
+  });
 });

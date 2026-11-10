@@ -33,9 +33,13 @@ export function triageForm(subject: { kind: TriageKind; id: number; key?: string
     ${current ? html`</div>` : ""}`;
 }
 
-function card(c: TriageCard, owner: boolean, now: Date): Html {
+function card(c: TriageCard, owner: boolean, now: Date, next?: TriageCard): Html {
   const s = c.signals as { cvss?: number | null; epss?: number | null; kev?: boolean; dueDate?: string; itemKind?: string; release?: boolean };
-  return html`<li class="tcard ${c.subject_kind} ${s.kev ? "kev" : ""}">
+  // Each card has an address, and its buttons return to the card that follows it: working down a
+  // column of thirty no longer means scrolling back from the top after every press.
+  const id = `t-${c.subject_kind}-${c.subject_id}${c.subject_key ? `-${c.subject_key.replace(/[^a-z0-9]/gi, "")}` : ""}`;
+  const nextId = next ? `t-${next.subject_kind}-${next.subject_id}${next.subject_key ? `-${next.subject_key.replace(/[^a-z0-9]/gi, "")}` : ""}` : id;
+  return html`<li id="${id}" class="tcard ${c.subject_kind} ${s.kev ? "kev" : ""}">
     <div class="k"><span>${c.subject_kind === "vuln" ? "CVE" : c.subject_kind === "control" ? "control" : (s.itemKind ?? "item")}</span><span>${relativeTime(c.updated_at, now)}</span></div>
     <b><a href="${c.url}" ${newTabIf(c.url)}>${c.title}</a></b>
     ${c.detail ? html`<p>${c.detail.length > 180 ? `${c.detail.slice(0, 179)}…` : c.detail}</p>` : ""}
@@ -46,7 +50,7 @@ function card(c: TriageCard, owner: boolean, now: Date): Html {
       ${c.due_at ? html`<span class="chip ${c.due_at < now.toISOString().slice(0, 10) && c.state !== "done" ? "kev" : ""}">due ${c.due_at}</span>` : ""}
     </div>
     ${c.note ? html`<div class="note">${c.note}</div>` : ""}
-    ${owner ? triageButtons({ kind: c.subject_kind, id: c.subject_id, key: c.subject_key }, c.state, "/triage", { compact: false }) : ""}
+    ${owner ? triageButtons({ kind: c.subject_kind, id: c.subject_id, key: c.subject_key }, c.state, `/triage#${nextId}`, { compact: false }) : ""}
   </li>`;
 }
 
@@ -59,29 +63,30 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
   const inbox = triageInbox(db, 30);
   const column = (state: TriageState, after: Html = html``): Html => html`<section class="tcol ${state}" id="${state}">
     <h2><a href="#${state}">${stateLabel[state]}</a> <span class="count"><a href="#${state}">${counts[state]}</a></span></h2>
-    <ul class="tcards">${(byState.get(state) ?? []).map((c) => card(c, owner, now))}</ul>
+    <ul class="tcards">${(byState.get(state) ?? []).map((c, i, all) => card(c, owner, now, all[i + 1]))}</ul>
     ${after}
   </section>`;
   // The dismissed cards stay out of the way under Done; the count on the board opens them (?dismissed=1).
   const dismissed = (byState.get("dismissed") ?? []).length
     ? options.dismissed
-      ? html`<h3 class="small" id="dismissed"><a href="#dismissed">Not ours</a> <span class="count"><a href="#dismissed">${counts.dismissed}</a></span></h3><ul class="tcards">${(byState.get("dismissed") ?? []).map((c) => card(c, owner, now))}</ul><p class="small"><a href="/triage#done">Hide them again</a></p>`
+      ? html`<h3 class="small" id="dismissed"><a href="#dismissed">Not ours</a> <span class="count"><a href="#dismissed">${counts.dismissed}</a></span></h3><ul class="tcards">${(byState.get("dismissed") ?? []).map((c, i, all) => card(c, owner, now, all[i + 1]))}</ul><p class="small"><a href="/triage#done">Hide them again</a></p>`
       : html`<p class="small"><a href="/triage?dismissed=1#dismissed">${counts.dismissed} marked not ours</a>, kept out of the way.</p>`
     : html``;
 
   const inboxList = html`${inbox.length
-    ? html`<ul class="tcards inbox">${inbox.map((i) => {
+    ? html`<ul class="tcards inbox">${inbox.map((i, index) => {
+        const nextInbox = inbox[index + 1];
         let s: { dueDate?: string; cvss?: number | null; kev?: boolean } = {};
         try {
           s = JSON.parse(i.signals_json ?? "{}") as typeof s;
         } catch {
           s = {};
         }
-        return html`<li class="tcard inbox-card ${i.kind}">
+        return html`<li id="in-${i.id}" class="tcard inbox-card ${i.kind}">
           <div class="k"><span>${i.source_name}</span><span>${relativeTime(i.published_at, now)}</span></div>
           <b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
           <div class="chips">${i.kind === "kev" || s.kev ? html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>` : ""}${typeof s.cvss === "number" ? html`<span class="chip">CVSS ${s.cvss.toFixed(1)}</span>` : ""}${i.kind === "release" ? html`<span class="chip">release</span>` : ""}</div>
-          ${owner ? triageButtons({ kind: "item", id: i.id }, null, "/triage", { compact: true }) : ""}
+          ${owner ? triageButtons({ kind: "item", id: i.id }, null, nextInbox ? `/triage#in-${nextInbox.id}` : "/triage#new", { compact: true }) : ""}
         </li>`;
       })}</ul>`
     : html`<p class="small">Nothing waiting. New KEV entries, notable CVEs and standard releases land here until you place them.</p>`}`;
@@ -94,7 +99,7 @@ export function renderTriage(options: { db: DatabaseSync; owner: boolean; open: 
     <p class="lede">Where each thing sits on your desk. The inbox is what arrived and has not been placed; the owner moves things with the buttons and adds notes on each item's own page.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="board">
-      <section class="tcol new" id="new"><h2><a href="#new">Inbox</a> <span class="count"><a href="#new">${inbox.length}</a></span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small" id="placed"><a href="#placed">Placed as new</a> <span class="count"><a href="#placed">${counts.new}</a></span></h3><ul class="tcards">${(byState.get("new") ?? []).map((c) => card(c, owner, now))}</ul>` : ""}</section>
+      <section class="tcol new" id="new"><h2><a href="#new">Inbox</a> <span class="count"><a href="#new">${inbox.length}</a></span></h2>${inboxList}${(byState.get("new") ?? []).length ? html`<h3 class="small" id="placed"><a href="#placed">Placed as new</a> <span class="count"><a href="#placed">${counts.new}</a></span></h3><ul class="tcards">${(byState.get("new") ?? []).map((c, i, all) => card(c, owner, now, all[i + 1]))}</ul>` : ""}</section>
       ${column("reviewing")}
       ${column("affects")}
       ${column("done", dismissed)}
