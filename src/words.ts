@@ -30,5 +30,9 @@ export function formatBytes(bytes: number): string {
 /** An EPSS probability as a percentage with the places it needs: "61%", "4.2%", "0.41%", "0.004%". */
 export function epssPercent(p: number): string {
   const pct = p * 100;
-  return `${pct >= 10 ? pct.toFixed(0) : pct >= 1 ? pct.toFixed(1) : pct >= 0.1 ? pct.toFixed(2) : pct.toFixed(3)}%`;
+  // Chosen by the value as it will be shown, so 9.99 reads "10%", not "10.0%".
+  if (Number(pct.toFixed(1)) >= 10) return `${pct.toFixed(0)}%`;
+  if (Number(pct.toFixed(2)) >= 1) return `${pct.toFixed(1)}%`;
+  if (Number(pct.toFixed(3)) >= 0.1) return `${pct.toFixed(2)}%`;
+  return `${pct.toFixed(3)}%`;
 }
