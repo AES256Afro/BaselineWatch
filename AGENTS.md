@@ -101,6 +101,8 @@ src/server.ts        start: config, data dir, migrations, listen
 src/app.ts           Express app: headers, body limits, the MCP endpoint, assets, API, health, sign-in, the read gate; then the mounts
 src/routes/          one module per area (news, today, standards, scan, baselines, vulnerabilities, desk), each a mount function taking RouteContext
 src/json.ts          the one reader for a column that should hold JSON
+src/words.ts         words for numbers: counted() agrees a noun with its count, agree() a verb, formatBytes()
+src/setup.ts         the owner's first-run list on Today, each step read from the instance's own state
 src/curated.ts       the hand-kept ledger: every store of data typed into the repository, how it goes stale, what replaces it (M20.1)
 src/newsource.ts     a feed the owner adds on the Sources page, probed before it is saved, and the log of changes made there (M20.2)
 src/repairs.ts       a failing source's fallbacks, and the repairs the instance finds and proposes for a failing feed (M20.3)

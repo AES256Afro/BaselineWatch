@@ -1541,10 +1541,71 @@ network and exposure checks out of public menus; MCP once the counts are in.
 - **Done when**: the ten visitor tasks of the audit each finish without a stall, at phone width too,
   and three fresh sweeps of each lens find nothing above their bar.
 
+### Where M21 and M22 stand (2026-11-10)
+
+The audit of 10 November ran the same three stages as the one before it, and this time fixed what it
+found before sweeping again. On branch `audit/2026-11-10`, not yet released:
+
+- **M21.0** hotfix 0.54.1 merged in; the card's `BW_BASE_URL` and NVD key are still the owner's to set.
+- **M21.1** closed: bounded patterns for every hostile-markup read, EPSS inflation capped, MCP batches
+  counted per call, one deadline per fetch across redirects, a per-address allowance on the heavy
+  public pages (case- and HEAD-proof), listen errors and escaped faults logged, VACUUM failure no
+  longer reruns the weekly pass.
+- **M21.3** in part: Debian, Ubuntu and Alpine are asked by source package.
+- **M21.5** in part: EPSS at FIRST's precision; rejected CVEs out of the table, the counts and Today;
+  every KEV entry has a row (141 of 1,780 did), with honest dates.
+- **M21.6** in part: Android's STIG keys.
+- **M21.7** in part: News keeps "Older"; RSS links absolute; search finds rule labels, STIG and
+  Microsoft rows, `AC-02`/`AC-2(1)`, a KB by number; a CVE not held says where to read it and
+  whether CISA lists it.
+- **M21.9** in part: the probes fail when a probe fails; a failed alert send is retried hourly.
+- **M22.1, M22.2, M22.4, M22.6** in part: no "(s)" anywhere, plain words on the pages the
+  readability sweep read, the 404 page and named menus, phone menus that stay on screen, the
+  owner's place kept on every card, notes stamped, a first-run list on Today, "Mark all read" bounded
+  to what was seen.
+- The paper look is the default (the owner's call); Console is a choice on Appearance.
+
+The loop rule was met by none of the categories in this pass: each sweep of code, bugs and security
+found at least one medium, and most of those were in the week's own new code, caught before release.
+That is the rule working. The ledger is `docs/audit-2026-11-10.local.md`.
+
+### M23: The morning page (planned 2026-11-10)
+
+The mockups of 10 November (`docs/mockups/2026-11-10/`) and the features sweep, joined into one
+milestone, because together they are why a practitioner would open this site first each day. After
+M21; it shares M22.3 and M22.6 and closes them.
+
+- **M23.1 Since your last visit.** Today's window defaults to the last visit (a date cookie, nothing
+  else), and `?since=` does the same for visitors and feeds with nothing stored (P7). A "data as of"
+  strip on every page that turns amber when a source is late, with the owner's "silent until" and
+  reason (mockup 1). *S.*
+- **M23.2 A control's life.** `/standards/:s/:ref` across every version, any two compared by URL, its
+  own feed, a citation that names the snapshot hash; version addresses by label, never row id
+  (mockup 3). *M.*
+- **M23.3 The month in the standards.** `/register/2026-11`, from change rows and the publishers'
+  words, no model (mockup 4). *S.*
+- **M23.4 Decisions reopened.** A release that changes a rule the owner has decided flags the
+  decision, with before and after, and Today counts them (P1). *S.*
+- **M23.5 Waiting on a fix.** A CVE parked as "no patch yet" returns to Today when a KB, fixed version
+  or vendor advisory arrives, quoted (P2). Joins the item and CVE triage (Q31, B36) so one CVE is
+  one decision. *S–M.*
+- **M23.6 The deadlines ahead.** One dated list and calendar of KEV due dates, comment periods,
+  end-of-life dates for the fleet and Patch Tuesday (P3). *S.*
+- **M23.7 One story per CVE.** News folds items that name the same CVE into one card, earliest
+  source first (P4). *M.*
+- **Later, if asked:** a CVE's life as a timeline (P6), advisories revised after publication (P5).
+- **Cut, proposed:** M16's "a run as data" (pass/fail, evidence and tester per step): evidence and
+  audit tracking is what `docs/COMPETITION.md` leaves to others, and it brings personal data.
+  *Decision for the owner.*
+
+- **Depends on**: M21. **Thin slice**: M23.1's strip and window, M23.3, about a day.
+- **Done when**: the four mockups are pages on cybercard.net, and an owner who has been away a week
+  can see on one screen what moved, what is due, and what they decided that no longer matches.
+
 ### The order, and what the dates are worth
 
 ```
-M21 say only what is true ──► M22 easy to read ──► everything below, M19 above all
+M21 say only what is true ──► M22 easy to read ──► M23 the morning page ──► everything below, M19 above all
 
 M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
                   ├──► M15 Mine ──────► M16 evidence ───────┤
@@ -1560,6 +1621,7 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 | --- | --- | --- | --- |
 | M21 Say only what is true | first | 6 days; thin slice 1 day | Three fresh sweeps each of code, bugs and security empty on the released code. |
 | M22 Easy to read, quick to use | after M21 | 6 days; thin slice 1 day | The audit's ten visitor tasks finish without a stall, at phone width too. |
+| M23 The morning page | after M22 | 5 days; thin slice 1 day | The four mockups of 10 November live, and a week away fits on one screen. |
 | M13 The platform keeps itself | 2026-10-25 | 3 days | A dated restore, a bounded database, one release command. |
 | M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
 | M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |
