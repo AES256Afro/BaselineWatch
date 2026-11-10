@@ -181,4 +181,18 @@ describe("the audit of 10 November", () => {
       await app.close();
     }
   });
+
+  it("keeps CISA's labelled notes, which the required action refers to", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { kevFor } = await import("../src/fix.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    const signals = { requiredAction: "Apply mitigations per BOD 26-04 (see URL in Notes).", notes: "https://vendor.example/advisory ; BOD 26-04: https://www.cisa.gov/bod-26-04 ; https://nvd.nist.gov/vuln/detail/CVE-2026-3000" };
+    db.prepare("INSERT INTO items (source_id, kind, external_id, title, published_at, fetched_at, signals_json) VALUES ('cisa-kev', 'kev', 'CVE-2026-3000', 'Vendor: flaw', '2026-11-01', '2026-11-01', ?)").run(JSON.stringify(signals));
+    expect(kevFor(db, "CVE-2026-3000")?.notes).toEqual([
+      { url: "https://vendor.example/advisory", label: null },
+      { url: "https://www.cisa.gov/bod-26-04", label: "BOD 26-04" },
+      { url: "https://nvd.nist.gov/vuln/detail/CVE-2026-3000", label: null },
+    ]);
+  });
 });

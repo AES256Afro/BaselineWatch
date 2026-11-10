@@ -104,7 +104,7 @@ export function alertHref(url: string | null): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    return u.pathname.startsWith("/") && /^\/(sources|vulnerabilities|standards|scan|register|digest|today)\b/.test(u.pathname) ? `${u.pathname}${u.search}${u.hash}` : url;
+    return /^\/($|(sources|vulnerabilities|standards|scan|register|digest|today)\b)/.test(u.pathname) ? `${u.pathname}${u.search}${u.hash}` : url;
   } catch {
     return url.startsWith("/") ? url : null;
   }

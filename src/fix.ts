@@ -42,7 +42,7 @@ export interface Fix {
   cveId: string;
   references: FixReference[];
   advisories: FixAdvisory[];
-  kev: { requiredAction: string | null; dueDate: string | null; dateAdded: string | null; name: string | null; notes?: string[] } | null;
+  kev: { requiredAction: string | null; dueDate: string | null; dateAdded: string | null; name: string | null; notes?: { url: string; label: string | null }[] } | null;
   packages: { ecosystem: string; name: string; fixed: string[]; advisory: string }[];
   mitigations: Mitigation[];
   /** What the public exploit indexes hold for this CVE (src/exploits.ts): not a fix, but the reason to want one today. */
@@ -157,7 +157,17 @@ export function kevFor(db: DatabaseSync, cveId: string): Fix["kev"] {
   const s = parseJson<{ requiredAction?: string; dueDate?: string; notes?: string }>(row.signals_json, {});
   // CISA's notes field holds the addresses the required action refers to ("see URL in Notes"),
   // separated by " ; ". Only web addresses are kept.
-  const notes = (s.notes ?? "").split(/\s*;\s*/).map((n) => n.trim()).filter((n) => /^https?:\/\/\S+$/i.test(n)).slice(0, 8);
+  // Most parts are a bare address; some carry a label ("BOD 26-04: https://..."), kept as the text.
+  const notes = (s.notes ?? "")
+    .split(/\s*;\s*/)
+    .map((n) => {
+      const url = /(https?:\/\/\S+)/i.exec(n)?.[1];
+      if (!url) return null;
+      const label = n.slice(0, n.indexOf(url)).replace(/[:\s]+$/, "").trim();
+      return { url, label: label || null };
+    })
+    .filter((n): n is { url: string; label: string | null } => n !== null)
+    .slice(0, 8);
   const fromSummary = /Required action:\s*(.+)$/s.exec(row.summary ?? "")?.[1]?.trim() ?? null;
   return { requiredAction: s.requiredAction ?? fromSummary, dueDate: s.dueDate ?? null, dateAdded: row.published_at ? row.published_at.slice(0, 10) : null, name: row.title.split(": ").slice(1).join(": ") || row.title, notes };
 }
