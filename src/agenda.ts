@@ -3,7 +3,7 @@ import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
 import { movedInWindowSql } from "./vulns.ts";
-import { counted } from "./words.ts";
+import { counted, epssPercent } from "./words.ts";
 
 /**
  * What to do next, and what the window's vulnerabilities are about.
@@ -233,7 +233,7 @@ export function nextActions(db: DatabaseSync, options: AgendaOptions): Action[] 
         actions.push({
           kind: "look",
           title: `${row.cveId}${row.description ? `: ${row.description.slice(0, 90)}${row.description.length > 90 ? "…" : ""}` : ""}`,
-          why: `Moved in this window on ${platforms.slice(0, 3).join(", ") || "a platform you run"}${typeof row.epss === "number" ? ` · EPSS ${(row.epss * 100).toFixed(0)}%` : ""}${typeof row.cvss === "number" ? ` · CVSS ${row.cvss.toFixed(1)}` : ""}. Nothing is urgent in this window; this is what is worth a look.`,
+          why: `Moved in this window on ${platforms.slice(0, 3).join(", ") || "a platform you run"}${typeof row.epss === "number" ? ` · EPSS ${epssPercent(row.epss)}` : ""}${typeof row.cvss === "number" ? ` · CVSS ${row.cvss.toFixed(1)}` : ""}. Nothing is urgent in this window; this is what is worth a look.`,
           href: `/vulnerabilities/${row.cveId}`,
           itemId: null,
           at: null,

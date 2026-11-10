@@ -26,3 +26,9 @@ export function formatBytes(bytes: number): string {
   }
   return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
 }
+
+/** An EPSS probability as a percentage with the places it needs: "61%", "4.2%", "0.41%", "0.004%". */
+export function epssPercent(p: number): string {
+  const pct = p * 100;
+  return `${pct >= 10 ? pct.toFixed(0) : pct >= 1 ? pct.toFixed(1) : pct >= 0.1 ? pct.toFixed(2) : pct.toFixed(3)}%`;
+}

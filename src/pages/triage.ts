@@ -4,6 +4,7 @@ import { relativeTime } from "../time.ts";
 import { listTriage, stateLabel, triageCounts, triageInbox, triageStates, type TriageCard, type TriageKind, type TriageState } from "../triage.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
+import { epssPercent } from "../words.ts";
 
 /** The small form every page uses to move a subject to a state. */
 export function triageButtons(subject: { kind: TriageKind; id: number; key?: string }, current: TriageState | null, back: string, options: { compact?: boolean } = {}): Html {
@@ -46,7 +47,7 @@ function card(c: TriageCard, owner: boolean, now: Date, next?: TriageCard): Html
     <div class="chips">
       ${s.kev ? html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>` : ""}
       ${typeof s.cvss === "number" ? html`<span class="chip">CVSS ${s.cvss.toFixed(1)}</span>` : ""}
-      ${typeof s.epss === "number" ? html`<span class="chip epss">EPSS ${(s.epss * 100).toFixed(0)}%</span>` : ""}
+      ${typeof s.epss === "number" ? html`<span class="chip epss">EPSS ${epssPercent(s.epss)}</span>` : ""}
       ${c.due_at ? html`<span class="chip ${c.due_at < now.toISOString().slice(0, 10) && c.state !== "done" ? "kev" : ""}">due ${c.due_at}</span>` : ""}
     </div>
     ${c.note ? html`<div class="note">${c.note}</div>` : ""}

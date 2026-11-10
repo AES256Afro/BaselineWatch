@@ -5,7 +5,7 @@ import { latestExposure } from "./exposure.ts";
 import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 import { parseJson } from "./json.ts";
-import { counted } from "./words.ts";
+import { counted, epssPercent } from "./words.ts";
 
 /**
  * The digest: what moved since the last one, as plain text a notifier can carry and the
@@ -86,7 +86,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   mine(`Your stack: ${watched.length ? `${counted(watched.length, "CVE")} new or changed` : "no CVE changes"}`);
   for (const w of watched) {
     const labels = parseJson<string[]>(w.watch_labels_json, []).join(", ");
-    mine(`- ${w.cve_id} (${labels})${w.cvss_score !== null ? ` CVSS ${w.cvss_score.toFixed(1)}` : ""}${w.epss !== null ? ` EPSS ${(w.epss * 100).toFixed(0)}%` : ""}${w.kev ? " KEV" : ""}: ${w.fields} ${baseUrl}/vulnerabilities/${w.cve_id}`);
+    mine(`- ${w.cve_id} (${labels})${w.cvss_score !== null ? ` CVSS ${w.cvss_score.toFixed(1)}` : ""}${w.epss !== null ? ` EPSS ${epssPercent(w.epss)}` : ""}${w.kev ? " KEV" : ""}: ${w.fields} ${baseUrl}/vulnerabilities/${w.cve_id}`);
   }
   mine("");
 
