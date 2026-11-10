@@ -2,12 +2,11 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Config } from "../config.ts";
 import { countRows, databaseBytes } from "../db.ts";
 import { latestDigest } from "../digest.ts";
-import { figure, formatBytes, html, newTab, newTabIf } from "../html.ts";
+import { figure, formatBytes, html, newTabIf } from "../html.ts";
 import { recentAlerts } from "../notify.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import type { LookState } from "../look.ts";
-import { repositoryUrl } from "../version.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -178,15 +177,6 @@ export function renderHome({ config, db, migrations, owner, now, look }: HomeOpt
             <dt>Local model</dt><dd>${config.llmUrl ? "set, summaries badged as generated" : "off"}</dd>
             <dt>Schema</dt><dd>${migrations.length} migrations applied</dd>
           </dl>
-        </section>
-        <section class="box">
-          <h2><a href="${repositoryUrl}/blob/main/docs/PLAN.md" ${newTab}>What comes next</a></h2>
-          <ol class="plan">
-            <li><b>M3 Register.</b> OSCAL snapshots and the first real diff on this page: NIST SP 800-53 Release 5.1.1 to 5.2.0.</li>
-            <li><b>M4 Register.</b> DISA STIGs and Microsoft baselines, rule by rule and setting by setting.</li>
-            <li><b>M5 Explain.</b> The publisher's reason beside every change, and an optional badged summary.</li>
-          </ol>
-          <p class="small">The full plan is in the repository under <a href="${repositoryUrl}/blob/main/docs/PLAN.md" ${newTab}>docs/PLAN.md</a>.</p>
         </section>
       </aside>
     </div>`;

@@ -55,7 +55,7 @@ describe("pages", () => {
     expect(text).toContain('<h2><a href="/triage">Needs you</a></h2>');
     expect(text).toContain('<h2><a href="/?kind=kev">Known exploited, newest</a>');
     expect(text).toContain('<section class="box" id="instance">\n          <h2><a href="/health">This instance</a></h2>');
-    expect(text).toContain('<a href="https://github.com/AES256Afro/BaselineWatch/blob/main/docs/PLAN.md" target="_blank" rel="noopener">What comes next</a>');
+    expect(text).not.toContain("What comes next");
     expect(text).toMatch(/<a class="n" href="\/standards\/nist-sp-800-53">0 snapshots · 0 changes<\/a>/);
   });
 

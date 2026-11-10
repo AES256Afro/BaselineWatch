@@ -1382,9 +1382,170 @@ source's schedule, topic or name, OPML import and keyed sources (the rest of M20
   the Sources page shows those clicks. `git log -- data/ src/migrations/` over the window holds
   schema and features, not data.
 
+### M21: Say only what is true (planned 2026-11-05)
+
+Written after the audit of 2026-11-05 and numbered last, but it comes first in the order below and
+is a gate on 1.0. Twenty-four sweeps of code, bugs and security found about two hundred defects, and the
+ones that matter share a shape: **the site says something confident that is not so.** It is a
+security site, so a green row is a claim someone acts on. The full ledger, with file and line, is
+kept out of this public repository until its security rows are closed
+(`docs/audit-2026-11-05.local.md`, git-ignored); this section names classes, not recipes.
+
+**The audit's own rule was not met, and this says so.** A category was to leave the loop after
+three sweeps with nothing. Code ran ten, bugs seven, security seven; none came back empty, and the
+newest finding was the worst. Sweeping further over unfixed code finds more of the same, so the
+rule moves into this milestone's "Done when", where it can be met.
+
+Bold items are the ones to do first inside their step.
+
+- **M21.0 Ship what is already mended.** Live runs 0.54.0 with 43 migrations. The 28 October audit's
+  owner-data fixes sit in seventeen commits on an unmerged branch, unreleased for eight days.
+  **Merge, release, then the two clicks.** After deploy, a `backfill` for the 800-53 sources, since
+  history only loads into an empty source; first make `/learn` choose the current version by date,
+  as `latestDocument` does, because it takes the highest id and a backfill would make it announce
+  5.1.1+u3 as 800-53's newest. On the card: `BW_BASE_URL` back to cybercard.net (the
+  canonical address still names the abandoned domain) and the NVD key replaced or cleared (a week
+  of 404s; keyless answers).
+- **M21.1 The site stays up.** **One anonymous request can stop the process: a guard at that call,
+  and a top-level handler that logs.** Then the rest of the class: expensive work a stranger can
+  cause with no allowance, or an allowance that counts the wrong unit; regular expressions and
+  decompression that hostile bytes make slow or fatal; no cap per fetch; a VACUUM failure that
+  repeats the whole weekly pass every minute; a port that will not bind reported as listening.
+- **M21.2 Nothing of the owner's leaks by inference.** The alert log, the watch-only CVEs in the
+  News, watched package names, the calendar's mark, the feed's cache header, the LAN resolver on
+  three more pages, restricted names and values on two more surfaces, error text on `/sources`.
+  Two are the owner's decisions, below. Outbound: public-only on every fetch, and the anonymous
+  domain check's reach narrowed. A session that survives a password change ends with it.
+- **M21.3 A verdict is earned or it says unknown.** **The device check misses every Debian, Ubuntu,
+  Rocky and Alpine advisory filed under a source package; a third of sampled canaries no longer
+  exist and read as "blocked"; DNSSEC always reads n/a.** Also Windows Server judged as a desktop
+  release, Edge against Chrome, ESR against mainstream, a DNS timeout read as "no MX", SPF and DKIM
+  edge cases, the offline banner, and a source that reads nothing while reporting ok. The rule to
+  hold: no check that could not run may draw green.
+- **M21.4 The register says what the publisher said.** **Only the first XCCDF in a package is read
+  (233 rules missing); 385 statements carry a raw `{{ insert: param }}`; Rev 4 shows no withdrawn
+  controls.** Also half the assessment objectives empty, conversion noise read as "revised", a
+  severity change read as editorial, today's planning note filed as a release's reason, draft PDF
+  margin numbers, `modified` rows with no visible difference. A lost version must not read as
+  "unchanged": a snapshot and its document commit together, and a partial failure is a failure.
+- **M21.5 The table tells the truth about CVEs.** **"All of them, in the table" is 141 of 1,780 KEV
+  entries on live; EPSS is stored to two places, so most read 0.00%; 7,100 rejected CVEs read as
+  live.** Also unverified PoCs ranked as exploits, the fight with NVD over status counted as
+  movement, arrivals counted as new on the cards and in the digest, counts that are a capped list's
+  length, Cisco IOS XE filed under Apple, kernel CVEs with no platform.
+- **M21.6 The builder keeps its word.** **Changing the STIG and rebuilding unticks the whole section
+  (Server 2025: 0 of 31 CAT I, in the export too); Ubuntu's test plan runs RHEL's checks; Android's
+  keys match nothing.** Also non-default STIGs that cannot be decided, four mitigations that match
+  no rule, Intune matched by substring, a visitor's export that says it is whole and is not.
+- **M21.7 What is there can be found.** News loses "Older" after any fold; `V-` and `WN11-` ids and
+  the Microsoft rows are not searched; `AC-2(1)`, `AC-02`, `KB5127648` find nothing; 44 of 60 SCT
+  links 404 for want of encoding; a real CVE not in the table says "does not exist in this build"
+  rather than where to read it; the vulnerability feed is in risk order though it says newest; RSS
+  links are relative; `?platform=chrome` is a 500.
+- **M21.8 What it teaches is right.** CMMC Level 2 is tied to 800-171 Rev 3 where 32 CFR 170 pins
+  Rev 2, and it allows self-assessment; 800-171 does not derive from DFARS 7012; SMBGhost is not
+  SMBv1; two test plans fail on correct systems; the dead links and wrong access labels in
+  `src/authorities.ts`; MITRE's notice in the footer; the home page still lists M3 to M5 as next.
+- **M21.9 The watchdogs watch.** **The nightly probes can never report, because `tee` swallows the
+  exit code: they stay green with CISA at 403.** A failed source retries every thirty minutes
+  forever with no backoff and no `Retry-After`, roughly 680 requests to a 410 by calculation; failure advice covers
+  two cases of many; the alert is marked sent when nothing was sent; the CLI consumes alerts it
+  cannot deliver. `docker-compose.yml` pins 0.24.0 and passes no password through; the release
+  command will tag from any branch; rollback is unwritten; M13's status line overstates.
+- **M21.10 Dead weight, and the tests that would have caught this.** Remove what no longer works
+  (below); the dead schema, exports, CSS and fixtures; the three version compares and five entity
+  decoders; JSON columns read outside `src/json.ts`. Tests: suite order-independent, a walk that
+  every POST is gated, the scheduler's tick, a migration on a populated database, each phrase in
+  `data/mitigations.yaml` matches a rule, each fleet document key resolves, a fixture per class
+  above replaying the failure.
+
+**Decisions for the owner.** (a) Is the triage board public teaching or private work? "Affects us"
+states the stack, and the board, its counts and each decision's value are all visible to visitors.
+(b) CIS and Microsoft text is read anonymously on a public instance; AGENTS.md says "quoted on
+screen", yet a visitor's page is redistribution in any ordinary reading. Both change M21.2's size.
+
+- **Depends on**: nothing. **Thin slice**: M21.0, then the first bold item of M21.1, M21.3, M21.5,
+  M21.6 and M21.9, about a day.
+- **Done when**: a release carrying M21 is on cybercard.net; every ledger row is closed by a test
+  or a written decision; the full ledger is then moved into this repository; **and three fresh
+  sweeps each of code, bugs and security, by readers who were not told the findings, come back
+  empty on the released code.**
+
+### M22: Easy to read, quick to use (planned 2026-11-05)
+
+Stage two of the same audit: three sweeps each of readability, usability, visual design, quality
+of life, features and optimisation, measured on real data, in a real browser where the look was the
+point. The release page (`/standards/nist-sp-800-53/11`: the publisher's words first, chips, grouped
+tables) is the best page on the site, and the pattern the others should copy. Comes after M21: there
+is no use making a false figure easier to read. All items are small unless marked.
+
+- **M22.1 A newcomer can follow it.** CVE, KEV, SSVC, CPE, CWE and "canary" defined where they are
+  first used. "Your network" is the server's, and the footer's "your own licence" is the owner's: say
+  so. A visitor is not addressed as if they had a fleet. One name for the change register, which
+  also collides with The Register. "Public exploits" leaves the Fix panel, where a reader looking
+  for a patch is sent to attack code. No `(s)`, no `5.2.0 → 5.2.0`, no milestone numbers on public
+  pages. Pages open on the content: the table above its cards, the check and fix above the
+  discussion.
+- **M22.2 A question gets an answer.** A CVE not held here says where to read it. From/to compare,
+  previous and next on a release. Breadcrumbs on rule pages. Learn and Guide get an index and a way
+  back. Named `details` so one menu closes another.
+- **M22.3 A link stays good.** `/standards/nist-sp-800-53/5.2.0/ac-2` and a current-version address
+  rather than a row id; an old version says a newer exists. A "data as of" line that goes amber when
+  late, and `/health` derives `ok` rather than hard-coding it. A control's page across every version,
+  its own feed, a citation carrying the snapshot hash. Printing opens the folds. *Medium.*
+- **M22.4 The phone.** The CVE table stacks instead of hiding everything after the id. The masthead
+  stops taking three rows. Fix the 8 px overflow (`.filters`). `tabindex` on scrolling tables.
+- **M22.5 AA in fact.** Token fixes for the contrast failures in both looks (sev chips, amber and
+  cyan on paper, the "new" chip at 1.71), field borders, Atlas's `role="img"` over 285 links and its
+  colour-only dots, hero titles over pale images.
+- **M22.6 The owner's morning.** Opening a story marks it read, and acting on a card stays on the
+  card. Done on every card. Bulk triage from the table with one no-script form. "Since your last
+  visit" as the default window. Notes that keep a timestamp. A failing source can be silenced until
+  a date, with a reason. Check and fix keep their line breaks as code. A self-completing first-run
+  checklist on Today, because six pages, eleven fields and a redeploy is why the setup has sat undone
+  for two weeks, and silence currently reads as "nothing touches you". *Medium.*
+- **M22.7 It feels quick.** Gzip when nothing in front does. The per-CVE LIKE on News becomes one
+  map. The ingest runs off the web thread, since EPSS blocks about a second daily and exploit-db up
+  to 1.5 s. Batches of 2,000. Thumbnails at ingest are the largest saving (5 MB to under 300 KB at
+  desktop width, about 800 MB of disk) but a native image library parses hostile files: *decide
+  first*. Drop the italic face loaded for one word. Snapshots gzipped at rest. *Medium.*
+- **M22.8 Hold it.** Ratcheting lint on conditional-dense lines, template depth and owner checks
+  inside templates; strip owner data before a template rather than in it; one severity chip for
+  seven mappings; `mountDesk` split by area; page files named by route; the plan's status table moved
+  under its title; the README opens on a screenshot and the live address.
+
+**New capability, ranked by value over effort.** Any two versions compared by URL. NIST's informative
+references as crosswalks, through the pipeline so a changed mapping is a change. A monthly "what
+changed in the standards" at `/register/2026-11`, generated from rows with no model, which is the
+one thing here nobody else has. A built baseline exported as an OSCAL profile, by control id so no
+licensed text leaves. CISA Vulnrichment, listed in `docs/SOURCES.md` and never read. A KEV-only link
+from CVE to technique to control to STIG rule through CTID's mappings, labelled derived and never
+"mitigates". **Refused, with reasons**: SCF (CC BY-ND forbids it), CCF (no licence named), email
+alerts (a subscriber list is personal data; RSS does it), model tagging (the no-model rule).
+
+**Coverage a reader would miss, sources fetched and parsed in the audit.** DoD SRGs (29 packages in
+the DISA listing, none stored); CSF 2.0, SP 800-218 and 800-172r3 from NIST's OSCAL repository through
+the adapter already there; Australia's ISM (CC BY 4.0, OSCAL); the rest of 800-53A, which needs no
+source, only the assessment parts the parser drops; Google Cloud's bulletins as a feed row; the CMMC
+rule itself through the eCFR API. Worth dropping: a disabled duplicate of Talos, and a CISA ICS feed
+wholly inside the CISA feed, which also doubles the trending counts.
+
+**Decisions for the owner, on what to take away.** Nobody has measured whether anyone reads this,
+so first add a count with no address and no cookie: day, route template, referrer host, bot or
+human. Then, as candidates and not decisions: move the canary lists under Scan, since `/register`
+opens on ad blocklists rather than on 800-53; the Reddit feeds; ten of the eleven report looks; the
+network and exposure checks out of public menus; MCP once the counts are in.
+
+- **Depends on**: M21. **Thin slice**: M22.1's wording, the table-first order, a CVE not held, `data
+  as of`, gzip, about a day.
+- **Done when**: the ten visitor tasks of the audit each finish without a stall, at phone width too,
+  and three fresh sweeps of each lens find nothing above their bar.
+
 ### The order, and what the dates are worth
 
 ```
+M21 say only what is true ──► M22 easy to read ──► everything below, M19 above all
+
 M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
                   ├──► M15 Mine ──────► M16 evidence ───────┤
                   ├──► M17 teaching site ───────────────────┼──► M19 1.0
@@ -1397,6 +1558,8 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 
 | Milestone | Target | Size | Gate to the next |
 | --- | --- | --- | --- |
+| M21 Say only what is true | first | 6 days; thin slice 1 day | Three fresh sweeps each of code, bugs and security empty on the released code. |
+| M22 Easy to read, quick to use | after M21 | 6 days; thin slice 1 day | The audit's ten visitor tasks finish without a stall, at phone width too. |
 | M13 The platform keeps itself | 2026-10-25 | 3 days | A dated restore, a bounded database, one release command. |
 | M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
 | M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |

@@ -263,7 +263,7 @@ here**, not here. A seeded source may also declare fallback addresses for the sa
   sections (Description, Rationale, Audit, Remediation, Default Value, CIS Controls), and the
   Remediation is the diffed statement. A renumbered recommendation shows as removed plus added.
 
-### ComplianceAsCode/content
+### ComplianceAsCode/content (not read; its row was removed by migration 0052)
 - **Fetch**: `https://github.com/ComplianceAsCode/content` (git). Open-source STIG, CIS, PCI,
   ANSSI profiles as YAML rules.
 - **Shape**: `requirement-set`; the git history is the diff.

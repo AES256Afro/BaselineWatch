@@ -24,7 +24,7 @@ function hintFor(s: SourceRow, adapter: Adapter | null): Html {
   if (s.format === "pdf-upload") {
     return html`<div class="note">Loaded by hand: get the PDF from <a href="https://workbench.cisecurity.org/" ${newTab}>CIS WorkBench</a> (free registration) under your licence, then upload it on <a href="/standards/${s.id}">the benchmark page</a>.</div>`;
   }
-  if (!adapter && s.enabled) {
+  if (!adapter && s.enabled && s.schedule !== "manual") {
     return html`<div class="note">Planned: this source is registered but no adapter reads it yet, so it is skipped. It arrives in a later release; nothing to do here.</div>`;
   }
   return html``;
@@ -168,7 +168,7 @@ export function renderSources({ db, owner, open, notice, look, now = new Date() 
           return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">
             <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.origin === "owner" ? html` <span class="small">added here</span>` : ""}${s.notes ? aboutNote(s.notes) : ""}</td>
             <td>${s.format}</td>
-            <td>${s.enabled ? s.schedule : "off"}${adapter ? "" : html`<div class="note">no adapter yet</div>`}</td>
+            <td>${s.enabled ? s.schedule : "off"}${adapter || s.schedule === "manual" ? "" : html`<div class="note">not read yet</div>`}</td>
             <td class="n"><a href="/?source=${s.id}">${s.item_count}</a></td>
             <td>${s.last_fetch_at
               ? html`${shortStamp(s.last_fetch_at)} <span class="status ${s.last_status ?? ""}">${s.last_status ?? ""}</span>${s.last_duration_ms !== null ? html` <span class="small">${s.last_duration_ms} ms</span>` : ""}`

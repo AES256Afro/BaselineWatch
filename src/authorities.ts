@@ -319,7 +319,7 @@ export const authorities: Authority[] = [
     because: "The half of the catalogue people forget. A control says what must be true; 800-53A says what would convince somebody that it is.",
     derivesFrom: ["sp-800-53"],
     links: [{ label: "SP 800-53A Rev. 5", href: "https://csrc.nist.gov/pubs/sp/800/53/a/r5/final", access: "public" }],
-    tracked: "nist-sp-800-53a",
+    tracked: "nist-sp-800-53",
   },
   {
     id: "sp-800-171",

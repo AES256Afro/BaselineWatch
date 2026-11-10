@@ -113,7 +113,7 @@ describe("adapter registry", () => {
     expect(adapterFor({ id: "cvelist-v5", format: "json" })?.id).toBe("cvelist");
     expect(adapterFor({ id: "disa-stigs", format: "xccdf-zip" })?.id).toBe("disa-stig");
     expect(adapterFor({ id: "cis-benchmarks", format: "pdf-upload" })?.id).toBe("cis");
-    expect(adapterFor({ id: "complianceascode", format: "git" })).toBeNull();
+    expect(adapterFor({ id: "internetdb", format: "git" })).toBeNull();
   });
 });
 
