@@ -158,15 +158,18 @@ export function kevFor(db: DatabaseSync, cveId: string): Fix["kev"] {
   // CISA's notes field holds the addresses the required action refers to ("see URL in Notes"),
   // separated by " ; ". Only web addresses are kept.
   // Most parts are a bare address; some carry a label ("BOD 26-04: https://..."), kept as the text.
+  // Every address is kept, wherever it sits: a part may hold several, or one in parentheses
+  // ("Reference CISA's ED 21-04 (https://...)"). A label is the text right before "Label: https",
+  // never a cut-off phrase.
   const notes = (s.notes ?? "")
     .split(/\s*;\s*/)
-    .map((n) => {
-      const url = /(https?:\/\/\S+)/i.exec(n)?.[1];
-      if (!url) return null;
-      const label = n.slice(0, n.indexOf(url)).replace(/[:\s]+$/, "").trim();
-      return { url, label: label || null };
-    })
-    .filter((n): n is { url: string; label: string | null } => n !== null)
+    .flatMap((part) =>
+      [...part.matchAll(/https?:\/\/[^\s)<>"]+/gi)].map((m) => {
+        const url = m[0].replace(/[.,;:]+$/, "");
+        const labelled = /^([^():]{2,60}):\s*$/.exec(part.slice(0, m.index));
+        return { url, label: labelled ? labelled[1]!.trim() : null };
+      }),
+    )
     .slice(0, 8);
   const fromSummary = /Required action:\s*(.+)$/s.exec(row.summary ?? "")?.[1]?.trim() ?? null;
   return { requiredAction: s.requiredAction ?? fromSummary, dueDate: s.dueDate ?? null, dateAdded: row.published_at ? row.published_at.slice(0, 10) : null, name: row.title.split(": ").slice(1).join(": ") || row.title, notes };

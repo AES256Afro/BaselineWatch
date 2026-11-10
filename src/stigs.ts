@@ -247,6 +247,15 @@ export interface KevEntry {
 }
 
 /** CISA's KEV entries whose vendor and product belong to a platform, newest first. */
+/**
+ * An Apple entry filed under macOS that also affects iOS or iPadOS: "Multiple Products" (54 of the
+ * catalogue's Apple entries) and any product naming iOS. kevPlatform gives one platform; the
+ * Mobile page needs these too.
+ */
+function appleAlsoMobile(vendor: string | undefined, product: string | undefined): boolean {
+  return (vendor ?? "").trim().toLowerCase() === "apple" && /multiple products|\bios\b|ipados/i.test(product ?? "");
+}
+
 export function kevForPlatform(db: DatabaseSync, platform: PlatformId, limit = 12): { entries: KevEntry[]; total: number } {
   const rows = db
     .prepare("SELECT id, external_id, title, url, published_at, signals_json FROM items WHERE kind = 'kev' ORDER BY published_at DESC, id DESC")
@@ -255,7 +264,7 @@ export function kevForPlatform(db: DatabaseSync, platform: PlatformId, limit = 1
   let total = 0;
   for (const r of rows) {
     const s = parseJson<{ vendor?: string; product?: string; dueDate?: string; ransomware?: boolean }>(r.signals_json, {});
-    if (kevPlatform(s.vendor, s.product) !== platform) continue;
+    if (kevPlatform(s.vendor, s.product) !== platform && !(platform === "mobile" && appleAlsoMobile(s.vendor, s.product))) continue;
     total += 1;
     if (entries.length < limit) {
       entries.push({ id: r.id, cve: r.external_id, title: r.title, url: r.url, publishedAt: r.published_at, dueDate: s.dueDate ?? null, ransomware: s.ransomware === true, vendor: s.vendor ?? null, product: s.product ?? null });

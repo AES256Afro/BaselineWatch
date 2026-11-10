@@ -187,12 +187,25 @@ describe("the audit of 10 November", () => {
     const { kevFor } = await import("../src/fix.ts");
     const db = openDatabase(":memory:");
     migrate(db);
-    const signals = { requiredAction: "Apply mitigations per BOD 26-04 (see URL in Notes).", notes: "https://vendor.example/advisory ; BOD 26-04: https://www.cisa.gov/bod-26-04 ; https://nvd.nist.gov/vuln/detail/CVE-2026-3000" };
+    const signals = { requiredAction: "Apply mitigations per BOD 26-04 (see URL in Notes).", notes: "https://vendor.example/advisory ; BOD 26-04: https://www.cisa.gov/bod-26-04 ; Reference CISA's ED 21-04 (https://www.cisa.gov/ed-21-04). https://nvd.nist.gov/vuln/detail/CVE-2026-3000" };
     db.prepare("INSERT INTO items (source_id, kind, external_id, title, published_at, fetched_at, signals_json) VALUES ('cisa-kev', 'kev', 'CVE-2026-3000', 'Vendor: flaw', '2026-11-01', '2026-11-01', ?)").run(JSON.stringify(signals));
     expect(kevFor(db, "CVE-2026-3000")?.notes).toEqual([
       { url: "https://vendor.example/advisory", label: null },
       { url: "https://www.cisa.gov/bod-26-04", label: "BOD 26-04" },
+      { url: "https://www.cisa.gov/ed-21-04", label: null },
       { url: "https://nvd.nist.gov/vuln/detail/CVE-2026-3000", label: null },
     ]);
+  });
+
+  it("lists Apple's multi-product KEV entries on the Mobile STIG page as well as macOS", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { kevForPlatform } = await import("../src/stigs.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    const add = db.prepare("INSERT INTO items (source_id, kind, external_id, title, published_at, fetched_at, signals_json) VALUES ('cisa-kev', 'kev', ?, 'Apple: flaw', '2026-11-01', '2026-11-01', ?)");
+    add.run("CVE-2026-4000", JSON.stringify({ vendor: "Apple", product: "Multiple Products" }));
+    add.run("CVE-2026-4001", JSON.stringify({ vendor: "Apple", product: "macOS" }));
+    expect(kevForPlatform(db, "mobile").entries.map((e) => e.cve)).toEqual(["CVE-2026-4000"]);
+    expect(kevForPlatform(db, "macos").total).toBe(2);
   });
 });
