@@ -84,13 +84,16 @@ first=1
 if [ "$family" = "linux" ]; then
   if command -v dpkg-query >/dev/null 2>&1; then
     source=dpkg
-    dpkg-query -W -f='${Package} ${Version}\n' 2>/dev/null | while read -r n v; do [ -n "$n" ] && pair "$n" "$v"; done
+    # Source package names and versions: Debian's and Ubuntu's advisories (and OSV's copies of
+    # them) are filed under the source package, so libssl3 is asked as openssl.
+    dpkg-query -W -f='${source:Package} ${source:Version}\n' 2>/dev/null | sort -u | while read -r n v; do [ -n "$n" ] && pair "$n" "$v"; done
   elif command -v rpm >/dev/null 2>&1; then
     source=rpm
     rpm -qa --qf '%{NAME} %|EPOCH?{%{EPOCH}:}|%{VERSION}-%{RELEASE}\n' 2>/dev/null | while read -r n v; do [ -n "$n" ] && pair "$n" "$v"; done
   elif command -v apk >/dev/null 2>&1; then
     source=apk
-    apk list -I 2>/dev/null | sed 's/ .*//' | sed 's/-\([0-9][^-]*-r[0-9]*\)$/ \1/' | while read -r n v; do [ -n "$n" ] && pair "$n" "$v"; done
+    # The origin package, which is what Alpine's secdb files advisories under: "name-1.2-r3 arch {origin} ...".
+    apk list -I 2>/dev/null | sed -n 's/^.*-\([0-9][^-]*-r[0-9]*\) [^ ]* {\([^}]*\)}.*/\2 \1/p' | sort -u | while read -r n v; do [ -n "$n" ] && pair "$n" "$v"; done
   fi
 fi
 printf '],"package_source":"%s"}\n' "$source"
