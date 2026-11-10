@@ -80,4 +80,24 @@ describe("the audit of 10 November", () => {
       await app.close();
     }
   });
+
+  it("fills a KEV-only row from the CVE list and NVD without calling an old CVE news", async () => {
+    const { migrate, openDatabase } = await import("../src/db.ts");
+    const { applyKev, getVuln, vulnChanges } = await import("../src/vulns.ts");
+    const { storeCvelistRecords } = await import("../src/adapters/cvelist.ts");
+    const { storeNvdRecords } = await import("../src/adapters/nvd.ts");
+    const db = openDatabase(":memory:");
+    migrate(db);
+    const id = "CVE-2021-40444";
+    applyKev(db, [{ cveId: id, dateAdded: "2021-11-03", dueDate: "2021-11-17", ransomware: true, description: "MSHTML RCE.", vendor: "Microsoft", product: "MSHTML" }], "2026-11-10T10:00:00.000Z");
+    expect(getVuln(db, id)?.vuln_status).toBe("KEV only");
+    const record = { dataType: "CVE_RECORD", cveMetadata: { cveId: id, state: "PUBLISHED", datePublished: "2021-09-07T00:00:00Z", dateUpdated: "2026-11-10T09:00:00Z" }, containers: { cna: { descriptions: [{ lang: "en", value: "Microsoft MSHTML Remote Code Execution Vulnerability" }], references: [] } } };
+    storeCvelistRecords({ db, now: () => new Date("2026-11-10T11:00:00Z") }, [record] as unknown as Parameters<typeof storeCvelistRecords>[1]);
+    expect(getVuln(db, id)?.published_at?.slice(0, 10)).toBe("2021-09-07");
+    const nvd = { cve: { id, sourceIdentifier: "secure@microsoft.com", published: "2021-09-15T12:15:00.000", lastModified: "2026-11-10T11:30:00.000", vulnStatus: "Analyzed", descriptions: [{ lang: "en", value: "Microsoft MSHTML Remote Code Execution Vulnerability" }], metrics: { cvssMetricV31: [{ type: "Primary", source: "nvd@nist.gov", cvssData: { version: "3.1", vectorString: "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H", baseScore: 8.8, baseSeverity: "HIGH" } }] }, cisaExploitAdd: "2021-11-03", cisaActionDue: "2021-11-17" } };
+    storeNvdRecords({ db, now: () => new Date("2026-11-10T12:00:00Z") }, [nvd] as unknown as Parameters<typeof storeNvdRecords>[1]);
+    expect(getVuln(db, id)).toMatchObject({ vuln_status: "Analyzed", cvss_score: 8.8, kev: 1 });
+    expect(vulnChanges(db, id)).toEqual([]);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM items WHERE external_id LIKE ?").get(`%${id}%`)).toEqual({ n: 0 });
+  });
 });

@@ -289,6 +289,9 @@ export const httpGet: HttpGet = async (url, options = {}) => {
   // Redirects are followed by hand when each hop must be vetted, or refused when asked; fetch follows the rest itself.
   const byHand = options.publicOnly === true || options.redirect === "manual";
   const signal = AbortSignal.timeout(options.timeoutMs ?? 30_000);
+  // One deadline for the request, redirects included: given afresh to each hop, a chain of five
+  // slow 302s made a 30 s timeout three minutes, and the scheduler waits on the slowest source.
+  const deadline = Date.now() + (options.timeoutMs ?? 30_000);
   const maxBytes = options.maxBytes ?? 25 * 1024 * 1024;
 
   let target = url;
@@ -296,7 +299,9 @@ export const httpGet: HttpGet = async (url, options = {}) => {
     let response: Reply;
     if (options.publicOnly) {
       const addresses = await assertPublicUrl(target);
-      response = await pinnedRequest(target, addresses[0]!, { method, headers, ...(body !== undefined ? { body } : {}), timeoutMs: options.timeoutMs ?? 30_000 });
+      const left = deadline - Date.now();
+      if (left <= 0) throw new Error(`${target}: timed out after ${options.timeoutMs ?? 30_000} ms across ${hop} redirects`);
+      response = await pinnedRequest(target, addresses[0]!, { method, headers, ...(body !== undefined ? { body } : {}), timeoutMs: left });
     } else {
       response = await viaFetch(target, { method, headers, ...(body !== undefined ? { body } : {}), redirect: byHand ? "manual" : "follow", signal });
     }

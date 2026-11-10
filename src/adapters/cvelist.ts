@@ -6,7 +6,7 @@
  * multi-hundred-megabyte "all CVEs" baseline is never loaded; older records arrive through NVD.
  */
 import { HttpError } from "../http.ts";
-import { loadWatchlist, upsertVuln, type NormalizedVuln, type VulnRow } from "../vulns.ts";
+import { kevSourceIdentifier, loadWatchlist, upsertVuln, type NormalizedVuln, type VulnRow } from "../vulns.ts";
 import { unzipAll } from "../zip.ts";
 import type { Adapter, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
@@ -133,6 +133,9 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
   const touch = ctx.db.prepare(
     "UPDATE vulns SET description = COALESCE(?, description), vuln_status = ?, published_at = COALESCE(published_at, ?), last_modified_at = ?, last_seen_at = ? WHERE cve_id = ?",
   );
+  const fillKevRow = ctx.db.prepare(
+    "UPDATE vulns SET description = COALESCE(?, description), vuln_status = ?, published_at = COALESCE(?, published_at), last_modified_at = ?, last_seen_at = ? WHERE cve_id = ?",
+  );
   const change = ctx.db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, ?, ?, ?, ?)");
   ctx.db.exec("BEGIN IMMEDIATE");
   try {
@@ -145,6 +148,10 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
         inserted += 1;
       } else if (existing.source_identifier === "cvelist-v5") {
         if (upsertVuln(ctx.db, n, observedAt, watch).changes.length) updated += 1;
+      } else if (existing.source_identifier === kevSourceIdentifier) {
+        // A row the KEV catalogue made: the CNA's words and real publication date replace the
+        // catalogue's stand-ins quietly. The CVE is years old, not news; NVD's record still fills it in.
+        fillKevRow.run(n.description, n.vulnStatus, n.publishedAt, n.lastModifiedAt, observedAt, n.cveId);
       } else if (!hasNvdData(existing)) {
         // An NVD row still awaiting analysis: lend it the CNA's words and dates, nothing more.
         const moved = (n.description !== null && n.description !== existing.description) || (existing.vuln_status ?? null) !== n.vulnStatus;

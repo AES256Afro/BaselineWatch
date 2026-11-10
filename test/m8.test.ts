@@ -182,7 +182,8 @@ describe("uploads and the API over HTTP", () => {
     const one = (await (await fetch(`${app.base}/api/v1/vulns/cve-2021-44228`)).json()) as { cve: string; cpes: string[]; history: { field: string }[] };
     expect(one.cve).toBe("CVE-2021-44228");
     expect(one.cpes.length).toBeGreaterThan(0);
-    expect(one.history[0]?.field).toBe("new");
+    // KEV ran first here, so NVD's record filled in a catalogue row: no arrival is reported for a CVE years old.
+    expect(one.history.map((h) => h.field)).not.toContain("new");
     expect((await fetch(`${app.base}/api/v1/vulns/CVE-2026-0`)).status).toBe(404);
 
     const standards = (await (await fetch(`${app.base}/api/v1/standards`)).json()) as { standards: { id: string; versions: { version: string | null; url: string }[] }[] };

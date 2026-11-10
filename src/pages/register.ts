@@ -368,7 +368,9 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
       : html``;
 
   const field = (name: string, label: string, b: string | null, a: string | null): Html => {
-    const changed = changedFields.has(name) || (b ?? "") !== (a ?? "");
+    // The differ's verdict, not a raw string compare: it reads whitespace as no change, and a page
+    // that disagreed called a double space swapped for one a revised control.
+    const changed = changedFields.has(name);
     if (!b && !a) return html``;
     if (!changed || kind === "first") {
       return html`<section class="field"><h3>${label}</h3><p class="prose">${lines(a ?? b)}</p></section>`;

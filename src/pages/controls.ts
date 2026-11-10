@@ -211,7 +211,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
           <p class="small">A control is not a fixed thing: publishers revise the text, move a rule between severities, add and withdraw. The change register keeps every version and shows each control before and after, with the publisher's stated reason.</p>
           ${moved.length
             ? html`<ul class="latest">${moved.map(
-                (r) => html`<li><a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}</a><span class="when">${r.changeCount === 0 ? "first version" : `${r.changeCount} changed`} · ${relativeTime(r.at, now)}</span></li>`,
+                (r) => html`<li><a href="/standards/${r.sourceId}/${r.documentId}">${r.name}${r.versionLabel ? html` ${r.versionLabel}` : ""}</a><span class="when">${r.changeCount > 0 ? `${r.changeCount} changed` : r.previousId === null ? "first version" : "no control-level changes"} · ${relativeTime(r.at, now)}</span></li>`,
               )}</ul>`
             : html`<p class="small">No release has been read yet.</p>`}
         </section>

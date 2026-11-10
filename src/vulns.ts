@@ -232,7 +232,9 @@ export function upsertVuln(db: DatabaseSync, n: NormalizedVuln, observedAt: stri
   const changes: VulnChange[] = [];
   // A row the KEV catalogue made before NVD sent one: NVD filling it in is not a change to report,
   // the catalogue's own item was the news.
-  const placeholder = existing?.vuln_status === kevOnlyStatus;
+  // Known by the column the catalogue sets and no other source writes: cvelist may already have
+  // replaced the status before NVD's record arrives.
+  const placeholder = existing?.source_identifier === kevSourceIdentifier;
 
   if (placeholder) {
     // nothing: the first full record of a CVE already in the table
@@ -431,6 +433,8 @@ export function applyAdvisory(db: DatabaseSync, a: NormalizedAdvisory, observedA
 
 /** The status of a row the KEV catalogue made because NVD had not sent the CVE; NVD's first record replaces it. */
 export const kevOnlyStatus = "KEV only";
+/** The source_identifier of such a row; NVD's record replaces it with the CNA's. */
+export const kevSourceIdentifier = "CISA KEV";
 
 /**
  * Flags a CVE as in CISA's KEV from the KEV catalog, for CVEs NVD has not marked yet. An entry
@@ -446,11 +450,10 @@ export function applyKev(
   const insert = db.prepare(
     `INSERT INTO vulns (cve_id, source_identifier, published_at, last_modified_at, vuln_status, description, cwes_json, cpes_json, vendors_json, products_json,
         references_json, kev, kev_date_added, kev_due_date, kev_ransomware, watch_hit, first_seen_at, last_seen_at)
-     VALUES (?, 'CISA KEV', ?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, 0, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?, ?, 1, ?, ?, ?, 0, ?, ?)`,
   );
   const update = db.prepare("UPDATE vulns SET kev = 1, kev_date_added = COALESCE(kev_date_added, ?), kev_due_date = COALESCE(?, kev_due_date), kev_ransomware = ? WHERE cve_id = ?");
   const change = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'kev', NULL, ?)");
-  const arrived = db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, NULL, 'new', NULL, ?)");
   let flagged = 0;
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -460,6 +463,7 @@ export function applyKev(
         if (!cveIdPattern.test(e.cveId)) continue;
         insert.run(
           e.cveId,
+          kevSourceIdentifier,
           e.dateAdded ? `${e.dateAdded}T00:00:00.000Z` : observedAt,
           observedAt,
           kevOnlyStatus,
@@ -473,7 +477,6 @@ export function applyKev(
           observedAt,
           observedAt,
         );
-        arrived.run(e.cveId, observedAt, `in KEV${e.dueDate ? `, due ${e.dueDate}` : ""}; NVD's record not yet received`);
         continue;
       }
       update.run(e.dateAdded, e.dueDate, e.ransomware ? 1 : 0, e.cveId);
