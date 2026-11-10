@@ -2,6 +2,72 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.55.0 — 2026-11-10
+
+Three audits' worth of work (28 October, 5 November, 10 November) and the M20 thin slice. Two
+migrations re-read the KEV catalogue's rows on first start; the start-up log says how many.
+
+**Standards and the register**
+- 800-53: every published release of the catalogue, from the December 2020 errata to the two
+  republications of 5.2.0, with Revision 4 under its own key.
+- Publications are grouped by standard and series and folded; a superseded revision reads as an
+  earlier version.
+- A control's page calls a field changed only when the differ does; a republished version reads
+  "republished, nothing changed", not "first version"; a STIG release is headed by the STIG's title.
+- The site feeds itself (M20, thin slice): a feed is added on Sources and probed first, a pasted
+  home page offers the feeds it names, a failing source tries its fallbacks and proposes repairs.
+
+**Vulnerabilities**
+- Every KEV entry has a row in the table (141 of 1,780 did), with no stand-in publication date, its
+  platform read from CISA's own vendor and product, and a watchlist match.
+- Rejected CVEs are out of the table, its counts, Today and the cards; `?rejected=1` lists them.
+- EPSS is stored to FIRST's five places and shown with the places it needs (most read 0.00%).
+- A CVE with no row says where to read it and whether CISA lists it; search says the same.
+- CISA's notes on a KEV entry are shown with the required action that refers to them.
+- Patch Tuesday counts a CVE once per KB (3,025 read where 1,009 were meant).
+- Opening Vulnerabilities shows each platform's exploited and new CVEs; the watchlist is owner-only.
+- The table's headline counts are one pass over an index (about 80 ms to 41 ms for the page).
+
+**Search**
+- Rule labels (WN11-00-000020), STIG and Microsoft rows, control ids as typed (AC-02, AC-2(1)) and
+  a KB by number are found.
+
+**Today and the owner's desk**
+- Today counts only what its sentence says it counts; a first-run checklist reads the instance's
+  state and leaves when done; buttons return to the card acted on, or the next one.
+- Mark all read marks only what the page showed, including items that came back unread later.
+- A source turned back on starts a new failure episode; a failed alert send is retried hourly.
+- Triage notes show when they were saved; the alert log groups repeated failures.
+- The site's name, footer line, News subtitle and description are set on Branding → Wording.
+- The default look is Register (paper); Console is a choice on Appearance. An instance whose
+  `BW_LOOK` is set keeps that value.
+
+**Scan**
+- The device check asks OSV by source package on Debian, Ubuntu and Alpine (advisories filed under
+  `openssl` were missed when `libssl3` was asked). The inventory script and its SHA256SUMS changed.
+- Domain advice fits the finding: the DMARC record offered is one step on from the reader's own,
+  and TLS advice names the protocol, port or name problem it found.
+- Windows 10 22H2 support dates are read from endoflife.date's single cycle.
+- Traces: a device's saved data read against the spyware indicators, in the browser tab.
+
+**Robustness**
+- Hostile input from feeds and fetched pages is parsed in bounded time; a request can no longer hold
+  the process. The heavy public pages and the MCP endpoint carry per-address allowances.
+- Each fetch has one deadline across its redirects. A port that will not bind exits 1; an escaped
+  fault is logged. A failed VACUUM no longer reruns the weekly pass.
+- The nightly probes fail when a probe fails.
+- Owner data found public in the audit of 28 October (notes, decisions, domains, certificates,
+  saved searches, read state) is owner-only.
+
+**Pages and wording**
+- News: fourteen research and CERT feeds added; AI stories have their own beat and a switch to
+  hide them; three sources that never read anything removed.
+- No "(s)" anywhere; no milestone numbers on public pages; public exploits sit below the Fix panel.
+- The 404 page offers a search; the masthead menus close one another; at phone width a menu opens
+  across the screen and the Atlas scrolls sideways.
+- Plans: M21 and M22 status, M23 (Today window, control version history, monthly standards
+  changes) in `docs/PLAN.md`; four mockups in `docs/mockups/2026-11-10/`.
+
 ## 0.54.1 — 2026-11-05
 
 - **The domain check no longer stops the site.** It reads the certificate of the domain it is
