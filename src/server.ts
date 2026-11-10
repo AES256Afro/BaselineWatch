@@ -13,7 +13,7 @@ import { relinkSource } from "./register.ts";
 import { recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * Start: read the config, open and migrate the database, put every standard's versions in

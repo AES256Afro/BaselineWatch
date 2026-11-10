@@ -8,7 +8,7 @@ import { ingestSource, listSources, type IngestDeps, type IngestResult } from ".
 import { notify } from "./notify.ts";
 import { alertAfterHours, markAlerted, sourcesToAlert } from "./pipeline.ts";
 import { proposedRepairs } from "./repairs.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * The in-process scheduler: a tick a minute, the sources that are due fetched a few hosts at a time

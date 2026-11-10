@@ -4,6 +4,7 @@ import { parseJson } from "./json.ts";
 import { kbUrl, type MsrcFix } from "./msrc.ts";
 import { movedInWindowSql, notableInWindowSql, scopeSql, type AffectedPackage, type VulnRow } from "./vulns.ts";
 import type { PlatformChoice } from "./platforms.ts";
+import { counted } from "./words.ts";
 
 /**
  * Today's work, keyed by the remedy rather than by the CVE.
@@ -373,7 +374,8 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
  */
 export function fixListHeadline(list: FixList): string {
   if (list.considered === 0) return "No CVE that matters changed in this window";
-  const of = `this window's ${list.considered} CVE${list.considered === 1 ? "" : "s"}`;
+  // The list is capped; past the cap the sentence says which of how many it read, not a smaller window.
+  const of = list.total > list.considered ? `the ${list.considered} most urgent of this window's ${list.total} CVEs` : `this window's ${counted(list.considered, "CVE")}`;
   if (list.fixed === 0) return `No update to install yet for any of ${of}`;
   return `${list.fixed} of ${of} ${list.fixed === 1 ? "has" : "have"} an update you can install`;
 }

@@ -276,6 +276,7 @@ export function renderVulnDetail(options: { db: DatabaseSync; cveId: string; own
   const fix = fixesFor(db, fixContext(db), row);
 
   const content = html`
+    ${row.vuln_status === "Rejected" ? html`<p class="notice error" role="note"><b>Rejected.</b> The body that assigned this id has withdrawn it, usually as a duplicate or as not a vulnerability. It is left out of the table, the counts and Today; what follows is kept as history. <a href="/vulnerabilities?rejected=1">Other rejected ids</a>.</p>` : ""}
     <div class="vuln-head">
       <div>
         <h1>${row.cve_id}</h1>

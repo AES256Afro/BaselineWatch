@@ -262,15 +262,17 @@ export function gpoPathFromFix(fix: string | null): { path: string; setting: str
   // Read without a nested quantifier: the regex this replaces, (?:\s*>>\s*[^>"\n]+?)+, backtracked
   // exponentially on a fix with many ">>" and no closing quote, and a fix is stored text from a
   // downloaded package that a public page reads.
-  for (const start of fix.matchAll(/(?:Computer|User) Configuration/g)) {
-    const rest = fix.slice(start.index);
-    const end = /\s*>>\s*"([^"]+)"/.exec(rest);
-    if (!end) return null;
-    const parts = rest.slice(0, end.index).split(/\s*>>\s*/);
-    if (parts.length < 2 || parts[0] !== start[0] || parts.some((p) => p === "" || /[>"\n]/.test(p))) continue;
-    return { path: parts.join(" >> ").trim(), setting: end[1]!.trim() };
-  }
-  return null;
+  // A real fix names the path in its first few hundred characters; the cap bounds the rest.
+  const text = fix.slice(0, 8192);
+  // The end is found once, with no leading \s* to restart across a run of spaces, and is the same
+  // for every start before it.
+  const end = />>[ \t\r\n]*"([^"]+)"/.exec(text);
+  if (!end) return null;
+  const start = /(?:Computer|User) Configuration/.exec(text);
+  if (!start || start.index >= end.index) return null;
+  const parts = text.slice(start.index, end.index).trimEnd().split(/\s*>>\s*/);
+  if (parts.length < 2 || parts[0] !== start[0] || parts.some((p) => p === "" || /[>"\n]/.test(p))) return null;
+  return { path: parts.join(" >> ").trim(), setting: end[1]!.trim() };
 }
 
 const hiveShort: Record<string, string> = { HKEY_LOCAL_MACHINE: "hklm", HKEY_CURRENT_USER: "hkcu", HKLM: "hklm", HKCU: "hkcu" };

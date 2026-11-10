@@ -42,7 +42,7 @@ import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } fro
 
 import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * The Desk: the owner's watchlist, triage, digest, uploads, sources, branding and appearance. Mounted by createApp in app.ts, which hands over the

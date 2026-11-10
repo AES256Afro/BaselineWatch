@@ -3,7 +3,7 @@ import { upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { getSetting } from "../netscan.ts";
 import type { Adapter, ParsedItem, PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * crt.sh, the public index of the certificate-transparency logs: `?q=<domain>&output=json` lists

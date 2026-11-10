@@ -2,7 +2,7 @@ import { eolProducts, productLabel, replaceEolCycles, type EolCycle } from "../e
 import { upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import type { Adapter, ParsedItem, PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * endoflife.date: one JSON file per product, a list of cycles with their release, support and

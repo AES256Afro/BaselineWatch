@@ -395,7 +395,10 @@ export function createApp(ctx: AppContext): Express {
     } catch {
       // An unparseable Referer is no place to go back to.
     }
-    res.status(403).type("html").send(renderLogin({ next: from, open: false, error: "Only the owner can do that. If you were signed in, the sign-in has lapsed: sign in again and you will be taken back. What you sent was not saved.", look: lookOf(req) }));
+    // A page asked for (a CSV, the triage board) is where to go after signing in; a form sent is
+    // lost, so the way back is the page it was sent from, and the reader is told it was not saved.
+    const sent = req.method !== "GET" && req.method !== "HEAD";
+    res.status(403).type("html").send(renderLogin({ next: sent ? from : safeBack(req.originalUrl, "/"), open: false, error: sent ? "Only the owner can do that. If you were signed in, the sign-in has lapsed: sign in again and you will be taken back. What you sent was not saved." : "That page is the owner's. Sign in to see it.", look: lookOf(req) }));
   };
   const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookOf(req) });
   const routeContext: RouteContext = { app, config, db, now, ctx, lookOf, who, requireOwner, secureCookies, brandMarks };

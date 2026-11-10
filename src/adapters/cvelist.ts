@@ -10,7 +10,7 @@ import { loadWatchlist, upsertVuln, type NormalizedVuln, type VulnRow } from "..
 import { unzipAll } from "../zip.ts";
 import type { Adapter, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /** The parts of a CVE JSON 5.x record BaselineWatch reads. */
 export interface CveRecord {

@@ -1,7 +1,7 @@
 import { putBlob, sha256Hex } from "../blobs.ts";
 import { upsertItems } from "../items.ts";
 import { cveIdsIn, plainText, type Adapter, type ParsedItem, type PullContext, type PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * SANS NewsBites, the twice-weekly news digest. SANS publishes no feed for it (the ISC diaries

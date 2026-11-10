@@ -11,6 +11,8 @@ describe("the audit of 10 November", () => {
     expect(alternateFeeds("<link ".repeat(200_000), "https://example.com/")).toEqual([]);
     expect(feedTitle("<title>".repeat(300_000))).toBeNull();
     expect(gpoPathFromFix(`Computer Configuration${" >> a".repeat(40)} >> x`)).toBeNull();
+    expect(gpoPathFromFix(`Computer Configuration${" ".repeat(80_000)}`)).toBeNull();
+    expect(gpoPathFromFix("Computer Configuration >> a>b ".repeat(8000))).toBeNull();
     expect(performance.now() - at).toBeLessThan(1500);
   });
 
@@ -19,6 +21,14 @@ describe("the audit of 10 November", () => {
       path: "User Configuration >> Administrative Templates >> Windows Components",
       setting: "Turn off Toast",
     });
+  });
+
+  it("names a rejected CVE as such and leaves it out of the table", async () => {
+    const { isNotable, liveSql, notableInWindowSql } = await import("../src/vulns.ts");
+    const row = { vuln_status: "Rejected", kev: 1, watch_hit: 0, cvss_score: 9.8, epss: 0.9, published_at: "2026-11-09T00:00:00Z", ssvc_json: null } as unknown as Parameters<typeof isNotable>[0];
+    expect(isNotable(row, true, "2026-11-10T00:00:00Z")).toBe(false);
+    expect(isNotable({ ...row, vuln_status: "Analyzed" }, true, "2026-11-10T00:00:00Z")).toBe(true);
+    expect(notableInWindowSql).toContain(liveSql);
   });
 
   it("counts each call in an MCP batch, and takes no long batch from a stranger", async () => {

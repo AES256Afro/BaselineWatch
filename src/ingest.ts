@@ -10,7 +10,7 @@ import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
 import { clearRepairs, fallbacksOf, findRepairs } from "./repairs.ts";
 import { adoptRationale, changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 export { upsertItems } from "./items.ts";
 

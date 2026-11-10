@@ -3,7 +3,7 @@ import { eolFor, eolWord } from "./eol.ts";
 import type { HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
 import { compareDotted, newestVersion } from "./versions.ts";
-import { counted } from "./html.ts";
+import { agree, counted } from "./words.ts";
 
 /**
  * Is this device affected? (Scan 2.0, S7.) A report the inventory script printed — the OS and
@@ -96,7 +96,7 @@ export function matchWindows(db: DatabaseSync, report: InventoryReport): DeviceF
     id: "windows",
     title: "Windows updates",
     state: exploited ? "bad" : "warn",
-    text: `${counted(list.length, "CVE")} fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} are not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
+    text: `${counted(list.length, "CVE")} fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} ${agree(list.length, "is", "are")} not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
     refs: list.slice(0, 60).map((m) => ({ id: m.cve_id, href: `/vulnerabilities/${m.cve_id}`, note: `${m.severity ?? ""}${m.exploited ? " · exploited" : ""} · ${m.kb ? `KB${m.kb}` : m.fixedBuild} (${m.release_id})` })),
     quoted: [...quoted, `Newest fixed build the guide names: ${newestVersion(list.map((m) => m.fixedBuild)) ?? "?"}`],
     links: kbs.filter((k) => k.startsWith("KB")).slice(0, 6).map((k) => ({ label: `${k} on Patch Tuesday`, href: `/vulnerabilities/microsoft?q=${k.slice(2)}` })),

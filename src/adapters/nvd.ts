@@ -1,6 +1,6 @@
 import { isNotable, loadWatchlist, recordVulnItem, upsertVuln, type NormalizedVuln } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /** The parts of an NVD API 2.0 CVE record BaselineWatch reads. */
 export interface NvdCve {

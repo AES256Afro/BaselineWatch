@@ -18,7 +18,7 @@ import { lastRehearsal, recordRehearsal } from "./housekeeping.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 const [command, target] = process.argv.slice(2);
 

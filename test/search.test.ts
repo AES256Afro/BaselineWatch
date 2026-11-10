@@ -23,8 +23,10 @@ describe("/search", () => {
       expect(direct.status).toBe(302);
       expect(direct.headers.get("location")).toBe("/vulnerabilities/CVE-2026-5555");
       // An id this instance does not hold goes to the page that says where to read it.
+      // Searched, not redirected: Microsoft's rows and the advisories may name it though the table does not.
       const unheld = await fetch(`${app.base}/search?q=CVE-2026-9999`, { redirect: "manual" });
-      expect(unheld.headers.get("location")).toBe("/vulnerabilities/CVE-2026-9999");
+      expect(unheld.status).toBe(200);
+      expect(await unheld.text()).toContain('<a href="/vulnerabilities/CVE-2026-9999">Where to read it</a>');
       const notHeld = await fetch(`${app.base}/vulnerabilities/CVE-2026-9999`);
       expect(notHeld.status).toBe(404);
       const notHeldPage = await notHeld.text();

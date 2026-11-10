@@ -5,7 +5,7 @@ import { latestExposure } from "./exposure.ts";
 import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 import { parseJson } from "./json.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * The digest: what moved since the last one, as plain text a notifier can carry and the

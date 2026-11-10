@@ -2,7 +2,7 @@ import { putBlob, sha256Hex } from "../blobs.ts";
 import { upsertItems } from "../items.ts";
 import { directivePlatforms } from "../stigs.ts";
 import { plainText, type Adapter, type AlertDraft, type ParsedItem, type PullContext, type PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * CISA's Binding Operational Directives and Emergency Directives. CISA publishes no feed for

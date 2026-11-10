@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { productVersion, repositoryUrl } from "./version.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * Whether the pipeline is actually running (M13.2).

@@ -6,7 +6,7 @@ import { parseJson } from "./json.ts";
 import { getSetting, setSetting } from "./netscan.ts";
 import { notify, type Transport } from "./notify.ts";
 import { lookUpExposure, type Exposure } from "./seen.ts";
-import { counted } from "./html.ts";
+import { agree, counted } from "./words.ts";
 
 /**
  * Router and exposure (Scan 2.0, S4): what the internet sees of this network and what the router
@@ -176,8 +176,8 @@ export function judgeExposure(run: Omit<ExposureRun, "findings">): ExposureFindi
   if (run.firmware) {
     const f = run.firmware;
     const quoted = f.cves.slice(0, 8).map((c) => `${c.cve_id}${c.kev ? " (KEV)" : ""}${c.cvss_score !== null ? ` CVSS ${c.cvss_score.toFixed(1)}` : ""}: ${(c.description ?? "").slice(0, 100)}`);
-    if (f.kev.length) out.push({ id: "router-firmware", title: "Router firmware", state: "bad", text: `${counted(f.kev.length, "CVE")} for ${f.vendor}${f.model ? ` ${f.model}` : ""} are on CISA's Known Exploited Vulnerabilities list. Update the firmware today; the CVE page carries the vendor's advisory.`, quoted });
-    else if (f.cves.length) out.push({ id: "router-firmware", title: "Router firmware", state: "warn", text: `${counted(f.cves.length, "CVE")} in the table name ${f.vendor}${f.model ? ` ${f.model}` : ""}; none is on the KEV. Keep the firmware current.`, quoted });
+    if (f.kev.length) out.push({ id: "router-firmware", title: "Router firmware", state: "bad", text: `${counted(f.kev.length, "CVE")} for ${f.vendor}${f.model ? ` ${f.model}` : ""} ${agree(f.kev.length, "is", "are")} on CISA's Known Exploited Vulnerabilities list. Update the firmware today; the CVE page carries the vendor's advisory.`, quoted });
+    else if (f.cves.length) out.push({ id: "router-firmware", title: "Router firmware", state: "warn", text: `${counted(f.cves.length, "CVE")} in the table ${agree(f.cves.length, "names", "name")} ${f.vendor}${f.model ? ` ${f.model}` : ""}; none is on the KEV. Keep the firmware current.`, quoted });
     else out.push({ id: "router-firmware", title: "Router firmware", state: "ok", text: `No CVE in the table names ${f.vendor}${f.model ? ` ${f.model}` : ""}${f.model ? "" : " on the KEV"}.`, quoted: [] });
   } else out.push({ id: "router-firmware", title: "Router firmware", state: "na", text: "No vendor is set; the owner names the router's vendor and model under settings, and the table is searched for them.", quoted: [] });
   return out;

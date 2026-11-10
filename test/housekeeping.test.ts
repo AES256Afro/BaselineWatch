@@ -203,7 +203,7 @@ describe("what it reports", () => {
 
   it("writes bytes the way a person reads them", () => {
     expect(formatBytes(512)).toBe("512 B");
-    expect(formatBytes(2048)).toBe("2.0 kB");
+    expect(formatBytes(2048)).toBe("2.0 KB");
     expect(formatBytes(138_354_688)).toBe("132 MB");
     expect(formatBytes(5 * 1024 ** 3)).toBe("5.0 GB");
   });

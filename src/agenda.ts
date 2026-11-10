@@ -3,7 +3,7 @@ import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
 import { movedInWindowSql } from "./vulns.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * What to do next, and what the window's vulnerabilities are about.

@@ -2,7 +2,7 @@ import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { databaseBytes } from "./db.ts";
-import { counted } from "./html.ts";
+import { counted, formatBytes } from "./words.ts";
 
 /**
  * What this instance keeps, what it lets go, and the weekly pass that does it (M13).
@@ -104,18 +104,7 @@ function getSetting(db: DatabaseSync, key: string): string | null {
   return (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value ?? null;
 }
 
-/** "138 MB", "4.2 GB": the number a person reads, never a byte count on a page. */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["kB", "MB", "GB", "TB"];
-  let value = bytes / 1024;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
-}
+export { formatBytes } from "./words.ts";
 
 /** The last pass, as it recorded itself; null before the first one. */
 export function lastHousekeeping(db: DatabaseSync): HousekeepingResult | null {

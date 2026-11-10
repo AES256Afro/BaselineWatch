@@ -31,7 +31,7 @@ import { parseNotifyUrl } from "../notify.ts";
 import { safeFilename } from "../paths.ts";
 import { str } from "./query.ts";
 import { publicDir, type RouteContext } from "./context.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * Scan: the one page with a script, the network check, the guides, the scripts and the probes. Mounted by createApp in app.ts, which hands over the

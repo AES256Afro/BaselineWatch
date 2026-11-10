@@ -37,7 +37,6 @@ import { setupPending, type SetupStep } from "../setup.ts";
 
 const hoursWord = (hours: number): string => (hours === 24 ? "24 hours" : hours === 72 ? "three days" : "seven days");
 
-/** The CVEs a bucket holds, counted once each however many remedies name them. */
 /** The owner's first-run list; it leaves Today by itself once every required step is done. */
 function setupBox(steps: SetupStep[]): Html {
   const done = steps.filter((s) => s.done).length;
@@ -48,6 +47,7 @@ function setupBox(steps: SetupStep[]): Html {
   </section>`;
 }
 
+/** The CVEs a bucket holds, counted once each however many remedies name them. */
 const cvesIn = (remedies: Remedy[]): Set<string> => new Set(remedies.flatMap((r) => r.cves.map((c) => c.cveId)));
 
 function remedyCard(r: Remedy, owner: boolean, back: string): Html {
@@ -194,7 +194,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only the CVEs that matter are counted: on CISA's list of those exploited in the wild (KEV)${owner ? ", on your watchlist" : ""}, newly critical, or likely to be exploited soon (EPSS over 50%). <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has the rest.</small></h1>
+      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only the CVEs that matter are counted: on CISA's list of those exploited in the wild (KEV), marked actively exploited in CISA's SSVC, on ${owner ? "your" : "the owner's"} watchlist, newly critical, or likely to be exploited soon (EPSS over 50%); ${owner ? "what you marked done or not yours has left the list" : "what the owner has marked done has left the list"}. <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has the rest.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
     ${owner && options.setup && setupPending(options.setup) ? setupBox(options.setup) : ""}

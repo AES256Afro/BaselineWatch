@@ -2,7 +2,7 @@ import { safeUrl, upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { kbUrl, releaseNoteUrl, upsertMsrcVulns, type MsrcFix, type MsrcVulnDraft } from "../msrc.ts";
 import { plainText, type Adapter, type ParsedItem, type PullOutcome } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /**
  * Microsoft's Security Update Guide through its CVRF API, which needs no key. The index at

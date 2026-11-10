@@ -97,23 +97,4 @@ export function figure(n: number): string {
   return Number.isFinite(n) ? Math.round(n).toLocaleString("en-US") : "";
 }
 
-/** Formats a byte count the way a person reads it. */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let n = bytes / 1024;
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i += 1;
-  }
-  return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
-}
-
-/**
- * A count with its noun agreeing: `counted(1, "release")` is "1 release", `counted(3, "release")`
- * is "3 releases". The irregular plural is passed when "s" is wrong. Pages say "(s)" nowhere.
- */
-export function counted(n: number, one: string, many = `${one}s`): string {
-  return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
-}
+export { counted, formatBytes } from "./words.ts";

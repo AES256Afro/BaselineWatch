@@ -558,6 +558,8 @@ export function recomputeWatchHits(db: DatabaseSync): number {
 }
 
 export interface VulnFilters {
+  /** Only CVEs their assigner has withdrawn. Without it the table leaves them out: a rejected id is not a vulnerability. */
+  rejected?: boolean;
   watch?: boolean;
   kev?: boolean;
   /** Only CVEs with at least one row in the exploits table (src/exploits.ts). */
@@ -677,6 +679,7 @@ function countPlatformFigures(db: DatabaseSync, since: string): PlatformFigures[
 function vulnQuery(filters: VulnFilters): { where: string; params: (string | number)[] } {
   const clauses: string[] = [];
   const params: (string | number)[] = [];
+  clauses.push(filters.rejected ? "v.vuln_status = 'Rejected'" : liveSql);
   if (filters.watch) clauses.push("v.watch_hit = 1");
   if (filters.platform) {
     // vuln_platforms (migration 0047) is platforms_json one row a pair, indexed; "browsers" is three ids.
@@ -791,10 +794,10 @@ export function vulnChanges(db: DatabaseSync, cveId: string, limit = 50): VulnCh
 export function vulnStats(db: DatabaseSync, sinceIso: string): { total: number; kev: number; exploit: number; watch: number; changedSince: number; newSince: number } {
   const n = (sql: string, ...params: string[]) => (db.prepare(sql).get(...params) as { n: number }).n;
   return {
-    total: n("SELECT COUNT(*) AS n FROM vulns"),
-    kev: n("SELECT COUNT(*) AS n FROM vulns WHERE kev = 1"),
-    exploit: n("SELECT COUNT(DISTINCT cve_id) AS n FROM exploits WHERE cve_id IN (SELECT cve_id FROM vulns)"),
-    watch: n("SELECT COUNT(*) AS n FROM vulns WHERE watch_hit = 1"),
+    total: n(`SELECT COUNT(*) AS n FROM vulns v WHERE ${liveSql}`),
+    kev: n(`SELECT COUNT(*) AS n FROM vulns v WHERE kev = 1 AND ${liveSql}`),
+    exploit: n(`SELECT COUNT(DISTINCT cve_id) AS n FROM exploits WHERE cve_id IN (SELECT cve_id FROM vulns v WHERE ${liveSql})`),
+    watch: n(`SELECT COUNT(*) AS n FROM vulns v WHERE watch_hit = 1 AND ${liveSql}`),
     // Any change observed in the window, first sightings included: the same set ?changed=1 lists and the Today tile counts.
     changedSince: n("SELECT COUNT(DISTINCT cve_id) AS n FROM vuln_changes WHERE observed_at >= ?", sinceIso),
     newSince: n("SELECT COUNT(*) AS n FROM vuln_changes WHERE observed_at >= ? AND field = 'new'", sinceIso),
@@ -808,6 +811,8 @@ const recentDays = 30;
  * means published in the last thirty days; NVD re-touching a 2015 CVE is not news.
  */
 export function isNotable(row: VulnRow, isNew: boolean, observedAt: string): boolean {
+  // A withdrawn id is news to nobody, whatever scores it still carries.
+  if (row.vuln_status === "Rejected") return false;
   if (row.kev === 1 || row.watch_hit === 1) return true;
   const publishedRecently = row.published_at !== null && new Date(observedAt).getTime() - new Date(row.published_at).getTime() <= recentDays * 24 * 60 * 60 * 1000;
   if (isNew && publishedRecently && (row.cvss_score ?? 0) >= 9) return true;
@@ -829,14 +834,20 @@ export function isNotable(row: VulnRow, isNew: boolean, observedAt: string): boo
 export const movedInWindowSql = "(v.published_at >= ? OR v.cve_id IN (SELECT cve_id FROM vuln_changes WHERE observed_at >= ? AND field <> 'new'))";
 
 /** isNotable's arms that can be read from columns alone. Takes no parameters. */
-export const notableSql = "(v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active')";
+export const notableSql = "(COALESCE(v.vuln_status, '') <> 'Rejected' AND (v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active'))";
 
 /**
  * notableSql plus isNotable's remaining arm — a critical that is new rather than merely re-touched
  * — read against the window instead of against an `isNew` flag the database does not keep. Takes
  * the window start once, after movedInWindowSql's two.
  */
-export const notableInWindowSql = `(v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active' OR (v.published_at >= ? AND COALESCE(v.cvss_score, 0) >= 9))`;
+/**
+ * A CVE its assigner has not withdrawn. NVD keeps rejected ids with status "Rejected" (6,787 of
+ * the local table); they were listed, counted and ranked as live, one with "1 public exploit".
+ */
+export const liveSql = "COALESCE(v.vuln_status, '') <> 'Rejected'";
+
+export const notableInWindowSql = `(${liveSql} AND (v.kev = 1 OR v.watch_hit = 1 OR COALESCE(v.epss, 0) >= 0.5 OR json_extract(v.ssvc_json, '$.exploitation') = 'active' OR (v.published_at >= ? AND COALESCE(v.cvss_score, 0) >= 9)))`;
 
 /** Puts or refreshes a notable CVE on the Wire, resurfacing it as unread when something changed. */
 export function recordVulnItem(db: DatabaseSync, row: VulnRow, changes: VulnChange[], observedAt: string): void {

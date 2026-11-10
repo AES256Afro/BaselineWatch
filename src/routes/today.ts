@@ -13,7 +13,6 @@ import { safeBack } from "../paths.ts";
 import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
 import { setupSteps } from "../setup.ts";
-import { loadFleet } from "../fleet.ts";
 
 /**
  * Reading: Today, the Atlas and the guide. Mounted by createApp in app.ts, which hands over the
@@ -28,7 +27,7 @@ export function mountReading(r: RouteContext): void {
     const scope = { platform: isPlatformChoice(platform) ? platform : undefined, danger: str(req.query.danger) === "1" };
     const viewer = who(req, res);
     // The first-run list is the owner's; a visitor's Today is not drawn from the config at all.
-    const setup = viewer.owner ? setupSteps(db, r.config, loadFleet()) : undefined;
+    const setup = viewer.owner ? setupSteps(db, r.config) : undefined;
     res.type("html").send(renderToday({ db, ...viewer, now: now(), hours, scope, setup }));
   });
   // Today's remedy rows end in a verb, so they end in a button: one update done is every CVE it

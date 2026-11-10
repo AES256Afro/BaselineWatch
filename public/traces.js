@@ -27,7 +27,7 @@
 
 /** Files are searched in windows this size, overlapping by enough to hold the longest name twice over in UTF-16. */
 /** "1 file", "3 files": a count with its noun agreeing. */
-const files = (n) => `${n} ${n === 1 ? "file" : "files"}`;
+const filesText = (n) => `${n} ${n === 1 ? "file" : "files"}`;
 
 export const CHUNK = 16 * 1024 * 1024;
 const OVERLAP = 1024;
@@ -397,7 +397,7 @@ export function coverageOf(results) {
 export function judge(findings, coverage) {
   if (coverage.read === 0) return { tone: "warn", title: "Nothing was read", text: coverage.files === 0 ? "Pick a folder or files, or paste text, then run the check." : "None of the files could be read, so nothing is known: a gap is not a clean result. The list below says why for each.", action: -1 };
   if (findings.length === 0) {
-    const gap = coverage.unread.length ? ` ${files(coverage.unread.length)} could not be read; for those nothing is known.` : "";
+    const gap = coverage.unread.length ? ` ${filesText(coverage.unread.length)} could not be read; for those nothing is known.` : "";
     return { tone: "ok", title: "No known indicator in what was read", text: `That means no published indicator was found in ${coverage.read === 1 ? "this file" : `these ${coverage.read} files`} — not that the device is clean. Spyware of this grade is built to defeat exactly this kind of check, and caches and logs are short-lived.${gap}`, action: -1 };
   }
   const action = Math.max(...findings.map((f) => f.action));
@@ -465,7 +465,7 @@ export function render(doc, findings, coverage) {
   }
   const cov = doc.getElementById("traces-coverage");
   if (cov) {
-    const lines = [el(doc, "li", {}, `Read ${coverage.read} of ${files(coverage.files)}, ${size(coverage.bytes)}; ${coverage.hashed} fingerprinted.`)];
+    const lines = [el(doc, "li", {}, `Read ${coverage.read} of ${filesText(coverage.files)}, ${size(coverage.bytes)}; ${coverage.hashed} fingerprinted.`)];
     if (coverage.kinds.size) lines.push(el(doc, "li", {}, `Among them: ${[...coverage.kinds].map(([k, n]) => `${k} ${n}`).join(" · ")}.`));
     if (coverage.missing.length) lines.push(el(doc, "li", {}, "Not in what was read, so unknown: ", ...coverage.missing.flatMap((m, i) => [i ? "; " : "", el(doc, "b", {}, m.label), ` (${m.hint})`]), "."));
     if (coverage.blocked.length) lines.push(el(doc, "li", {}, `Blocked in the hosts file, which is protective and not a finding: ${coverage.blocked.map(defang).join(", ")}.`));
@@ -519,7 +519,7 @@ export function wire(doc, view) {
   const tell = () => {
     const n = chosen().length;
     const text = paste && paste.value.trim() ? " and pasted text" : "";
-    if (picked) picked.textContent = n || text ? `${files(n)}${text} ready.` : "Nothing picked yet.";
+    if (picked) picked.textContent = n || text ? `${filesText(n)}${text} ready.` : "Nothing picked yet.";
   };
   folder?.addEventListener("change", tell);
   files?.addEventListener("change", tell);

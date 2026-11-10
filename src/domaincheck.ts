@@ -2,7 +2,7 @@ import { Resolver, lookup } from "node:dns/promises";
 import tls from "node:tls";
 import { HttpError, privateAddress, type HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
-import { counted } from "./html.ts";
+import { counted } from "./words.ts";
 
 /**
  * Check a domain (Scan 2.0, S3): its posture read by DNS and HTTPS alone, the way internet.nl

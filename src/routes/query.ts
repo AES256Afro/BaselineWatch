@@ -61,6 +61,7 @@ export function vulnFilters(query: Record<string, unknown>, now: Date, owner = f
   return {
     watch: owner && str(query.watch) === "1",
     kev: str(query.kev) === "1",
+    rejected: str(query.rejected) === "1",
     exploit: str(query.exploit) === "1",
     platform: isPlatformChoice(platform) ? platform : undefined,
     danger: str(query.danger) === "1",

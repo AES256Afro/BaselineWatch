@@ -9,7 +9,7 @@ import { scoreCvss3 } from "../cvss.ts";
 import { advisoryKey, applyAdvisory, isNotable, loadWatchlist, parsePackageValue, recordVulnItem, type AffectedPackage, type NormalizedAdvisory, type WatchEntry } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
-import { counted } from "../html.ts";
+import { counted } from "../words.ts";
 
 /** The parts of an OSV record BaselineWatch reads. */
 export interface OsvVuln {
