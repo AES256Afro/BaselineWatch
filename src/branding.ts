@@ -1,3 +1,4 @@
+import { productName } from "./version.ts";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
@@ -24,10 +25,57 @@ export interface BrandImage {
   type: string;
 }
 
-/** What the layout wears: either image is null until the owner uploads one. */
+/**
+ * The site's own wording, which the owner sets on the Branding page: the name in the masthead and
+ * the title, the line in the footer, the subtitle under the News heading, and the description that
+ * search engines and link previews show. Each falls back to a plain default; an empty footer or
+ * subtitle means none at all.
+ */
+export interface BrandText {
+  siteName: string;
+  footer: string;
+  newsSubtitle: string;
+  description: string;
+}
+
+export const brandTextFields: { key: keyof BrandText; label: string; where: string; max: number; required: boolean }[] = [
+  { key: "siteName", label: "Site name", where: "the masthead and the browser tab", max: 60, required: true },
+  { key: "footer", label: "Footer line", where: "after the version in every page's footer; empty for none", max: 140, required: false },
+  { key: "newsSubtitle", label: "News subtitle", where: "beside the News heading on the front page; empty for none", max: 140, required: false },
+  { key: "description", label: "Description", where: "the meta description: search results and link previews", max: 300, required: true },
+];
+
+export const defaultBrandText: BrandText = {
+  siteName: productName,
+  footer: "change register for security standards; CVE and advisory feed",
+  newsSubtitle: "",
+  description: "Security news, CVEs and advisories, and a change register for NIST SP 800-53, DISA STIGs and Microsoft baselines: each control before and after, with the publisher's stated reason.",
+};
+
+/** What the layout wears: either image is null until the owner uploads one, and the wording. */
 export interface Brand {
   logo: BrandImage | null;
   favicon: BrandImage | null;
+  text: BrandText;
+}
+
+const textKey = (key: keyof BrandText): string => `branding.text.${key}`;
+
+/** One line of wording as stored: control characters and runs of space removed, cut to its limit. */
+export function cleanBrandText(value: unknown, max: number): string {
+  // eslint-disable-next-line no-control-regex
+  return typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+/** Saves the wording from the Branding form; a required field left empty goes back to its default. */
+export function saveBrandText(db: DatabaseSync, body: Record<string, unknown>, at: string): void {
+  const set = db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at");
+  const del = db.prepare("DELETE FROM app_settings WHERE key = ?");
+  for (const f of brandTextFields) {
+    const value = cleanBrandText(body[f.key], f.max);
+    if ((f.required && value === "") || value === defaultBrandText[f.key]) del.run(textKey(f.key));
+    else set.run(textKey(f.key), value, at);
+  }
 }
 
 /** A masthead logo or a favicon, not a photograph. */
@@ -53,7 +101,13 @@ export function readBrand(db: DatabaseSync): Brand {
     const type = value(typeKey(kind));
     return sha256 && /^[0-9a-f]{64}$/.test(sha256) && type ? { sha256, type } : null;
   };
-  return { logo: image("logo"), favicon: image("favicon") };
+  const text = Object.fromEntries(
+    brandTextFields.map((f) => {
+      const stored = value(textKey(f.key));
+      return [f.key, stored === null ? defaultBrandText[f.key] : stored];
+    }),
+  ) as unknown as BrandText;
+  return { logo: image("logo"), favicon: image("favicon"), text };
 }
 
 export type SaveBrandResult = { ok: true; sha256: string; type: string } | { ok: false; error: string };

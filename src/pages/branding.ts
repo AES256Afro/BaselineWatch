@@ -1,4 +1,4 @@
-import { brandKinds, type Brand, type BrandKind, type BrandMark } from "../branding.ts";
+import { brandKinds, brandTextFields, defaultBrandText, type Brand, type BrandKind, type BrandMark } from "../branding.ts";
 import { html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { productName } from "../version.ts";
@@ -51,12 +51,32 @@ export function renderBranding(options: { brand: Brand; marks: BrandMark[]; owne
     </figure>`;
   };
 
+  // The site's wording: name, footer line, News subtitle, description. Each field says where it
+  // shows; an empty optional one shows nothing, an empty required one goes back to the default.
+  const wording = html`<section class="box" id="wording">
+      <h2><a href="#wording">Wording</a></h2>
+      <p class="small">The site's own lines. Plain by default; change or clear them here, and every page uses the new text at once.</p>
+      ${owner
+        ? html`<form method="post" action="/branding/text" class="stack">
+            ${brandTextFields.map(
+              (f) => html`<label for="bt-${f.key}">${f.label} <span class="small">· ${f.where}</span></label>
+                ${f.key === "description"
+                  ? html`<textarea id="bt-${f.key}" name="${f.key}" rows="3" maxlength="${f.max}">${brand.text[f.key]}</textarea>`
+                  : html`<input type="text" id="bt-${f.key}" name="${f.key}" maxlength="${f.max}" value="${brand.text[f.key]}">`}
+                <span class="small">Default: ${defaultBrandText[f.key] || "none"}</span>`,
+            )}
+            <div class="acts"><button type="submit" class="primary">Save wording</button></div>
+          </form>`
+        : html`<dl class="kv">${brandTextFields.map((f) => html`<dt>${f.label}</dt><dd>${brand.text[f.key] || "none"}</dd>`)}</dl>`}
+    </section>`;
+
   const content = html`
     <h1>Branding</h1>
-    <p class="lede">This instance's own face: a logo for the masthead and a favicon for the tab. The marks below are the repo's own (docs/mockups/logo), drawn for both colour schemes and ready at 16 px; applying one needs a click, or upload your own image. Without either, the pages carry the plain ${productName} wordmark.</p>
+    <p class="lede">The site's wording, a logo for the masthead and a favicon for the tab. The marks below are the repo's own (docs/mockups/logo), drawn for both colour schemes and ready at 16 px; applying one needs a click, or upload your own image. Without either, the pages carry the plain ${productName} wordmark.</p>
     ${notice ? html`<div class="notice ok">${notice}</div>` : ""}
     <div class="cols">
       <section class="main">
+        ${wording}
         ${section("logo")}
         ${section("favicon")}
         ${marks.length

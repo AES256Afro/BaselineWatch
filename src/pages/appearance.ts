@@ -44,8 +44,8 @@ export function renderAppearance(options: { owner: boolean; open: boolean; look:
       <section class="box" id="more">
         <h2>The mark, and the printed page</h2>
         <p>
-          The logo and favicon this instance wears are the owner's, under
-          <a href="/branding">Branding</a>. A baseline or a test plan carries its own look when it
+          The logo, the favicon and the site's wording (its name, the footer line, the News
+          subtitle and the description) are the owner's, under <a href="/branding#wording">Branding</a>. A baseline or a test plan carries its own look when it
           is exported to Word, PDF or LaTeX, chosen beside the export buttons on
           <a href="/baselines">the builder</a> rather than here, because a document's look is
           part of the document and not of this browser.

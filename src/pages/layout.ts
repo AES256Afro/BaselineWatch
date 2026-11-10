@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, type Html } from "../html.ts";
 import { lookAttributes, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
+import { defaultBrandText } from "../branding.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
 
 /**
@@ -163,9 +164,12 @@ export function setSiteBase(baseUrl: string): void {
   siteBase = baseUrl.replace(/\/+$/, "");
 }
 
-const productDescription = "News, advisories and CVEs in one timeline, and a change register for the security standards themselves: what each control said before and after, and why.";
+
 
 export function page({ title, active, content, meta, owner, open, strip, look, script, feed, description, canonical }: PageOptions): string {
+  // The site's wording is the owner's, set on the Branding page; the defaults are plain.
+  const words = look.brand?.text ?? defaultBrandText;
+  const siteName = words.siteName || productName;
   const link = (area: Area, cls?: string): Html => {
     const item = areas[area];
     return html`<a href="${item.path}"${area === active ? html` aria-current="page"` : ""}${cls ? html` class="${cls}"` : ""}>${item.label}</a>`;
@@ -189,12 +193,12 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title === productName ? title : `${title} · ${productName}`}</title>
-<meta name="description" content="${description ?? productDescription}">
-<meta property="og:site_name" content="${productName}">
+<title>${title === productName || title === siteName ? siteName : `${title} · ${siteName}`}</title>
+<meta name="description" content="${description ?? words.description}">
+<meta property="og:site_name" content="${siteName}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title}">
-<meta property="og:description" content="${description ?? productDescription}">
+<meta property="og:description" content="${description ?? words.description}">
 ${canonical && siteBase ? html`<link rel="canonical" href="${siteBase}${canonical}">
 <meta property="og:url" content="${siteBase}${canonical}">
 ` : ""}${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
@@ -207,7 +211,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
 <a class="skip" href="#main">Skip to content</a>
 <header class="mast">
   <div class="mast-inner">
-    <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
+    <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${siteName}</a>
     <nav aria-label="Areas">
       ${link("wire")}${link("today")}<details name="mast" class="group${[...standardsGroup, ...standardsTools, ...standardsLearn].includes(active) ? " on" : ""}">
         <summary>Standards</summary>
@@ -254,7 +258,7 @@ ${strip ?? ""}
 <main class="wrap" id="main" tabindex="-1">${content}</main>
 <footer class="foot">
   <div class="wrap">
-    <p>${productName} ${productVersion} · a change register for the security standards themselves · <a href="/guide">how to read this site</a> · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
+    <p>${siteName === productName ? productName : html`${siteName} · ${productName}`} ${productVersion}${words.footer ? html` · ${words.footer}` : ""} · <a href="/guide">how to read this site</a> · <a href="${repositoryUrl}" ${newTab}>source</a> · <a href="/health">health</a></p>
     <p class="attrib">This product uses the NVD API but is not endorsed or certified by the NVD. CVE is a registered trademark of The MITRE Corporation. Known Exploited Vulnerabilities Catalog provided by CISA. EPSS scores provided by FIRST. Package advisories from OSV.dev and the GitHub Advisory Database (CC-BY 4.0). CIS and Microsoft content is shown from your own copy under your own licence and is never redistributed. Article images belong to their publishers and link to the original story. AdFection / Candiru indicators are the Zero Breach project's (CC0), which is not affiliated with the researchers it cites. Canary names are quoted from EasyList and EasyPrivacy (GPLv3 or CC BY-SA 3.0) and from URLhaus by abuse.ch; they are only ever resolved, never loaded, and nothing here links to them. A source whose licence restricts display shows its entries to this instance's owner only.</p>
   </div>
 </footer>

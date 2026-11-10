@@ -162,4 +162,23 @@ describe("the audit of 10 November", () => {
     setSourceEnabled(db, "cisa-kev", true);
     expect(db.prepare("SELECT failing_since, failing_alerted_at FROM sources WHERE id = 'cisa-kev'").get()).toEqual({ failing_since: null, failing_alerted_at: null });
   });
+
+  it("lets the owner set the site's wording on Branding, and clear the optional lines", async () => {
+    const app = await startTestApp({ env: { BW_PUBLIC_READ: "true", BW_ADMIN_PASSWORD: "owner-pass" } });
+    try {
+      const cookie = cookieFrom(await formPost(app.base, "/login", { password: "owner-pass", next: "/" }));
+      const before = await (await fetch(`${app.base}/`)).text();
+      expect(before).toContain("change register for security standards; CVE and advisory feed");
+      expect((await formPost(app.base, "/branding/text", { siteName: "Lab Watch", footer: "", newsSubtitle: "Feeds for the lab\u0007", description: "" })).status).toBe(403);
+      await formPost(app.base, "/branding/text", { siteName: "Lab Watch", footer: "", newsSubtitle: "Feeds for the lab\u0007", description: "" }, cookie);
+      const after = await (await fetch(`${app.base}/`)).text();
+      expect(after).toContain("<title>News · Lab Watch</title>");
+      expect(after).toContain('<small class="motto">Feeds for the lab</small>');
+      expect(after).not.toContain("CVE and advisory feed");
+      // An empty required field is the default again.
+      expect(await (await fetch(`${app.base}/appearance`)).text()).toContain("each control before and after, with the publisher&#39;s stated reason");
+    } finally {
+      await app.close();
+    }
+  });
 });

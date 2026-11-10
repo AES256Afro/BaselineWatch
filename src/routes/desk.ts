@@ -25,7 +25,7 @@ import { renderWatchlist } from "../pages/watchlist.ts";
 import { renderSaved } from "../pages/saved.ts";
 import { addSaved, deleteSaved, savablePath } from "../saved.ts";
 
-import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand, saveBrandImage } from "../branding.ts";
+import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand, saveBrandImage, saveBrandText } from "../branding.ts";
 import { renderBranding } from "../pages/branding.ts";
 
 import { safeBack } from "../paths.ts";
@@ -255,6 +255,12 @@ export function mountDesk(r: RouteContext): void {
     if (!mark) return next();
     res.setHeader("Cache-Control", "public, max-age=86400");
     res.type("image/svg+xml").send(Buffer.from(mark.bytes));
+  });
+  // Before /branding/:kind, which would read "text" as an image kind and pass it on.
+  app.post("/branding/text", requireOwner, (req, res) => {
+    saveBrandText(db, (req.body ?? {}) as Record<string, unknown>, now().toISOString());
+    res.append("Set-Cookie", flashHeader("Wording saved; every page uses it now.", secureCookies(req)));
+    res.redirect(303, "/branding#wording");
   });
   app.post("/branding/mark", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
