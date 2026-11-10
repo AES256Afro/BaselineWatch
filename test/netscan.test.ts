@@ -172,7 +172,7 @@ describe("the network scan", () => {
 
     // The digest carries the change as a line.
     const digest = buildDigest(db, { from: at.toISOString(), to: new Date("2026-10-21T09:00:00Z").toISOString(), baseUrl: "https://bw.example", period: "daily" }).text;
-    expect(digest).toContain("This network: 12 change(s) https://bw.example/scan/network");
+    expect(digest).toContain("This network: 12 changes https://bw.example/scan/network");
     expect(digest).toContain(`- ${changes.newlySinkholed[0]!.name} (adfection) is now sinkholed`);
   });
 

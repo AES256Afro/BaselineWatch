@@ -3,6 +3,7 @@ import { loadFleet, type Fleet, type FleetPlatform } from "./fleet.ts";
 import { platformKeys, platformName, type PlatformKey } from "./platforms.ts";
 import { parseJson } from "./json.ts";
 import { movedInWindowSql } from "./vulns.ts";
+import { counted } from "./html.ts";
 
 /**
  * What to do next, and what the window's vulnerabilities are about.
@@ -198,7 +199,7 @@ export function nextActions(db: DatabaseSync, options: AgendaOptions): Action[] 
     actions.push({
       kind: "release",
       title: row.title,
-      why: `${changed} requirement(s) changed: ${s.added ?? 0} added, ${s.removed ?? 0} removed, ${s.modified ?? 0} revised. Check the ones your baseline applies.`,
+      why: `${counted(changed, "requirement")} changed: ${s.added ?? 0} added, ${s.removed ?? 0} removed, ${s.modified ?? 0} revised. Check the ones your baseline applies.`,
       href: row.url ?? "/register",
       itemId: row.itemId,
       at: row.at,

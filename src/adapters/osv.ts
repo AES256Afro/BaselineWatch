@@ -9,6 +9,7 @@ import { scoreCvss3 } from "../cvss.ts";
 import { advisoryKey, applyAdvisory, isNotable, loadWatchlist, parsePackageValue, recordVulnItem, type AffectedPackage, type NormalizedAdvisory, type WatchEntry } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
+import { counted } from "../html.ts";
 
 /** The parts of an OSV record BaselineWatch reads. */
 export interface OsvVuln {
@@ -193,6 +194,6 @@ export const osvAdapter: Adapter = {
       ctx.log(`[osv] ${ecosystem}:${pkg.name}: ${found} advisor${found === 1 ? "y" : "ies"}`);
     }
     writeSetting(ctx, lastPullKey, observedAt);
-    return { items, inserted, updated, detail: `${packages.length} package(s), ${requests} request(s)`, alerts };
+    return { items, inserted, updated, detail: `${counted(packages.length, "package")}, ${counted(requests, "request")}`, alerts };
   },
 };

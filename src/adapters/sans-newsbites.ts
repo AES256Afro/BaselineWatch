@@ -1,6 +1,7 @@
 import { putBlob, sha256Hex } from "../blobs.ts";
 import { upsertItems } from "../items.ts";
 import { cveIdsIn, plainText, type Adapter, type ParsedItem, type PullContext, type PullOutcome } from "./types.ts";
+import { counted } from "../html.ts";
 
 /**
  * SANS NewsBites, the twice-weekly news digest. SANS publishes no feed for it (the ISC diaries
@@ -116,6 +117,6 @@ export const sansNewsbitesAdapter: Adapter = {
       items.push(...stories);
     }
     const counts = upsertItems(ctx.db, ctx.source.id, items, observedAt);
-    return { items: items.length, inserted: counts.inserted, updated: counts.updated, detail: `${fresh.length} new issue(s) of ${issues.length} listed` };
+    return { items: items.length, inserted: counts.inserted, updated: counts.updated, detail: `${counted(fresh.length, "new issue")} of ${issues.length} listed` };
   },
 };

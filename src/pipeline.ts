@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { productVersion, repositoryUrl } from "./version.ts";
+import { counted } from "./html.ts";
 
 /**
  * Whether the pipeline is actually running (M13.2).
@@ -97,7 +98,7 @@ export function pipelineSummary(health: PipelineHealth): string {
     return `${worst?.name} has failed for ${worst?.hours} h`;
   }
   if (health.cveAgeHours !== null && health.cveAgeHours >= staleCveHours) {
-    return `the CVE pull is ${Math.floor(health.cveAgeHours / 24)} day(s) behind`;
+    return `the CVE pull is ${counted(Math.floor(health.cveAgeHours / 24), "day")} behind`;
   }
   if (health.failing.length) return `${health.failing.map((f) => f.name).slice(0, 2).join(", ")} failing`;
   if (health.release.newer) return `every source answering · ${health.release.version} is published, this runs ${health.version}`;

@@ -10,6 +10,7 @@ import { summarizeRelease, type LlmSettings } from "./llm.ts";
 import { notify, type Transport } from "./notify.ts";
 import { clearRepairs, fallbacksOf, findRepairs } from "./repairs.ts";
 import { adoptRationale, changeSummaryText, getDocument, storeDocument, type StoredDocument } from "./register.ts";
+import { counted } from "./html.ts";
 
 export { upsertItems } from "./items.ts";
 
@@ -286,7 +287,7 @@ export async function ingestSource(db: DatabaseSync, dataDir: string, source: So
   }
   try {
     const found = await findRepairs(db, getSource(db, source.id) ?? source, deps.http ?? httpGet, (deps.now ?? (() => new Date()))());
-    if (found) deps.log?.(`[ingest] ${source.id}: ${found} repair(s) proposed on the Sources page`);
+    if (found) deps.log?.(`[ingest] ${source.id}: ${counted(found, "repair")} proposed on the Sources page`);
   } catch (error) {
     deps.log?.(`[ingest] ${source.id}: the repair search failed (${error instanceof Error ? error.message : String(error)})`);
   }

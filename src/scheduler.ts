@@ -8,6 +8,7 @@ import { ingestSource, listSources, type IngestDeps, type IngestResult } from ".
 import { notify } from "./notify.ts";
 import { alertAfterHours, markAlerted, sourcesToAlert } from "./pipeline.ts";
 import { proposedRepairs } from "./repairs.ts";
+import { counted } from "./html.ts";
 
 /**
  * The in-process scheduler: a tick a minute, the sources that are due fetched a few hosts at a time
@@ -128,7 +129,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     running = (async () => {
       const due = dueSources(db, now());
       if (due.length === 0) return [];
-      log(`[scheduler] ${due.length} source(s) due`);
+      log(`[scheduler] ${counted(due.length, "source")} due`);
       const deps: IngestDeps = {
         now,
         log,
@@ -211,7 +212,7 @@ export function startScheduler(options: SchedulerOptions): Scheduler {
     if (!options.housekeeping) return false;
     const result = options.housekeeping();
     if (!result) return false;
-    log(`[housekeeping] weekly pass: database ${formatBytes(result.bytesAfter)} after letting ${result.snapshotsDeleted} snapshot(s) and ${result.blobsDeleted} blob(s) go`);
+    log(`[housekeeping] weekly pass: database ${formatBytes(result.bytesAfter)} after letting ${counted(result.snapshotsDeleted, "snapshot")} and ${counted(result.blobsDeleted, "blob")} go`);
     return true;
   };
 

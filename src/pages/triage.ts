@@ -18,7 +18,7 @@ export function triageButtons(subject: { kind: TriageKind; id: number; key?: str
 }
 
 /** The fuller form with a note and a due date, for detail pages. */
-export function triageForm(subject: { kind: TriageKind; id: number; key?: string }, current: { state: TriageState; note: string | null; due_at: string | null } | null, back: string): Html {
+export function triageForm(subject: { kind: TriageKind; id: number; key?: string }, current: { state: TriageState; note: string | null; due_at: string | null; updated_at?: string } | null, back: string): Html {
   return html`<form method="post" action="/triage" class="stack triage-form">
     <input type="hidden" name="kind" value="${subject.kind}"><input type="hidden" name="id" value="${subject.id}"><input type="hidden" name="key" value="${subject.key ?? ""}">
     <input type="hidden" name="back" value="${back}">
@@ -26,6 +26,7 @@ export function triageForm(subject: { kind: TriageKind; id: number; key?: string
     <select id="triage-state" name="state">${triageStates.map((s) => html`<option value="${s}" ${current?.state === s ? "selected" : ""}>${stateLabel[s]}</option>`)}</select>
     <label for="triage-note">Note</label>
     <textarea id="triage-note" name="note" rows="3" maxlength="2000" placeholder="What you checked, who owns it, what is left.">${current?.note ?? ""}</textarea>
+    ${current?.updated_at ? html`<p class="small saved-at">Last saved ${current.updated_at.slice(0, 16).replace("T", " ")} UTC</p>` : ""}
     <label for="triage-due">Due</label>
     <input type="date" id="triage-due" name="due" value="${current?.due_at ?? ""}">
     <div class="acts"><button type="submit" class="primary">Save</button>${current ? html`</form><form method="post" action="/triage/clear" class="inline"><input type="hidden" name="kind" value="${subject.kind}"><input type="hidden" name="id" value="${subject.id}"><input type="hidden" name="key" value="${subject.key ?? ""}"><input type="hidden" name="back" value="${back}"><button type="submit">Remove from triage</button></form>` : html`</div></form>`}

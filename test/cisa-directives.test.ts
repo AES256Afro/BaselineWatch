@@ -76,7 +76,7 @@ describe("CISA directives adapter end to end", () => {
     const first = await ingestSource(db, dataDir, source, { http, now: () => at });
     expect(first.status).toBe("ok");
     expect(first.inserted).toBe(27);
-    expect(first.detail).toBe("27 directive(s) over 3 page(s)");
+    expect(first.detail).toBe("27 directives over 3 pages");
     expect(http.calls).toHaveLength(3);
     expect((db.prepare("SELECT COUNT(*) AS n FROM snapshots WHERE source_id = 'cisa-directives'").get() as { n: number }).n).toBe(3);
     expect(recentAlerts(db)).toHaveLength(0); // a first fetch is a back catalogue

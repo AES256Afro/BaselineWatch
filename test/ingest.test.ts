@@ -183,7 +183,7 @@ describe("scheduler", () => {
       ["bleeping", "ok"],
       ["cisa-kev", "ok"],
     ]);
-    expect(lines.some((l) => l.includes("2 source(s) due"))).toBe(true);
+    expect(lines.some((l) => l.includes("2 sources due"))).toBe(true);
     expect(await scheduler.runOnce()).toEqual([]);
   });
 

@@ -162,7 +162,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
 
   const results: Html = query
     ? html`<section class="box wide" id="results">
-        <h2>${hits.length === 0 ? html`Nothing matches “${query}”` : html`${hits.length}${hits.length === 200 ? "+" : ""} control(s) matching “${query}”`}</h2>
+        <h2>${hits.length === 0 ? html`Nothing matches “${query}”` : html`${hits.length}${hits.length === 200 ? "+" : ""} ${hits.length === 1 ? "control" : "controls"} matching “${query}”`}</h2>
         ${hits.length === 0
           ? html`<p class="small">Try a label (<code>AC-2</code>, <code>SV-254238</code>, <code>3.1.1</code>), a word from the title, or a phrase from the control's text. Only the current version of each standard is searched; older versions are on the standard's own page.</p>`
           : html`<div class="table-wrap"><table class="browse"><caption class="visually-hidden">Controls matching the search</caption>
@@ -202,7 +202,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
             </section>`,
           )}
         ${withheld.length
-          ? html`<p class="small">${withheld.length} source(s) carry a licence that forbids showing their entries to anyone but this instance's owner, so their controls are counted but never listed: ${withheld.map((v, i) => html`${i > 0 ? ", " : ""}<a href="/standards/${v.id}">${v.name}</a> (${licenceOf({ licence: v.licence })})`)}.</p>`
+          ? html`<p class="small">${withheld.length === 1 ? "One source carries" : `${withheld.length} sources carry`} a licence that forbids showing their entries to anyone but this instance's owner, so their controls are counted but never listed: ${withheld.map((v, i) => html`${i > 0 ? ", " : ""}<a href="/standards/${v.id}">${v.name}</a> (${licenceOf({ licence: v.licence })})`)}.</p>`
           : ""}
       </section>
       <aside class="side">

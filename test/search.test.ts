@@ -22,11 +22,18 @@ describe("/search", () => {
       const direct = await fetch(`${app.base}/search?q=cve-2026-5555`, { redirect: "manual" });
       expect(direct.status).toBe(302);
       expect(direct.headers.get("location")).toBe("/vulnerabilities/CVE-2026-5555");
-      // An id this instance does not hold is searched, not redirected into a 404.
-      expect((await fetch(`${app.base}/search?q=CVE-2026-9999`, { redirect: "manual" })).status).toBe(200);
+      // An id this instance does not hold goes to the page that says where to read it.
+      const unheld = await fetch(`${app.base}/search?q=CVE-2026-9999`, { redirect: "manual" });
+      expect(unheld.headers.get("location")).toBe("/vulnerabilities/CVE-2026-9999");
+      const notHeld = await fetch(`${app.base}/vulnerabilities/CVE-2026-9999`);
+      expect(notHeld.status).toBe(404);
+      const notHeldPage = await notHeld.text();
+      expect(notHeldPage).toContain("CVE-2026-9999 is not in this table");
+      expect(notHeldPage).toContain("https://www.cve.org/CVERecord?id=CVE-2026-9999");
+      expect(notHeldPage).toContain("https://nvd.nist.gov/vuln/detail/CVE-2026-9999");
 
       const page = await (await fetch(`${app.base}/search?q=widget`)).text();
-      expect(page).toContain("hit(s) for “widget”");
+      expect(page).toContain("for “widget”");
       expect(page).toContain('<a href="/vulnerabilities/CVE-2026-5555">CVE-2026-5555</a>');
       expect(page).toContain("Acme widget overflow exploited in the wild");
       expect(page).toContain('href="/vulnerabilities?q=widget"');

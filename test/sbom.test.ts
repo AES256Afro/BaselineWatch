@@ -86,7 +86,7 @@ describe("on the watchlist", () => {
       const rows = app.db.prepare("SELECT kind, value, label FROM watchlist WHERE kind = 'package' ORDER BY value").all();
       expect(rows).toEqual([{ kind: "package", value: "PyPI:django", label: "shop-api" }, { kind: "package", value: "npm:express", label: "shop-api" }]);
       const page = await (await fetch(`${app.base}/watchlist`, { headers: { cookie: `${cookie}; ${cookieFrom(first)}` } })).text();
-      expect(page).toContain("Imported 2 package(s) from shop-api (0 already listed, 1 component(s) without a package URL");
+      expect(page).toContain("Imported 2 packages from shop-api (0 already listed, 1 component without a package URL");
       // Again: nothing new.
       const again = await upload(app.base, cookie, bom);
       expect(cookieFrom(again)).toContain("Imported%200%20package");

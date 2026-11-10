@@ -2,6 +2,7 @@ import { eolProducts, productLabel, replaceEolCycles, type EolCycle } from "../e
 import { upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import type { Adapter, ParsedItem, PullOutcome } from "./types.ts";
+import { counted } from "../html.ts";
 
 /**
  * endoflife.date: one JSON file per product, a list of cycles with their release, support and
@@ -60,7 +61,7 @@ export function eolItems(rows: Omit<EolCycle, "seen_at">[], now: Date): ParsedIt
     items.push({
       kind: "article",
       externalId: `${r.product}:${r.cycle}`,
-      title: ended ? `${name} support ended ${r.eol}` : days === 0 ? `${name} support ends today` : `${name} support ends ${r.eol}, in ${days} day(s)`,
+      title: ended ? `${name} support ended ${r.eol}` : days === 0 ? `${name} support ends today` : `${name} support ends ${r.eol}, in ${counted(days, "day")}`,
       url: r.link ?? `https://endoflife.date/${r.product}`,
       summary: `${ended ? "No more security updates" : "Security updates stop"} ${ended ? "since" : "on"} ${r.eol}${r.latest ? `; the last release is ${r.latest}` : ""}. Move to a supported release, or keep the device off networks that matter.`,
       publishedAt: new Date(Math.min(end - warnDays * day, now.getTime())).toISOString(),

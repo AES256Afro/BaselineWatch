@@ -42,6 +42,7 @@ import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } fro
 
 import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
+import { counted } from "../html.ts";
 
 /**
  * The Desk: the owner's watchlist, triage, digest, uploads, sources, branding and appearance. Mounted by createApp in app.ts, which hands over the
@@ -77,7 +78,7 @@ export function mountDesk(r: RouteContext): void {
     }
     db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, kind === "platform" ? value.toLowerCase() : value, label, now().toISOString());
     const changed = recomputeWatchHits(db);
-    res.append("Set-Cookie", flashHeader(`Added ${value}; ${changed} CVE(s) re-marked.`, secureCookies(req)));
+    res.append("Set-Cookie", flashHeader(`Added ${value}; ${counted(changed, "CVE")} re-marked.`, secureCookies(req)));
     res.redirect(303, "/watchlist");
   });
   // An SBOM's components as package entries, by file: the one upload the watchlist takes.
@@ -132,7 +133,7 @@ export function mountDesk(r: RouteContext): void {
     const at = now().toISOString();
     for (const p of reading.packages) added += Number(insert.run(p.value, label, at).changes);
     const changed = added ? recomputeWatchHits(db) : 0;
-    res.append("Set-Cookie", flashHeader(`Imported ${added} package(s) from ${label ?? "the SBOM"} (${reading.packages.length - added} already listed, ${reading.skipped} component(s) without a package URL an advisory feed covers); ${changed} CVE(s) re-marked.`, secureCookies(req)));
+    res.append("Set-Cookie", flashHeader(`Imported ${counted(added, "package")} from ${label ?? "the SBOM"} (${reading.packages.length - added} already listed, ${counted(reading.skipped, "component")} without a package URL an advisory feed covers); ${counted(changed, "CVE")} re-marked.`, secureCookies(req)));
     res.redirect(303, "/watchlist");
   });
   app.post("/watchlist/:id/delete", requireOwner, (req, res) => {

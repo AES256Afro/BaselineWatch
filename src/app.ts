@@ -373,7 +373,19 @@ export function createApp(ctx: AppContext): Express {
 
   const requireOwner = (req: Request, res: Response, next: NextFunction): void => {
     if (res.locals.owner === true) return next();
-    res.status(403).type("text").send("Only the owner can do that. Sign in at /login.");
+    // A form posted after the session lapsed: say so, and offer the way back to the page it came
+    // from rather than a bare line of text that loses the reader's place.
+    let from = "/";
+    try {
+      const referer = req.get("referer");
+      if (referer) {
+        const u = new URL(referer);
+        if (u.host === req.get("host")) from = safeBack(u.pathname + u.search, "/");
+      }
+    } catch {
+      // An unparseable Referer is no place to go back to.
+    }
+    res.status(403).type("html").send(renderLogin({ next: from, open: false, error: "Only the owner can do that. If you were signed in, the sign-in has lapsed: sign in again and you will be taken back. What you sent was not saved.", look: lookOf(req) }));
   };
   const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookOf(req) });
   const routeContext: RouteContext = { app, config, db, now, ctx, lookOf, who, requireOwner, secureCookies, brandMarks };

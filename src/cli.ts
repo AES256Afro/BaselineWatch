@@ -18,6 +18,7 @@ import { lastRehearsal, recordRehearsal } from "./housekeeping.ts";
 import { parseNotifyUrl } from "./notify.ts";
 import { relinkSource } from "./register.ts";
 import { dueSources, formatResult } from "./scheduler.ts";
+import { counted } from "./html.ts";
 
 const [command, target] = process.argv.slice(2);
 
@@ -71,7 +72,7 @@ if (command === "rehearsal") {
     process.exit(2);
   }
   const out = await backfillImages(db, config.dataDir, { http: httpGet, log: (line: string) => console.log(line) }, { limit });
-  console.log(`[images] examined ${out.examined} article(s) without an image, stored ${out.stored}`);
+  console.log(`[images] examined ${counted(out.examined, "article")} without an image, stored ${out.stored}`);
 } else if (command === "netscan") {
   if (target !== "run" && target !== "due") {
     console.error(`netscan takes "run" or "due", got "${target}"`);
@@ -92,7 +93,7 @@ if (command === "rehearsal") {
   }
   for (const source of sources) {
     const out = relinkSource(db, source, new Date().toISOString());
-    if (out.keys) console.log(`[relink] ${source.id.padEnd(18)} ${out.keys} document key(s), ${out.relinked} relinked`);
+    if (out.keys) console.log(`[relink] ${source.id.padEnd(18)} ${counted(out.keys, "document key")}, ${out.relinked} relinked`);
   }
 } else {
   const sources =

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AC-2 across every version · mockup</title><link rel="stylesheet" href="m.css">
+<style>
+.head { display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; align-items: end; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.life { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; margin-top: 18px; align-items: start; }
+.tl { list-style: none; margin: 0; padding: 0; position: relative; }
+.tl::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--rule); }
+.tl li { position: relative; padding: 0 0 18px 32px; }
+.tl li::before { content: ""; position: absolute; left: 3px; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: var(--card); border: 2px solid var(--acc); }
+.tl li.quiet::before { border-color: var(--rule); }
+.tl .v { font: 600 14px var(--mono); }
+.tl .d { font-size: 12.5px; color: var(--mute); margin-left: 6px; }
+.tl .what { margin-top: 6px; font-size: 14px; }
+.cmp { display: grid; grid-template-columns: auto 1fr auto 1fr auto; gap: 8px; align-items: center; }
+.cmp select { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); min-height: 32px; width: 100%; }
+.cite { font: 12px/1.5 var(--mono); background: var(--panel-2); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; overflow-wrap: anywhere; user-select: all; }
+.diff { font-size: 14px; line-height: 1.65; }
+@media (max-width: 860px) { .life { grid-template-columns: 1fr; } .cmp { grid-template-columns: 1fr 1fr; } .cmp span { display: none; } }
+</style></head><body>
+<div class="note"><b>Mockup 3 of 4 · One control across every version.</b> Tests M22.3 (a link stays good: a control's page across versions, its own feed, a citation carrying the snapshot hash) and "any two versions compared by URL".</div>
+<header class="mast"><div class="in">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#" aria-current="page">Standards ▾</a><a href="#">Vulnerabilities ▾</a><a href="#">Scan ▾</a></nav>
+  <form class="search" role="search"><input aria-label="Search" value="AC-2(1)"><button class="btn">Search</button></form>
+</div></header>
+<main class="wrap">
+  <div class="crumbs"><a href="#">Standards</a> › <a href="#">NIST SP 800-53</a> › <a href="#">AC Access Control</a> › AC-2</div>
+  <div class="head">
+    <div>
+      <h1>AC-2 Account Management</h1>
+      <p class="lede" style="margin-bottom:0">Six versions since Rev 4 (2013). Changed in four of them; the text you read below is <b>5.2.0</b>, the current release.</p>
+    </div>
+    <div class="tools"><a class="btn" href="#">Feed for AC-2</a><a class="btn" href="#">Cite</a><a class="btn" href="#">In baselines: Low · Mod · High</a></div>
+  </div>
+  <div class="ann">Address: <code>/standards/nist-sp-800-53/ac-2</code> is always the current text; <code>/standards/nist-sp-800-53/5.1.1/ac-2</code> is that version for good, and says "a newer version exists" at the top. No row ids in public links.</div>
+
+  <div class="life">
+    <section>
+      <h2>Its life</h2>
+      <ol class="tl" style="margin-top:12px">
+        <li><span class="v">5.2.0</span><span class="d">27 Aug 2025 · current</span>
+          <div class="what"><span class="chip mute">no change</span> <span class="small">NIST: "updates to SA and SI families"; AC-2 untouched.</span></div></li>
+        <li><span class="v">5.1.1</span><span class="d">6 Nov 2023</span>
+          <div class="what"><span class="chip ins">revised</span> AC-2(3)(d): a defined period of inactivity → <a href="#">compare 5.1 ↔ 5.1.1</a></div>
+          <blockquote class="small" style="margin-top:6px">"Adds an organization-defined parameter for the inactivity period." <span>— NIST, release notes</span></blockquote></li>
+        <li class="quiet"><span class="v">5.1</span><span class="d">10 Dec 2020</span>
+          <div class="what"><span class="chip mute">editorial</span> <span class="small">whitespace and parameter markup only; not counted as a change.</span></div></li>
+        <li><span class="v">5.0</span><span class="d">23 Sep 2020</span>
+          <div class="what"><span class="chip ins">revised</span> AC-2(13) added: disable accounts of individuals posing significant risk · <a href="#">compare Rev 4 ↔ 5.0</a></div></li>
+        <li><span class="v">Rev 4</span><span class="d">22 Jan 2015 (with updates)</span>
+          <div class="what"><span class="small">first version held here; 12 enhancements</span></div></li>
+      </ol>
+    </section>
+    <aside class="grid">
+      <section class="card">
+        <h3>Compare any two</h3>
+        <form class="cmp" style="margin-top:8px"><select aria-label="From"><option>Rev 4</option></select><span>↔</span><select aria-label="To"><option>5.2.0</option></select><span></span><button class="btn primary" style="grid-column:1/-1">Compare</button></form>
+        <p class="small" style="margin:8px 0 0">→ <code>/standards/nist-sp-800-53/compare/rev4...5.2.0#ac-2</code></p>
+      </section>
+      <section class="card">
+        <h3>Cite this text</h3>
+        <div class="cite" style="margin-top:8px">NIST SP 800-53 5.2.0, AC-2. Retrieved 2026-11-10 from csrc.nist.gov; snapshot sha256:9f3c…a41e, held at cybercard.net/snapshots/9f3c…a41e</div>
+        <p class="small" style="margin:6px 0 0">The hash names the exact bytes this page was read from.</p>
+      </section>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:20px">
+    <h2>5.1 → 5.1.1, AC-2(3)</h2>
+    <p class="diff">Disable accounts within [Assignment: organization-defined time period] when the accounts: … (d) Have been inactive for <del>a period the organization defines</del><ins>[Assignment: organization-defined time period]</ins>.</p>
+    <div class="ann">Parameters render as the assignment they are, never as a raw <code>{{ insert: param, ac-02.03_odp.01 }}</code>.</div>
+  </section>
+</main>
+</body></html>

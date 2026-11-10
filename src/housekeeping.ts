@@ -2,6 +2,7 @@ import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { databaseBytes } from "./db.ts";
+import { counted } from "./html.ts";
 
 /**
  * What this instance keeps, what it lets go, and the weekly pass that does it (M13).
@@ -324,8 +325,8 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   setSetting(db, lastRunKey, result.ranAt, result.ranAt);
   setSetting(db, lastResultKey, JSON.stringify(result), result.ranAt);
   log(
-    `[housekeeping] ${result.snapshotsDeleted} snapshot(s), ${result.blobsDeleted} blob(s) (${formatBytes(result.blobBytesFreed)}), ` +
-      `${result.networkScansDeleted} scan(s), ${result.deviceReadingsDeleted} reading(s), ${result.alertsDeleted} alert(s); database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
+    `[housekeeping] ${counted(result.snapshotsDeleted, "snapshot")}, ${counted(result.blobsDeleted, "blob")} (${formatBytes(result.blobBytesFreed)}), ` +
+      `${counted(result.networkScansDeleted, "scan")}, ${counted(result.deviceReadingsDeleted ?? 0, "reading")}, ${counted(result.alertsDeleted, "alert")}; database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
       `${result.vacuumed ? " (rewritten)" : ""} in ${result.durationMs} ms`,
   );
   return result;
@@ -340,11 +341,11 @@ export function maybeRunHousekeeping(db: DatabaseSync, dataDir: string, options:
 
 /** The one line the digest carries: what is held, and what the last pass let go. */
 export function storageLine(report: StorageReport, baseUrl: string): string {
-  const parts = [`${formatBytes(report.databaseBytes)} database`, `${report.snapshots} snapshot(s) (${formatBytes(report.snapshotBytes)})`];
+  const parts = [`${formatBytes(report.databaseBytes)} database`, `${counted(report.snapshots, "snapshot")} (${formatBytes(report.snapshotBytes)})`];
   if (report.lastRun) {
     const r = report.lastRun;
     const freed = r.snapshotsDeleted + r.blobsDeleted + r.networkScansDeleted + (r.deviceReadingsDeleted ?? 0) + r.alertsDeleted;
-    parts.push(freed === 0 ? `nothing to let go on ${r.ranAt.slice(0, 10)}` : `${r.snapshotsDeleted} snapshot(s) and ${r.blobsDeleted} blob(s) let go on ${r.ranAt.slice(0, 10)}`);
+    parts.push(freed === 0 ? `nothing to let go on ${r.ranAt.slice(0, 10)}` : `${counted(r.snapshotsDeleted, "snapshot")} and ${counted(r.blobsDeleted, "blob")} let go on ${r.ranAt.slice(0, 10)}`);
   } else {
     parts.push("no housekeeping pass yet");
   }

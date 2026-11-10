@@ -197,7 +197,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
   <div class="mast-inner">
     <a class="name" href="/">${look.brand?.logo ? html`<img class="brand-logo" src="/branding/logo?v=${look.brand.logo.sha256.slice(0, 12)}" alt="">` : ""}${productName}</a>
     <nav aria-label="Areas">
-      ${link("wire")}${link("today")}<details class="group${[...standardsGroup, ...standardsTools, ...standardsLearn].includes(active) ? " on" : ""}">
+      ${link("wire")}${link("today")}<details name="mast" class="group${[...standardsGroup, ...standardsTools, ...standardsLearn].includes(active) ? " on" : ""}">
         <summary>Standards</summary>
         <div class="menu wide">
           <a class="cap" href="/guide#ladder">A standard is the rulebook · a baseline picks its rules for a system · a control is one rule</a>
@@ -208,21 +208,21 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
           <span class="cap">Where it all comes from</span>
           ${standardsLearn.map((a) => entry(a))}
         </div>
-      </details><details class="group${vulnGroup.includes(active) ? " on" : ""}">
+      </details><details name="mast" class="group${vulnGroup.includes(active) ? " on" : ""}">
         <summary>Vulnerabilities</summary>
         <div class="menu wide">
           ${vulnGroup.map((a) => entry(a))}
         </div>
-      </details><details class="group${scanGroup.includes(active) ? " on" : ""}">
+      </details><details name="mast" class="group${scanGroup.includes(active) ? " on" : ""}">
         <summary>Scan</summary>
         <div class="menu wide">
           ${scanGroup.map((a) => entry(a))}
         </div>
       </details>
     </nav>
-    <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"><a class="to-search" href="/search">Search</a></form>
+    <form class="mast-search" method="get" action="/search" role="search"><label class="visually-hidden" for="mast-q">Search</label><input type="search" id="mast-q" name="q" placeholder="Search" aria-label="Search CVEs, controls and news"><button class="to-search" type="submit">Search</button></form>
     <div class="meta">${meta ?? ""}</div>
-    <details class="group desk${[...deskGroup, ...deskInstance, ...deskLook].includes(active) ? " on" : ""}">
+    <details name="mast" class="group desk${[...deskGroup, ...deskInstance, ...deskLook].includes(active) ? " on" : ""}">
       <summary>Desk</summary>
       <div class="menu right wide">
         <span class="cap">Your fleet and your work</span>

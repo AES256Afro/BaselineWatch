@@ -3,6 +3,7 @@ import { eolFor, eolWord } from "./eol.ts";
 import type { HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
 import { compareDotted, newestVersion } from "./versions.ts";
+import { counted } from "./html.ts";
 
 /**
  * Is this device affected? (Scan 2.0, S7.) A report the inventory script printed — the OS and
@@ -95,7 +96,7 @@ export function matchWindows(db: DatabaseSync, report: InventoryReport): DeviceF
     id: "windows",
     title: "Windows updates",
     state: exploited ? "bad" : "warn",
-    text: `${list.length} CVE(s) fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} are not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
+    text: `${counted(list.length, "CVE")} fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} are not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
     refs: list.slice(0, 60).map((m) => ({ id: m.cve_id, href: `/vulnerabilities/${m.cve_id}`, note: `${m.severity ?? ""}${m.exploited ? " · exploited" : ""} · ${m.kb ? `KB${m.kb}` : m.fixedBuild} (${m.release_id})` })),
     quoted: [...quoted, `Newest fixed build the guide names: ${newestVersion(list.map((m) => m.fixedBuild)) ?? "?"}`],
     links: kbs.filter((k) => k.startsWith("KB")).slice(0, 6).map((k) => ({ label: `${k} on Patch Tuesday`, href: `/vulnerabilities/microsoft?q=${k.slice(2)}` })),
@@ -202,7 +203,7 @@ export function matchOs(db: DatabaseSync, report: InventoryReport): DeviceFindin
     if (!latest) return { id: "os", title: "macOS", state: "na", text: `No macOS ${major} release is in the sources yet.`, refs: [], quoted };
     const newer = rows.filter((r) => compareDotted(r.version, os.version!) > 0);
     if (newer.length === 0) return { id: "os", title: "macOS", state: "ok", text: `${os.version} is the newest macOS ${major} with security content Apple has published.`, refs: [], quoted };
-    return { id: "os", title: "macOS", state: newer.length >= 2 ? "bad" : "warn", text: `${os.version} is behind ${latest}: ${newer.length} newer release(s) with security content. Software Update, then restart.`, refs: newer.slice(0, 8).map((n) => ({ id: n.version, href: n.url ?? "#", note: `${n.title}${n.published_at ? ` · ${n.published_at.slice(0, 10)}` : ""}` })), quoted };
+    return { id: "os", title: "macOS", state: newer.length >= 2 ? "bad" : "warn", text: `${os.version} is behind ${latest}: ${counted(newer.length, "newer release")} with security content. Software Update, then restart.`, refs: newer.slice(0, 8).map((n) => ({ id: n.version, href: n.url ?? "#", note: `${n.title}${n.published_at ? ` · ${n.published_at.slice(0, 10)}` : ""}` })), quoted };
   }
   if (os.family === "windows") {
     const product = windowsProduct(os.display, os.build);
@@ -212,7 +213,7 @@ export function matchOs(db: DatabaseSync, report: InventoryReport): DeviceFindin
     const quoted = [`${product ?? "Windows"}, build ${os.build ?? "?"}`, ...eol.map((c) => `endoflife.date: ${c.edition ?? ""} ${eolWord(c.eol)}`.trim())];
     if (eol.length === 0) return { id: "os", title: "Windows support", state: "na", text: "endoflife.date has no row for this version yet.", refs: [], quoted };
     if (ended.length === eol.length) return { id: "os", title: "Windows support", state: "bad", text: `Support for ${product} ended on every edition (${ended.map((c) => c.eol).join(", ")}): no more security updates. Move to a supported version.`, refs: [], quoted };
-    if (ended.length) return { id: "os", title: "Windows support", state: "warn", text: `Support for ${product} has ended on ${ended.map((c) => c.edition ?? "one edition").join(" and ")}; the other edition(s) continue.`, refs: [], quoted };
+    if (ended.length) return { id: "os", title: "Windows support", state: "warn", text: `Support for ${product} has ended on ${ended.map((c) => c.edition ?? "one edition").join(" and ")}; the others continue.`, refs: [], quoted };
     return { id: "os", title: "Windows support", state: "ok", text: `${product} is in support: ${eol.map((c) => `${c.edition} until ${c.eol}`).join("; ")}.`, refs: [], quoted };
   }
   if (os.family === "linux" && os.id && os.versionId) {
@@ -315,7 +316,7 @@ export async function matchPackages(db: DatabaseSync, http: HttpGet, report: Inv
     id: "packages",
     title: "Installed packages",
     state: kev ? "bad" : "warn",
-    text: `${hits.length} package(s) have open advisories for the installed version: ${hits.slice(0, 6).map((h) => h.name).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}${kev ? `; ${kev} of the CVEs are on the KEV` : ""}. Update the distribution's packages.`,
+    text: `${hits.length === 1 ? "1 package has" : `${hits.length} packages have`} open advisories for the installed version: ${hits.slice(0, 6).map((h) => h.name).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}${kev ? `; ${kev} of the CVEs are on the KEV` : ""}. Update the distribution's packages.`,
     refs: unique.slice(0, 200),
     quoted,
   };

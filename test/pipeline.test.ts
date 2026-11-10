@@ -100,7 +100,7 @@ describe("what the tile says", () => {
     const health = pipelineHealth(db, now);
     expect(health.state).toBe("bad");
     expect(health.cveAgeHours).toBe(staleCveHours + 24);
-    expect(pipelineSummary(health)).toBe("the CVE pull is 2 day(s) behind");
+    expect(pipelineSummary(health)).toBe("the CVE pull is 2 days behind");
   });
 
   it("counts the article images it has against the ones it looked for", () => {

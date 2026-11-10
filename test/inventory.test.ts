@@ -142,7 +142,7 @@ describe("packages", () => {
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, cvss_score, kev, first_seen_at, last_seen_at) VALUES ('CVE-2023-5363', ?, 7.5, 1, ?, ?)").run(at, at, at);
     const finding = await matchPackages(db, fakeHttp({ [osvBatchUrl]: { bytes: fixture("osv/querybatch.json") } }), { bw: 1, os: { family: "linux", name: "Debian GNU/Linux", version: "12", build: null, display: null, id: "debian", versionId: "12" }, browsers: [], packages, packageSource: "dpkg" });
     expect(finding.state).toBe("bad");
-    expect(finding.text).toContain("3 package(s) have open advisories");
+    expect(finding.text).toContain("3 packages have open advisories");
     expect(finding.text).toContain("on the KEV");
     expect(finding.refs.find((r) => r.id === "CVE-2023-5363")).toMatchObject({ href: "/vulnerabilities/CVE-2023-5363", note: expect.stringContaining("KEV") });
     expect(finding.refs.some((r) => r.href.startsWith("https://osv.dev/vulnerability/"))).toBe(true);
@@ -191,7 +191,7 @@ describe("the page", () => {
       const list = await (await fetch(`${app.base}/scan/devices`, { headers: { cookie } })).text();
       expect(list).toContain('<a href="/scan/devices?device=laptop"><b>laptop</b></a> <span class="state ok">Up to date</span>');
       const history = await (await fetch(`${app.base}/scan/devices?device=laptop`, { headers: { cookie } })).text();
-      expect(history).toContain("laptop <span class=\"count\">2 reading(s)</span>");
+      expect(history).toContain("laptop <span class=\"count\">2 readings</span>");
       const today = await (await fetch(`${app.base}/today`, { headers: { cookie } })).text();
       expect(today).toContain('<span><a href="/scan/devices">Devices</a></span><b>0 exposed of 1 read</b>');
       expect(await (await fetch(`${app.base}/today`)).text()).not.toContain('<a href="/scan/devices">Devices</a>');

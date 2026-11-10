@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, type Html } from "../html.ts";
+import { counted, html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { exposureHistory, listNetScans } from "../scanhistory.ts";
 import { relativeTime } from "../time.ts";
@@ -46,14 +46,14 @@ export function renderScanHistory(options: { db: DatabaseSync; owner: boolean; o
       <dt>Open ports</dt><dd>${r.internet ? (r.internet.ports.length ? r.internet.ports.join(", ") : "none on record") : "not read"}</dd>
       <dt>Known flaws</dt><dd>${r.internet?.vulns.length ? r.internet.vulns.slice(0, 8).join(", ") : "none"}</dd>
       <dt>Router</dt><dd>${r.router ? (r.router.redirectsToHttps ? "admin page over HTTPS" : r.router.plainStatus !== null && r.router.plainStatus < 400 ? "admin page over plain HTTP" : r.router.plainStatus === null && r.router.tlsStatus === null ? "did not answer" : "answered without a page") : "not named"}</dd>
-      <dt>Firmware</dt><dd>${r.firmware ? (r.firmware.kev.length ? html`<b>${r.firmware.kev.length} on the KEV</b>` : `${r.firmware.cves.length} CVE(s) named, none on the KEV`) : "vendor not named"}</dd>
+      <dt>Firmware</dt><dd>${r.firmware ? (r.firmware.kev.length ? html`<b>${r.firmware.kev.length} on the KEV</b>` : `${counted(r.firmware.cves.length, "CVE")} named, none on the KEV`) : "vendor not named"}</dd>
     </dl>
   </div>`;
   const content = html`<section class="scan-network">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>History</b></p>
   <h1>Scan history <span class="arrow">every run, and what changed between them</span></h1>
   <p class="lede">The network check's daily runs, newest first: the resolver each used, how many canaries it sinkholed, and what moved since the run before — the facts behind the notifications. ${owner ? "Your exposure runs, the last two, sit below." : "The owner's exposure runs are theirs alone to see."}</p>
-  <section class="box wide"><h2>Network check <span class="count">${scans.length} run(s)</span></h2>${table}</section>
+  <section class="box wide"><h2>Network check <span class="count">${counted(scans.length, "run")}</span></h2>${table}</section>
   ${owner
     ? html`<div class="cols"><section class="main">${exposure.last ? run(exposure.last, "Exposure, last run") : html`<div class="box"><h2>Exposure</h2><p class="small">No exposure run yet; turn it on under <a href="/scan/network#exposure">the network page</a>.</p></div>`}</section><aside class="side">${exposure.previous ? run(exposure.previous, "The run before") : ""}</aside></div>`
     : ""}

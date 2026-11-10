@@ -211,7 +211,7 @@ describe("digest", () => {
     const { text } = buildDigest(db, { from: "2026-10-14T06:00:00.000Z", to: "2026-10-15T06:00:00.000Z", baseUrl: "https://cybercard.net", period: "daily" });
     expect(text).toContain("Known exploited (CISA KEV): 1 added");
     expect(text).toContain("- Vendor Thing: RCE (due 2026-11-01)");
-    expect(text).toContain("Standards: 1 release(s)");
+    expect(text).toContain("Standards: 1 release");
     expect(text).toContain("https://cybercard.net/standards/nist-sp-800-53/9");
     expect(text).toContain("1 new stories, 0 notable CVEs");
     // What the owner starred is their own reading, so it sits in the owner's half.

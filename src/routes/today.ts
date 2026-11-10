@@ -12,6 +12,8 @@ import { setTriage } from "../triage.ts";
 import { safeBack } from "../paths.ts";
 import { str } from "./query.ts";
 import { type RouteContext } from "./context.ts";
+import { setupSteps } from "../setup.ts";
+import { loadFleet } from "../fleet.ts";
 
 /**
  * Reading: Today, the Atlas and the guide. Mounted by createApp in app.ts, which hands over the
@@ -24,7 +26,10 @@ export function mountReading(r: RouteContext): void {
     const hours = since === 72 || since === 168 ? since : 24;
     const platform = str(req.query.platform);
     const scope = { platform: isPlatformChoice(platform) ? platform : undefined, danger: str(req.query.danger) === "1" };
-    res.type("html").send(renderToday({ db, ...who(req, res), now: now(), hours, scope }));
+    const viewer = who(req, res);
+    // The first-run list is the owner's; a visitor's Today is not drawn from the config at all.
+    const setup = viewer.owner ? setupSteps(db, r.config, loadFleet()) : undefined;
+    res.type("html").send(renderToday({ db, ...viewer, now: now(), hours, scope, setup }));
   });
   // Today's remedy rows end in a verb, so they end in a button: one update done is every CVE it
   // clears marked done, which is the same triage row the board and the CVE page write.

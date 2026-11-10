@@ -2,6 +2,7 @@ import { safeUrl, upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { kbUrl, releaseNoteUrl, upsertMsrcVulns, type MsrcFix, type MsrcVulnDraft } from "../msrc.ts";
 import { plainText, type Adapter, type ParsedItem, type PullOutcome } from "./types.ts";
+import { counted } from "../html.ts";
 
 /**
  * Microsoft's Security Update Guide through its CVRF API, which needs no key. The index at
@@ -227,6 +228,6 @@ export const msrcAdapter: Adapter = {
     }
     upsertItems(ctx.db, ctx.source.id, items, at);
     const named = releases.map((r) => r.id).join(", ");
-    return { items: cves, inserted, updated, detail: read ? `${read} of ${releases.length} monthly release(s) read (${named})` : `${named} unchanged since the last read` };
+    return { items: cves, inserted, updated, detail: read ? `${read} of ${counted(releases.length, "monthly release")} read (${named})` : `${named} unchanged since the last read` };
   },
 };

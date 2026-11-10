@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, newTabIf, type Html } from "../html.ts";
+import { counted, html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { withheldFrom } from "../register.ts";
 import { relativeTime } from "../time.ts";
@@ -42,7 +42,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
     html`<section class="box"><h2>${heading} <span class="count">${count}</span></h2>${body}${more ? html`<p class="small"><a href="${more.href}">${more.label}</a></p>` : ""}</section>`;
   const content = html`
     <div class="wire-top">
-      <h1>Search<small>${total ? `${total} hit(s) for “${query}”` : `Nothing for “${query}”`}</small></h1>
+      <h1>Search<small>${total ? `${counted(total, "result")} for “${query}”` : `Nothing for “${query}”`}</small></h1>
       <form method="get" action="/search" class="search" role="search"><label class="visually-hidden" for="q">Search</label><input type="search" id="q" name="q" value="${query}"><button type="submit">Search</button></form>
       ${saveSearchForm(db, `/search?q=${encodeURIComponent(query)}`, owner)}
     </div>

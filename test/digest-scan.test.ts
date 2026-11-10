@@ -21,17 +21,17 @@ describe("the digest", () => {
     expect(quiet).not.toContain("Exposure:");
     expect(quiet).not.toContain("Certificates logged:");
 
-    recordReading(db, "laptop", base, [{ id: "windows", title: "Windows updates", state: "bad", text: "3 CVE(s) fixed in KB5127648 are not on this build.", refs: [], quoted: [] }, { id: "os", title: "Windows support", state: "ok", text: "in support", refs: [], quoted: [] }], at);
+    recordReading(db, "laptop", base, [{ id: "windows", title: "Windows updates", state: "bad", text: "3 CVEs fixed in KB5127648 are not on this build.", refs: [], quoted: [] }, { id: "os", title: "Windows support", state: "ok", text: "in support", refs: [], quoted: [] }], at);
     recordReading(db, "study pc", base, [{ id: "windows", title: "Windows updates", state: "ok", text: "current", refs: [], quoted: [] }], at);
-    setSetting(db, exposureKeys.last, JSON.stringify({ at, publicIp: "203.0.113.9", internet: null, router: null, firmware: null, findings: [{ id: "internet", title: "What the internet sees", state: "warn", text: "2 open port(s) on record.", refs: [], quoted: [] }, { id: "public-address", title: "Public address", state: "ok", text: "ok", refs: [], quoted: [] }] }), at);
+    setSetting(db, exposureKeys.last, JSON.stringify({ at, publicIp: "203.0.113.9", internet: null, router: null, firmware: null, findings: [{ id: "internet", title: "What the internet sees", state: "warn", text: "2 open ports on record.", refs: [], quoted: [] }, { id: "public-address", title: "Public address", state: "ok", text: "ok", refs: [], quoted: [] }] }), at);
     db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES ('cybercard.net', 1, 'R13', 'login.cybercard.net', '2026-10-21T08:00:00', '2027-01-19T08:00:00', ?)").run(at);
     db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES ('cybercard.net', 2, 'R13', 'old.cybercard.net', '2026-09-01T08:00:00', '2026-12-01T08:00:00', '2026-09-01T09:00:00.000Z')").run();
     const { text, publicText } = buildDigest(db, { from, to: at, baseUrl: "https://bw.example", period: "daily" });
     expect(text).toContain("Devices: 1 with something open https://bw.example/scan/devices");
     expect(text).toContain("- laptop (exposed): Windows updates; read 2026-10-21");
     expect(text).not.toContain("study pc");
-    expect(text).toContain("Exposure: 1 finding(s) on the last run https://bw.example/scan/network#exposure");
-    expect(text).toContain("- What the internet sees: 2 open port(s) on record.");
+    expect(text).toContain("Exposure: 1 finding on the last run https://bw.example/scan/network#exposure");
+    expect(text).toContain("- What the internet sees: 2 open ports on record.");
     expect(text).toContain("Certificates logged: 1 for your domains https://bw.example/scan/domain");
     expect(text).toContain("- login.cybercard.net by R13, from 2026-10-21");
     expect(text).not.toContain("old.cybercard.net");

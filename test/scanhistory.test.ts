@@ -38,7 +38,7 @@ describe("the runs", () => {
     try {
       seed(app.db);
       const page = await (await fetch(`${app.base}/scan/history`)).text();
-      expect(page).toContain("Network check <span class=\"count\">2 run(s)</span>");
+      expect(page).toContain("Network check <span class=\"count\">2 runs</span>");
       expect(page).toContain("<b>1 newly resolving</b> (b.example)");
       expect(page).toContain("+1 silent");
       expect(page).toContain("theirs alone to see");

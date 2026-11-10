@@ -31,6 +31,7 @@ import { parseNotifyUrl } from "../notify.ts";
 import { safeFilename } from "../paths.ts";
 import { str } from "./query.ts";
 import { publicDir, type RouteContext } from "./context.ts";
+import { counted } from "../html.ts";
 
 /**
  * Scan: the one page with a script, the network check, the guides, the scripts and the probes. Mounted by createApp in app.ts, which hands over the
@@ -252,7 +253,7 @@ export function mountScan(r: RouteContext): void {
   });
   app.post("/scan/exposure/run", requireOwner, async (req, res) => {
     const run = await runExposureScan(db, { http: ctx.http ?? httpGet, now, transport: parseNotifyUrl(config.notifyUrl), baseUrl: config.baseUrl, log: (line) => console.log(line) });
-    res.append("Set-Cookie", flashHeader(`Ran: ${run.findings.filter((f) => f.state === "bad" || f.state === "warn").length} finding(s), public address ${run.publicIp ?? "unknown"}.`, secureCookies(req)));
+    res.append("Set-Cookie", flashHeader(`Ran: ${counted(run.findings.filter((f) => f.state === "bad" || f.state === "warn").length, "finding")}, public address ${run.publicIp ?? "unknown"}.`, secureCookies(req)));
     res.redirect(303, "/scan/network#exposure");
   });
   app.post("/scan/network/settings", requireOwner, (req, res) => {

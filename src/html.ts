@@ -109,3 +109,11 @@ export function formatBytes(bytes: number): string {
   }
   return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${units[i]}`;
 }
+
+/**
+ * A count with its noun agreeing: `counted(1, "release")` is "1 release", `counted(3, "release")`
+ * is "3 releases". The irregular plural is passed when "s" is wrong. Pages say "(s)" nowhere.
+ */
+export function counted(n: number, one: string, many = `${one}s`): string {
+  return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
+}

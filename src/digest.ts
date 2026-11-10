@@ -5,6 +5,7 @@ import { latestExposure } from "./exposure.ts";
 import { failingSources } from "./pipeline.ts";
 import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
 import { parseJson } from "./json.ts";
+import { counted } from "./html.ts";
 
 /**
  * The digest: what moved since the last one, as plain text a notifier can carry and the
@@ -70,7 +71,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const releases = db
     .prepare("SELECT title, url, summary FROM items WHERE kind = 'release' AND fetched_at > ? AND fetched_at <= ? AND COALESCE(published_at, fetched_at) > ? ORDER BY published_at DESC LIMIT 10")
     .all(from, to, from) as { title: string; url: string | null; summary: string | null }[];
-  both(`Standards: ${releases.length ? `${releases.length} release(s)` : "no releases"}`);
+  both(`Standards: ${releases.length ? `${counted(releases.length, "release")}` : "no releases"}`);
   for (const r of releases) both(`- ${r.title}${r.url ? ` ${baseUrl}${r.url}` : ""}`);
   both("");
 
@@ -82,7 +83,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
        GROUP BY v.cve_id ORDER BY v.epss DESC NULLS LAST, v.cvss_score DESC NULLS LAST LIMIT 20`,
     )
     .all(from, to) as { cve_id: string; cvss_score: number | null; epss: number | null; kev: number; watch_labels_json: string | null; fields: string }[];
-  mine(`Your stack: ${watched.length ? `${watched.length} CVE(s) new or changed` : "no CVE changes"}`);
+  mine(`Your stack: ${watched.length ? `${counted(watched.length, "CVE")} new or changed` : "no CVE changes"}`);
   for (const w of watched) {
     const labels = parseJson<string[]>(w.watch_labels_json, []).join(", ");
     mine(`- ${w.cve_id} (${labels})${w.cvss_score !== null ? ` CVSS ${w.cvss_score.toFixed(1)}` : ""}${w.epss !== null ? ` EPSS ${(w.epss * 100).toFixed(0)}%` : ""}${w.kev ? " KEV" : ""}: ${w.fields} ${baseUrl}/vulnerabilities/${w.cve_id}`);
@@ -114,7 +115,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
     netChanges += (changes.newlyResolving?.length ?? 0) + (changes.newlySinkholed?.length ?? 0);
   }
   if (netChanges > 0) {
-    mine(`This network: ${netChanges} change(s) ${baseUrl}/scan/network`);
+    mine(`This network: ${counted(netChanges, "change")} ${baseUrl}/scan/network`);
     for (const line of netLines) mine(line);
     if (netChanges > netLines.length) mine(`- …and ${netChanges - netLines.length} more`);
     mine("");
@@ -135,7 +136,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const exposure = latestExposure(db);
   const exposed = exposure?.findings.filter((f) => f.state === "bad" || f.state === "warn") ?? [];
   if (exposed.length) {
-    mine(`Exposure: ${exposed.length} finding(s) on the last run ${baseUrl}/scan/network#exposure`);
+    mine(`Exposure: ${counted(exposed.length, "finding")} on the last run ${baseUrl}/scan/network#exposure`);
     for (const f of exposed) mine(`- ${f.title}: ${f.text}`);
     mine("");
   }
@@ -164,7 +165,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const newestVuln = (db.prepare("SELECT MAX(last_modified_at) AS m FROM vulns").get() as { m: string | null }).m;
   if (newestVuln) {
     const ageDays = (Date.parse(to) - Date.parse(newestVuln)) / 86_400_000;
-    if (ageDays >= 1.5) both(`Pipeline: the newest CVE change is ${Math.floor(ageDays)} day(s) old — the CVE pull may be stuck ${baseUrl}/sources`);
+    if (ageDays >= 1.5) both(`Pipeline: the newest CVE change is ${counted(Math.floor(ageDays), "day")} old — the CVE pull may be stuck ${baseUrl}/sources`);
   }
   const tidy = (out: string[]): string => out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return { text: tidy(lines), publicText: tidy(publicLines) };

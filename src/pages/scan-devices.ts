@@ -1,4 +1,4 @@
-import { html, newTab, type Html } from "../html.ts";
+import { counted, html, newTab, type Html } from "../html.ts";
 import type { DeviceReading } from "../devices.ts";
 import type { DeviceFinding, InventoryReport } from "../inventory.ts";
 import { relativeTime } from "../time.ts";
@@ -42,7 +42,7 @@ function devicesBox(devices: DeviceReading[], now: Date): Html {
 
 function historyBox(history: { device: string; readings: DeviceReading[] }, owner: boolean, now: Date): Html {
   return html`<section class="box wide" id="history">
-    <h2>${history.device} <span class="count">${history.readings.length} reading(s)</span></h2>
+    <h2>${history.device} <span class="count">${counted(history.readings.length, "reading")}</span></h2>
     ${history.readings.length
       ? html`<ul class="refs">${history.readings.map((r) => html`<li><span class="state ${r.worst}">${worstWord[r.worst]}</span> ${r.os_label ?? r.os} <span class="small">· ${r.read_at.slice(0, 16).replace("T", " ")} UTC · ${relativeTime(r.read_at, now)}</span>${r.findings.filter((f) => f.state === "bad" || f.state === "warn").map((f) => html`<div class="small">${f.title}: ${f.text}</div>`)}</li>`)}</ul>`
       : html`<p class="small">No reading under that name.</p>`}

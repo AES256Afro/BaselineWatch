@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The month in the standards · mockup</title><link rel="stylesheet" href="m.css">
+<style>
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 10px; }
+.masthead h1 { font-size: 36px; }
+.issue { font: 12px var(--mono); color: var(--mute); text-transform: uppercase; letter-spacing: .08em; }
+.nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--rule); margin: 0 0 20px; }
+.nums div { padding: 14px 12px; border-right: 1px solid var(--rule); }
+.nums div:last-child { border-right: 0; }
+.nums b { display: block; font: 500 30px var(--serif); }
+.nums span { font-size: 12.5px; color: var(--mute); }
+.paper { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; }
+article { border-bottom: 1px solid var(--rule); padding-bottom: 16px; margin-bottom: 16px; }
+article h2 { font-size: 21px; margin-bottom: 6px; }
+article .by { font-size: 12.5px; color: var(--mute); margin-bottom: 8px; }
+article ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
+.lead h2 { font-size: 26px; }
+.lead { grid-column: 1 / -1; }
+.months { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; }
+.months a { font-size: 13px; padding: 5px 10px; border: 1px solid var(--rule); border-radius: 999px; text-decoration: none; color: var(--ink); }
+.months a[aria-current] { border-color: var(--acc); box-shadow: inset 0 0 0 1px var(--acc); }
+@media (max-width: 760px) { .paper { grid-template-columns: 1fr; } .nums { grid-template-columns: 1fr 1fr; } .nums div:nth-child(2) { border-right: 0; } .masthead h1 { font-size: 28px; } }
+</style></head><body>
+<div class="note"><b>Mockup 4 of 4 · The month in the standards, at <code>/register/2026-11</code>.</b> The capability M22 ranks first: generated from change rows with no model, the publisher's words first. Nobody else publishes this.</div>
+<header class="mast"><div class="in">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#">Today</a><a href="#" aria-current="page">Standards ▾</a><a href="#">Vulnerabilities ▾</a><a href="#">Scan ▾</a></nav>
+  <form class="search" role="search"><input aria-label="Search" placeholder="CVE, control, KB, rule…"><button class="btn">Search</button></form>
+</div></header>
+<main class="wrap">
+  <nav class="months" aria-label="Month"><a href="#">Aug</a><a href="#">Sep</a><a href="#">Oct</a><a href="#" aria-current="page">Nov 2026</a><a href="#">RSS</a></nav>
+  <div class="masthead">
+    <div><div class="issue">The change register · monthly</div><h1>What changed in the standards, November 2026</h1></div>
+    <div class="small">1–10 Nov so far · updates as releases land · <a href="#">every row</a></div>
+  </div>
+  <div class="nums">
+    <div><b>6</b><span>releases from 4 publishers</span></div>
+    <div><b>83</b><span>rules or controls revised</span></div>
+    <div><b>11</b><span>added · 4 withdrawn</span></div>
+    <div><b>3</b><span>CAT I rules changed</span></div>
+  </div>
+  <div class="paper">
+    <article class="lead">
+      <div class="issue">Lead · DISA</div>
+      <h2>Windows 11 STIG V2R5 tightens SMB signing and retires two PowerShell rules</h2>
+      <div class="by">Released 6 Nov · 14 rules changed · 2 CAT I · <a href="#">the release</a></div>
+      <blockquote>"Updated WN11-CC-000038 to require SMB client signing. Removed WN11-CC-000326 and -000327; superseded by WN11-CC-000330." <span class="small">— DISA, revision history</span></blockquote>
+      <ul><li><a href="#">WN11-CC-000038</a> severity <del>CAT II</del> <ins>CAT I</ins>; check text revised</li><li><a href="#">WN11-CC-000326</a>, <a href="#">-000327</a> withdrawn → <a href="#">WN11-CC-000330</a></li><li>11 more, editorial or check-text only · <a href="#">see all 14</a></li></ul>
+    </article>
+    <article>
+      <div class="issue">NIST</div>
+      <h2>800-53 5.2.1 is out for comment</h2>
+      <div class="by">Draft, 3 Nov · comments by 5 Dec · <a href="#">compare 5.2.0 ↔ 5.2.1 draft</a></div>
+      <blockquote class="small">"Clarifies SI-7(15) code authentication and adds discussion to SR-11."</blockquote>
+      <ul><li>2 controls revised, 0 added</li><li>A draft never replaces the current text here.</li></ul>
+    </article>
+    <article>
+      <div class="issue">Microsoft</div>
+      <h2>Security baseline for Windows Server 2025, v2611</h2>
+      <div class="by">7 Nov · 22 settings · <a href="#">the setting list</a></div>
+      <blockquote class="small">"Enables LSA protection by default and adds the new Kerberos PKINIT hardening setting."</blockquote>
+      <ul><li>4 settings added, 18 values changed</li></ul>
+    </article>
+    <article>
+      <div class="issue">CIS · from your own copy</div>
+      <h2>Ubuntu 24.04 Benchmark v1.1.0</h2>
+      <div class="by">Uploaded 4 Nov · 31 recommendations changed · shown to you only</div>
+      <p class="small">Licensed text stays on your desk. Visitors see the counts, not the words.</p>
+    </article>
+    <article>
+      <div class="issue">Apple · mSCP</div>
+      <h2>macOS 26 baseline, Tahoe rev 1.1</h2>
+      <div class="by">2 Nov · 12 rules · <a href="#">the release</a></div>
+      <ul><li>FileVault escrow rule now maps to 800-53 SC-28</li></ul>
+    </article>
+  </div>
+  <div class="ann">Every sentence above is assembled from the change rows and the publisher's own rationale. The headline is the release with the most CAT I or High changes; ties go to the publisher with the most readers' platforms. No model anywhere, so nothing needs a "generated" badge.</div>
+</main>
+</body></html>

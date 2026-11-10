@@ -3,6 +3,7 @@ import { upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { getSetting } from "../netscan.ts";
 import type { Adapter, ParsedItem, PullOutcome } from "./types.ts";
+import { counted } from "../html.ts";
 
 /**
  * crt.sh, the public index of the certificate-transparency logs: `?q=<domain>&output=json` lists
@@ -97,6 +98,6 @@ export const crtshAdapter: Adapter = {
       }
     }
     const counts = upsertItems(ctx.db, ctx.source.id, items, at);
-    return { items: seen, inserted: counts.inserted, updated: counts.updated, detail: `${domains.length - skipped.length} of ${domains.length} domain(s) read, ${items.length} new certificate(s)${skipped.length ? `; crt.sh did not answer for ${skipped.length} of them` : ""}` };
+    return { items: seen, inserted: counts.inserted, updated: counts.updated, detail: `${domains.length - skipped.length} of ${counted(domains.length, "domain")} read, ${counted(items.length, "new certificate")}${skipped.length ? `; crt.sh did not answer for ${skipped.length} of them` : ""}` };
   },
 };

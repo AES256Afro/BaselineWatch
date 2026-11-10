@@ -395,7 +395,7 @@ main:focus { outline: none; }
    one tap instead of a row, and the page's own box is the one in front of them. */
 /* The link comes first: a later rule of the same specificity beats one inside a media query,
    so `display: none` written after the query would hide the link at every width. */
-.mast-search .to-search { display: none; color: var(--mute); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+.mast-search .to-search { display: none; background: none; border: 0; padding: 0; font-family: inherit; cursor: pointer; color: var(--mute); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
 .mast-search .to-search:focus-visible { outline: 2px solid var(--acc); outline-offset: 3px; }
 @media (max-width: 720px) { .mast-search { margin-left: auto; width: auto; } .mast-search input { display: none; } .mast-search .to-search { display: inline; } }
 .feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -1151,3 +1151,20 @@ dl.collide ul.plain > li { padding: 3px 0; line-height: 1.55; color: var(--ink);
 .check .fix .lab { margin: 8px 0 2px; color: var(--mute); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10.5px; }
 .fix-lines { margin: 0 0 6px; padding: 8px 10px; background: var(--card-2, var(--card)); border: 1px solid var(--rule); border-radius: 6px; font: 12px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .check .fix .caution { border-left: 2px solid var(--warn); padding-left: 8px; margin: 6px 0; }
+
+/* A CVE not held here: where to read it, one address per line. */
+.read-at { list-style: none; padding: 0; margin: 12px 0 20px; display: grid; gap: 8px; max-width: 72ch; }
+.read-at li { background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.read-at + .box, .read-at ~ .box + .box { margin-top: 12px; }
+.search-again { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 16px; }
+.search-again input { font: inherit; padding: 7px 10px; border: 1px solid var(--rule-2); border-radius: 6px; background: var(--card); color: var(--ink); min-width: min(320px, 100%); }
+.search-again button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--acc); background: var(--acc); color: var(--acc-ink); cursor: pointer; }
+
+/* Today's first-run list: each step ticks itself from the instance's own state. */
+.box.setup { margin: 0 0 16px; border-left: 3px solid var(--acc); }
+.setup-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.setup-steps li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+.setup-steps .tick { font-family: var(--mono); color: var(--mute); }
+.setup-steps li.done .tick { color: var(--ins); }
+.setup-steps li.done > span:nth-child(2) { color: var(--mute); }
+@media (max-width: 560px) { .setup-steps li { grid-template-columns: 20px minmax(0, 1fr); } .setup-steps li > .small { grid-column: 2; } }

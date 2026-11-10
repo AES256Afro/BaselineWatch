@@ -10,6 +10,7 @@ import { loadWatchlist, upsertVuln, type NormalizedVuln, type VulnRow } from "..
 import { unzipAll } from "../zip.ts";
 import type { Adapter, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
+import { counted } from "../html.ts";
 
 /** The parts of a CVE JSON 5.x record BaselineWatch reads. */
 export interface CveRecord {
@@ -240,7 +241,7 @@ export const cvelistAdapter: Adapter = {
     const detail =
       run.length === 0
         ? `no release newer than ${cursor ?? "(first run)"}`
-        : `${run.length} release(s) to ${lastTag}${cursor ? "" : " (first pull: newest only, baseline never loaded)"}; ${skipped} NVD-owned left alone${behind > 0 ? `; ${behind} more next run` : ""}`;
+        : `${counted(run.length, "release")} to ${lastTag}${cursor ? "" : " (first pull: newest only, baseline never loaded)"}; ${skipped} NVD-owned left alone${behind > 0 ? `; ${behind} more next run` : ""}`;
     return { items, inserted, updated, detail };
   },
 };

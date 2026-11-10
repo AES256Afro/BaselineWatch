@@ -2,6 +2,7 @@ import { putBlob, sha256Hex } from "../blobs.ts";
 import { upsertItems } from "../items.ts";
 import { directivePlatforms } from "../stigs.ts";
 import { plainText, type Adapter, type AlertDraft, type ParsedItem, type PullContext, type PullOutcome } from "./types.ts";
+import { counted } from "../html.ts";
 
 /**
  * CISA's Binding Operational Directives and Emergency Directives. CISA publishes no feed for
@@ -120,6 +121,6 @@ export const cisaDirectivesAdapter: Adapter = {
             .filter((i) => !before.has(i.externalId))
             .map((i) => ({ kind: "directive" as const, title: `CISA directive: ${i.title}`, body: i.summary ?? "", url: i.url }))
         : [];
-    return { items: items.length, inserted: counts.inserted, updated: counts.updated, detail: `${all.length} directive(s) over ${page + 1} page(s)`, alerts };
+    return { items: items.length, inserted: counts.inserted, updated: counts.updated, detail: `${counted(all.length, "directive")} over ${counted(page + 1, "page")}`, alerts };
   },
 };

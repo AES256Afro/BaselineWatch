@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today, since your last visit · mockup</title><link rel="stylesheet" href="m.css">
+<style>
+.top { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: end; justify-content: space-between; }
+.win { display: flex; gap: 6px; flex-wrap: wrap; }
+.win a { font-size: 13px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 999px; text-decoration: none; color: var(--ink); background: var(--card); }
+.win a[aria-current] { border-color: var(--acc); box-shadow: inset 0 0 0 1px var(--acc); }
+.setup { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+.setup ol { margin: 8px 0 0; padding-left: 0; list-style: none; display: grid; gap: 6px; }
+.setup li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: baseline; font-size: 14px; }
+.setup li .tick { font-family: var(--mono); color: var(--ins); }
+.setup li.todo .tick { color: var(--mute); }
+.setup li.done span.t { color: var(--mute); text-decoration: line-through; text-decoration-color: var(--rule); }
+.bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 60%; background: var(--acc); }
+.cols { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.job { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.job:last-child { border-bottom: 0; }
+.job h3 { font-family: var(--sans); font-weight: 600; font-size: 15px; }
+.job .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--mute); }
+.job .acts { display: flex; gap: 6px; align-items: start; flex-wrap: wrap; justify-content: end; }
+.cves { font: 12.5px var(--mono); color: var(--mute); overflow-wrap: anywhere; }
+.since { font-size: 13px; color: var(--mute); }
+.since b { color: var(--ink); }
+.quiet { display: grid; gap: 4px; }
+.quiet div { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; border-bottom: 1px dotted var(--rule); }
+.quiet div:last-child { border: 0; }
+.undo { position: sticky; bottom: 12px; margin-top: 18px; display: flex; justify-content: center; }
+.undo .card { display: flex; gap: 12px; align-items: center; box-shadow: 0 6px 24px rgb(0 0 0 / .12); }
+@media (max-width: 820px) { .cols { grid-template-columns: 1fr; } .setup { grid-template-columns: 1fr; } }
+</style></head><body>
+<div class="note"><b>Mockup 1 of 4 · Today, since your last visit.</b> Tests M22.6 (the owner's morning) and M22.3's "data as of". Static: buttons go nowhere.</div>
+<header class="mast"><div class="in">
+  <a class="name" href="#">BaselineWatch</a>
+  <nav><a href="#">News</a><a href="#" aria-current="page">Today</a><a href="#">Standards ▾</a><a href="#">Vulnerabilities ▾</a><a href="#">Scan ▾</a><a href="#">Desk ▾</a></nav>
+  <form class="search" role="search"><input aria-label="Search" placeholder="CVE, control, KB, rule…"><button class="btn">Search</button></form>
+</div></header>
+<div class="asof"><div class="in"><span>Data as of 08:52 UTC</span><span>NVD 08:40</span><span>KEV 08:31</span><span class="late">● CISA advisories late: 26 h (403 from cisa.gov) · silenced until Fri, by you</span></div></div>
+<main class="wrap">
+  <div class="top">
+    <div>
+      <h1>Since your last visit</h1>
+      <p class="since">You were last here <b>Monday 09:12</b>, 47 hours ago. Five things need a fix you can apply; two are new to KEV.</p>
+    </div>
+    <nav class="win" aria-label="Window"><a href="#" aria-current="page">Since Mon 09:12</a><a href="#">24 h</a><a href="#">7 days</a></nav>
+  </div>
+  <div class="ann">The window defaults to the last visit (a cookie holding a date, nothing else). The source that is late says so in the strip above every page, with the owner's own "silence until" — not a red row on Today for a week.</div>
+
+  <section class="card setup" aria-labelledby="setup-h">
+    <div>
+      <h2 id="setup-h">Finish setting up · 3 of 5</h2>
+      <p class="small" style="margin:4px 0 0">Until these are done, an empty Today means "not told", not "nothing touches you".</p>
+      <ol>
+        <li class="done"><span class="tick">✓</span><span class="t">A password for writes</span><span class="small">set</span></li>
+        <li class="done"><span class="tick">✓</span><span class="t">The fleet: what you run</span><span class="small">4 releases</span></li>
+        <li class="done"><span class="tick">✓</span><span class="t">A watchlist of products</span><span class="small">12 entries</span></li>
+        <li class="todo"><span class="tick">○</span><span class="t"><a href="#">Where the digest goes</a></span><span class="small">not set</span></li>
+        <li class="todo"><span class="tick">○</span><span class="t"><a href="#">An NVD key</a> <span class="small">(optional: faster, keyless works)</span></span><span class="small">not set</span></li>
+      </ol>
+      <div class="bar" aria-hidden="true"><i></i></div>
+    </div>
+    <button class="btn">Hide until done</button>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="fix-h">
+      <h2 id="fix-h">Install these</h2>
+      <p class="small" style="margin:2px 0 6px">Grouped by the update that ends them. Done stays on this card; nothing jumps to the top.</p>
+      <div class="job" id="job-kb5127648">
+        <div>
+          <h3>KB5127648 · Windows 11 24H2 cumulative</h3>
+          <div class="meta"><span class="chip kev">KEV · due 1 Dec</span><span class="chip new">new since Mon</span><span>4 CVEs · highest CVSS 8.8 · EPSS 61.2%</span></div>
+          <div class="cves">CVE-2026-21334 · CVE-2026-21337 · CVE-2026-21340 · CVE-2026-21351</div>
+        </div>
+        <div class="acts"><button class="btn primary">Done</button><button class="btn">Note…</button><button class="btn">Not us</button></div>
+      </div>
+      <div class="job">
+        <div>
+          <h3>Chrome 142.0.7444.59</h3>
+          <div class="meta"><span class="chip kev">KEV · due 28 Nov</span><span>2 CVEs · exploited in the wild per Google</span></div>
+          <div class="cves">CVE-2026-12911 · CVE-2026-12914</div>
+        </div>
+        <div class="acts"><button class="btn primary">Done</button><button class="btn">Note…</button><button class="btn">Not us</button></div>
+      </div>
+      <div class="job">
+        <div>
+          <h3>OpenSSL 3.5.4 <span class="small">(Debian: openssl, not libssl3)</span></h3>
+          <div class="meta"><span class="chip new">new since Mon</span><span>1 CVE · CVSS 7.5</span><span>noted Mon: "waiting on bookworm-security" · you</span></div>
+          <div class="cves">CVE-2026-40021</div>
+        </div>
+        <div class="acts"><button class="btn primary">Done</button><button class="btn">Note…</button><button class="btn">Not us</button></div>
+      </div>
+      <h2 style="margin-top:14px">Mitigate, no patch yet</h2>
+      <div class="job">
+        <div>
+          <h3>PAN-OS GlobalProtect · disable device telemetry</h3>
+          <div class="meta"><span class="chip mit">workaround only</span><span>1 CVE · the publisher's words quoted on the CVE page</span></div>
+          <div class="cves">CVE-2026-0302</div>
+        </div>
+        <div class="acts"><button class="btn primary">Applied</button><button class="btn">Not us</button></div>
+      </div>
+    </section>
+
+    <aside class="grid" style="align-content:start">
+      <section class="card" aria-labelledby="std-h">
+        <h2 id="std-h">The standards moved</h2>
+        <div class="quiet">
+          <div><a href="#">Windows 11 STIG V2R5</a><span class="small">14 rules · 2 CAT I</span></div>
+          <div><a href="#">800-53 5.2.1 (draft)</a><span class="small">comment by 5 Dec</span></div>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="q-h">
+        <h2 id="q-h">Quiet, and why</h2>
+        <div class="quiet">
+          <div><span>Nothing published, watching</span><span class="small">0</span></div>
+          <div><span>Cleared by you since Mon</span><span class="small">6</span></div>
+          <div><span>Outside your fleet</span><span class="small"><a href="#">212 in the table</a></span></div>
+        </div>
+        <div class="ann">A zero says why it is zero. A visitor sees this column as "The week in CVEs" with no "you".</div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="undo" role="status"><div class="card"><span>KB5127648 marked done (4 CVEs).</span><button class="btn">Undo</button></div></div>
+</main>
+</body></html>

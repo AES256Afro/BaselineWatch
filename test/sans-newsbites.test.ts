@@ -88,7 +88,7 @@ describe("SANS NewsBites adapter end to end", () => {
     const first = await ingestSource(db, dataDir, source, { http, now: () => new Date("2026-10-17T10:00:00Z") });
     expect(first.status).toBe("ok");
     expect(first.inserted).toBe(18);
-    expect(first.detail).toBe("2 new issue(s) of 12 listed");
+    expect(first.detail).toBe("2 new issues of 12 listed");
     expect(http.calls.map((c) => c.url)).toEqual([source.url, "https://www.sans.org/newsletters/newsbites/xxviii-77", "https://www.sans.org/newsletters/newsbites/xxviii-76"]);
     expect((db.prepare("SELECT COUNT(*) AS n FROM snapshots WHERE source_id = 'sans-newsbites'").get() as { n: number }).n).toBe(3);
 
@@ -97,7 +97,7 @@ describe("SANS NewsBites adapter end to end", () => {
     const second = await ingestSource(db, dataDir, getSource(db, "sans-newsbites")!, { http, now: () => new Date("2026-10-18T10:00:00Z") });
     expect(second.status).toBe("ok");
     expect(second.inserted).toBe(0);
-    expect(second.detail).toBe("0 new issue(s) of 12 listed");
+    expect(second.detail).toBe("0 new issues of 12 listed");
     expect(http.calls).toHaveLength(4);
 
     // An unseen issue on or after the cursor is news and is fetched once more; issue 75 and

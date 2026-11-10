@@ -2,6 +2,7 @@ import { Resolver, lookup } from "node:dns/promises";
 import tls from "node:tls";
 import { HttpError, privateAddress, type HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
+import { counted } from "./html.ts";
 
 /**
  * Check a domain (Scan 2.0, S3): its posture read by DNS and HTTPS alone, the way internet.nl
@@ -292,7 +293,7 @@ export function judgeTls(facts: TlsFacts | { error: string }, domain: string, no
   if (!facts.authorized) return { id: "tls", group: "web", title: "TLS", state: "bad", text: `The chain is not trusted: ${facts.authorizationError ?? "unknown reason"}.`, quoted };
   if (!covers) return { id: "tls", group: "web", title: "TLS", state: "bad", text: `The certificate does not name ${domain}.`, quoted };
   if (days !== null && days < 0) return { id: "tls", group: "web", title: "TLS", state: "bad", text: "The certificate has expired.", quoted };
-  if (days !== null && days < 14) return { id: "tls", group: "web", title: "TLS", state: "warn", text: `The certificate expires in ${days} day(s).`, quoted };
+  if (days !== null && days < 14) return { id: "tls", group: "web", title: "TLS", state: "warn", text: `The certificate expires in ${counted(days, "day")}.`, quoted };
   if (facts.protocol !== "TLSv1.3") return { id: "tls", group: "web", title: "TLS", state: "warn", text: `${facts.protocol ?? "An old protocol"} was negotiated; TLS 1.3 is the current standard.`, quoted };
   return { id: "tls", group: "web", title: "TLS", state: "ok", text: `TLS 1.3, a trusted chain, the name covered, ${days !== null ? `${days} days` : "?"} left.`, quoted };
 }
@@ -339,7 +340,7 @@ export async function checkDomain(domain: string, deps: DomainDeps, options: { s
   // Mail.
   const nullMx = mx.records.length === 1 && /^0 \.?$/.test(mx.records[0]!);
   const mail = mx.records.length > 0 && !nullMx;
-  push({ id: "mx", group: "mail", title: "Mail exchangers", state: mail ? "ok" : "na", text: mail ? `${mx.records.length} exchanger(s).` : nullMx ? "A null MX (0 .): the domain declares it takes no mail." : "No MX: the domain does not receive mail.", quoted: mx.records.map((r) => `MX ${r}`) });
+  push({ id: "mx", group: "mail", title: "Mail exchangers", state: mail ? "ok" : "na", text: mail ? `${counted(mx.records.length, "exchanger")}.` : nullMx ? "A null MX (0 .): the domain declares it takes no mail." : "No MX: the domain does not receive mail.", quoted: mx.records.map((r) => `MX ${r}`) });
   push(judgeSpf(txt.records, mail));
   push(judgeDmarc(dmarc.records, mail));
   const found = selectors.map((s, i) => ({ s, answer: dkim[i]! })).filter((d) => d.answer.records.some((r) => /v=DKIM1|p=/i.test(r)));
@@ -348,7 +349,7 @@ export async function checkDomain(domain: string, deps: DomainDeps, options: { s
     group: "mail",
     title: "DKIM",
     state: found.length ? "ok" : mail ? "warn" : "na",
-    text: found.length ? `${found.length} selector(s) publish a key: ${found.map((d) => d.s).join(", ")}.` : options.selectors?.length ? `None of the selectors named (${selectors.join(", ")}) publishes a key.` : `None of the common selectors (${selectors.join(", ")}) publishes a key; name yours to check it.`,
+    text: found.length ? `${found.length === 1 ? "1 selector publishes" : `${found.length} selectors publish`} a key: ${found.map((d) => d.s).join(", ")}.` : options.selectors?.length ? `None of the selectors named (${selectors.join(", ")}) publishes a key.` : `None of the common selectors (${selectors.join(", ")}) publishes a key; name yours to check it.`,
     quoted: found.map((d) => `${d.s}._domainkey TXT "${d.answer.records[0]!.length > 120 ? `${d.answer.records[0]!.slice(0, 119)}…` : d.answer.records[0]}"`),
   });
   const sts = stsTxt.records.find((r) => /^v=STSv1/i.test(r.trim()));

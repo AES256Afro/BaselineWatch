@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { adapterFor, fetchable } from "../adapters/index.ts";
 import type { Adapter, SourceRow } from "../adapters/types.ts";
-import { html, newTab, newTabIf, type Html } from "../html.ts";
+import { html, newTab, newTabIf, type Html, counted } from "../html.ts";
 import { defaultRetention, formatBytes, storageReport } from "../housekeeping.ts";
 import { knownRelease } from "../pipeline.ts";
 import { productVersion } from "../version.ts";
@@ -210,7 +210,7 @@ export function renderSources({ db, owner, open, notice, look, now = new Date() 
             ? html` <form method="post" action="/sources/check-version" class="inline"><button type="submit">Check now</button></form>`
             : ""}</td></tr>
           <tr><th scope="row">Last housekeeping</th><td class="n">${last
-            ? html`${shortStamp(last.ranAt)}: ${last.snapshotsDeleted} snapshot(s), ${last.blobsDeleted} blob(s) (${formatBytes(last.blobBytesFreed)}), ${last.networkScansDeleted} scan(s), ${last.deviceReadingsDeleted ?? 0} reading(s), ${last.alertsDeleted} alert(s)${last.vacuumed ? ", file rewritten" : ""}`
+            ? html`${shortStamp(last.ranAt)}: ${counted(last.snapshotsDeleted, "snapshot")}, ${counted(last.blobsDeleted, "blob")} (${formatBytes(last.blobBytesFreed)}), ${counted(last.networkScansDeleted, "scan")}, ${counted(last.deviceReadingsDeleted ?? 0, "reading")}, ${counted(last.alertsDeleted, "alert")}${last.vacuumed ? ", file rewritten" : ""}`
             : html`<span class="state wait">not yet; the pass runs weekly</span>`}</td></tr>
         </tbody>
       </table></div>

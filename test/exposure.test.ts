@@ -67,7 +67,7 @@ describe("the judges and the changes", () => {
     expect(exposureChanges(null, first)).toEqual([]);
     expect(exposureChanges(first, first)).toEqual([]);
     const second = { ...first, publicIp: "203.0.113.10", internet: { ...base.internet, ports: [443], nothing: false }, firmware: { vendor: "netgear", model: null, kev: ["CVE-2026-2001"], cves: [] } };
-    expect(exposureChanges(first, second)).toEqual(["The public address changed: 203.0.113.9 → 203.0.113.10.", "Newly open on the public address: port(s) 443.", "Router firmware: CVE-2026-2001 added to the KEV."]);
+    expect(exposureChanges(first, second)).toEqual(["The public address changed: 203.0.113.9 → 203.0.113.10.", "Newly open on the public address: port 443.", "Router firmware: CVE-2026-2001 added to the KEV."]);
   });
 });
 

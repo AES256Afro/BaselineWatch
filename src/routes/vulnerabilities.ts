@@ -2,7 +2,7 @@
 
 
 import { renderPatchTuesday } from "../pages/patch-tuesday.ts";
-import { renderVulnDetail, renderVulnList } from "../pages/vulnerabilities.ts";
+import { renderVulnDetail, renderVulnNotHeld, renderVulnList } from "../pages/vulnerabilities.ts";
 
 import { safeFilename } from "../paths.ts";
 import { vulnsCsv } from "../vulns.ts";
@@ -39,7 +39,9 @@ export function mountVulnerabilities(r: RouteContext): void {
     const cveId = String(req.params.cve).toUpperCase();
     if (!/^CVE-\d{4}-\d{4,7}$/.test(cveId)) return next();
     const html = renderVulnDetail({ db, cveId, ...who(req, res), now: now() });
-    if (!html) return next();
-    res.type("html").send(html);
+    if (html) return void res.type("html").send(html);
+    // A well-formed id with no row is a question with an answer elsewhere, not a missing page.
+    const { owner, open, look } = who(req, res);
+    res.status(404).type("html").send(renderVulnNotHeld({ db, cveId, owner, open, look }));
   });
 }

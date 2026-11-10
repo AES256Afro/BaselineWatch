@@ -69,7 +69,7 @@ describe("the judges", () => {
     expect(judgeTls({ ...good, names: ["*.example.com"] }, "www.example.com", now).state).toBe("ok");
     expect(judgeTls({ ...good, names: ["*.example.com"] }, "example.com", now).state).toBe("bad");
     expect(judgeTls({ ...good, protocol: "TLSv1.2" }, "example.com", now).state).toBe("warn");
-    expect(judgeTls({ ...good, validTo: "2026-10-30T00:00:00.000Z" }, "example.com", now)).toMatchObject({ state: "warn", text: expect.stringContaining("8 day(s)") });
+    expect(judgeTls({ ...good, validTo: "2026-10-30T00:00:00.000Z" }, "example.com", now)).toMatchObject({ state: "warn", text: expect.stringContaining("8 days") });
     expect(judgeTls({ ...good, authorized: false, authorizationError: "CERT_HAS_EXPIRED" }, "example.com", now)).toMatchObject({ state: "bad", text: expect.stringContaining("CERT_HAS_EXPIRED") });
     expect(judgeTls({ error: "ECONNREFUSED" }, "example.com", now).state).toBe("na");
     expect(judgeTls({ error: "timeout" }, "example.com", now).state).toBe("bad");

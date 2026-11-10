@@ -321,9 +321,9 @@ describe("vulnerability pages", () => {
     // The notice rides in a one-shot cookie, never in the redirect's query string.
     expect(added.headers.get("location")).toBe("/watchlist");
     const flash = cookieFrom(added);
-    expect(decodeURIComponent(flash)).toContain("1 CVE(s) re-marked");
+    expect(decodeURIComponent(flash)).toContain("1 CVE re-marked");
     const watchPage = await (await fetch(`${app.base}/watchlist`, { headers: { cookie: `${cookie}; ${flash}` } })).text();
-    expect(watchPage).toContain("Added siemens; 1 CVE(s) re-marked.");
+    expect(watchPage).toContain("Added siemens; 1 CVE re-marked.");
     expect(watchPage).toContain("Plant");
     expect(watchPage).toContain("Remove");
     expect(watchPage).toContain('<h2><a href="#add">Add to the watchlist</a></h2>');

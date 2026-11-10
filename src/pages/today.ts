@@ -6,7 +6,7 @@ import { devicesTile } from "../devices.ts";
 import { latestDigest } from "../digest.ts";
 import { endingSupport, loadFleet } from "../fleet.ts";
 import { candidateLimit, fixList, fixListCandidates, fixListHeadline, fixListTotal, type FixList, type Remedy } from "../fixlist.ts";
-import { html, newTabIf, type Html } from "../html.ts";
+import { html, newTabIf, type Html, counted } from "../html.ts";
 import { parseJson } from "../json.ts";
 import type { LookState } from "../look.ts";
 import { recentAlerts } from "../notify.ts";
@@ -18,6 +18,7 @@ import { trendingCves } from "../trending.ts";
 import { triageCounts, triageInbox } from "../triage.ts";
 import { page, registerStrip } from "./layout.ts";
 import { triageButtons } from "./triage.ts";
+import { setupPending, type SetupStep } from "../setup.ts";
 
 /**
  * The Today page: the window's work, grouped by the remedy that ends it.
@@ -37,6 +38,16 @@ import { triageButtons } from "./triage.ts";
 const hoursWord = (hours: number): string => (hours === 24 ? "24 hours" : hours === 72 ? "three days" : "seven days");
 
 /** The CVEs a bucket holds, counted once each however many remedies name them. */
+/** The owner's first-run list; it leaves Today by itself once every required step is done. */
+function setupBox(steps: SetupStep[]): Html {
+  const done = steps.filter((s) => s.done).length;
+  return html`<section class="box setup" aria-labelledby="setup-h">
+    <h2 id="setup-h">Finish setting up <span class="count">${done} of ${steps.length}</span></h2>
+    <p class="small">Until these are done, a quiet Today may mean "not told", not "nothing touches you". Each line ticks itself from this instance's own state.</p>
+    <ol class="setup-steps">${steps.map((s) => html`<li class="${s.done ? "done" : "todo"}"><span class="tick" aria-hidden="true">${s.done ? "✓" : "○"}</span><span>${s.done ? s.label : html`<a href="${s.href}">${s.label}</a>`}${s.optional ? html` <span class="small">(optional)</span>` : ""}</span><span class="small">${s.done ? "done" : "to do"}: ${s.state}</span></li>`)}</ol>
+  </section>`;
+}
+
 const cvesIn = (remedies: Remedy[]): Set<string> => new Set(remedies.flatMap((r) => r.cves.map((c) => c.cveId)));
 
 function remedyCard(r: Remedy, owner: boolean, back: string): Html {
@@ -80,7 +91,7 @@ function group(id: string, heading: string, blurb: string, remedies: Remedy[], o
   const hidden = remedies.length - shown.length;
   return html`<section class="box wide fixgroup" id="${id}">
     <h2>${heading} <span class="count">${blurb}</span></h2>
-    ${shown.length ? html`<ul class="remedies">${shown.map((r) => remedyCard(r, owner, back))}</ul>` : html`<p class="small">${empty}</p>`}
+    ${shown.length ? html`<ul class="remedies">${shown.map((r) => remedyCard(r, owner, `${back}#${id}`))}</ul>` : html`<p class="small">${empty}</p>`}
     ${hidden > 0 ? html`<p class="small">${hidden} more not drawn here: the ones with no date anyone owes, covering fewer CVEs. ${rest}</p>` : ""}
   </section>`;
 }
@@ -95,7 +106,7 @@ function todayHref(hours: number, scope: PlatformScope): string {
   return q ? `/today?${q}` : "/today";
 }
 
-export function renderToday(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; hours: number; look: LookState; scope?: PlatformScope }): string {
+export function renderToday(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; hours: number; look: LookState; scope?: PlatformScope; setup?: SetupStep[] | undefined }): string {
   const { db, owner, open, now, hours, look } = options;
   const scope = options.scope ?? {};
   const since = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
@@ -183,12 +194,13 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only what touches your fleet or your watchlist is counted; <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a> has the rest.</small></h1>
+      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the remedy rather than by the CVE, because one update is one job. Only the CVEs that matter are counted: on CISA's list of those exploited in the wild (KEV)${owner ? ", on your watchlist" : ""}, newly critical, or likely to be exploited soon (EPSS over 50%). <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has the rest.</small></h1>
       <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
     </div>
+    ${owner && options.setup && setupPending(options.setup) ? setupBox(options.setup) : ""}
 
     <div class="stats today">
-      <a class="tile${list.fixed ? " ok" : ""}" href="#install"><small>Fixed by an update</small><b>${list.fixed}</b><span>${list.install.length} update(s) to install</span></a>
+      <a class="tile${list.fixed ? " ok" : ""}" href="#install"><small>Fixed by an update</small><b>${list.fixed}</b><span>${counted(list.install.length, "update")} to install</span></a>
       <a class="tile" href="#published"><small>No update named</small><b>${published.size}</b><span>fix published, version not named</span></a>
       <a class="tile${mitigateOnly.size ? " warn" : ""}" href="#mitigate"><small>Mitigation only</small><b>${mitigateOnly.size}</b><span>published action, no patch yet</span></a>
       <a class="tile" href="#nofix"><small>Nothing published</small><b>${nothing.size}</b><span>watching for a fix</span></a>
@@ -203,7 +215,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         ${group(
           "install",
           "Install now",
-          `${list.install.length} update(s) · ${list.fixed} CVE(s)`,
+          `${counted(list.install.length, "update")} · ${counted(list.fixed, "CVE")}`,
           list.install,
           owner,
           back,
@@ -213,7 +225,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         ${group(
           "published",
           "Published, but no update named",
-          `${list.published.length} place(s) to read · ${published.size} CVE(s)`,
+          `${counted(list.published.length, "place")} to read · ${counted(published.size, "CVE")}`,
           list.published,
           owner,
           back,
@@ -223,7 +235,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         ${group(
           "mitigate",
           "Mitigation only",
-          `${list.mitigate.length} published action(s) · ${mitigateOnly.size} CVE(s)`,
+          `${counted(list.mitigate.length, "published action")} · ${counted(mitigateOnly.size, "CVE")}`,
           list.mitigate,
           owner,
           back,
@@ -232,7 +244,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         ${group(
           "nofix",
           "Nothing published yet",
-          `${nothing.size} CVE(s)`,
+          `${counted(nothing.size, "CVE")}`,
           list.none,
           owner,
           back,
@@ -246,11 +258,11 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
           <h2><a href="/register">Standards moved</a> <span class="count">${realReleases.length} in the window</span></h2>
           ${realReleases.length
             ? html`<ul class="need">${realReleases.map((r) => html`<li class="std"><div class="need-main"><b>${r.url ? html`<a href="${r.url}" ${newTabIf(r.url)}>${r.title}</a>` : r.title}</b>${r.summary ? html`<span class="small">${r.summary}</span>` : ""}</div></li>`)}</ul>`
-            : html`<p class="small">No standard moved${releases.length ? ` (${releases.length} first version(s) loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows what is due next.</p>`}
+            : html`<p class="small">No standard moved${releases.length ? ` (${releases.length === 1 ? "1 first version" : `${releases.length} first versions`} loaded, nothing to compare yet)` : ""}. The <a href="/atlas">Atlas</a> shows what is due next.</p>`}
         </section>
 
         <section class="box">
-          <h2><a href="/triage">Needs you</a> <span class="count">${counts.affects + counts.reviewing} placed, ${inbox.length} not</span></h2>
+          <h2><a href="/triage">${owner ? "Needs you" : "On the owner's desk"}</a> <span class="count">${counts.affects + counts.reviewing} placed, ${inbox.length} not</span></h2>
           ${decisions.length
             ? html`<ul class="talked">${decisions.map((d) => html`<li><a href="${d.href}">${d.title}</a> <span class="small">${d.why}</span></li>`)}</ul>`
             : ""}
@@ -263,7 +275,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : decisions.length
               ? ""
               : html`<p class="small">Nothing waiting on a decision.</p>`}
-          ${ending.length ? html`<p class="small"><b>Support ending:</b> ${ending.length} release(s) within 90 days — ${ending[0]!.release.label}: ${ending[0]!.clause}. <a href="/fleet">Your fleet</a>.</p>` : ""}
+          ${ending.length ? html`<p class="small"><b>Support ending:</b> ${counted(ending.length, "release")} within 90 days — ${ending[0]!.release.label}: ${ending[0]!.clause}. <a href="/fleet">Your fleet</a>.</p>` : ""}
         </section>
 
         <section class="box">
@@ -301,7 +313,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
     title: "Today",
     active: "today",
     content,
-    meta: html`${list.install.length} update(s) · ${list.fixed} fixed · ${published.size} with no version named · ${nothing.size} with nothing published`,
+    meta: html`${counted(list.install.length, "update")} · ${list.fixed} fixed · ${published.size} with no version named · ${nothing.size} with nothing published`,
     owner,
     open,
     strip: registerStrip(db, now),

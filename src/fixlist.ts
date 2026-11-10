@@ -372,7 +372,7 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
  * updates there are is the install group's own count, where it belongs.
  */
 export function fixListHeadline(list: FixList): string {
-  if (list.considered === 0) return "Nothing that touches you changed in this window";
+  if (list.considered === 0) return "No CVE that matters changed in this window";
   const of = `this window's ${list.considered} CVE${list.considered === 1 ? "" : "s"}`;
   if (list.fixed === 0) return `No update to install yet for any of ${of}`;
   return `${list.fixed} of ${of} ${list.fixed === 1 ? "has" : "have"} an update you can install`;

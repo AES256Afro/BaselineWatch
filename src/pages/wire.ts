@@ -147,8 +147,9 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
   };
 
   const rows = listed.map((item) => {
-    const back = html`<input type="hidden" name="back" value="${current}">`;
-    return html`<li class="wi ${owner && item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
+    // Acting on a card returns to that card, not to the top of a fifty-item page.
+    const back = html`<input type="hidden" name="back" value="${current}#item-${item.id}">`;
+    return html`<li id="item-${item.id}" class="wi ${owner && item.read ? "read" : "unread"} ${item.kind}${item.image_blob ? " with-img" : ""}">
       ${item.image_blob ? html`<a class="wi-img" href="${item.url ?? `/img/${item.image_blob}`}" ${newTabIf(item.url)} tabindex="-1" aria-hidden="true"><img src="/img/${item.image_blob}" alt="" loading="lazy"></a>` : ""}
       <div class="wi-body">
       <div class="wi-head">
@@ -164,7 +165,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
           ? html`<div class="acts">
               <form method="post" action="/items/${item.id}/${item.read ? "unread" : "read"}">${back}<button type="submit">${item.read ? "Mark unread" : "Mark read"}</button></form>
               <form method="post" action="/items/${item.id}/${item.starred ? "unstar" : "star"}">${back}<button type="submit">${item.starred ? "Unstar" : "Star"}</button></form>
-              ${item.kind !== "article" ? triageButtons({ kind: "item", id: item.id }, triageState.get(item.id) ?? null, current, { compact: true }) : ""}
+              ${item.kind !== "article" ? triageButtons({ kind: "item", id: item.id }, triageState.get(item.id) ?? null, `${current}#item-${item.id}`, { compact: true }) : ""}
             </div>`
           : ""}
       </div>

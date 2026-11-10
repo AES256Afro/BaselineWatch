@@ -13,6 +13,7 @@ import { relinkSource } from "./register.ts";
 import { recomputePlatforms } from "./vulns.ts";
 import { startScheduler, type Scheduler } from "./scheduler.ts";
 import { productName, productVersion } from "./version.ts";
+import { counted } from "./html.ts";
 
 /**
  * Start: read the config, open and migrate the database, put every standard's versions in
@@ -24,17 +25,17 @@ mkdirSync(config.dataDir, { recursive: true });
 const db = openDatabase(path.join(config.dataDir, "baselinewatch.db"));
 const migration = migrate(db);
 if (migration.applied.length > 0) {
-  console.log(`[db] applied ${migration.applied.length} migration(s): ${migration.applied.join(", ")}`);
+  console.log(`[db] applied ${counted(migration.applied.length, "migration")}: ${migration.applied.join(", ")}`);
 }
 // Every standard's versions in publication order before anything is served: a chain linked
 // wrong by an older version is re-diffed once here, and a chain already in order costs a query.
 for (const source of listSources(db)) {
   const out = relinkSource(db, source, new Date().toISOString());
-  if (out.relinked > 0) console.log(`[register] ${source.id}: ${out.relinked} version(s) relinked into publication order`);
+  if (out.relinked > 0) console.log(`[register] ${source.id}: ${counted(out.relinked, "version")} relinked into publication order`);
 }
 // Migration 0032 added the platform a CVE affects; rows that predate it are filled once here.
 const platformed = recomputePlatforms(db);
-if (platformed > 0) console.log(`[vulns] read the platform of ${platformed} CVE(s)`);
+if (platformed > 0) console.log(`[vulns] read the platform of ${counted(platformed, "CVE")}`);
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");
 }

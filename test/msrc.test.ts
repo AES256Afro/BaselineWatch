@@ -114,7 +114,7 @@ describe("the pull", () => {
     const first = await ingestSource(db, dataDir, source, { http, now: () => now });
     expect(first.status).toBe("ok");
     expect(first.inserted).toBe(19);
-    expect(first.detail).toBe("1 of 1 monthly release(s) read (2026-Oct)");
+    expect(first.detail).toBe("1 of 1 monthly release read (2026-Oct)");
     expect(http.calls.map((c) => c.url)).toEqual([`${msrcApi}/updates`, `${msrcApi}/cvrf/2026-Oct`]);
 
     const again = await ingestSource(db, dataDir, source, { http, now: () => now });
@@ -139,7 +139,7 @@ describe("the pull", () => {
     await ingestSource(db, dataDir, source, { http, now: () => now });
     db.prepare("UPDATE app_settings SET value = '2026-10-14T00:00:00.000Z' WHERE key = 'msrc.2026-Oct.revised'").run();
     const again = await ingestSource(db, dataDir, source, { http, now: () => now });
-    expect(again.detail).toBe("1 of 1 monthly release(s) read (2026-Oct)");
+    expect(again.detail).toBe("1 of 1 monthly release read (2026-Oct)");
     expect(again.inserted).toBe(0);
     expect(again.updated).toBe(19);
   });

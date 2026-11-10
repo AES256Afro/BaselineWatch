@@ -447,7 +447,7 @@ export function judgeWebRtc(result) {
   const pub = ips.filter((a) => !privateIp.test(a));
   if (pub.length) return { state: "bad", text: "Public address exposed", lines: [`A public address is in the candidates: ${pub.join(", ")}. With a VPN on, this is the address the VPN was meant to hide.`] };
   if (priv.length) return { state: "warn", text: "LAN address exposed", lines: [`A private address is in the candidates: ${priv.join(", ")}. Any site can read it; current browsers hide it behind an mDNS name.`] };
-  if (mdns.length) return { state: "ok", text: "Hidden (mDNS)", lines: [`${mdns.length} candidate(s), each an mDNS name rather than an address: the modern default, and the right one.`] };
+  if (mdns.length) return { state: "ok", text: "Hidden (mDNS)", lines: [`${mdns.length} ${mdns.length === 1 ? "candidate" : "candidates"}, each an mDNS name rather than an address: the modern default, and the right one.`] };
   return { state: "ok", text: "Nothing exposed", lines: [`No host candidate was offered${result.error ? ` (${result.error})` : ""}.`] };
 }
 

@@ -265,7 +265,7 @@ describe("the verdict", () => {
     const v = t.judge([], coverage);
     expect(v).toMatchObject({ tone: "ok", title: "No known indicator in what was read" });
     expect(v.text).toContain("not that the device is clean");
-    expect(v.text).toContain("1 file(s) could not be read");
+    expect(v.text).toContain("1 file could not be read");
   });
 
   it("never calls nothing read clean", () => {
