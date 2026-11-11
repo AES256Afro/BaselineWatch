@@ -137,6 +137,7 @@ src/feeds.ts         the News and the table as RSS, sources as OPML, KEV due dat
 src/trending.ts      which CVEs the News is talking about, counted by source
 src/sbom.ts          a CycloneDX or SPDX document's components as watchlist package entries
 src/msrc.ts          Microsoft's Security Update Guide per CVE: the KB per product, exploited, disclosed
+src/cpematches.ts    NVD's CPE match criteria with their version ranges, one row per entry; rangesFor() reads them by vendor and product
 src/migrations/      NNNN_name.sql
 public/app.css       the one stylesheet (Register look)
 public/scan.js       the browser check's script; public/traces.js reads picked files against the indicator list, in the tab
