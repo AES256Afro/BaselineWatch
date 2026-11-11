@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { publicSummary } from "./api.ts";
 import { fleetPlatforms } from "./fleet.ts";
+import { guideArticles } from "./pages/guides/index.ts";
 import { html, type Html } from "./html.ts";
 import { parseJson } from "./json.ts";
 import { platformChoiceName } from "./platforms.ts";
@@ -208,6 +209,7 @@ export function sitemapDocument(db: DatabaseSync, baseUrl: string): string {
   const paths = [
     "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/traces", "/scan/guide", "/guide", "/feeds",
     ...standards,
+    ...guideArticles.map((a) => `/guide/${a.slug}`),
     ...fleetPlatforms.map((p) => `/baselines/${p.id}`),
     ...["windows", "macos", "linux", "ios", "android"].map((os) => `/scan/guide/${os}`),
   ];
