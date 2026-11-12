@@ -31,13 +31,13 @@ env:
     default: Etc/UTC
   - name: BW_BASE_URL
     label: Address people use
-    description: Used in digest and notification links.
+    description: The site's public address, without a trailing slash. Used for canonical links, the sitemap, robots.txt, the RSS feeds, and digest and notification links.
     default: http://localhost:8790
   - name: BW_PUBLIC_READ
     label: Anyone on the network can read
     type: boolean
     default: "true"
-    description: BaselineWatch holds no private data. Reading is open; changing sources, watchlist and triage needs the owner once sign-in lands (M7).
+    description: Yes lets anyone who can reach the site read it. No requires sign-in for everything. Writes and the owner's own pages always need the owner's password.
   - name: BW_ADMIN_PASSWORD
     label: Owner password
     type: password
