@@ -2,6 +2,61 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.56.0 — 2026-11-17
+
+The audit of 16 November: code, bug and security sweeps, then readability, usability, visual,
+quality-of-life, feature and speed rounds. Eighteen migrations (0060–0077) run on first start; on a
+copy of 0.55.0's live data they took under two seconds together with the start-up pass.
+
+**What the migrations rewrite**
+- Microsoft baseline settings are keyed without the release (0061), so a decision or a triage note
+  follows a setting from one release to the next; the old links answer 301.
+- CVSS history rows that differed only in how NVD spelled undefined CVSS 4.0 metrics are deleted
+  (0074; 2,985 on live's data, none with a different score); the rest are rewritten without them.
+- EPSS change text reads as percentages (0064); STIG releases and every KEV item are retitled
+  ("CVE-… · name", 0065, 0066, 0069, 0076).
+- KEV rows carry CISA's vendor and product (0073), and every CVE's platforms are read again by one
+  rule (0077): a handful of KEV CVEs that had no platform gain one.
+- A CVE's weaknesses get a table of their own (0070), and watched CVEs a partial index (0071).
+
+**Vulnerabilities and the News**
+- "New critical" is the first full record or the sighting that makes a CVE critical, not only a first
+  sighting; about one in five recent criticals never reached the News.
+- An EPSS rise past 50% puts a CVE on the News, once per rise.
+- A CVE's platforms and watch match are decided in one place, so the table, Today, the News, the
+  feeds and the API agree on them.
+- Filters for a weakness (CWE), ransomware use, starred and due this week; a CWE typed into search
+  opens the filter. The filtered count is in the heading.
+- A CVE whose references NVD has not tagged says so, instead of "Nothing published yet".
+- Every page that counts CVEs says when the CVE data is stale.
+- Watch entries match vendor names regardless of spaces and punctuation ("palo alto networks").
+- Patch Tuesday pages its table and offers the whole of it as CSV.
+
+**Today and the owner's desk**
+- The triage inbox has a true count, paging, a confirmed bulk action with a 24-hour undo, and a
+  complete CSV.
+- A source that has recovered no longer shows its failing alert on Today.
+- Saved searches show how many rows are new since they were last opened.
+- Test plans keep mSCP items that have no published check; a continuous STIG quotes one release's
+  notes, not every release's.
+
+**Scan**
+- The browser check reads current iOS versions correctly (an iPhone was always "behind").
+- Package watch entries, SBOM components and device readings spell OSV's ecosystems the same way
+  (`Ubuntu:24.04:LTS`), so an advisory filed under one name is no longer missed under another.
+
+**Speed and robustness**
+- Responses are compressed; the stylesheet's address changes when its contents do, so an upgrade is
+  never drawn with the old one.
+- Anonymous requests share a time budget per address and overall; deep page offsets no longer sort
+  the whole table; lookups of names a visitor chooses have a timeout.
+- The slowest page measured is under 40 ms warm.
+
+**Running it**
+- `docker-compose.yml` publishes the port on loopback unless `BW_BIND` says otherwise, and passes
+  `BW_ADMIN_PASSWORD` and `BW_SESSION_SECRET` through from `.env`.
+- The weekly housekeeping pass drops article images older than 90 days.
+
 ## 0.55.0 — 2026-11-10
 
 Three audits' worth of work (28 October, 5 November, 10 November) and the M20 thin slice. Two
