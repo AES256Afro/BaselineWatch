@@ -2,6 +2,20 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.57.2 — 2026-11-17
+
+Crawlers are kept out of the lists' filters and exports. On 2026-11-17 nearly all of the site's
+requests were AI and search crawlers walking the Vulnerabilities table's filters, its CSV and its
+feed: a space with no end whose every address names the bare table as canonical. No migration.
+
+- robots.txt disallows the News and table filters (`/?`, `/vulnerabilities?`), the filtered News
+  feed, search, the table's CSV and feed, and Patch Tuesday's CSV. The bare News and table, each
+  CVE's page, the standards and `/feed.xml` stay open, and a test checks that the sitemap names
+  nothing robots.txt shuts out.
+- A filtered, sorted or paged list and a search result carry `noindex, follow`, for a crawler that
+  fetches them anyway.
+- Feed readers are unaffected: they fetch the feeds they were given and do not read robots.txt.
+
 ## 0.57.1 — 2026-11-17
 
 Visitors counts programs by the day, not by the request. 0.57.0 was never deployed: on the day it
