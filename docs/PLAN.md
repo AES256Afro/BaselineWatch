@@ -1601,10 +1601,118 @@ milestone. After M21; it shares M22.3 and M22.6 and closes them.
 - **Done when**: the four mockups are pages on cybercard.net, and an owner who has been away a week
   can see on one screen what moved, what is due, and what they decided that no longer matches.
 
+### Where the audit of 16 November leaves things (2026-11-16)
+
+Branch `audit/2026-11-16`, uncommitted at the time of writing. Stage 1 swept code, bugs and security, a category
+leaving the loop after three sweeps in a row with no finding of medium or higher: code left after sweep 7, security
+after sweep 8. Bugs did not leave: all 13 bug sweeps found at least one medium, and from sweep 9 on every one was in
+how a CVE's platform and watch hit are read, which nine entry points did with slightly different inputs. The fixes
+closed each case and moved the mismatch to the next entry point; M24.0 below is the fix for the cause. Stage 2 ran
+readability, usability, visual, quality of life, features and optimisation three rounds each. What each sweep found, and what was fixed against what
+was planned, is in the git-ignored ledger `docs/audit-2026-11-16.local.md`; security detail stays there.
+
+What changed, in classes rather than rows:
+
+- **Notability.** "New critical" is the first full record or the sighting that makes a CVE critical, not only a
+  first sighting (about one in five recent criticals never reached the News); EPSS over 50% now puts a CVE on the News,
+  once per rise; CVSS 4.0 spellings of undefined metrics are no longer changes; feeds name the CVEs at the end of a body.
+- **One rule, one place.** OSV ecosystem names (`src/ecosystems.ts`), the KEV vendor reading (`kevReading`), Windows
+  end-of-life cycles by edition (`src/eol.ts`), Debian versions (`src/versions.ts`), the network-check verdict
+  (`runVerdict`), LIKE escaping (`src/sql.ts`), the stylesheet's address (a hash of its bytes).
+- **Owner data.** Microsoft baseline refs no longer carry the release (0061), so decisions follow a setting from one
+  release to the next; test plans keep mSCP items with no published check; continuous STIGs quote one release's notes.
+- **Load.** Every anonymous request draws on one budget of event-loop time, per address and for everyone; deep offsets
+  no longer sort; DNS for visitor-chosen names goes through c-ares with a timeout; zip entries that lie about their size
+  are refused; responses are gzipped.
+- **Reading and use.** Stale data says so on every page that counts CVEs; untagged references are named instead of
+  "Nothing published yet"; STIGs and rules are named by platform and version; CWE, ransomware, starred and due-this-week
+  filters; the triage inbox has a true count, paging, a confirmed bulk action and an undo.
+
+Migrations 0060–0077 run on the next start; the release note must name what they rewrite, measured on the local
+copy (live holds about twice as much): 0061 re-keys 862 Microsoft baseline settings without the release (old links
+answer 301; triage and decisions follow); 0064 rewrites EPSS change text as percentages; 0065, 0066 and 0069 retitle
+STIG releases and every KEV item ("CVE-… · name"); 0073 adds CISA's vendor and product to KEV rows and re-reads their
+platforms (platform counts move by a few); 0074 deletes 330 CVSS change rows that were NVD's spelling only; 0075 rewrites
+six News summaries. The weekly pass now drops article images older than 90 days (about 1 GB on this copy at +100 days).
+Rehearse the upgrade on a copy of live's data before the tag: it has only run on the local copy.
+
+### M24: One owner per table (planned 2026-11-16)
+
+The code audit's recurring finding: a rule written twice drifts, and the second copy is found only when it is wrong.
+Each item below moves a table or a rule behind one module. No user-visible change is the point; the gate is the code
+sweep coming back without a "two copies disagree" finding.
+
+- **M24.0 One reading of a CVE's facts.** A CVE's platforms and watch hits are decided by one function over one set of
+  inputs (CPEs, NVD's names, CISA's names, the description, packages, the stored platforms), and every writer (NVD,
+  the CVE list, KEV, OSV/GHSA, EPSS, the start-up recompute, watchlist edits) calls it. A test runs every entry point
+  over the same CVEs and fails on any disagreement. First, because the bug loop of 16 November stopped on it. *S–M.*
+- **M24.1 Settings.** One `src/settings.ts` with named keys for `app_settings` (15 modules read or write it; three keys
+  are spelled twice). Moves `localClock` to `time.ts` and breaks the digest → exposure → netscan cycle. *S.*
+- **M24.2 Watchlist.** `src/watchlist.ts` owns add, remove, import and list, each recomputing watch hits; routes and
+  adapters stop writing the table. *S.*
+- **M24.3 Snapshot store.** One `storeSnapshot()` exposed to pull adapters as `ctx.snapshot`; the two private copies in
+  `cisa-directives` and `sans-newsbites` go. *S.*
+- **M24.4 Current document.** One query for "the current version of a document" (five spellings today). *S.*
+- **M24.5 Redistribution.** One flag on `sources` for licensed content, read by the API, MCP, exports and pages; the
+  list in `api.ts` goes. Needs decision D1 (what visitors may see of a licensed standard). *S.*
+- **M24.6 Microsoft fixes.** One `mergeFixes()` in `msrc.ts` used by Today's fix list and Patch Tuesday (built twice,
+  in opposite shapes). *S.*
+- **M24.7 Typed findings.** `domainfix` chooses advice by a typed `cause` on each finding, not by matching
+  `domaincheck`'s sentences. *S.*
+- **M24.8 Long functions.** `createApp` (373 lines), `mountDesk`, `mountScan`, `renderGuide`, `renderToday` split by
+  area; allowances move to `src/allowances.ts`. *M.*
+- **M24.9 Smaller copies.** Day arithmetic in one `src/days.ts`; JSON field helpers in `json.ts`; CVE outside links and
+  `hostOf` in one `links.ts`; SQL fragments with named parameters; report looks' HTML stylesheet generated from
+  `reportStyles`; an `Adapter.canonicalRef` hook for sources that re-key; one exported HTML export skeleton built with
+  `html```. *M.*
+- **M24.11 Snapshots already seen.** Keep the hashes of snapshots the weekly pass deleted, so a feed that serves older
+  bytes again is "unchanged", not an upsert of older text over newer (a replay reverted 33 titles). *S.*
+- **M24.10 Tripwires.** A test for import cycles; the curated-ledger tripwire reads one-line sets, object maps and
+  `public/*.js`. *S.*
+
+- **Depends on**: nothing. **Thin slice**: M24.0, M24.2, M24.6 (the three with a bug behind them already), two days.
+- **Done when**: three code sweeps and three bug sweeps in a row find no medium on the released code.
+
+### M25: What the data can already answer (planned 2026-11-16)
+
+Features the Stage 2 rounds asked for, each built from data the instance already holds.
+
+- **M25.1 Weakness names.** CWE names from MITRE's catalogue as a source (an adapter and a fixture, not a list in
+  code), shown on chips, the table heading and `/guide`; a "top weaknesses" strip for the window and for KEV. *M.*
+- **M25.2 EPSS risers.** Keep the previous day's score; `sort=epss_rise`, a Rising filter and feed. *S.*
+- **M25.3 The record's own fix words.** Quote the CNA's sentence naming the fixed version ("fixed in 1.6.0") under the
+  Fix panel when NVD has tagged nothing: quoted, never generated. *M.*
+- **M25.4 Vendor pages.** `/vulnerabilities/vendor/<name>`: CVEs by year, KEV and exploits, the newest ten, a Watch
+  button and a feed. *M.*
+- **M25.5 A feed token.** A revocable read-only token so the owner's watch feed and calendar work in a feed reader,
+  which never carries the session cookie. *M.*
+- **M25.6 Caches by key.** `buildProfile`, `buildTestPlan` and the YAML readers cached by their inputs and file times;
+  `/stigs` pages fold check and fix text. *S.*
+- **M25.7 The ladder, once.** One rung per publisher in `authorities.ts`, read by `/guide`, `/learn`, `/sources` and
+  `/standards` (decision D2 below). *S.*
+
+- **Depends on**: M24.5 for anything that exports. **Thin slice**: M25.2 and M25.6, one day.
+- **Done when**: each item is on cybercard.net and a feature round finds nothing of medium value missing that the data
+  already holds.
+
+### Decisions for the owner (from the audit of 16 November)
+
+- **D2 The ladder's rungs.** A DISA STIG, a Microsoft security baseline and a CIS Benchmark are each called a standard,
+  a baseline or a configuration setting on different pages. Which is each? The registry follows the answer. The audit's
+  reading: mSCP belongs on "configuration setting" (it publishes the settings, as the STIGs do; the registry has it on
+  baseline), SP 800-53A on "check and evidence" (registry: catalogue), CMMC on "check and evidence" (registry:
+  framework). Since the /learn traces now read each rung from the registry, the federal and business traces show one
+  step out of order until this is settled.
+- **D3 Trusted proxies on cybercard.** `BW_TRUSTED_PROXIES` believes every private address by default, so the sign-in
+  brake on the tunnel's address is everyone's. Naming the tunnel's own address lets that brake skip it.
+- **D4 Feed fetches.** Every feed fetch through the public-only path (closes S12 and the adopted-repair case); costs
+  HTTP/2 and decompression on seed feeds that rely on them.
+
 ### The order, and what the dates are worth
 
 ```
 M21 say only what is true ──► M22 easy to read ──► M23 Today and history ──► everything below, M19 above all
+M24 one owner per table (beside M21) ──► M25 what the data can already answer
 
 M13 keep itself ──┬──► M14 the scan's other eyes ───────────┐
                   ├──► M15 Mine ──────► M16 evidence ───────┤
@@ -1621,6 +1729,8 @@ M13 keep itself ──┬──► M14 the scan's other eyes ──────�
 | M21 Say only what is true | first | 6 days; thin slice 1 day | Three fresh sweeps each of code, bugs and security empty on the released code. |
 | M22 Easy to read, quick to use | after M21 | 6 days; thin slice 1 day | The audit's ten visitor tasks finish without a stall, at phone width too. |
 | M23 Today, version history, monthly register | after M22 | 5 days; thin slice 1 day | The four mockups of 10 November live; a week of changes visible on one page. |
+| M24 One owner per table | with M21 | 6 days; thin slice 2 days | Three code sweeps in a row with no medium on the released code. |
+| M25 What the data can already answer | after M24.5 | 5 days; thin slice 1 day | Each item live; a feature round finds nothing of medium value missing that the data holds. |
 | M13 The platform keeps itself | 2026-10-25 | 3 days | A dated restore, a bounded database, one release command. |
 | M14 The scan's other eyes | 2026-10-31 | 4 days | The four scan sub-milestones closed and alerting only on change. |
 | M15 Mine | 2026-11-05 | 4 days | A profile that filters four areas and survives a share. |
