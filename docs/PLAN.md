@@ -1634,7 +1634,11 @@ answer 301; triage and decisions follow); 0064 rewrites EPSS change text as perc
 STIG releases and every KEV item ("CVE-… · name"); 0073 adds CISA's vendor and product to KEV rows and re-reads their
 platforms (platform counts move by a few); 0074 deletes 330 CVSS change rows that were NVD's spelling only; 0075 rewrites
 six News summaries. The weekly pass now drops article images older than 90 days (about 1 GB on this copy at +100 days).
-Rehearse the upgrade on a copy of live's data before the tag: it has only run on the local copy.
+Rehearsed 2026-11-17 on a copy of live's 0.55.0 database (78,276 CVEs, 321 MB): the server's own start applied all
+eighteen and its start-up pass in under two seconds, `integrity_check` ok, no foreign-key violations, every page
+answered. On live's data 0074 deletes 2,985 CVSS rows (each only NVD's spelling, none with a different score, no other
+kind touched), 0070 fills 71,527 CWE rows, and 14 KEV CVEs that had no platform gain one (vuln_platforms 21,063 →
+21,078). Live's watchlist is empty, so the watch recompute changed nothing there.
 
 ### M24: One owner per table (planned 2026-11-16)
 
