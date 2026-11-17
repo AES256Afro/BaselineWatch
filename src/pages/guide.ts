@@ -292,12 +292,14 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
         <h2>What this site counts about a visit</h2>
         <p>
           Each page, feed and API answer is counted on the server as it is sent, so the owner can
-          see who reads the site. Kept for each: the day and minute; the address asked for and the
-          path, without anything after <code>?</code>; whether the page was found; the kind of
-          program that asked (a browser, an AI assistant fetching for a person, a crawler, a feed
-          reader, a tool) with the browser family, system and device; the country Cloudflare reads
-          from the address; the name of the site a link was followed from; and the domain the
-          address's reverse DNS names, such as an internet provider's or an employer's.
+          see who reads the site. Kept for a person's page view: the day and minute; the address
+          asked for and the path, without anything after <code>?</code>; the browser family,
+          system and device; the country Cloudflare reads from the address; the name of the site a
+          link was followed from; and the domain the address's reverse DNS names, such as an
+          internet provider's or an employer's. Any other request (a crawler, an AI assistant
+          fetching for a person, a feed reader, a tool, a page that does not exist) is only
+          counted, per day, by the name the program sends, the country, the network and whether
+          it was found.
         </p>
         <p>
           The address itself is not kept. One browser on one day is told apart by a hash of the

@@ -316,7 +316,11 @@ browser by the name it sends (AI assistants fetching for a person, crawlers, fee
 tools), the paths asked for that do not exist, and the latest page views.
 
 It is counted on the server as each answer is sent (`src/visits.ts`), so the CSP stays
-`script-src 'none'` and a reader who blocks every tracker is counted all the same. Not counted:
+`script-src 'none'` and a reader who blocks every tracker is counted all the same. A person's page
+view is a row in `visits`; anything else is a count per day in `visit_counts` (migration 0079), so
+a crawler walking every filter of the Vulnerabilities list for a day is one row. A person is a
+browser that sends Accept-Language and Sec-Fetch-Mode, as every current browser does, and reads
+no more than 300 pages a day; past that it is counted as a program. Not counted:
 the owner, any address on this side of the router, assets, images, health, sign-in, redirects
 and refusals. A visit is one browser on one day: a hash of the address and the User-Agent under
 that day's salt. The address is never stored, and the salt is deleted the next day. The country

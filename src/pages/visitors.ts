@@ -1,7 +1,7 @@
 import { counted, figure, html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
-import { visitWindows, type AgentKind, type Counted, type VisitReport, type VisitWindow } from "../visits.ts";
+import { maxPagesPerPerson, visitWindows, type AgentKind, type Counted, type VisitReport, type VisitWindow } from "../visits.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -26,7 +26,7 @@ const kindWords: Record<Exclude<AgentKind, "person">, { title: string; line: str
   crawler: { title: "Crawlers", line: "search engines, AI crawlers, link previews, scanners and monitors" },
   reader: { title: "Feed readers", line: "polling the RSS for their readers" },
   tool: { title: "Tools and scripts", line: "libraries and command-line clients, by the name they send" },
-  unknown: { title: "Unnamed", line: "no User-Agent, or a browser's name without the Accept-Language every browser sends" },
+  unknown: { title: "Unnamed", line: "no User-Agent, a browser's name without the headers every browser sends, or one browser past " + String(maxPagesPerPerson) + " pages in a day" },
 };
 
 const regions = new Intl.DisplayNames(["en"], { type: "region" });
@@ -74,7 +74,7 @@ export function renderVisitors(options: VisitorsOptions): string {
   const content = html`
     <div class="wire-top"><h1>Visitors <small>${r.from === r.to ? r.to : html`${r.from} to ${r.to}`} · ${r.host ?? "every address"}</small></h1></div>
     ${options.counting ? "" : html`<p class="small"><b>Counting is off</b> on this instance (<code>BW_VISITS=false</code>); what is below was counted before it was turned off.</p>`}
-    <p class="small">Counted on the server as each answer was sent: no script, no cookie, no address kept, and your own visits left out. A visit is one browser on one day. Programs that are not a person's browser are counted by request. <a href="/guide#visits">What is kept</a>.</p>
+    <p class="small">Counted on the server as each answer was sent: no script, no cookie, no address kept, and your own visits left out. A visit is one browser on one day. Programs (crawlers, assistants, readers, tools) are counted by request, per day, by the name they send. <a href="/guide#visits">What is kept</a>.</p>
     <div class="filters"><span class="lab">Window</span>${visitWindows.map((d) => html`<a class="${d === r.days ? "on" : ""}" href="${link(d, r.host)}">${d === 1 ? "Today" : `${d} days`}</a>`)}</div>
     ${r.hosts.length > 1 || r.host
       ? html`<div class="filters"><span class="lab">Address</span><a class="${r.host ? "" : "on"}" href="${link(r.days, null)}">Every address</a>${r.hosts.map((h) => html`<a class="${h.host === r.host ? "on" : ""}" href="${link(r.days, h.host)}">${h.host} <b>${figure(h.visits)}</b></a>`)}</div>`

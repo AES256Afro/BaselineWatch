@@ -240,6 +240,7 @@ export function createApp(ctx: AppContext): Express {
             status: res.statusCode,
             userAgent: req.get("user-agent") ?? "",
             acceptLanguage: Boolean(req.get("accept-language")),
+            fetchMetadata: Boolean(req.get("sec-fetch-mode")),
             country: req.get("cf-ipcountry"),
             referer: req.get("referer"),
             optOut: req.get("sec-gpc") === "1" || req.get("dnt") === "1",
