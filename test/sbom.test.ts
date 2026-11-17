@@ -16,7 +16,8 @@ describe("a purl", () => {
     expect(purlToWatch("pkg:github/actions/checkout@v4")).toBe("GitHub Actions:actions/checkout");
     expect(purlToWatch("pkg:deb/debian/openssl@3.0.11?arch=amd64&distro=debian-12")).toBe("Debian:12:openssl");
     expect(purlToWatch("pkg:deb/debian/openssl@3.0.11")).toBe("Debian:openssl");
-    expect(purlToWatch("pkg:deb/ubuntu/curl@8.5.0?distro=ubuntu-24.04")).toBe("Ubuntu:24.04:curl");
+    expect(purlToWatch("pkg:deb/ubuntu/curl@8.5.0?distro=ubuntu-24.04")).toBe("Ubuntu:24.04:LTS:curl");
+    expect(purlToWatch("pkg:deb/ubuntu/curl@8.5.0?distro=ubuntu-25.10")).toBe("Ubuntu:25.10:curl");
     expect(purlToWatch("pkg:apk/alpine/busybox@1.36?distro=alpine-3.20.1")).toBe("Alpine:v3.20:busybox");
     expect(purlToWatch("pkg:rpm/redhat/openssl@3.0.7?distro=rhel-9.2")).toBe("Red Hat:openssl");
   });

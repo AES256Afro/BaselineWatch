@@ -6,6 +6,7 @@ import {
   authorityById,
   authorityForSource,
   chains,
+  stepRung,
   collisions,
   feedsInto,
   isRung,
@@ -143,7 +144,7 @@ function chainBlock(chain: (typeof chains)[number]): Html {
     <h3><a href="#trace-${chain.id}">${chain.title}</a></h3>
     <p class="small">${chain.line}</p>
     <ol class="ladder">${chain.steps.map((step) => {
-      const rung = rungs.find((r) => r.id === step.rung)!;
+      const rung = rungs.find((r) => r.id === stepRung(step))!;
       const a = step.authority ? authorityById(step.authority) : undefined;
       return html`<li>
         <b>${rung.label}</b> <span class="rung">${a ? bodyLink(a.id) : "nobody"}</span>
@@ -350,7 +351,8 @@ export function renderLearn(options: LearnOptions): string {
         ways. By <b>contract</b>: ${bodyLink("dfars-7012")} flows ${bodyLink("sp-800-171")} down to
         every defense supplier, and ${bodyLink("cmmc")} audits it; ${bodyLink("far-52-204-21")} sets a
         fifteen-requirement floor in almost every other federal contract. By <b>market</b>:
-        ${bodyLink("fedramp")} is met once and sold to every agency. Everything else — ${bodyLink("csf")},
+        a cloud service authorised once against the ${bodyLink("fedramp")} can be used by any agency
+        that accepts that authorisation. Everything else — ${bodyLink("csf")},
         ${bodyLink("cis-controls")}, ${bodyLink("iso-27001")} — is adopted because a customer asked or
         because it is a good idea, and a company can leave at any time. Which of those applies to you
         is the first thing to settle, because it decides whether the rest of this page is a

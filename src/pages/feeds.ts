@@ -33,12 +33,13 @@ export function renderFeeds({ baseUrl, owner, open, look }: { baseUrl: string; o
           <ul class="feeds">
             ${row("Every CVE, newest change first", "/vulnerabilities/feed.xml")}
             ${row("Known exploited (CISA KEV)", "/vulnerabilities/feed.xml?kev=1")}
+            ${row("Used in ransomware campaigns", "/vulnerabilities/feed.xml?ransomware=1", "KEV entries CISA marks as known ransomware use")}
             ${row("With a public exploit", "/vulnerabilities/feed.xml?exploit=1")}
             ${row("Most dangerous", "/vulnerabilities/feed.xml?danger=1", "exploited, exploit public, or EPSS at or over 50%")}
             ${row("Critical, new this week", "/vulnerabilities/feed.xml?severity=critical&new=168")}
             ${row("Likely exploited", "/vulnerabilities/feed.xml?min_epss=0.5", "EPSS at or over 50%")}
           </ul>
-          <p class="small">By platform: ${platformChoices.map((c, i) => html`${i ? " · " : ""}<a href="/vulnerabilities/feed.xml?platform=${c.id}">${c.label}</a>`)}; add <code>danger=1</code> for only the dangerous ones there. Every filter of the <a href="/vulnerabilities">table</a> works: <code>kev</code>, <code>exploit</code>, <code>danger</code>, <code>platform</code>, <code>severity</code>, <code>min_cvss</code>, <code>min_epss</code>, <code>changed</code>, <code>new</code>, <code>q</code>. A CVE comes round again when it changes, because the change is the news.</p>
+          <p class="small">By platform: ${platformChoices.map((c, i) => html`${i ? " · " : ""}<a href="/vulnerabilities/feed.xml?platform=${c.id}">${c.label}</a>`)}; add <code>danger=1</code> for only the dangerous ones there. Every filter of the <a href="/vulnerabilities">table</a> works: <code>kev</code>, <code>ransomware</code>, <code>cwe</code> (<code>cwe=CWE-787</code>), <code>exploit</code>, <code>danger</code>, <code>platform</code>, <code>severity</code>, <code>min_cvss</code>, <code>min_epss</code>, <code>changed</code>, <code>new</code>, <code>q</code>. A CVE comes round again when it changes, because the change is the news.</p>
         </section>
       </section>
       <aside class="side">

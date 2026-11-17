@@ -1,5 +1,29 @@
 import { XMLParser } from "fast-xml-parser";
-import { cveIdsIn, isoDate, plainText, type Adapter, type ParsedItem, type SourceRow } from "./types.ts";
+import { clipText, cveIdsIn, isoDate, maxPlainTextInput, plainText, type Adapter, type ParsedItem, type SourceRow } from "./types.ts";
+
+/**
+ * A draft's status written straight after its title with no space, as CSRC's drafts feed does
+ * ("…PortfolioInitial Public Draft"), put after a dash where a reader can find it.
+ */
+export function draftTitle<T extends string | null>(title: T): T {
+  if (title === null) return title;
+  return title.replace(/(\S)((?:Initial |Second |Third |Fourth |Final )?(?:Public|Working|Preliminary) Draft(?: \d+)?)$/, "$1 — $2") as T;
+}
+
+/** How many CVEs past those in the title and summary an item takes from its body. */
+const bodyCveLimit = 50;
+
+/**
+ * An item's CVEs: every one its title and summary name, then the first fifty more from the body.
+ * The body is read whole because Cisco and GitLab name the CVE at the end, but a vendor roll-up
+ * (one CISA ICS item lists 428) would otherwise tie one article to hundreds of CVEs.
+ */
+function itemCves(title: string, summary: string | null, whole: string | null): string[] {
+  const lead = cveIdsIn(`${title} ${summary ?? ""}`);
+  const named = new Set(lead);
+  const more = cveIdsIn(whole ?? "").filter((id) => !named.has(id)).slice(0, bodyCveLimit);
+  return [...lead, ...more];
+}
 
 /**
  * The RSS and Atom adapter every feed source shares: entries to timeline items, with the feed's own
@@ -85,14 +109,15 @@ function feedImage(item: Node): string | null {
 function rssItems(channel: Node): ParsedItem[] {
   const items = (channel.item as Node[] | undefined) ?? [];
   return items.flatMap((item) => {
-    const title = plainText(text(item.title), 300);
+    const title = draftTitle(plainText(text(item.title), 300));
     const link = rssLink(item.link);
     const guid = text(item.guid) ?? link ?? title;
     if (!title || !guid) return [];
     const body = text(item["content:encoded"]) ?? text(item.description);
-    const summary = plainText(body);
-    const haystack = `${title} ${summary ?? ""}`;
-    const cves = cveIdsIn(haystack);
+    // The whole body, as much as plainText reads, not the 600-character summary: Cisco and GitLab name the CVE at the end (itemCves).
+    const whole = plainText(body, maxPlainTextInput);
+    const summary = clipText(whole, 600);
+    const cves = itemCves(title, summary, whole);
     const media = feedImage(item);
     const image = media ?? imageInHtml(body);
     return [
@@ -113,13 +138,16 @@ function rssItems(channel: Node): ParsedItem[] {
 function atomEntries(feed: Node): ParsedItem[] {
   const entries = (feed.entry as Node[] | undefined) ?? [];
   return entries.flatMap((entry) => {
-    const title = plainText(text(entry.title), 300);
+    const title = draftTitle(plainText(text(entry.title), 300));
     const link = atomLink(entry.link);
     const id = text(entry.id) ?? link ?? title;
     if (!title || !id) return [];
     const body = text(entry.content) ?? text(entry.summary);
-    const summary = plainText(text(entry.summary) ?? text(entry.content));
-    const cves = cveIdsIn(`${title} ${summary ?? ""}`);
+    const whole = plainText(body, maxPlainTextInput);
+    // The summary prefers the entry's own summary; when that is the body as well, the body's text is cut rather than read twice.
+    const summarySource = text(entry.summary) ?? text(entry.content);
+    const summary = summarySource === body ? clipText(whole, 600) : plainText(summarySource);
+    const cves = itemCves(title, summary, whole);
     const media = feedImage(entry);
     const image = media ?? imageInHtml(body);
     return [

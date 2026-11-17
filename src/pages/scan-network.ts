@@ -21,6 +21,7 @@ import {
 } from "../netscan.ts";
 import { relativeTime } from "../time.ts";
 import { exposureEnabled, exposureKeys, latestExposure, type ExposureFinding } from "../exposure.ts";
+import { runVerdict, tallyRun, type RunTally } from "../scanhistory.ts";
 import { page } from "./layout.ts";
 
 /**
@@ -40,10 +41,26 @@ export interface ScanNetworkOptions {
 }
 
 const tone = (tally: CategoryTally): "ok" | "warn" | "bad" | "na" => {
-  if (tally.resolved === 0 && tally.sinkholed > 0) return "ok";
+  // The run's rule, per category: resolving is a finding, an unanswered canary is not a block,
+  // and ok is every canary answered with one.
   if (tally.resolved > 0) return tally.category === "adfection" ? "bad" : "warn";
+  if (tally.timeout > 0) return "warn";
+  if (tally.total > 0 && tally.sinkholed === tally.total) return "ok";
   return "na";
 };
+
+/**
+ * The line under the tiles when no category has a resolving canary. Enforcement is claimed only
+ * when the resolver answered every canary and every answer was a block; a run where it answered
+ * nothing, or only some, says so instead of reading silence as a block.
+ */
+function noFindings(tally: RunTally): Html {
+  const verdict = runVerdict(tally);
+  if (verdict === "none") return html`<p class="small">No canary was asked for on this run, so nothing is shown blocked.</p>`;
+  if (verdict === "silent") return html`<p class="small">The resolver did not answer for any of the ${tally.total} canaries (each timed out or failed), so this run shows nothing about blocking. Check that the resolver is up and reachable from this server, then run again.</p>`;
+  if (verdict === "partial") return html`<p class="small">${tally.sinkholed} of ${tally.total} canaries came back sinkholed and none resolved, but the resolver did not answer for ${tally.timeout}; enforcement is shown only for the ones it answered.</p>`;
+  return html`<p class="small">Every canary the resolver was asked for came back sinkholed: the lists behind these categories are enforced for every device that uses it.</p>`;
+}
 
 /** What a canary's outcome means for the network, in the table's last column. */
 function meaning(row: NetCanaryRow): Html {
@@ -147,7 +164,7 @@ function exposureSection(db: DatabaseSync, owner: boolean, now: Date): Html {
   </section>`;
 }
 
-function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, owner: boolean, enabled: boolean): Html {
+function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, tally: RunTally, owner: boolean, enabled: boolean): Html {
   const clients =
     scan?.clients_seen !== null && scan?.clients_seen !== undefined
       ? html`<dl class="kv"><dt>Clients seen</dt><dd>${scan.clients_seen} in the last day, per the ${scan.clients_source === "pihole" ? "Pi-hole" : "AdGuard Home"} API</dd></dl>
@@ -172,7 +189,7 @@ function asideBoxes(db: DatabaseSync, scan: NetScanRow | null, owner: boolean, e
       <dl class="kv">
         <dt>Resolver</dt><dd>${owner ? html`${scan.resolver ?? "none found"}${scan.resolver_source ? html` (${scan.resolver_source})` : ""}` : scan.resolver ? "the one this network hands out (its address is the owner's to see)" : "none found"}</dd>
         <dt>Upstream seen</dt><dd>${owner ? (scan.upstream ?? "no answer from the control name") : scan.upstream ? "answered (shown to the owner)" : "no answer from the control name"}</dd>
-        <dt>DoH from this LAN</dt><dd>${scan.doh === "reachable" ? html`<span class="warn-t">reachable: a browser can bypass this resolver</span>` : scan.doh === "blocked" ? html`<span class="ok-t">blocked or unreachable</span>` : "not tested"}</dd>
+        <dt>DoH from this LAN</dt><dd>${scan.doh === "reachable" ? html`<span class="warn-t">reachable: a browser can bypass this resolver</span>` : scan.doh === "blocked" ? (runVerdict(tally) !== "silent" && runVerdict(tally) !== "none" ? html`<span class="ok-t">blocked or unreachable</span>` : html`<span class="mute-t">unreachable, but so was the resolver this run: nothing is shown blocked</span>`) : "not tested"}</dd>
       </dl>
     </div>` : ""}
     ${owner ? ownerForms(db, enabled) : ""}`;
@@ -183,6 +200,7 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
   const enabled = netScanEnabled(db);
   const rows = scan ? scanCanaries(db, scan.id) : [];
   const tallies = categoryTallies(rows);
+  const run = tallyRun(rows);
   const findings = tallies.filter((t) => t.resolved > 0);
   const changes = parseChanges(scan?.changes_json ?? null);
 
@@ -214,12 +232,12 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
   ${tiles}
   <div class="cols">
     <div class="main">
-      ${findings.length > 0 ? html`<div class="checks">${findings.map((t, i) => findingRow(t, i))}</div>` : html`<p class="small">Every canary the resolver was asked for came back sinkholed: the lists behind these categories are enforced for every device that uses it.</p>`}
+      ${findings.length > 0 ? html`<div class="checks">${findings.map((t, i) => findingRow(t, i))}</div>` : noFindings(run)}
       ${rows.length > 0 ? table : ""}
     </div>
     <aside class="side">
       ${changesBox}
-      ${asideBoxes(db, scan, owner, enabled)}
+      ${asideBoxes(db, scan, run, owner, enabled)}
     </aside>
   </div>
   ${exposureSection(db, owner, now)}`
@@ -234,7 +252,7 @@ export function renderScanNetwork({ db, owner, open, look, now, notice }: ScanNe
         <span class="state na">Not run</span>
       </article>
     </div>
-    <aside class="side">${asideBoxes(db, null, owner, enabled)}</aside>
+    <aside class="side">${asideBoxes(db, null, tallyRun([]), owner, enabled)}</aside>
   </div>
   ${exposureSection(db, owner, now)}`;
 

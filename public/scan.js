@@ -618,21 +618,58 @@ export async function browserVersion(nav) {
     const m = family === "edge" ? /Edg\/(\d+(?:\.\d+)*)/.exec(ua) : family === "firefox" ? /(?:Firefox|FxiOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "chrome" ? /(?:Chrome|CriOS)\/(\d+(?:\.\d+)*)/.exec(ua) : family === "safari" ? /Version\/(\d+(?:\.\d+)*)/.exec(ua) : null;
     version = m ? m[1] : null;
   }
-  // An iPhone says its iOS version plainly ("CPU iPhone OS 26_7_1"); an iPad has called itself a Mac since iPadOS 13, so its line is unread.
+  return { family, version, os: appleOs(ua, family, nav) };
+}
+
+/**
+ * The iPhone's or iPad's OS line and version, as far as the browser states it. Up to iOS 18 an
+ * iPhone's user agent carried the iOS version ("CPU iPhone OS 18_5"). From iOS 26 WebKit freezes
+ * that token at 18_6 (WebKit bug 298260; Safari 26 release notes), so "18_6" beside Safari's
+ * Version/26 or later means the OS is 26 or later, and Safari's own version, which follows the
+ * OS's major and minor but not its patch level, is the nearest reading: it is marked as read from
+ * Safari. Another browser on a frozen iPhone states no version at all, and the OS is left unread.
+ * An iPad has called itself a Mac since iPadOS 13; touch points give it away, and only Safari's
+ * version says anything of its OS.
+ */
+function appleOs(ua, family, nav) {
+  const safariVersion = family === "safari" ? (/Version\/(\d+(?:\.\d+)*)/.exec(ua) || [])[1] || null : null;
   const ios = /iPhone OS (\d+(?:_\d+)*)/.exec(ua);
-  return { family, version, os: ios ? { line: "ios", version: ios[1].replace(/_/g, ".") } : null };
+  if (ios) {
+    const stated = ios[1].replace(/_/g, ".");
+    if (stated !== "18.6") return { line: "ios", version: stated };
+    if (safariVersion && Number(safariVersion.split(".")[0]) >= 26) return { line: "ios", version: safariVersion, source: "safari" };
+    if (safariVersion) return { line: "ios", version: stated };
+    return { line: "ios", version: null, source: "frozen" };
+  }
+  if (/Macintosh/.test(ua) && Number(nav.maxTouchPoints || 0) > 1 && safariVersion) return { line: "ipados", version: safariVersion, source: "safari" };
+  return null;
+}
+
+/** Safari on an iPhone or iPad is part of the OS and updated with it, so its version is read through the OS, never against Safari for macOS. */
+export function isMobileSafari(who) {
+  return Boolean(who && who.family === "safari" && who.os);
 }
 
 /** The phone's iOS against Apple's releases: within its own line, and told when a newer line exists. */
 export function describeOs(os, answer) {
   if (!os) return null;
-  const name = os.line === "ios" ? "iOS" : os.line;
-  if (!answer || !answer.latest) return { state: "na", text: `${name} ${os.version}: the sources hold no release of it yet.` };
-  const behind = compareDotted(os.version, answer.latest) < 0;
+  const name = os.line === "ios" ? "iOS" : os.line === "ipados" ? "iPadOS" : os.line;
+  if (!os.version) return { state: "na", text: `This browser does not state the ${name} version (the user agent's OS token is frozen at 18_6 since ${name} 26). Settings → General → About shows it.` };
+  const fromSafari = os.source === "safari";
+  const said = fromSafari ? `${name} ${os.version} (read from Safari's version, which gives no patch level)` : `${name} ${os.version}`;
+  if (!answer || !answer.latest) return { state: "na", text: `${said}: the sources hold no release of it yet.` };
   const line = answer.newerLine ? ` ${name} ${answer.newerLine} exists for devices that support it.` : "";
-  if (!behind) return { state: "ok", text: `${name} ${os.version} is the newest of its line (${answer.latest}).${line}` };
-  const n = (answer.newer || []).length;
-  return { state: n >= 2 ? "bad" : "warn", text: `${name} ${os.version} is behind ${answer.latest}: ${n} newer release${n === 1 ? "" : "s"} with security content. Settings → General → Software Update.${line}` };
+  // Read from Safari, the version is major.minor only: a newer patch of the same minor may or may not be installed.
+  const depth = os.version.split(".").length;
+  const cut = (v) => (fromSafari ? String(v).split(".").slice(0, depth).join(".") : String(v));
+  const newer = (answer.newer || []).filter((n) => compareDotted(cut(n.version), os.version) > 0);
+  const behind = compareDotted(cut(answer.latest), os.version) > 0;
+  if (!behind) {
+    if (fromSafari && compareDotted(answer.latest, os.version) > 0) return { state: "na", text: `${said}; the newest of its line is ${answer.latest}. Settings → General → About shows whether that is the one installed.${line}` };
+    return { state: "ok", text: `${said} is the newest of its line (${answer.latest}).${line}` };
+  }
+  const n = newer.length;
+  return { state: n >= 2 ? "bad" : "warn", text: `${said} is behind ${answer.latest}: ${n} newer release${n === 1 ? "" : "s"} with security content. Settings → General → Software Update.${line}` };
 }
 
 /** This browser's version against what the server says the vendor has announced. */
@@ -640,6 +677,7 @@ export function describeVersion(who, answer) {
   const name = who.family ? who.family.charAt(0).toUpperCase() + who.family.slice(1) : "This browser";
   if (!who.family) return { state: "na", text: "Not judged", lines: ["No vendor feed for this browser is read here, so its version is not judged."] };
   if (!who.version) return { state: "na", text: "Unreadable", lines: [`${name} did not say its version.`] };
+  if (isMobileSafari(who)) return { state: "na", text: "With the OS", lines: [`Safari ${who.version} is part of ${who.os.line === "ipados" ? "iPadOS" : "iOS"} and is updated with it, so it is judged by the OS line below, not against Safari for macOS.`] };
   if (!answer || !answer.latest) return { state: "na", text: "Unknown", lines: [`${name} ${who.version}: the sources hold no release of ${name} yet.`] };
   const behind = compareDotted(who.version, answer.latest) < 0;
   const lines = [`Running ${name} ${who.version}; the newest the vendor has announced is ${answer.latest}.`];
@@ -822,7 +860,7 @@ export function wire(doc, view) {
     status.textContent = "Running: browser version…";
     const who = await browserVersion(nav);
     let answer = null;
-    if (who.family && who.version) {
+    if (who.family && who.version && !isMobileSafari(who)) {
       try {
         const r = await fetchFn(`/scan/browser-check?browser=${who.family}&version=${encodeURIComponent(who.version)}`, { cache: "no-store" });
         if (r.ok) answer = await r.json();
@@ -833,19 +871,26 @@ export function wire(doc, view) {
     const ver = describeVersion(who, answer);
     if (who.os) {
       let osAnswer = null;
-      try {
-        const r = await fetchFn(`/scan/browser-check?browser=${who.os.line}&version=${encodeURIComponent(who.os.version)}`, { cache: "no-store" });
-        if (r.ok) osAnswer = await r.json();
-      } catch {
-        osAnswer = null;
+      if (who.os.version) {
+        try {
+          const r = await fetchFn(`/scan/browser-check?browser=${who.os.line}&version=${encodeURIComponent(who.os.version)}`, { cache: "no-store" });
+          if (r.ok) osAnswer = await r.json();
+        } catch {
+          osAnswer = null;
+        }
       }
       const os = describeOs(who.os, osAnswer);
       if (os) {
         ver.lines.push(os.text);
+        const osName = who.os.line === "ipados" ? "iPadOS" : "iOS";
         const worse = { ok: 0, na: 0, warn: 1, bad: 2 };
-        if (worse[os.state] > worse[ver.state]) {
+        if (isMobileSafari(who)) {
+          // Safari here is the OS's: the row is the OS's reading.
           ver.state = os.state;
-          ver.text = os.state === "bad" ? "Behind on iOS" : "iOS behind";
+          ver.text = os.state === "bad" ? `Behind on ${osName}` : os.state === "warn" ? `${osName} behind` : os.state === "ok" ? "Current" : `${osName} not judged`;
+        } else if (worse[os.state] > worse[ver.state]) {
+          ver.state = os.state;
+          ver.text = os.state === "bad" ? `Behind on ${osName}` : `${osName} behind`;
         }
       }
     }
@@ -863,6 +908,8 @@ export function wire(doc, view) {
       const title = doc.getElementById("scan-verdict-title");
       const text = doc.getElementById("scan-verdict-text");
       if (count) count.textContent = String(v.seen);
+      const of = doc.getElementById("scan-verdict-of");
+      if (of) of.textContent = "of 3 protections seen";
       if (title) title.textContent = v.title;
       if (text) text.textContent = v.text;
       banner.setAttribute("data-tone", v.fixes.length === 0 ? "ok" : "warn");

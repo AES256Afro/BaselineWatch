@@ -128,7 +128,7 @@ export function renderScanTraces({ owner, open, look, list }: ScanTracesOptions)
     : html`Not fetched yet: the Register reads it daily, and the check waits for it.`;
   const content = html`<section class="scan scan-traces" id="traces">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>Traces</b></p>
-  <h1>Has this computer met the spyware's servers? <span class="arrow">its saved data, read in this tab</span></h1>
+  <h1>Spyware traces <span class="arrow">a device's saved data read against the indicator list, in this tab</span></h1>
   <p class="lede">
     An ad is a subresource inside a frame, so it never reaches a browser's history, but its cache, cookies, site storage and connection records keep the hosts it touched for a while. This page reads the files you pick — a browser profile, its cache, the hosts file, a DNS dump, a registry export, the Downloads folder — against the published AdFection and Candiru indicators, in this tab. Nothing is uploaded, and no indicator is ever looked up or contacted.
   </p>

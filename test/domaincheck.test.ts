@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { certificateDate, checkDomain, commonSelectors, judgeDmarc, judgeHeaders, judgeHsts, judgeSpf, judgeTls, parseSelectors, peerFacts, validDomain, type DnsLookup, type TlsProbe } from "../src/domaincheck.ts";
+import { caaLine, certificateDate, checkDomain, commonSelectors, judgeDmarc, judgeHeaders, judgeHsts, judgeSpf, judgeTls, parseSelectors, peerFacts, publicRecordName, spfLookups, validDomain, type DnsLookup, type TlsProbe } from "../src/domaincheck.ts";
+import { fixFor } from "../src/domainfix.ts";
 import { fakeHttp, startTestApp } from "./helpers.ts";
 
 /**
@@ -32,11 +33,11 @@ describe("the name typed", () => {
 describe("the judges", () => {
   it("read SPF the way a receiver does", () => {
     expect(judgeSpf(["v=spf1 include:_spf.google.com -all"], true)).toMatchObject({ state: "ok", quoted: ['TXT "v=spf1 include:_spf.google.com -all"'] });
-    expect(judgeSpf(["v=spf1 include:a.example ~all"], true).state).toBe("ok");
-    expect(judgeSpf(["v=spf1 include:a.example +all"], true)).toMatchObject({ state: "bad" });
-    expect(judgeSpf(["v=spf1 include:a.example"], true).state).toBe("warn");
+    expect(judgeSpf(["v=spf1 include:a.example.net ~all"], true).state).toBe("ok");
+    expect(judgeSpf(["v=spf1 include:a.example.net +all"], true)).toMatchObject({ state: "bad" });
+    expect(judgeSpf(["v=spf1 include:a.example.net"], true).state).toBe("warn");
     expect(judgeSpf(["v=spf1 -all", "v=spf1 ~all"], true)).toMatchObject({ state: "bad", text: expect.stringContaining("2 SPF records") });
-    expect(judgeSpf(["v=spf1 " + Array.from({ length: 11 }, (_, i) => `include:s${i}.example`).join(" ") + " -all"], true)).toMatchObject({ state: "bad", text: expect.stringContaining("11 DNS lookups") });
+    expect(judgeSpf(["v=spf1 " + Array.from({ length: 11 }, (_, i) => `include:s${i}.example.net`).join(" ") + " -all"], true)).toMatchObject({ state: "bad", text: expect.stringContaining("11 DNS lookups") });
     expect(judgeSpf([], true).state).toBe("bad");
     expect(judgeSpf([], false).state).toBe("warn");
     expect(judgeSpf(["google-site-verification=abc"], false).state).toBe("warn");
@@ -79,16 +80,17 @@ describe("the judges", () => {
 /** A well-run domain, as its records would answer. */
 function goodDns(): DnsLookup {
   const table: Record<string, string[]> = {
-    "A good.example": ["203.0.113.10"],
-    "AAAA good.example": ["2001:db8::10"],
-    "NS good.example": ["ns1.good.example", "ns2.good.example"],
-    "MX good.example": ["10 mx1.good.example", "20 mx2.good.example"],
-    "TXT good.example": ["v=spf1 include:_spf.good.example -all", "google-site-verification=abc"],
-    "CAA good.example": ['0 issue "letsencrypt.org"'],
-    "TXT _dmarc.good.example": ["v=DMARC1; p=reject; rua=mailto:dmarc@good.example"],
-    "TXT _mta-sts.good.example": ["v=STSv1; id=20261001"],
-    "TXT _smtp._tls.good.example": ["v=TLSRPTv1; rua=mailto:tls@good.example"],
-    "TXT google._domainkey.good.example": ["v=DKIM1; k=rsa; p=MIIBIjANBgkq"],
+    "A good.example.net": ["203.0.113.10"],
+    "AAAA good.example.net": ["2001:db8::10"],
+    "NS good.example.net": ["ns1.good.example.net", "ns2.good.example.net"],
+    "MX good.example.net": ["10 mx1.good.example.net", "20 mx2.good.example.net"],
+    "TXT good.example.net": ["v=spf1 include:_spf.good.example.net -all", "google-site-verification=abc"],
+    "TXT _spf.good.example.net": ["v=spf1 ip4:203.0.113.0/24 ip6:2001:db8::/32 -all"],
+    "CAA good.example.net": ['0 issue "letsencrypt.org"'],
+    "TXT _dmarc.good.example.net": ["v=DMARC1; p=reject; rua=mailto:dmarc@good.example.net"],
+    "TXT _mta-sts.good.example.net": ["v=STSv1; id=20261001"],
+    "TXT _smtp._tls.good.example.net": ["v=TLSRPTv1; rua=mailto:tls@good.example.net"],
+    "TXT google._domainkey.good.example.net": ["v=DKIM1; k=rsa; p=MIIBIjANBgkq"],
   };
   return async (name, type) => {
     const records = table[`${type} ${name}`];
@@ -96,41 +98,41 @@ function goodDns(): DnsLookup {
   };
 }
 
-const goodTls: TlsProbe = async () => ({ protocol: "TLSv1.3", cipher: "TLS_AES_128_GCM_SHA256", issuer: "Let's Encrypt", subject: "good.example", validTo: "2027-01-10T00:00:00.000Z", names: ["good.example", "www.good.example"], authorized: true, authorizationError: null });
+const goodTls: TlsProbe = async () => ({ protocol: "TLSv1.3", cipher: "TLS_AES_128_GCM_SHA256", issuer: "Let's Encrypt", subject: "good.example.net", validTo: "2027-01-10T00:00:00.000Z", names: ["good.example.net", "www.good.example.net"], authorized: true, authorizationError: null });
 
 const goodHttp = () =>
   fakeHttp({
-    "https://cloudflare-dns.com/dns-query?name=good.example&type=A": { text: '{"Status":0,"AD":true,"Answer":[]}' },
-    "https://good.example/": { text: "<html>", headers: { "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "content-security-policy": "default-src 'self'; frame-ancestors 'none'", "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", server: "nginx" } },
-    "http://good.example/": { status: 301, headers: { location: "https://good.example/" } },
-    "https://good.example/.well-known/security.txt": { text: "Contact: mailto:security@good.example\nExpires: 2027-06-01T00:00:00.000Z\n" },
-    "https://mta-sts.good.example/.well-known/mta-sts.txt": { text: "version: STSv1\nmode: enforce\nmx: mx1.good.example\nmx: mx2.good.example\nmax_age: 604800\n" },
+    "https://cloudflare-dns.com/dns-query?name=good.example.net&type=A": { text: '{"Status":0,"AD":true,"Answer":[]}' },
+    "https://good.example.net/": { text: "<html>", headers: { "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "content-security-policy": "default-src 'self'; frame-ancestors 'none'", "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin", server: "nginx" } },
+    "http://good.example.net/": { status: 301, headers: { location: "https://good.example.net/" } },
+    "https://good.example.net/.well-known/security.txt": { text: "Contact: mailto:security@good.example.net\nExpires: 2027-06-01T00:00:00.000Z\n" },
+    "https://mta-sts.good.example.net/.well-known/mta-sts.txt": { text: "version: STSv1\nmode: enforce\nmx: mx1.good.example.net\nmx: mx2.good.example.net\nmax_age: 604800\n" },
   });
 
 describe("a whole domain", () => {
   it("comes back green when every record is right, each one quoted", async () => {
-    const report = await checkDomain("good.example", { dns: goodDns(), tls: goodTls, http: goodHttp(), now: () => now });
+    const report = await checkDomain("good.example.net", { dns: goodDns(), tls: goodTls, http: goodHttp(), now: () => now });
     expect(report.mail).toBe(true);
     expect(report.counts).toEqual({ ok: 16, warn: 0, bad: 0, na: 0 });
     const by = Object.fromEntries(report.findings.map((f) => [f.id, f]));
     expect(by.dnssec?.quoted).toEqual(["Cloudflare DoH: AD=true Status=0"]);
     expect(by.dkim?.text).toContain("google");
     expect(by["mta-sts"]?.quoted).toContain("policy: mode: enforce");
-    expect(by.http?.quoted).toEqual(["Location: https://good.example/"]);
-    expect(by["security-txt"]?.quoted).toEqual(["Contact: mailto:security@good.example", "Expires: 2027-06-01T00:00:00.000Z"]);
+    expect(by.http?.quoted).toEqual(["Location: https://good.example.net/"]);
+    expect(by["security-txt"]?.quoted).toEqual(["Contact: mailto:security@good.example.net", "Expires: 2027-06-01T00:00:00.000Z"]);
     expect(by.caa?.quoted).toEqual(['CAA 0 issue "letsencrypt.org"']);
   });
 
   it("says what a bare domain lacks, and what does not apply without mail", async () => {
-    const bareDns: DnsLookup = async (name, type) => (type === "A" && name === "bare.example" ? { records: ["203.0.113.20"], code: "ok" } : type === "NS" && name === "bare.example" ? { records: ["ns1.bare.example"], code: "ok" } : { records: [], code: "nodata" });
+    const bareDns: DnsLookup = async (name, type) => (type === "A" && name === "bare.example.net" ? { records: ["203.0.113.20"], code: "ok" } : type === "NS" && name === "bare.example.net" ? { records: ["ns1.bare.example.net"], code: "ok" } : { records: [], code: "nodata" });
     const http = fakeHttp({
-      "https://cloudflare-dns.com/dns-query?name=bare.example&type=A": { text: '{"Status":0,"AD":false,"Answer":[]}' },
-      "https://bare.example/": { text: "<html>", headers: {} },
-      "http://bare.example/": { text: "<html>" },
-      "https://bare.example/.well-known/security.txt": { status: 404 },
-      "https://mta-sts.bare.example/.well-known/mta-sts.txt": { status: 404 },
+      "https://cloudflare-dns.com/dns-query?name=bare.example.net&type=A": { text: '{"Status":0,"AD":false,"Answer":[]}' },
+      "https://bare.example.net/": { text: "<html>", headers: {} },
+      "http://bare.example.net/": { text: "<html>" },
+      "https://bare.example.net/.well-known/security.txt": { status: 404 },
+      "https://mta-sts.bare.example.net/.well-known/mta-sts.txt": { status: 404 },
     });
-    const report = await checkDomain("bare.example", { dns: bareDns, tls: async () => ({ error: "ECONNREFUSED" }), http, now: () => now });
+    const report = await checkDomain("bare.example.net", { dns: bareDns, tls: async () => ({ error: "ECONNREFUSED" }), http, now: () => now });
     const by = Object.fromEntries(report.findings.map((f) => [f.id, f]));
     expect(report.mail).toBe(false);
     expect(by.addresses?.state).toBe("warn");
@@ -155,7 +157,7 @@ describe("a whole domain", () => {
   it("reads a name that does not exist as that", async () => {
     const dns: DnsLookup = async () => ({ records: [], code: "nxdomain", detail: "ENOTFOUND" });
     const http = fakeHttp({});
-    const report = await checkDomain("gone.example", { dns, tls: async () => ({ error: "ENOTFOUND" }), http, now: () => now });
+    const report = await checkDomain("gone.example.net", { dns, tls: async () => ({ error: "ENOTFOUND" }), http, now: () => now });
     expect(report.findings.find((f) => f.id === "addresses")).toMatchObject({ state: "bad", text: "The name does not exist (NXDOMAIN)." });
     expect(report.findings.find((f) => f.id === "https")?.state).toBe("bad");
   });
@@ -171,10 +173,10 @@ describe("the page", () => {
       const bad = await fetch(`${app.base}/scan/domain?name=localhost`);
       expect(bad.status).toBe(400);
       expect(await bad.text()).toContain("is not a public domain name");
-      const page = await (await fetch(`${app.base}/scan/domain?name=GOOD.example&selectors=google`)).text();
-      expect(page).toContain("Check a domain · good.example");
+      const page = await (await fetch(`${app.base}/scan/domain?name=GOOD.example.net&selectors=google`)).text();
+      expect(page).toContain("Check a domain · good.example.net");
       expect(page).toContain("<small>Good</small><b>16</b>");
-      expect(page).toContain("<li><code>TXT &quot;v=DMARC1; p=reject; rua=mailto:dmarc@good.example&quot;</code></li>");
+      expect(page).toContain("<li><code>TXT &quot;v=DMARC1; p=reject; rua=mailto:dmarc@good.example.net&quot;</code></li>");
       expect(page).toContain('<span class="state ok">Good</span>');
       expect(page).not.toContain('id="own"');
       // The Scan page points here, and the menu has the four entries.
@@ -207,8 +209,80 @@ describe("a certificate the probe cannot read", () => {
   });
 
   it("returns the facts it could read, with the expiry left out", () => {
-    const facts = peerFacts(socket({ valid_to: "not a date", subject: { CN: "bad.example" }, issuer: { CN: "bad.example" }, subjectaltname: 7 }));
-    expect(facts).toMatchObject({ validTo: null, subject: "bad.example", names: [], authorized: false, authorizationError: "Error: ERROR_IN_CERT_NOT_AFTER_FIELD" });
-    expect(judgeTls(facts, "bad.example", new Date("2026-11-05T00:00:00Z")).state).toBeDefined();
+    const facts = peerFacts(socket({ valid_to: "not a date", subject: { CN: "bad.example.net" }, issuer: { CN: "bad.example.net" }, subjectaltname: 7 }));
+    expect(facts).toMatchObject({ validTo: null, subject: "bad.example.net", names: [], authorized: false, authorizationError: "Error: ERROR_IN_CERT_NOT_AFTER_FIELD" });
+    expect(judgeTls(facts, "bad.example.net", new Date("2026-11-05T00:00:00Z")).state).toBeDefined();
+  });
+});
+
+describe("SPF includes a visitor's record names", () => {
+  it("follows only public names, and asks at most ten TXT questions (RFC 7208's ten lookups)", async () => {
+    const asked: string[] = [];
+    const dns: DnsLookup = async (name) => {
+      asked.push(name);
+      return { records: ["v=spf1 -all"], code: "ok" };
+    };
+    const record = "v=spf1 include:nas.lan include:localhost include:printer include:files.local redirect=db.internal include:router.home.arpa include:_spf.example.com ~all";
+    const out = await spfLookups(record, dns);
+    // Every term still costs a lookup a receiver would make; only the public one is asked here.
+    expect(asked).toEqual(["_spf.example.com"]);
+    expect(out).toEqual({ count: 6, missing: [], multiple: [], capped: false });
+
+    // Five includes, each naming another: the count passes ten as the walk goes, and the walk asks no more than ten questions.
+    asked.length = 0;
+    const chain: DnsLookup = async (name) => {
+      asked.push(name);
+      return { records: [`v=spf1 include:next.${name} -all`], code: "ok" };
+    };
+    const capped = await spfLookups(`v=spf1 ${Array.from({ length: 5 }, (_, i) => `include:s${i}.example.com`).join(" ")} -all`, chain);
+    expect(asked.length).toBeLessThanOrEqual(10);
+    expect(capped).toMatchObject({ capped: true });
+    expect(["_spf.google.com", "spf.protection.outlook.com", "xn--bcher-kva.example.net"].map(publicRecordName)).toEqual(["_spf.google.com", "spf.protection.outlook.com", "xn--bcher-kva.example.net"]);
+    expect(["nas", "nas.lan", "x.home.arpa", "10.0.0.1", "db.internal", "-a.example.com"].map(publicRecordName)).toEqual([null, null, null, null, null, null]);
+  });
+});
+
+describe("bug sweep 3a: CAA, the MTA-STS policy, an include with two SPF records", () => {
+  const withRecords = (extra: Record<string, string[]>): DnsLookup => {
+    const base = goodDns();
+    return async (name, type) => (extra[`${type} ${name}`] ? { records: extra[`${type} ${name}`]!, code: "ok" } : base(name, type));
+  };
+
+  it("passes CAA only when a record has issue or issuewild, and quotes no type key", async () => {
+    const report = await checkDomain("good.example.net", { dns: withRecords({ "CAA good.example.net": ['0 contactemail "dns@good.example.net"'] }), tls: goodTls, http: goodHttp(), now: () => now });
+    const caa = report.findings.find((f) => f.id === "caa")!;
+    expect(caa).toMatchObject({ state: "warn", text: "CAA published, but no issue property: any authority may still issue a certificate for this domain." });
+    expect(fixFor(caa, "good.example.net")?.lines[0]).toContain("IN CAA 0 issue");
+    const wild = await checkDomain("good.example.net", { dns: withRecords({ "CAA good.example.net": ['0 issuewild "letsencrypt.org"'] }), tls: goodTls, http: goodHttp(), now: () => now });
+    expect(wild.findings.find((f) => f.id === "caa")?.state).toBe("ok");
+    expect(caaLine({ critical: 0, issue: "letsencrypt.org", type: "CAA" })).toBe('0 issue "letsencrypt.org"');
+  });
+
+  it("moves a four-mx testing policy to enforce with every mx and the max_age", async () => {
+    const http = fakeHttp({
+      "https://cloudflare-dns.com/dns-query?name=good.example.net&type=A": { text: '{"Status":0,"AD":true,"Answer":[]}' },
+      "https://mta-sts.good.example.net/.well-known/mta-sts.txt": { text: "version: STSv1\nmode: testing\nmx: mx1.good.example.net\nmx: mx2.good.example.net\nmx: mx3.good.example.net\nmx: mx4.good.example.net\nmax_age: 86400\n" },
+    });
+    const report = await checkDomain("good.example.net", { dns: goodDns(), tls: goodTls, http, now: () => now });
+    const sts = report.findings.find((f) => f.id === "mta-sts")!;
+    const lines = fixFor(sts, "good.example.net")!.lines;
+    for (const mx of ["mx1", "mx2", "mx3", "mx4"]) expect(lines).toContain(`mx: ${mx}.good.example.net`);
+    expect(lines).toContain("mode: enforce");
+    expect(lines).toContain("max_age: 86400");
+    // A policy too long to quote whole says so, and the fix does not rebuild it from the part shown.
+    const long = Array.from({ length: 25 }, (_, i) => `mx: mx${i}.good.example.net`).join("\n");
+    const cut = await checkDomain("good.example.net", { dns: goodDns(), tls: goodTls, http: fakeHttp({ "https://mta-sts.good.example.net/.well-known/mta-sts.txt": { text: `version: STSv1\nmode: testing\n${long}\nmax_age: 86400\n` } }), now: () => now });
+    const cutSts = cut.findings.find((f) => f.id === "mta-sts")!;
+    expect(cutSts.quoted.at(-1)).toBe("(8 more policy lines not shown)");
+    expect(fixFor(cutSts, "good.example.net")!.lines.some((l) => l.startsWith("mx: <each"))).toBe(true);
+  });
+
+  it("names an include with two SPF records as that, not as publishing none", async () => {
+    const dns: DnsLookup = async (name) => ({ records: name === "two.example.com" ? ["v=spf1 -all", "v=spf1 ~all"] : [], code: "ok" });
+    const counted = await spfLookups("v=spf1 include:two.example.com -all", dns);
+    expect(counted).toEqual({ count: 1, missing: [], multiple: ["two.example.com"], capped: false });
+    const finding = judgeSpf(["v=spf1 include:two.example.com -all"], true, counted);
+    expect(finding).toMatchObject({ state: "bad", text: "The record includes two.example.com, which publishes more than one SPF record: receivers give a permanent error." });
+    expect(fixFor(finding, "example.net")!.text).toMatch(/merge its SPF records/);
   });
 });

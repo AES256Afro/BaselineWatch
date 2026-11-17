@@ -94,6 +94,12 @@ const aiVendors = new Set(["ollama", "vllm", "ggml", "langchain", "langflow", "l
 const aiProducts = /^(ollama|vllm|llama\.cpp|llama-factory|langchain.*|langflow.*|llamaindex|litellm|open_webui|comfyui|flowise|dify|anythingllm|librechat|lollms|gradio|transformers|sglang|tensorrt-llm|triton_inference_server|mlflow|bentoml|openllm|metagpt|pytorch|pytorch_lightning|tensorflow|keras|onnx|onnxruntime|text-generation-webui)$|(^|[_-])mcp([_-]|$)/;
 
 const linuxVendors = new Set(["linux", "redhat", "canonical", "debian", "suse", "opensuse", "fedoraproject", "almalinux", "rockylinux", "oraclelinux"]);
+/**
+ * A Linux vendor's product that is the system or a part of it, as a CPE slug ("enterprise_linux")
+ * or in CISA's words ("Automatic Bug Reporting Tool"): the kernel, the distributions, and the
+ * components Red Hat ships under its own name (Polkit, libuser, ABRT). JBoss is not.
+ */
+const linuxProducts = /linux|kernel|ubuntu|debian|sles|leap|fedora|polkit|libuser|bug[ _]reporting/;
 
 /** The platforms one CPE criterion names, from its part, vendor and product. */
 function platformsOfCpe(cpe: string): PlatformKey[] {
@@ -117,7 +123,7 @@ function platformsOfCpe(cpe: string): PlatformKey[] {
   } else if (vendor === "oracle") {
     if (/^linux/.test(product)) out.push("linux");
   } else if (linuxVendors.has(vendor)) {
-    if (part === "o" || /linux|kernel|enterprise_linux|ubuntu|debian|sles|leap|fedora/.test(product)) out.push("linux");
+    if (part === "o" || linuxProducts.test(product)) out.push("linux");
   } else if (networkVendors.has(vendor)) {
     out.push("network");
   }
@@ -134,53 +140,128 @@ const descriptionHints: { platform: PlatformKey; re: RegExp }[] = [
   { platform: "ai", re: /\b(Ollama|vLLM|llama\.cpp|LangChain|Langflow|LlamaIndex|LiteLLM|Open WebUI|ComfyUI|Flowise|Dify|AnythingLLM|LibreChat|MLflow|BentoML|SGLang|PyTorch|TensorFlow|Triton Inference Server|MCP server|Model Context Protocol)\b/ },
 ];
 
+/** The platforms a CVE's CPE criteria name. */
+export function platformsOfCpes(cpes: readonly string[]): PlatformKey[] {
+  const out = new Set<PlatformKey>();
+  for (const cpe of cpes) for (const p of platformsOfCpe(cpe)) out.add(p);
+  return [...out];
+}
+
+/** The platforms a CVE's vendor and product names name, read as CPE slugs ("apple", "macos"). */
+export function platformsOfNames(vendors: readonly string[], products: readonly string[]): PlatformKey[] {
+  const out = new Set<PlatformKey>();
+  const ps = products.map((x) => x.toLowerCase());
+  for (const vendor of vendors.map((x) => x.toLowerCase())) for (const product of ps.length ? ps : [""]) for (const p of platformsOfCpe(`cpe:2.3:a:${vendor}:${product}`)) out.add(p);
+  return [...out];
+}
+
+/** The platforms a CVE's description names in so many words ("Microsoft Windows", "In the Linux kernel"). */
+export function platformsOfDescription(description: string | null): PlatformKey[] {
+  if (!description) return [];
+  return descriptionHints.filter((hint) => hint.re.test(description)).map((hint) => hint.platform);
+}
+
 /**
- * The platforms a CVE belongs to, in order of confidence: CPE criteria, then NVD's vendor and
- * product names, then the description when NVD has attached nothing yet.
+ * A Microsoft application CPE (Exchange, SharePoint, Office, 365 Apps, SQL Server, the Defender
+ * engine): NVD placed the CVE on Microsoft software that is not Windows, and that is a reading.
+ */
+export function isMicrosoftApplicationCpe(cpe: string): boolean {
+  const parts = cpe.split(":");
+  return parts[2] === "a" && (parts[3] ?? "").toLowerCase() === "microsoft" && platformsOfCpe(cpe).length === 0;
+}
+
+/**
+ * The platforms NVD's own data names, in order of confidence: CPE criteria, then NVD's vendor and
+ * product names, then the description when NVD has attached nothing yet. A building block: the
+ * reading of a stored row, CISA's names included, is rowPlatforms in src/vulns.ts.
  */
 export function platformsOf(v: { cpes: string[]; vendors: string[]; products: string[]; description: string | null }): PlatformKey[] {
-  const out = new Set<PlatformKey>();
-  for (const cpe of v.cpes) for (const p of platformsOfCpe(cpe)) out.add(p);
-  if (out.size === 0) {
-    const vendors = v.vendors.map((x) => x.toLowerCase());
-    const products = v.products.map((x) => x.toLowerCase());
-    for (const vendor of vendors) for (const product of products.length ? products : [""]) for (const p of platformsOfCpe(`cpe:2.3:a:${vendor}:${product}`)) out.add(p);
-  }
+  const byCpe = platformsOfCpes(v.cpes);
+  if (byCpe.length) return byCpe;
+  const byName = platformsOfNames(v.vendors, v.products);
+  if (byName.length) return byName;
   // Only when NVD has attached nothing: a CVE whose CPE names another product is that product's,
   // however its description travels. "Ray … exploitable via Firefox and Safari" is a Ray flaw,
   // and filing it under the browsers put it first on "what is affecting the browsers?".
-  if (out.size === 0 && v.cpes.length === 0 && v.vendors.length === 0 && v.description) {
-    for (const hint of descriptionHints) if (hint.re.test(v.description)) out.add(hint.platform);
+  return v.cpes.length === 0 && v.vendors.length === 0 ? platformsOfDescription(v.description) : [];
+}
+
+/**
+ * CISA's Microsoft product words that are not "patch Windows": the old browser engines, Office,
+ * and the servers. "Exchange" is the server ("Exchange", "Exchange Server"), never Windows' own
+ * "Internet Key Exchange (IKE) Service Extensions".
+ */
+const microsoftBrowsers = /\b(edge|internet explorer|mshtml|scripting engine|silverlight)\b/i;
+const microsoftOffice = /\b(office|word|excel|powerpoint|outlook|publisher|project|visio|access|wordpad|visual basic|vba|mscomctl)\b/i;
+export const microsoftServers = /(?<!key )\bexchange\b|sharepoint|sql server|configuration manager|partner center|power pages|skype|lync|dynamics|azure|forefront|open management|\bomi\b|\.net|visual studio|internet information|\biis\b/i;
+
+/**
+ * What a KEV entry is about, read once from CISA's own vendor and product words ("Microsoft |
+ * Win32k", "Palo Alto Networks | PAN-OS", "Oracle | Solaris") through the same vendor tables a
+ * CVE's CPEs are read with. The CVE table (kevPlatformKeys) and the STIG pages (kevPlatform in
+ * src/stigs.ts) each file a reading under their own groups; beside the platforms, the readings the
+ * table has no platform for and the STIG pages do:
+ * - "microsoft-browser": Internet Explorer, MSHTML, the scripting engines, Silverlight;
+ * - "microsoft-application": Office and the servers (Exchange, SharePoint, SQL Server, .NET);
+ * - "unix": Solaris, which is UNIX and not Linux;
+ * - "application": a system vendor's other software (JBoss, WebLogic, Java).
+ */
+export type KevReading = PlatformKey | "microsoft-browser" | "microsoft-application" | "unix" | "application";
+
+/**
+ * The CPE vendor names a KEV vendor stands for: "Palo Alto Networks" is paloaltonetworks,
+ * "Barracuda Networks" barracuda, "Hewlett Packard Enterprise (HPE)" hpe, "D-Link and TRENDnet"
+ * d-link and trendnet. Lower case, with the spaces CISA writes and NVD does not taken out.
+ */
+function kevVendorNames(vendor: string | null | undefined): string[] {
+  const v = (vendor ?? "").trim().toLowerCase();
+  if (!v) return [];
+  const out = new Set<string>();
+  const short = /\(([^)]+)\)$/.exec(v)?.[1];
+  if (short) out.add(short.replace(/\s+/g, ""));
+  for (const name of v.replace(/\s*\([^)]*\)$/, "").split(/\s+and\s+/)) {
+    out.add(name.replace(/\s+/g, ""));
+    out.add(name.replace(/\s+networks$/, "").replace(/\s+/g, ""));
   }
   return [...out];
 }
 
-/** CISA's Microsoft product words, read one way for the STIG pages (src/stigs.ts) and the table. */
-export const microsoftBrowsers = /\b(edge|internet explorer|mshtml|scripting engine|silverlight)\b/i;
-export const microsoftOffice = /\b(office|word|excel|powerpoint|outlook|publisher|project|visio|access|wordpad|visual basic|vba|mscomctl)\b/i;
-export const microsoftServers = /exchange|sharepoint|sql server|configuration manager|partner center|power pages|skype|lync|dynamics|azure|forefront|open management|\bomi\b|\.net|visual studio|internet information|\biis\b/i;
+/** One KEV entry's reading; null when no table here names its vendor or product. */
+export function kevReading(vendor: string | null | undefined, product: string | null | undefined): KevReading | null {
+  const names = kevVendorNames(vendor);
+  if (names.length === 0) return null;
+  const p = (product ?? "").trim().toLowerCase();
+  const is = (name: string) => names.includes(name);
+  if (is("microsoft")) {
+    // "Multiple Products" names no product (kevPairUsable): Office, Exchange and Windows alike, so
+    // it is not read as Windows; nor is a product left empty or given as the vendor's own name.
+    if (!p || /^multiple\b/.test(p) || names.includes(p.replace(/\s+/g, ""))) return null;
+    if (/\bedge\b/.test(p)) return "edge";
+    if (microsoftBrowsers.test(p)) return "microsoft-browser";
+    if (microsoftOffice.test(p) || microsoftServers.test(p)) return "microsoft-application";
+    return "windows";
+  }
+  if (is("apple")) return "apple";
+  if (is("google")) {
+    if (/chrom/.test(p)) return "chrome";
+    if (/android|pixel/.test(p)) return "android";
+  }
+  if (is("android") || is("samsung")) return "android";
+  if (is("mozilla")) return "firefox";
+  if (is("oracle")) return /linux/.test(p) ? "linux" : /solaris/.test(p) ? "unix" : "application";
+  if (names.some((n) => linuxVendors.has(n))) return linuxProducts.test(p) ? "linux" : "application";
+  if (names.some((n) => networkVendors.has(n))) return "network";
+  if (names.some((n) => aiVendors.has(n)) || aiProducts.test(p.replace(/\s+/g, "_"))) return "ai";
+  return null;
+}
 
 /**
- * The platforms of a KEV entry, from CISA's own vendor and product words ("Microsoft | Win32k",
- * "Apple | Multiple Products"), which are not CPE slugs and match nothing in platformsOfCpe. Used
- * for a row the catalogue made before NVD sent the CVE; the same reading the STIG pages use.
+ * The platforms of a KEV entry, for a row the catalogue made before NVD sent the CVE: CISA's
+ * words match nothing in platformsOfCpe. Windows only for what the STIG pages also call Windows:
+ * Exchange, Office, SQL Server and Internet Explorer are not "patch Windows" (and NVD's own rows
+ * for them carry no platform).
  */
 export function kevPlatformKeys(vendor: string | null | undefined, product: string | null | undefined): PlatformKey[] {
-  const v = (vendor ?? "").trim().toLowerCase();
-  const p = (product ?? "").trim().toLowerCase();
-  if (v === "microsoft") {
-    // Windows only for what the STIG pages also call Windows: Exchange, Office, SQL Server and
-    // Internet Explorer are not "patch Windows" (and NVD's own rows for them carry no platform).
-    if (/\bedge\b/.test(p)) return ["edge"];
-    if (microsoftBrowsers.test(p) || microsoftOffice.test(p) || microsoftServers.test(p)) return [];
-    return ["windows"];
-  }
-  if (v === "apple") return ["apple"];
-  if (v === "google") return /chrom/.test(p) ? ["chrome"] : /android|pixel/.test(p) ? ["android"] : [];
-  if (v === "android" || v === "samsung") return ["android"];
-  if (v === "mozilla") return ["firefox"];
-  if (v === "linux" || v === "canonical" || v === "debian" || v === "suse") return ["linux"];
-  if (v === "red hat" || v === "oracle") return /linux|kernel|polkit/.test(p) ? ["linux"] : [];
-  if (/^(cisco|f5|fortinet|palo alto networks|juniper|juniper networks|ivanti|citrix|sonicwall|zyxel|d-link|netgear|mikrotik|arista|check point|pulse secure|barracuda|sophos|watchguard|array networks)$/.test(v)) return ["network"];
-  return [];
+  const reading = kevReading(vendor, product);
+  return isPlatformKey(reading) ? [reading] : [];
 }

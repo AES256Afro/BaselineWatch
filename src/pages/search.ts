@@ -1,7 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { counted, html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
-import { withheldFrom } from "../register.ts";
+import { stigRuleName, withheldFrom } from "../register.ts";
+import { likePattern } from "../sql.ts";
 import { relativeTime } from "../time.ts";
 import { cveIdPattern, listVulns } from "../vulns.ts";
 import { listWire } from "../wire.ts";
@@ -32,20 +33,23 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
   const news = listWire(db, { q: query, limit: 10 }, { owner });
   const versions = latestVersions(db).filter((v) => !withheldFrom({ restricted: v.restricted }, owner));
   const controls = searchControls(db, versions, query, 15);
-  const like = `%${query.toLowerCase()}%`;
+  // % and _ are the reader's characters, not wildcards.
+  const like = likePattern(query.toLowerCase());
   // Microsoft stores a KB by its number; "KB5127648" is how people type it.
   const kb = /^kb\s*(\d{6,8})$/i.exec(query)?.[1];
   const microsoftLike = kb ? `%"kb":"${kb}"%` : like;
   const microsoft = db
-    .prepare("SELECT cve_id, title, release_id, severity, exploited FROM msrc_vulns WHERE lower(title) LIKE ? OR lower(cve_id) LIKE ? OR lower(fixes_json) LIKE ? ORDER BY released_at DESC, cve_id LIMIT 10")
+    .prepare("SELECT cve_id, title, release_id, severity, exploited FROM msrc_vulns WHERE lower(title) LIKE ? ESCAPE '\\' OR lower(cve_id) LIKE ? ESCAPE '\\' OR lower(fixes_json) LIKE ? ESCAPE '\\' ORDER BY released_at DESC, cve_id LIMIT 10")
     .all(like, like, microsoftLike) as { cve_id: string; title: string; release_id: string; severity: string | null; exploited: number }[];
-  const sources = db.prepare("SELECT id, name, group_name FROM sources WHERE enabled = 1 AND lower(name) LIKE ? ORDER BY name LIMIT 10").all(like) as { id: string; name: string; group_name: string }[];
+  const sources = db.prepare("SELECT id, name, group_name FROM sources WHERE enabled = 1 AND lower(name) LIKE ? ESCAPE '\\' ORDER BY name LIMIT 10").all(like) as { id: string; name: string; group_name: string }[];
   const total = cves.total + news.length + controls.length + microsoft.length + sources.length;
+  // A section at its limit is "10+", so the heading's sum is a floor, and says so.
+  const capped = controls.length === 15 || news.length === 10 || microsoft.length === 10 || sources.length === 10;
   const section = (heading: string, count: number | string, more: { href: string; label: string } | null, body: Html): Html =>
     html`<section class="box"><h2>${heading} <span class="count">${count}</span></h2>${body}${more ? html`<p class="small"><a href="${more.href}">${more.label}</a></p>` : ""}</section>`;
   const content = html`
     <div class="wire-top">
-      <h1>Search<small>${total ? `${counted(total, "result")} for “${query}”` : `Nothing for “${query}”`}</small></h1>
+      <h1>Search<small>${total ? `${capped ? `${total}+ results` : counted(total, "result")} for “${query}”` : `Nothing for “${query}”`}</small></h1>
       <form method="get" action="/search" class="search" role="search"><label class="visually-hidden" for="q">Search</label><input type="search" id="q" name="q" value="${query}"><button type="submit">Search</button></form>
       ${saveSearchForm(db, `/search?q=${encodeURIComponent(query)}`, owner)}
     </div>
@@ -56,7 +60,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
           ? section("CVEs", cves.total, { href: `/vulnerabilities?q=${encodeURIComponent(query)}`, label: `All ${cves.total} in the table` }, html`<ul class="refs">${cves.rows.map((r) => html`<li><a href="/vulnerabilities/${r.cve_id}">${r.cve_id}</a> <span class="chip sev ${(r.cvss_severity ?? "").toLowerCase()}">${r.cvss_score?.toFixed(1) ?? "unscored"}</span>${r.kev ? html` <span class="chip kev">KEV</span>` : ""} <span class="small">${r.description ?? ""}</span></li>`)}</ul>`)
           : ""}
         ${controls.length
-          ? section("Controls", controls.length === 15 ? "15+" : controls.length, { href: `/controls?q=${encodeURIComponent(query)}`, label: "All of them, on the Controls page" }, html`<ul class="refs">${controls.map((c) => html`<li><a href="/standards/${c.sourceId}/${c.documentId}/${c.ref}"><b>${c.ref}</b></a> ${c.title ?? ""} <span class="small">${c.name}${c.family ? ` · ${c.family}` : ""}</span></li>`)}</ul>`)
+          ? section("Controls", controls.length === 15 ? "15+" : controls.length, { href: `/controls?q=${encodeURIComponent(query)}`, label: "All of them, on the Controls page" }, html`<ul class="refs">${controls.map((c) => html`<li><a href="/standards/${c.sourceId}/${c.documentId}/${c.ref}"><b>${c.sourceId === "disa-stigs" && c.label ? stigRuleName(c.label, c.ref) : c.ref}</b></a> ${c.title ?? ""} <span class="small">${c.name}${c.versionLabel ? ` ${c.versionLabel}` : ""}${c.family ? ` · ${c.family}` : ""}</span></li>`)}</ul>`)
           : ""}
         ${news.length
           ? section("News", news.length === 10 ? "10+" : news.length, { href: `/?q=${encodeURIComponent(query)}`, label: "All of them, on the News" }, html`<ul class="refs">${news.map((i) => html`<li>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title} <span class="small">${i.source_name} · ${relativeTime(i.published_at ?? i.fetched_at, now)}</span></li>`)}</ul>`)
@@ -67,7 +71,7 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
           ? section("Microsoft's updates", microsoft.length === 10 ? "10+" : microsoft.length, { href: `/vulnerabilities/microsoft?q=${encodeURIComponent(query)}`, label: "On the Patch Tuesday page" }, html`<ul class="refs">${microsoft.map((m) => html`<li><a href="/vulnerabilities/microsoft?q=${encodeURIComponent(m.cve_id)}">${m.cve_id}</a>${m.exploited ? html` <span class="chip kev">exploited</span>` : ""} <span class="small">${m.title} · ${m.release_id}</span></li>`)}</ul>`)
           : ""}
         ${sources.length
-          ? section("Sources", sources.length, null, html`<ul class="refs">${sources.map((s) => html`<li><a href="${s.group_name === "standards" ? `/standards/${s.id}` : `/?source=${s.id}`}">${s.name}</a> <span class="small">${s.group_name}</span></li>`)}</ul>`)
+          ? section("Sources", sources.length === 10 ? "10+" : sources.length, null, html`<ul class="refs">${sources.map((s) => html`<li><a href="${s.group_name === "standards" ? `/standards/${s.id}` : `/?source=${s.id}`}">${s.name}</a> <span class="small">${s.group_name}</span></li>`)}</ul>`)
           : ""}
         ${total === 0 ? html`<section class="box"><p class="small">Try a CVE id, a vendor or product, a control label such as <code>ac-2</code> or <code>SV-2542</code>, a KB number, or a word from a headline.</p></section>` : ""}
       </aside>

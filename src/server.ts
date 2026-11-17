@@ -37,10 +37,13 @@ for (const source of listSources(db)) {
 // Every KEV entry has a row (2026-11-10): those already held as items get theirs once, here.
 const kevRows = backfillKevRows(db, new Date().toISOString());
 if (kevRows > 0) console.log(`[vulns] gave ${counted(kevRows, "KEV entry", "KEV entries")} a row of its own`);
+// A platform entry on the watchlist matches by platform, so every CVE whose platform was just
+// read (a migration cleared it to be read again) is matched against the watchlist again.
 const platformed = recomputePlatforms(db);
-// KEV-only rows made before 0058 were never matched against the watchlist; once, on that upgrade.
-if (migration.applied.some((m) => m === "0058_kev_only_platforms" || m === "0059_kev_only_microsoft")) recomputeWatchHits(db);
-if (platformed > 0) console.log(`[vulns] read the platform of ${counted(platformed, "CVE")}`);
+if (platformed.length > 0) {
+  recomputeWatchHits(db, platformed);
+  console.log(`[vulns] read the platform of ${counted(platformed.length, "CVE")}`);
+}
 if (!config.adminPassword) {
   console.log("[auth] no BW_ADMIN_PASSWORD set: single-user mode, anyone who reaches the page can mark items and fetch sources");
 }

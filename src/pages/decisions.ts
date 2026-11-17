@@ -51,10 +51,10 @@ export function renderDecisionBoard(options: { profile: Profile; saved?: number 
   const name = platformName(p);
   const c = profile.components;
   const counts = profile.counts.decisions;
-  const col = (k: DecisionKind, items: ProfileItem[], note: Html) => html`<section class="dcol ${k}">
+  const col = (k: DecisionKind, items: ProfileItem[], note: Html, empty: string) => html`<section class="dcol ${k}">
       <h2>${decisionLabel(k)} <span class="count">${counts[k]}</span></h2>
       <p class="small">${note}</p>
-      ${items.length ? html`<ol class="dcards">${items.map((i) => card(p, i))}</ol>` : html`<p class="small">None.</p>`}
+      ${items.length ? html`<ol class="dcards">${items.map((i) => card(p, i))}</ol>` : html`<p class="small">${empty}</p>`}
     </section>`;
   const decided = profile.items.filter((i) => i.decision);
   const modified = decided.filter((i) => kindOf(i) === "modify");
@@ -68,9 +68,9 @@ export function renderDecisionBoard(options: { profile: Profile; saved?: number 
     <p class="lede">Every item of the <a href="/baselines/${p}">${name} baseline</a> starts as the publisher recommends. ${owner ? "Open an item (from the builder or a card here) to apply it modified or not at all, with the reason and its owner." : "The owner records where the organisation departs from the recommendation, with the reason."} Items not applied leave the baseline's exports and the <a href="/baselines/${p}/tests">test plan</a>; modified items are tested for the organisation's value.</p>
     <p class="small">${options.saved !== undefined ? html`<span class="chip ins">Saved ${options.saved} decision${options.saved === 1 ? "" : "s"}</span> ` : ""}<a href="/baselines/${p}/decisions.csv">Download every item and its decision as CSV</a> · <a href="/baselines/${p}/tests">The ${name} test plan</a></p>
     <div class="dboard">
-      ${col("apply", appliedNoted, html`${counts.apply} items apply as published${appliedNoted.length ? html`; these ${appliedNoted.length} carry a note or an owner` : ""}.`)}
-      ${col("modify", modified, html`Applied with the organisation's own value.`)}
-      ${col("exclude", excluded, html`Left out; the reason is the risk acceptance.`)}
+      ${col("apply", appliedNoted, html`${counts.apply} items apply as published${appliedNoted.length ? html`; these ${appliedNoted.length} carry a note or an owner` : ""}.`, "None carries a note or an owner.")}
+      ${col("modify", modified, html`Applied with the organisation's own value.`, "No item is modified.")}
+      ${col("exclude", excluded, html`Left out; the reason is the risk acceptance.`, "No item is left out.")}
     </div>`;
   return page({ title: `${name} decisions`, active: "baselines", content, meta: html`${counts.modify} modified · ${counts.exclude} not applied`, owner, open, look });
 }

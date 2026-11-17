@@ -3,7 +3,8 @@ import { authorityForSource, rungs, type Rung } from "../authorities.ts";
 import { html, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { openDrafts, seriesOf } from "../publications.ts";
-import { licenceOf, withheldFrom, type DocumentRow } from "../register.ts";
+import { licenceOf, stigProduct, stigRuleName, withheldFrom, type DocumentRow } from "../register.ts";
+import { likePattern } from "../sql.ts";
 import { relativeTime } from "../time.ts";
 import { latestRegisterChanges, page } from "./layout.ts";
 import { seriesSummary, standardFold } from "./publications.ts";
@@ -54,7 +55,9 @@ export function latestVersions(db: DatabaseSync): LatestVersion[] {
 
 export interface ControlHit {
   sourceId: string;
+  /** The standard as a reader names it: the source's name, or a STIG's own ("Windows 11 STIG"). */
   name: string;
+  label: string | null;
   documentId: number;
   versionLabel: string | null;
   ref: string;
@@ -73,25 +76,31 @@ export function searchControls(db: DatabaseSync, versions: LatestVersion[], q: s
   const ids = versions.map((v) => v.documentId);
   if (ids.length === 0 || q.trim() === "") return [];
   const exact = q.trim().toLowerCase();
-  const like = `%${exact}%`;
+  const like = likePattern(exact);
+  // A STIG rule id as DISA prints it ("SV-254238r991589_rule", "SV-254238", or the start of one):
+  // the Register keys the rule by its group, v-254238, which DISA keeps across releases.
+  const rule = /^sv-(\d+)(?:r\d*(?:_rule)?)?$/.exec(exact);
   // A control id as people write it, as the catalogues key it: "AC-2(1)" and "AC-02" are ac-2.1
   // and ac-2. Anything else searches as typed.
-  const id = /^([a-z]{2,3})-0*(\d+)(?:\s*\(\s*0*(\d+)\s*\)|\.0*(\d+))?$/.exec(exact);
-  const canonical = id ? `${id[1]}-${id[2]}${id[3] ?? id[4] ? `.${id[3] ?? id[4]}` : ""}` : exact;
+  const id = rule ? null : /^([a-z]{2,3})-0*(\d+)(?:\s*\(\s*0*(\d+)\s*\)|\.0*(\d+))?$/.exec(exact);
+  const canonical = id ? `${id[1]}-${id[2]}${id[3] ?? id[4] ? `.${id[3] ?? id[4]}` : ""}` : rule ? `v-${rule[1]}` : exact;
+  const refLike = rule ? `%v-${rule[1]}%` : like;
   // "ac-2" typed whole puts AC-2 first, ahead of CTL-AC-20 and every AC-2(n) that merely contains it.
-  return db
+  return (
+    db
     .prepare(
-      `SELECT s.id AS sourceId, s.name, d.id AS documentId, d.version_label AS versionLabel,
-              r.ref, r.title, r.family, r.severity, r.statement
+      `SELECT s.id AS sourceId, s.name, d.id AS documentId, d.version_label AS versionLabel, d.title AS docTitle, d.document_key AS documentKey,
+              r.ref, r.label, r.title, r.family, r.severity, r.statement
          FROM requirements r
          JOIN documents d ON d.id = r.document_id
          JOIN sources s ON s.id = d.source_id
         WHERE r.document_id IN (${ids.map(() => "?").join(", ")})
-          AND (lower(r.ref) LIKE ? OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) LIKE ? OR lower(r.title) LIKE ? OR lower(r.statement) LIKE ?)
-        ORDER BY (lower(r.ref) = ? OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) = ?) DESC, (lower(r.ref) LIKE ?) DESC, (lower(r.title) LIKE ?) DESC, s.name, r.ref
+          AND (lower(r.ref) LIKE ? ESCAPE '\\' OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) LIKE ? ESCAPE '\\' OR lower(r.title) LIKE ? ESCAPE '\\' OR lower(r.statement) LIKE ? ESCAPE '\\')
+        ORDER BY (lower(r.ref) = ? OR lower(r.ref) = ? OR lower(COALESCE(r.label, '')) = ?) DESC, (lower(r.ref) LIKE ? ESCAPE '\\') DESC, (lower(r.title) LIKE ? ESCAPE '\\') DESC, s.name, r.ref
         LIMIT ?`,
     )
-    .all(...ids, like, canonical, like, like, like, exact, canonical, exact, like, like, limit) as unknown as ControlHit[];
+    .all(...ids, refLike, canonical, like, like, like, exact, canonical, exact, refLike, like, limit) as unknown as (ControlHit & { docTitle: string | null; documentKey: string })[]
+  ).map(({ docTitle, documentKey, ...h }) => (h.sourceId === "disa-stigs" ? { ...h, name: `${stigProduct(docTitle, documentKey)} STIG` } : h));
 }
 
 interface StandardSource {
@@ -173,7 +182,7 @@ export function renderControls(options: { db: DatabaseSync; q: string | undefine
               <thead><tr><th scope="col">Control</th><th scope="col">Standard</th><th scope="col">Title</th><th scope="col">Text</th></tr></thead>
               <tbody>${hits.map(
                 (h) => html`<tr>
-                  <td class="id"><a href="/standards/${h.sourceId}/${h.documentId}/${h.ref}"><b>${(h.ref ?? "").toUpperCase()}</b></a>${h.severity ? html`<div class="note">${h.severity}</div>` : ""}</td>
+                  <td class="id"><a href="/standards/${h.sourceId}/${h.documentId}/${h.ref}"><b>${h.sourceId === "disa-stigs" && h.label ? stigRuleName(h.label, h.ref) : (h.ref ?? "").toUpperCase()}</b></a>${h.severity ? html`<div class="note">${h.severity}</div>` : ""}</td>
                   <td><a href="/standards/${h.sourceId}">${h.name}</a>${h.versionLabel ? html`<div class="note">${h.versionLabel}</div>` : ""}</td>
                   <td>${h.title ?? ""}${h.family ? html`<div class="note">${h.family}</div>` : ""}</td>
                   <td class="desc"><span>${(h.statement ?? "").slice(0, 200)}</span></td>

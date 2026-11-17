@@ -138,7 +138,10 @@ describe("test plans", () => {
     expect(md).toContain("# Windows test plan: Microsoft Windows 11 V2R11");
     expect(md).toContain("- [ ] **WN11-00-000030**");
     expect(md).not.toContain("- [ ] **WN11-00-000031**");
-    expect(md).not.toContain("mdm-enrolment");
+    // Unticked, so not a check to do, and named among the not tested (B9-2) rather than left out.
+    expect(md).not.toContain("- [ ] **mdm-enrolment");
+    expect(md).toMatch(/^- \*\*mdm-enrolment 1\*\* .*: unticked for this plan\.$/m);
+    expect(md).toMatch(/\d+ unticked\./);
     expect(md).toContain("## Disk encryption");
     expect(md).toContain("- [ ] **sso-intune-browsers 3**");
     expect(md).toContain("## Attribution");

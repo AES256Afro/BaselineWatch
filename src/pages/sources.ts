@@ -161,21 +161,21 @@ export function renderSources({ db, owner, open, notice, look, now = new Date() 
   for (const [group, list] of groups) {
     tables.push(html`<section id="${group}">
       <h2><a href="/?group=${group}">${groupLabel[group] ?? group}</a> <span class="count"><a href="#${group}">${list.length}</a></span></h2>
-      <div class="table-wrap"><table><caption class="visually-hidden">Sources read by this instance</caption>
+      <div class="table-wrap"><table class="cards"><caption class="visually-hidden">Sources read by this instance</caption>
         <thead><tr><th scope="col">Source</th><th scope="col">Format</th><th scope="col">Checked</th><th scope="col">Items</th><th scope="col">Last fetch</th><th scope="col">Licence</th>${owner ? html`<th scope="col"></th>` : ""}</tr></thead>
         ${ordered(group, list).map(({ heading, sources }) => html`<tbody>${heading ? html`<tr class="series"><th scope="rowgroup" colspan="${owner ? 7 : 6}"><b>${heading.label}</b> · ${heading.line}</th></tr>` : ""}${sources.map((s) => {
           const adapter = adapterFor(s);
           return html`<tr id="src-${s.id}" class="${s.enabled ? "" : "off"}">
-            <td><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.origin === "owner" ? html` <span class="small">added here</span>` : ""}${s.notes ? aboutNote(s.notes) : ""}</td>
-            <td>${s.format}</td>
-            <td>${s.enabled ? s.schedule : "off"}${adapter || s.schedule === "manual" ? "" : html`<div class="note">not read yet</div>`}</td>
-            <td class="n"><a href="/?source=${s.id}">${s.item_count}</a></td>
-            <td>${s.last_fetch_at
+            <td data-label="Source"><a href="${s.url}" ${newTabIf(s.url)}>${s.name}</a>${s.origin === "owner" ? html` <span class="small">added here</span>` : ""}${s.notes ? aboutNote(s.notes) : ""}</td>
+            <td data-label="Format">${s.format}</td>
+            <td data-label="Checked">${s.enabled ? s.schedule : "off"}${adapter || s.schedule === "manual" ? "" : html`<div class="note">not read yet</div>`}</td>
+            <td class="n" data-label="Items"><a href="/?source=${s.id}">${s.item_count}</a></td>
+            <td data-label="Last fetch">${s.last_fetch_at
               ? html`${shortStamp(s.last_fetch_at)} <span class="status ${s.last_status ?? ""}">${s.last_status ?? ""}</span>${s.last_duration_ms !== null ? html` <span class="small">${s.last_duration_ms} ms</span>` : ""}`
               : html`<span class="state wait">never</span>`}${s.last_error ? html`<div class="note err">${s.last_error}</div>` : ""}${hintFor(s, adapter)}${repairNotes(s, repairs.get(s.id) ?? [], owner)}</td>
-            <td>${s.licence ?? "—"}${s.restricted ? html`<div class="note">Restricted: the entries are shown to the signed-in owner only; visitors see versions and counts, and the API and MCP tools return neither names nor text.</div>` : ""}</td>
+            <td data-label="Licence">${s.licence ?? "—"}${s.restricted ? html`<div class="note">Restricted: the entries are shown to the signed-in owner only; visitors see versions and counts, and the API and MCP tools return neither names nor text.</div>` : ""}</td>
             ${owner
-              ? html`<td><div class="acts">${fetchable(adapter) ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : s.format === "pdf-upload" ? html`<a href="/standards/${s.id}">Upload</a>` : ""}${
+              ? html`<td data-label="Actions"><div class="acts">${fetchable(adapter) ? html`<form method="post" action="/sources/${s.id}/fetch" class="inline"><button type="submit">Fetch now</button></form>` : s.format === "pdf-upload" ? html`<a href="/standards/${s.id}">Upload</a>` : ""}${
                   s.format === "pdf-upload" ? "" : html`<form method="post" action="/sources/${s.id}/${s.enabled ? "disable" : "enable"}" class="inline"><button type="submit">${s.enabled ? "Turn off" : "Turn on"}</button></form>`
                 }</div></td>`
               : ""}

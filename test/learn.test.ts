@@ -7,6 +7,7 @@ import {
   authorityById,
   authorityForSource,
   chains,
+  stepRung,
   collisions,
   feedsInto,
   onRung,
@@ -105,19 +106,31 @@ describe("the authority registry", () => {
     expect(peers("sp-800-53").map((a) => a.id)).not.toContain("sp-800-53");
   });
 
-  it("traces the same control down three ladders, in rung order, through bodies that exist", () => {
+  it("traces the same control down three ladders, from law to evidence, through bodies that exist", () => {
     expect(chains.map((c) => c.id)).toEqual(["federal", "dod", "business"]);
-    const order = rungs.map((r) => r.id);
     for (const chain of chains) {
-      expect(chain.steps.map((s) => s.rung), `${chain.id} steps`).toEqual(order);
+      expect(chain.steps.length, `${chain.id} steps`).toBe(rungs.length);
+      expect(stepRung(chain.steps[0]!), `${chain.id} starts`).toBe("law");
       for (const step of chain.steps) {
         if (step.authority) expect(authorityById(step.authority), `${chain.id}: unknown ${step.authority}`).toBeDefined();
-        expect(step.says.length, `${chain.id} ${step.rung}`).toBeGreaterThan(20);
+        expect(step.says.length, `${chain.id} ${stepRung(step)}`).toBeGreaterThan(20);
       }
     }
     // The private chain is the one with a hole in it, and that hole is the lesson.
     const business = chains.find((c) => c.id === "business")!;
-    expect(business.steps.find((s) => s.rung === "policy")?.authority).toBeUndefined();
+    expect(business.steps.find((s) => stepRung(s) === "policy")?.authority).toBeUndefined();
+  });
+
+  it("puts every trace step on its own body's rung, never one the registry does not give it", () => {
+    // A trace once said mSCP was a setting and SP 800-53A a check while their entries said baseline
+    // and catalogue; the step now has no rung of its own to disagree with.
+    for (const chain of chains) {
+      for (const step of chain.steps) {
+        if (!step.authority) continue;
+        expect(step.rung, `${chain.id}: ${step.authority} names a rung of its own`).toBeUndefined();
+        expect(stepRung(step), `${chain.id}: ${step.authority}`).toBe(authorityById(step.authority)!.rung);
+      }
+    }
   });
 
   it("tracks only sources this instance actually has", () => {

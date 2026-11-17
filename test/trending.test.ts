@@ -47,6 +47,20 @@ describe("mentions", () => {
     expect(trendingCves(db, "2026-10-21T20:00:00.000Z")).toEqual([]);
   });
 
+  it("count one page two feeds both carry as one mention", () => {
+    // CISA's advisories feed and its ICS feed carry the same advisory under one URL.
+    upsertItems(db, "cisa-advisories", [{ kind: "article", externalId: "c1", title: "ICSA-26-300-01 on CVE-2026-2020", url: "https://www.cisa.gov/news-events/ics-advisories/icsa-26-300-01", summary: null, publishedAt: "2026-10-21T09:00:00.000Z", signals: { cves: ["CVE-2026-2020"] } }], at);
+    upsertItems(db, "krebs", [{ kind: "article", externalId: "c2", title: "ICSA-26-300-01 on CVE-2026-2020", url: "https://WWW.cisa.gov/news-events/ics-advisories/icsa-26-300-01/#top", summary: null, publishedAt: "2026-10-21T08:00:00.000Z", signals: { cves: ["CVE-2026-2020"] } }], at);
+    expect(cveMentions(db, ["CVE-2026-2020"], since).get("CVE-2026-2020")).toEqual({ sources: 1, items: 1 });
+    expect(trendingCves(db, since).some((t) => t.cveId === "CVE-2026-2020")).toBe(false);
+  });
+
+  it("read one page by the canonical URL the News de-duplicates on: tracking parameters, www and http dropped", () => {
+    upsertItems(db, "cisa-advisories", [{ kind: "article", externalId: "d1", title: "On CVE-2026-3030", url: "https://www.example.org/advisory/1?utm_source=rss", summary: null, publishedAt: "2026-10-21T09:00:00.000Z", signals: { cves: ["CVE-2026-3030"] } }], at);
+    upsertItems(db, "krebs", [{ kind: "article", externalId: "d2", title: "On CVE-2026-3030", url: "http://example.org/advisory/1", summary: null, publishedAt: "2026-10-21T08:00:00.000Z", signals: { cves: ["CVE-2026-3030"] } }], at);
+    expect(cveMentions(db, ["CVE-2026-3030"], since).get("CVE-2026-3030")).toEqual({ sources: 1, items: 1 });
+  });
+
   it("list the news items naming a CVE, not the vendor advisories the Fix panel already lists", () => {
     const news = newsFor(db, "CVE-2026-1010");
     expect(news.map((n) => n.source_id)).toEqual(["bleeping", "bleeping", "krebs"]);

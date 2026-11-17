@@ -41,6 +41,9 @@ describe("the fleet's releases", () => {
   it("map to endoflife.date's cycles, Windows to its two editions", () => {
     expect(eolCyclesFor("windows", "24H2")).toEqual([{ product: "windows", cycle: "11-24h2-w", edition: "Home and Pro" }, { product: "windows", cycle: "11-24h2-e", edition: "Enterprise and Education" }]);
     expect(eolCyclesFor("windows", "10-22H2").map((c) => c.cycle)).toEqual(["10-22h2-w", "10-22h2-e", "10-22h2"]);
+    // A known edition asks for its own cycle, then the bare one Windows 10 22H2 uses for every edition.
+    expect(eolCyclesFor("windows", "10-22H2", { suffix: "e", word: "Enterprise and Education" }).map((c) => c.cycle)).toEqual(["10-22h2-e", "10-22h2"]);
+    expect(eolCyclesFor("windows", "24H2", { suffix: "e-lts", word: "Enterprise LTSC" }).map((c) => c.cycle)).toEqual(["11-24h2-e-lts"]);
     expect(eolCyclesFor("macos", "27")).toEqual([{ product: "macos", cycle: "27", edition: null }]);
     expect(eolCyclesFor("linux", "rhel-9")).toEqual([{ product: "rhel", cycle: "9", edition: null }]);
     expect(eolCyclesFor("linux", "ubuntu-24.04")).toEqual([{ product: "ubuntu", cycle: "24.04", edition: null }]);

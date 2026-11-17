@@ -301,6 +301,59 @@ export function releaseChanges(db: DatabaseSync, documentId: number): ChangeRow[
   return db.prepare("SELECT * FROM changes WHERE to_document_id = ? ORDER BY ref, field").all(documentId) as unknown as ChangeRow[];
 }
 
+/**
+ * A version as a reader names it. A STIG is named by its own title, never by the source that
+ * fetched it: "Windows 11 STIG V2R11", not "DISA STIG library V2R11"; every other standard is its
+ * source's name and the version label.
+ */
+export function documentName(sourceId: string, sourceName: string, doc: { title: string | null; document_key: string; version_label: string | null }): string {
+  const version = doc.version_label ? ` ${doc.version_label}` : "";
+  if (sourceId !== "disa-stigs") return `${sourceName}${version}`;
+  return `${stigProduct(doc.title, doc.document_key)} STIG${version}`;
+}
+
+/** "Microsoft Windows 11 Security Technical Implementation Guide" → "Windows 11"; the key when there is no title. */
+export function stigProduct(title: string | null, key: string): string {
+  const fromTitle = (title ?? "").replace(/\s*Security Technical Implementation Guide.*$/i, "").replace(/\s*\(STIG\)\s*$/i, "").replace(/\s+STIG$/i, "").trim();
+  const name = fromTitle || key.replace(/^stig:/, "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return name.replace(/^Microsoft (Windows)\b/, "$1");
+}
+
+/** A STIG rule as DISA prints it: "WN11-00-000160 (V-253286)", the rule id and the group the Register keys it by. */
+export function stigRuleName(label: string, ref: string): string {
+  const group = /^v-\d+$/i.test(ref) ? ref.toUpperCase() : null;
+  return group && label.toUpperCase() !== group ? `${label} (${group})` : label;
+}
+
+/** A rule id inside DISA's prose: "WN11-00-000160", "APSC-DV-001770", or a group "V-253286"; never a CCI or a CVE. */
+const stigRuleIdPattern = /\b(?!CCI-|CVE-)(?:[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d{5,6}|V-\d{5,7})\b/g;
+
+/**
+ * The rule ids a text names, each with where it starts. A function rather than the /g pattern
+ * itself: a shared global regex carries lastIndex from one caller's .test() or .exec() into the next.
+ */
+export function stigRuleIds(text: string): { id: string; index: number }[] {
+  return [...text.matchAll(stigRuleIdPattern)].map((m) => ({ id: m[0], index: m.index }));
+}
+
+const ruleIdSource = stigRuleIdPattern.source;
+/** A line of DISA's revision history that starts with one or more rule ids: "- WN11-00-000045, V-253286: Revised Fix." */
+const listedItem = new RegExp(`^\\s*(?:[-*\u2022\u2013]\\s*)?((?:${ruleIdSource})(?:\\s*(?:,|/|&|and)\\s*(?:${ruleIdSource}))*)\\s*(?::|\\u2013|-\\s)`, "gm");
+
+/**
+ * The rule ids the publisher's own release note lists as changed, each once, in its order: the ids
+ * that start an item of the revision history. An id named inside an item's text ("Removed rule due
+ * to overlap with WN11-SO-000075") is a reference, not a change, and is not counted.
+ */
+export function publisherListedRules(db: DatabaseSync, documentId: number): string[] {
+  const out = new Set<string>();
+  for (const e of explanationsFor(db, documentId)) {
+    if (e.kind !== "publisher") continue;
+    for (const item of e.text.matchAll(listedItem)) for (const m of stigRuleIds(item[1]!)) out.add(m.id);
+  }
+  return [...out];
+}
+
 export function explanationsFor(db: DatabaseSync, documentId: number): ExplanationRow[] {
   return db.prepare("SELECT * FROM explanations WHERE to_document_id = ? ORDER BY kind, id").all(documentId) as unknown as ExplanationRow[];
 }
@@ -370,9 +423,10 @@ function writeReleaseItem(db: DatabaseSync, source: SourceRow, doc: ReleaseDoc, 
     return;
   }
   const label = doc.versionLabel ?? doc.publishedAt.slice(0, 10);
+  const name = documentName(source.id, source.name, { title: doc.title, document_key: doc.key, version_label: label });
   const title = previous
-    ? `${source.name} ${label}: ${changeSummaryText(summary)}`
-    : `${source.name} ${label}: loaded as the first version (${doc.requirementCount} requirements)`;
+    ? `${name}: ${changeSummaryText(summary)}`
+    : `${name}: loaded as the first version (${doc.requirementCount} requirements)`;
   // A restricted source's entries never reach the Wire, which every visitor reads: the title counts them.
   const text = previous
     ? source.restricted === 1

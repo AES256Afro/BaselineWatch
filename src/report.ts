@@ -479,6 +479,25 @@ function width(text: string, size: number, family: ReportStyle["fonts"]["pdf"] =
   return (w / 1000) * size;
 }
 
+/** A word cut into pieces each no wider than the measure, at least one character a piece. */
+function cutToWidth(word: string, size: number, maxWidth: number, family: ReportStyle["fonts"]["pdf"]): string[] {
+  const pieces: string[] = [];
+  let piece = "";
+  let used = 0;
+  for (const ch of word) {
+    const w = width(ch, size, family);
+    if (piece !== "" && used + w > maxWidth) {
+      pieces.push(piece);
+      piece = "";
+      used = 0;
+    }
+    piece += ch;
+    used += w;
+  }
+  if (piece !== "") pieces.push(piece);
+  return pieces;
+}
+
 function wrap(text: string, size: number, maxWidth: number, family: ReportStyle["fonts"]["pdf"]): string[] {
   const lines: string[] = [];
   for (const para of text.split("\n")) {
@@ -490,10 +509,16 @@ function wrap(text: string, size: number, maxWidth: number, family: ReportStyle[
     let line = "";
     for (const word of words) {
       const candidate = line ? `${line} ${word}` : word;
-      if (width(candidate, size, family) <= maxWidth || line === "") line = candidate;
+      if (width(candidate, size, family) <= maxWidth) line = candidate;
       else {
-        lines.push(line);
-        line = word;
+        if (line !== "") lines.push(line);
+        // A word wider than the measure (a long URL) is cut at the measure, or it runs off the page.
+        // Cut by each character's own width: an average cuts a run of wide letters too late.
+        if (width(word, size, family) > maxWidth) {
+          const pieces = cutToWidth(word, size, maxWidth, family);
+          lines.push(...pieces.slice(0, -1));
+          line = pieces[pieces.length - 1] ?? "";
+        } else line = word;
       }
     }
     lines.push(line);

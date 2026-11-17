@@ -130,7 +130,8 @@ export async function readRouter(http: HttpGet, url: string): Promise<RouterRead
     }
   }
   try {
-    const secure = await http(`https://${origin.host}/`, { timeoutMs: 8000, maxBytes: 256 * 1024, headers: { accept: "text/html" } });
+    // Not followed, as the plain request is not: a redirect is reported, never fetched from wherever it points.
+    const secure = await http(`https://${origin.host}/`, { timeoutMs: 8000, maxBytes: 256 * 1024, headers: { accept: "text/html" }, redirect: "manual" });
     read.tlsStatus = secure.status;
     read.server = read.server ?? secure.headers?.server ?? null;
     read.title = read.title ?? titleOf(secure.bytes);

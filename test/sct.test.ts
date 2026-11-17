@@ -4,6 +4,7 @@ import { baselineTarget, parsePolicyRules, parseSctListing, policyScope, sctAdap
 import type { SourceRow } from "../src/adapters/types.ts";
 import { diffRequirements, summarizeChanges } from "../src/differ.ts";
 import { fakeHttp, fixture } from "./helpers.ts";
+import { toolkitGpoNames } from "./sct-gpo-names.ts";
 
 const text = (name: string) => new TextDecoder().decode(fixture(name));
 
@@ -46,6 +47,18 @@ describe("PolicyRules", () => {
     expect(audit.statement).toBe("Success and Failure");
     expect(policyScope("MSFT Windows Server 2025 v2602 - Domain Controller")).toBe("Windows Server 2025 - Domain Controller");
     expect(policyScope("MSFT Internet Explorer 11 - User")).toBe("Internet Explorer 11 - User");
+  });
+
+  it("drops the release from every GPO name the toolkit ships, and keeps the product", () => {
+    for (const [name, scope] of toolkitGpoNames) expect(policyScope(name), name).toBe(scope);
+    // Only the product part is read: words after " - " stay as published.
+    expect(policyScope("MSFT Windows 11 25H2 - Version 2 Settings 1809")).toBe("Windows 11 - Version 2 Settings 1809");
+
+    // The same setting in two Windows 11 releases has one ref, so a decision on it holds across them.
+    const as = (release: string) => parsePolicyRules(text("sct.PolicyRules").replaceAll("Windows Server 2025 v2602", `Windows 11 ${release}`));
+    const v25 = as("25H2");
+    expect(v25[0]!.ref.startsWith("windows 11 - member server|computer|")).toBe(true);
+    expect(as("26H2").map((r) => r.ref)).toEqual(v25.map((r) => r.ref));
   });
 
   it("diffs two baseline versions setting by setting", () => {

@@ -58,8 +58,13 @@ export function parseCookies(header: string | undefined): Record<string, string>
   return out;
 }
 
-/** The address a sign-in attempt counts against: an IPv6 client is its whole /64, since one host holds the prefix. */
-export function throttleKey(ip: string | undefined): string {
+/**
+ * The address a sign-in attempt or an allowance counts against: an IPv6 client is its whole /64,
+ * since one host holds the prefix, or a wider prefix when asked. The allowances on heavy pages use
+ * /56, the size a home connection is commonly delegated, so one household cannot rotate through
+ * 256 fresh allowances.
+ */
+export function throttleKey(ip: string | undefined, bits: 48 | 56 | 64 = 64): string {
   if (!ip) return "unknown";
   const bare = ip.replace(/^::ffff:/i, "").replace(/%.*$/, "");
   if (isIP(bare) !== 6) return bare;
@@ -67,10 +72,10 @@ export function throttleKey(ip: string | undefined): string {
   const groups = head ? head.split(":") : [];
   const tailGroups = tail ? tail.split(":") : [];
   while (groups.length + tailGroups.length < 8) groups.push("0");
-  return `${[...groups, ...tailGroups]
-    .slice(0, 4)
-    .map((g) => g.padStart(4, "0"))
-    .join(":")}::/64`;
+  const kept = [...groups, ...tailGroups].slice(0, Math.ceil(bits / 16)).map((g) => g.padStart(4, "0").toLowerCase());
+  // A /56 keeps the first two hex digits of the fourth group.
+  if (bits % 16 !== 0) kept[kept.length - 1] = `${kept[kept.length - 1]!.slice(0, (bits % 16) / 4)}${"0".repeat(4 - (bits % 16) / 4)}`;
+  return `${kept.join(":")}::/${bits}`;
 }
 
 export interface AuthState {
@@ -143,6 +148,52 @@ export function sameOriginOnly(req: Request, res: Response, next: NextFunction):
     }
   }
   res.status(403).type("text").send("Refused: this request did not come from BaselineWatch's own pages.");
+}
+
+/**
+ * Milliseconds of anonymous heavy work over a sliding window, per address and for everyone. An
+ * address past its own share is refused; when everyone's budget is spent, only the addresses that
+ * have had a fair share already are refused, so one client cannot use the whole budget to shut out
+ * light readers, and many addresses (an IPv6 /48 is 256 /56s) cannot between them hold the event
+ * loop. The owner is never counted.
+ */
+export class WorkBudget {
+  private readonly spent: { at: number; ms: number; key: string }[] = [];
+  private readonly byKey = new Map<string, number>();
+  private total = 0;
+  private readonly budgetMs: number;
+  private readonly perKeyMs: number;
+  private readonly fairMs: number;
+  private readonly windowMs: number;
+  constructor(budgetMs: number, windowMs: number, perKeyMs = budgetMs, fairMs = 0) {
+    this.budgetMs = budgetMs;
+    this.windowMs = windowMs;
+    this.perKeyMs = perKeyMs;
+    this.fairMs = fairMs;
+  }
+  private trim(nowMs: number): void {
+    while (this.spent.length && nowMs - this.spent[0]!.at >= this.windowMs) {
+      const old = this.spent.shift()!;
+      this.total -= old.ms;
+      const left = (this.byKey.get(old.key) ?? 0) - old.ms;
+      if (left <= 0.5) this.byKey.delete(old.key);
+      else this.byKey.set(old.key, left);
+    }
+  }
+  /** "ok", "self" when this address has spent its own share, or "busy" when everyone's is spent and this address has had a fair part of it. */
+  check(key: string, nowMs: number): "ok" | "self" | "busy" {
+    this.trim(nowMs);
+    const mine = this.byKey.get(key) ?? 0;
+    if (mine >= this.perKeyMs) return "self";
+    if (this.total >= this.budgetMs && mine >= this.fairMs) return "busy";
+    return "ok";
+  }
+  spend(key: string, ms: number, nowMs: number): void {
+    this.trim(nowMs);
+    this.spent.push({ at: nowMs, ms, key });
+    this.total += ms;
+    this.byKey.set(key, (this.byKey.get(key) ?? 0) + ms);
+  }
 }
 
 /**

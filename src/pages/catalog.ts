@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { referenceKey } from "../adapters/nasa-policy.ts";
-import { fleetPlatforms, loadFleet, releasesOf, type Fleet } from "../fleet.ts";
+import { fleetPlatforms, loadFleet, releasesOf, releaseStatus, type Fleet } from "../fleet.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { getSource } from "../ingest.ts";
@@ -39,7 +39,7 @@ function osSection(db: DatabaseSync, fleet: Fleet, now: Date): Html {
     let fresh = 0;
     let pending = 0;
     for (const r of releasesOf(fleet, p.id)) {
-      if (r.status === "ended") continue;
+      if (releaseStatus(r, now) === "ended") continue;
       const held: [string, string, string | undefined][] = [
         ["DISA STIG", "disa-stigs", r.documents.stig],
         ["NIST mSCP", "nist-mscp", r.documents.mscp],
@@ -61,7 +61,7 @@ function osSection(db: DatabaseSync, fleet: Fleet, now: Date): Html {
       }
     }
     if (rows.length === 0) return html``;
-    const releases = releasesOf(fleet, p.id).filter((r) => r.status !== "ended").length;
+    const releases = releasesOf(fleet, p.id).filter((r) => releaseStatus(r, now) !== "ended").length;
     return html`<details class="fold" id="os-${p.id}">
       <summary><b>${p.label}</b><span class="fold-meta">${releases} release${releases === 1 ? "" : "s"} · ${rows.length} standard${rows.length === 1 ? "" : "s"}${fresh ? html` · <span class="chip ok">${fresh} new</span>` : ""}${pending ? html` · ${pending} not loaded yet` : ""}</span><span class="small"><a href="/baselines/${p.id}">builder</a> · <a href="/baselines/${p.id}/tests">test plan</a></span></summary>
       <div class="table-wrap"><table><caption class="visually-hidden">Standards tracked, by release</caption>

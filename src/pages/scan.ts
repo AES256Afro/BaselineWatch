@@ -1,6 +1,7 @@
 import { html, newTab, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import type { NetworkSummary } from "../netscan.ts";
+import { runVerdict } from "../scanhistory.ts";
 import type { Exposure, Seen } from "../seen.ts";
 import { page } from "./layout.ts";
 
@@ -229,7 +230,7 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
     into this page and never uploaded.
   </p>
   <div class="verdict" id="scan-verdict" hidden>
-    <p class="tally"><b id="scan-verdict-count">0</b><span>of 3 protections seen</span></p>
+    <p class="tally"><b id="scan-verdict-count">–</b><span id="scan-verdict-of">Not run yet</span></p>
     <h2 id="scan-verdict-title"></h2>
     <p id="scan-verdict-text"></p>
     <p class="small" id="scan-privacy" hidden></p>
@@ -251,11 +252,11 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
           <div>
             <div class="t">Every device on your network</div>
             ${network
-              ? html`<p class="d">No web page can test this; this server can, because it sits on the LAN. The <a href="/scan/network">network check</a> resolved ${network.total} canary names through the resolver this network hands out${network.scan.resolver ? html` (<code>${network.scan.resolver}</code>)` : ""}: ${network.sinkholed} sinkholed, ${network.resolved} resolved. A sinkholed canary is blocked for every device using that resolver.</p>`
+              ? html`<p class="d">No web page can test this; this server can, because it sits on the LAN. The <a href="/scan/network">network check</a> resolved ${network.total} canary names through the resolver this network hands out${network.scan.resolver ? html` (<code>${network.scan.resolver}</code>)` : ""}: ${network.sinkholed} sinkholed, ${network.resolved} resolved${network.timeout ? html`, ${network.timeout} unanswered` : ""}. A sinkholed canary is blocked for every device using that resolver.</p>`
               : html`<p class="d">No web page can test this. This server can, because it sits on the LAN: the <a href="/scan/network">network check</a> resolves canary names through the resolver the router hands out, daily, once the owner turns it on. The guide's <a href="/scan/guide/windows#router">router</a> and <a href="/scan/guide/windows#network">network</a> sections say what to set on the router and how to prove each setting from any device.</p>`}
           </div>
           ${network
-            ? html`<span class="state ${network.resolved === 0 && network.sinkholed > 0 ? "ok" : "warn"}">${network.sinkholed} / ${network.total} sinkholed</span>`
+            ? html`<span class="state ${runVerdict(network) === "enforced" ? "ok" : "warn"}">${network.sinkholed} / ${network.total} sinkholed</span>`
             : html`<span class="state na">Not run from this server</span>`}
         </article>
       </div>
@@ -296,7 +297,7 @@ export function renderScan({ owner, open, look, probeOrigin, network, seen, expo
       </div>
       <div class="box">
         <h2>Privacy of the test</h2>
-        <p class="small">Test images carry no cookies and no referrer and are never shown. The only outside hosts contacted are the two resolvers' self-check endpoints, each learning what any site you visit learns: your address. No advertising domain is contacted, and nothing you see here leaves this page.</p>
+        <p class="small">Test images carry no referrer and no cookies to any other site, and are never shown. The only outside hosts contacted are the two resolvers' self-check endpoints, each learning what any site you visit learns: your address. No advertising domain is contacted, and nothing you see here leaves this page.</p>
       </div>
       <div class="box">
         <h2>Environment</h2>

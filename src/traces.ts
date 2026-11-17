@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { tierNames } from "./adapters/blocklists.ts";
 import { latestDocument, loadRequirements } from "./register.ts";
 
 /**
@@ -24,6 +25,8 @@ export interface TraceIndicators {
   version: string | null;
   publishedAt: string | null;
   indicators: TraceIndicator[];
+  /** Each tier's name by its id (src/adapters/blocklists.ts), so the page names a tier as the Register does. */
+  tiers: Readonly<Record<string, string>>;
 }
 
 const indicatorTypes = new Set(["domain", "ip", "sha256"]);
@@ -32,7 +35,7 @@ const text = (v: unknown): string | null => (typeof v === "string" && v !== "" ?
 /** The latest indicator list the Register holds; empty when it has never been fetched. */
 export function traceIndicators(db: DatabaseSync): TraceIndicators {
   const document = latestDocument(db, indicatorSourceId, "indicators");
-  if (!document) return { version: null, publishedAt: null, indicators: [] };
+  if (!document) return { version: null, publishedAt: null, indicators: [], tiers: tierNames };
   const indicators: TraceIndicator[] = [];
   for (const r of loadRequirements(db, document.id)) {
     const type = text(r.extra.type);
@@ -40,7 +43,7 @@ export function traceIndicators(db: DatabaseSync): TraceIndicators {
     if (r.status !== "active" || !type || !indicatorTypes.has(type) || !tier) continue;
     indicators.push({ value: r.ref, type: type as TraceIndicator["type"], tier, confidence: text(r.extra.confidence), source: text(r.extra.source) });
   }
-  return { version: document.version_label, publishedAt: document.published_at, indicators };
+  return { version: document.version_label, publishedAt: document.published_at, indicators, tiers: tierNames };
 }
 
 /** What the page says about the list before the script runs: how many of each kind, and which version. */

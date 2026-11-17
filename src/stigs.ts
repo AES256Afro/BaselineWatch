@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
-import { microsoftBrowsers, microsoftOffice, microsoftServers } from "./platforms.ts";
+import { kevReading, type KevReading } from "./platforms.ts";
 import type { NormalizedRequirement } from "./oscal.ts";
-import { latestDocument, loadRequirements, type DocumentRow } from "./register.ts";
+import { latestDocument, requirementIn, type DocumentRow } from "./register.ts";
 import { parseJson } from "./json.ts";
 
 /**
@@ -54,37 +54,35 @@ export function platformOf(name: string): PlatformId {
 
 
 /**
+ * Where the STIG pages file each KEV reading (src/platforms.ts reads the vendor and product once,
+ * for the CVE table too). Solaris goes with the UNIX-like systems on the Linux page; AI tooling has
+ * no STIG page. Apple is split by product below.
+ */
+const kevPages: Record<Exclude<KevReading, "apple">, PlatformId | null> = {
+  windows: "windows",
+  edge: "browsers",
+  chrome: "browsers",
+  firefox: "browsers",
+  "microsoft-browser": "browsers",
+  android: "mobile",
+  linux: "linux",
+  unix: "linux",
+  network: "network",
+  "microsoft-application": "applications",
+  application: "applications",
+  ai: null,
+};
+
+/**
  * The platform a KEV entry's vendor and product belong to, so a platform page can show CISA's
- * known-exploited entries for it. Vendors CISA names in several ways ("Apple | Multiple Products",
- * "Linux | Kernel", "Red Hat | Polkit") are read as a person would; null when none fits.
+ * known-exploited entries for it: the reading the CVE table uses (kevReading), filed under these
+ * pages, and VMware, which only these pages have a place for. Null when none fits.
  */
 export function kevPlatform(vendor: string | null | undefined, product: string | null | undefined): PlatformId | null {
-  const v = (vendor ?? "").trim().toLowerCase();
-  const p = (product ?? "").trim();
-  if (!v) return null;
-  if (v === "microsoft") {
-    if (microsoftBrowsers.test(p)) return "browsers";
-    if (microsoftServers.test(p)) return "applications";
-    if (microsoftOffice.test(p)) return "applications";
-    return "windows";
-  }
-  if (v === "apple") {
-    if (/mac|os x|multiple products/i.test(p)) return "macos";
-    return "mobile";
-  }
-  if (v === "linux" || v === "canonical" || v === "ubuntu" || v === "debian" || v === "suse") return "linux";
-  if (v === "red hat") return /linux|kernel|polkit|libuser|bug reporting|enterprise linux/i.test(p) ? "linux" : "applications";
-  if (v === "oracle") return /linux|solaris/i.test(p) ? "linux" : "applications";
-  if (v === "google") {
-    if (/chrom/i.test(p)) return "browsers";
-    if (/android|pixel/i.test(p)) return "mobile";
-    return null;
-  }
-  if (v === "android" || v === "samsung") return "mobile";
-  if (v === "mozilla") return "browsers";
-  if (/^(cisco|f5|fortinet|palo alto networks|juniper|juniper networks|ivanti|citrix|sonicwall|zyxel|d-link|netgear|mikrotik|arista|check point|pulse secure|barracuda|sophos|watchguard|array networks)$/.test(v)) return "network";
-  if (v === "vmware") return "virtualization";
-  return null;
+  const reading = kevReading(vendor, product);
+  if (reading === "apple") return /mac|os x|multiple products/i.test(product ?? "") ? "macos" : "mobile";
+  if (reading !== null) return kevPages[reading];
+  return /^vmware$/i.test((vendor ?? "").trim()) ? "virtualization" : null;
 }
 
 /** The platforms a directive's title names; "all" for the cross-cutting ones (asset visibility, update deadlines, cloud services). */
@@ -110,12 +108,23 @@ export interface CciMap {
   version: string | null;
 }
 
+/**
+ * Built once per CCI document and kept until a newer list is stored: /stigs and every STIG release
+ * page read it, and it is some 5,000 rows parsed from JSON each time for data that moves at ingest.
+ * The key is the document's id, parse time and row count, as cciIndexOf keys its index. Callers
+ * read the maps and never change them.
+ */
+const cciMaps = new WeakMap<DatabaseSync, { key: string; value: CciMap }>();
+
 /** The latest CCI list the Register holds, as two maps. Empty maps when the list has not loaded. */
 export function cciMap(db: DatabaseSync): CciMap {
   const doc = latestDocument(db, "disa-cci", "cci");
   const controls = new Map<string, string[]>();
   const ccis = new Map<string, string[]>();
   if (!doc) return { controls, ccis, documentId: null, version: null };
+  const key = `${doc.id}|${doc.parsed_at}|${doc.requirement_count}`;
+  const cached = cciMaps.get(db);
+  if (cached?.key === key) return cached.value;
   const rows = db.prepare("SELECT label, related_json FROM requirements WHERE document_id = ?").all(doc.id) as { label: string | null; related_json: string | null }[];
   for (const r of rows) {
     if (!r.label) continue;
@@ -126,9 +135,15 @@ export function cciMap(db: DatabaseSync): CciMap {
       related = [];
     }
     controls.set(r.label.toUpperCase(), related);
-    for (const c of related) ccis.set(c, [...(ccis.get(c) ?? []), r.label.toUpperCase()]);
+    for (const c of related) {
+      const list = ccis.get(c);
+      if (list) list.push(r.label.toUpperCase());
+      else ccis.set(c, [r.label.toUpperCase()]);
+    }
   }
-  return { controls, ccis, documentId: doc.id, version: doc.version_label };
+  const value = { controls, ccis, documentId: doc.id, version: doc.version_label };
+  cciMaps.set(db, { key, value });
+  return value;
 }
 
 /** The controls a STIG rule maps to, through its CCIs, sorted the way the catalog sorts. */
@@ -214,13 +229,57 @@ export interface RuleHit {
   rules: NormalizedRequirement[];
 }
 
+/**
+ * A STIG version's rules by CCI: each CCI to the positions, in reading order, of the rules that
+ * cite it. A stored version's requirements do not change, so it is built once a document and
+ * kept; the key carries the parse time and the rule count as well as the id, so a deleted version
+ * whose id is reused cannot answer for its successor. Only refs are kept, never the rule text.
+ */
+interface CciIndex {
+  key: string;
+  refs: string[];
+  byCci: Map<string, number[]>;
+}
+const cciIndexes = new WeakMap<DatabaseSync, Map<number, CciIndex>>();
+
+function cciIndexOf(db: DatabaseSync, doc: DocumentRow): CciIndex {
+  const key = `${doc.id}|${doc.parsed_at}|${doc.requirement_count}`;
+  let perDb = cciIndexes.get(db);
+  if (!perDb) cciIndexes.set(db, (perDb = new Map()));
+  const cached = perDb.get(doc.id);
+  if (cached?.key === key) return cached;
+  // The order loadRequirements reads in, so a hit lists its rules as it always has.
+  const rows = db.prepare("SELECT ref, related_json FROM requirements WHERE document_id = ? ORDER BY sort_key, ref").all(doc.id) as { ref: string; related_json: string | null }[];
+  const refs: string[] = [];
+  const byCci = new Map<string, number[]>();
+  for (const r of rows) {
+    const at = refs.push(r.ref) - 1;
+    for (const cci of new Set(parseJson<string[]>(r.related_json, []).map((c) => String(c).toUpperCase()))) {
+      const list = byCci.get(cci);
+      if (list) list.push(at);
+      else byCci.set(cci, [at]);
+    }
+  }
+  const index = { key, refs, byCci };
+  perDb.set(doc.id, index);
+  return index;
+}
+
 /** The rules, across the followed STIGs' latest versions, whose CCIs index a control: the Register's reverse view. */
 export function stigRulesForControl(db: DatabaseSync, controlRef: string, map: CciMap): RuleHit[] {
   const wanted = new Set(map.ccis.get(controlRef.toLowerCase()) ?? []);
   if (wanted.size === 0) return [];
   const hits: RuleHit[] = [];
   for (const stig of followedStigs(db)) {
-    const rules = loadRequirements(db, stig.latest.id).filter((r) => r.related.some((cci) => wanted.has(cci.toUpperCase())));
+    const index = cciIndexOf(db, stig.latest);
+    const positions = new Set<number>();
+    for (const cci of wanted) for (const at of index.byCci.get(cci.toUpperCase()) ?? []) positions.add(at);
+    if (positions.size === 0) continue;
+    // Only the rules that matched are read, by ref, and put back in reading order.
+    const rules = [...positions]
+      .sort((a, b) => a - b)
+      .map((at) => requirementIn(db, stig.latest.id, index.refs[at]!))
+      .filter((r): r is NormalizedRequirement => r !== null);
     if (rules.length) hits.push({ stig, rules });
   }
   return hits;
@@ -244,7 +303,6 @@ export interface KevEntry {
   product: string | null;
 }
 
-/** CISA's KEV entries whose vendor and product belong to a platform, newest first. */
 /**
  * An Apple entry filed under macOS that also affects iOS or iPadOS: "Multiple Products" (54 of the
  * catalogue's Apple entries) and any product naming iOS. kevPlatform gives one platform; the
@@ -254,6 +312,7 @@ function appleAlsoMobile(vendor: string | undefined, product: string | undefined
   return (vendor ?? "").trim().toLowerCase() === "apple" && /multiple products|\bios\b|ipados/i.test(product ?? "");
 }
 
+/** CISA's KEV entries whose vendor and product belong to a platform, newest first. */
 export function kevForPlatform(db: DatabaseSync, platform: PlatformId, limit = 12): { entries: KevEntry[]; total: number } {
   const rows = db
     .prepare("SELECT id, external_id, title, url, published_at, signals_json FROM items WHERE kind = 'kev' ORDER BY published_at DESC, id DESC")

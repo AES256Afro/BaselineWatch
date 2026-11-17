@@ -1,5 +1,6 @@
 import { gunzipSync } from "node:zlib";
 import { applyEpss, type EpssScore } from "../vulns.ts";
+import { counted } from "../words.ts";
 import type { Adapter, PullOutcome } from "./types.ts";
 
 /** Parses FIRST's daily CSV: a `#model_version:...,score_date:...` line, a header, then cve,epss,percentile. */
@@ -45,7 +46,7 @@ export const epssAdapter: Adapter = {
       items: parsed.scores.length,
       inserted: 0,
       updated: result.updated,
-      detail: `${parsed.scores.length} scores for ${scoreDate} (${parsed.modelVersion ?? "model unknown"}); ${result.updated} CVEs updated, ${result.changes} notable jumps`,
+      detail: `${parsed.scores.length} scores for ${scoreDate} (${parsed.modelVersion ?? "model unknown"}); ${counted(result.updated, "CVE")} updated, ${counted(result.changes, "notable jump")}`,
     };
   },
 };

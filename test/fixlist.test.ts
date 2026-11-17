@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fixList, fixListCandidates, fixListHeadline, fixListTotal } from "../src/fixlist.ts";
 import { upsertMsrcVulns } from "../src/msrc.ts";
+import { distinctFixes } from "../src/pages/patch-tuesday.ts";
 import type { VulnRow } from "../src/vulns.ts";
 import { formPost, startTestApp, type TestApp } from "./helpers.ts";
 
@@ -26,6 +27,8 @@ function vuln(cveId: string, over: Partial<VulnRow> = {}): VulnRow {
     published_at: since,
     last_modified_at: since,
     vuln_status: null,
+    kev_vendor: null,
+    kev_product: null,
     description: null,
     cvss_version: null,
     cvss_score: 7.8,
@@ -110,6 +113,92 @@ describe("the fix list", () => {
     expect(fixListHeadline(list)).toBe("3 of this window's 3 CVEs have an update you can install");
   });
 
+  it("keeps Microsoft's KB-less fixes apart by product and build, and gives a KB's build per Windows version", () => {
+    // On real data one "Install Release Notes — Outlook.com · fixed build 20260925.100" row held
+    // ten CVEs across Outlook, Azure Linux, PowerPoint, Windows Shell and QUIC, and "Mark done"
+    // marked all ten; KB5127648 named only 24H2 and 24H2's build.
+    const msrc = (cveId: string, fixes: { kb: string | null; url: string | null; label: string | null; products: string[]; fixedBuild: string | null; restart: boolean | null }[]) => ({
+      cveId,
+      releaseId: "2026-Oct",
+      title: cveId,
+      family: null,
+      vendor: "Microsoft",
+      severity: "Important",
+      exploited: false,
+      disclosed: false,
+      exploitability: null,
+      cvssScore: 7.8,
+      cvssVector: null,
+      description: null,
+      fixes,
+      releasedAt: since,
+      revisedAt: null,
+    });
+    const kb = (products: string[], fixedBuild: string) => ({ kb: "5127648", url: null, label: null, products, fixedBuild, restart: true });
+    const notes = (products: string[], fixedBuild: string | null, url: string | null = null) => ({ kb: null, url, label: "Release Notes", products, fixedBuild, restart: false });
+    const office = "https://docs.microsoft.com/en-us/officeupdates/microsoft365-apps-security-updates";
+    upsertMsrcVulns(
+      db,
+      [
+        msrc("CVE-2026-6101", [kb(["Windows 11 Version 24H2"], "10.0.26100.9711"), kb(["Windows 11 Version 25H2"], "10.0.26200.9711"), kb(["Windows 11 Version 26H2"], "10.0.26300.9711")]),
+        msrc("CVE-2026-6102", [notes(["Outlook.com"], "20260925.100")]),
+        msrc("CVE-2026-6103", [notes(["azl3 httpd 2.4.68-1 on Azure Linux 3.0"], null)]),
+        msrc("CVE-2026-6104", [notes(["Microsoft Office LTSC 2021"], "16.0.14334.20974", office), notes(["Microsoft Office LTSC 2024"], "16.0.17932.21056", office)]),
+        // The same products in another order are the same update.
+        msrc("CVE-2026-6105", [notes(["Microsoft Office LTSC 2024", "Microsoft Office LTSC 2021"], "16.0.99", office)]),
+        msrc("CVE-2026-6106", [notes(["Microsoft Office LTSC 2021", "Microsoft Office LTSC 2024"], "16.0.99", office)]),
+      ],
+      since,
+    );
+    const list = fixList(db, ["CVE-2026-6101", "CVE-2026-6102", "CVE-2026-6103", "CVE-2026-6104", "CVE-2026-6105", "CVE-2026-6106"].map((c) => vuln(c)), since);
+    const row = (where: string) => list.install.find((r) => r.where === where);
+
+    const windows = list.install.find((r) => r.what === "KB5127648")!;
+    expect(list.install.filter((r) => r.what === "KB5127648")).toHaveLength(1);
+    expect(windows.where).toBe("Windows 11 Version 24H2, Windows 11 Version 25H2 and 1 more");
+    expect(windows.detail).toBe(
+      "Microsoft Security Update Guide · fixed builds 10.0.26100.9711 on Windows 11 Version 24H2; 10.0.26200.9711 on Windows 11 Version 25H2; 10.0.26300.9711 on Windows 11 Version 26H2 · needs a restart",
+    );
+
+    expect(row("Outlook.com")!.cves.map((c) => c.cveId)).toEqual(["CVE-2026-6102"]);
+    expect(row("Outlook.com")!.detail).toBe("Microsoft Security Update Guide · fixed build 20260925.100");
+    expect(row("azl3 httpd 2.4.68-1 on Azure Linux 3.0")!.cves.map((c) => c.cveId)).toEqual(["CVE-2026-6103"]);
+    expect(row("Microsoft Office LTSC 2021")!.detail).toContain("fixed build 16.0.14334.20974");
+    expect(row("Microsoft Office LTSC 2024")!.detail).toContain("fixed build 16.0.17932.21056");
+    const both = list.install.filter((r) => r.detail.includes("16.0.99"));
+    expect(both).toHaveLength(1);
+    expect(both[0]!.cves.map((c) => c.cveId)).toEqual(["CVE-2026-6105", "CVE-2026-6106"]);
+    expect(list.install.filter((r) => r.what === "Release Notes")).toHaveLength(5);
+  });
+
+  it("names a product once whatever case Microsoft writes it in", () => {
+    const fix = (products: string[]) => ({ kb: "5130001", url: null, label: null, products, fixedBuild: "10.0.28000.100", restart: false });
+    upsertMsrcVulns(
+      db,
+      ["CVE-2026-6201", "CVE-2026-6202"].map((cveId, i) => ({
+        cveId, releaseId: "2026-Oct", title: cveId, family: null, vendor: "Microsoft", severity: "Important", exploited: false, disclosed: false, exploitability: null, cvssScore: 7.8, cvssVector: null, description: null,
+        fixes: [fix([i === 0 ? "Windows 11 Version 26H1" : "Windows 11 version 26H1"])], releasedAt: since, revisedAt: null,
+      })),
+      since,
+    );
+    const list = fixList(db, [vuln("CVE-2026-6201"), vuln("CVE-2026-6202")], since);
+    const row = list.install.find((r) => r.what === "KB5130001")!;
+    expect(row.where).toBe("Windows 11 Version 26H1");
+    expect(row.detail).toBe("Microsoft Security Update Guide · fixed build 10.0.28000.100");
+  });
+
+  it("keeps two different release-notes pages as two links on Patch Tuesday", () => {
+    const notes = (url: string, products: string[], fixedBuild: string) => ({ kb: null, url, label: "Release Notes", products, fixedBuild, restart: false });
+    const office = "https://docs.microsoft.com/en-us/officeupdates/microsoft365-apps-security-updates";
+    const mac = "https://learn.microsoft.com/en-us/officeupdates/release-notes-office-for-mac";
+    const fixes = distinctFixes([
+      notes(office, ["Microsoft Office LTSC 2021"], "16.0.1"),
+      notes(office.replace("docs.", "learn."), ["Microsoft Office LTSC 2024"], "16.0.2"),
+      notes(mac, ["Microsoft Office for Mac"], "16.114"),
+    ]);
+    expect(fixes.map((f) => f.url)).toEqual([office, mac]);
+  });
+
   it("takes a fixed package version as the remedy, one row per version", () => {
     const packages = JSON.stringify([{ ecosystem: "Ubuntu", name: "openssl", introduced: [], fixed: ["3.0.18-1ubuntu1.2"], lastAffected: [], advisory: "USN-7412-1" }]);
     const list = fixList(db, [vuln("CVE-2026-9001", { packages_json: packages }), vuln("CVE-2026-9002", { packages_json: packages })], since);
@@ -126,6 +215,15 @@ describe("the fix list", () => {
     expect(list.install[0]!.what).toBe("USN-7412-1: OpenSSL vulnerabilities");
     expect(list.install[0]!.url).toBe("https://ubuntu/usn");
     expect(list.install[0]!.cves).toHaveLength(2);
+  });
+
+  it("does not offer an advance notification as an update to install", () => {
+    db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at, signals_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
+      "ubuntu-usn", "article", "adv-1", "Advance Notification for Security Updates for Example Reader", "https://example.test/advance", since, since, JSON.stringify({ cves: ["CVE-2026-7801"] }),
+    );
+    const list = fixList(db, [vuln("CVE-2026-7801")], since);
+    expect(list.install).toHaveLength(0);
+    expect(list.fixed).toBe(0);
   });
 
   it("does not call a commit an update: a Patch reference is grouped by host and never counted as fixed", () => {

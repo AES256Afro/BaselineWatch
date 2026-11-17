@@ -61,6 +61,32 @@ export interface MsrcVulnRow {
 export const releaseNoteUrl = (releaseId: string): string => `https://msrc.microsoft.com/update-guide/releaseNote/${releaseId}`;
 export const kbUrl = (kb: string): string => `https://support.microsoft.com/help/${kb}`;
 
+/**
+ * What two fix entries must share to be the same update. A KB is one update however many products
+ * it ships to, each at its own build (KB5127648 is 10.0.26100.x on 24H2 and 10.0.26200.x on 25H2).
+ * A fix without a KB is named only "Release Notes", so it is the same update only for the same
+ * products at the same build from the same address; keyed by the label alone, Outlook.com's
+ * release notes stood for Azure Linux's, PowerPoint's and QUIC's.
+ */
+export function fixKey(fix: MsrcFix): string {
+  return fix.kb ? `KB${fix.kb}` : JSON.stringify([fix.label ?? "", fix.url ?? "", fix.fixedBuild ?? "", [...fix.products].sort()]);
+}
+
+/**
+ * Adds a product to a list unless it is there under another case ("Windows 11 Version 26H1" and
+ * "Windows 11 version 26H1" are one product), and returns the name the list holds it under.
+ */
+export function addProduct(list: string[], product: string): string {
+  const lower = product.toLowerCase();
+  const known = list.find((p) => p.toLowerCase() === lower);
+  if (known !== undefined) return known;
+  list.push(product);
+  return product;
+}
+
+/** The name a fix goes by on a page: its KB, else Microsoft's label for it. */
+export const fixName = (fix: MsrcFix): string => (fix.kb ? `KB${fix.kb}` : (fix.label ?? fix.url ?? "update"));
+
 /** Stores a release's rows; a CVE re-released in a later month takes the later month's words. */
 export function upsertMsrcVulns(db: DatabaseSync, drafts: MsrcVulnDraft[], seenAt: string): { inserted: number; updated: number } {
   const count = (): number => (db.prepare("SELECT COUNT(*) AS n FROM msrc_vulns").get() as { n: number }).n;

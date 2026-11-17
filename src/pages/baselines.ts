@@ -30,7 +30,7 @@ export function renderBaselinesIndex(options: { db: DatabaseSync } & Who): strin
     const stigs = `/stigs/${stigPlatform(p.id)}`;
     return html`<li class="std">
       <div class="std-head"><b><a href="/baselines/${p.id}">${p.label}</a></b>${s.stigs.length ? html`<a class="state ok" href="${stigs}">${s.stigs.length} STIG${s.stigs.length === 1 ? "" : "s"} loaded</a>` : html`<a class="state wait" href="${stigs}">No STIG loaded</a>`}</div>
-      <div class="std-meta"><span>${s.stigs.length ? s.stigs.map((st, i) => html`${i ? ", " : ""}<a href="${stigs}?stig=${encodeURIComponent(st.key)}">${st.product}</a>`) : html`<a href="/watchlist">follow a STIG first</a>`}</span>${p.id === "windows" ? html`<a class="n" href="/standards/microsoft-sct">${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</a>` : ""}${usesMscp(p.id) ? html`<a class="n" href="/standards/nist-mscp">${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</a>` : ""}<a class="n" href="/standards/nist-sp-800-53b">${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</a></div>
+      <div class="std-meta"><span>${s.stigs.length ? s.stigs.map((st, i) => html`${i ? ", " : ""}<a href="${stigs}?stig=${encodeURIComponent(st.key)}">${st.product}</a>`) : html`<a href="${owner ? "/watchlist" : "/guide#watchlist"}">follow a STIG first</a>`}</span>${p.id === "windows" ? html`<a class="n" href="/standards/microsoft-sct">${s.scts} Microsoft baseline${s.scts === 1 ? "" : "s"}</a>` : ""}${usesMscp(p.id) ? html`<a class="n" href="/standards/nist-mscp">${s.mscps} mSCP branch${s.mscps === 1 ? "" : "es"}</a>` : ""}<a class="n" href="/standards/nist-sp-800-53b">${s.high ? "SP 800-53 High loaded" : "SP 800-53 High not loaded"}</a></div>
       <p class="std-note">${p.blurb}</p>
     </li>`;
   });
@@ -63,10 +63,16 @@ function choiceValue(c: DocChoice): string {
   return `${c.key}@${c.documentId}`;
 }
 
+/** A choice's label with its publication date once: a label that already ends in the date ("… 2026-10-08") is not given it again. */
+export function choiceLabel(c: Pick<DocChoice, "label" | "publishedAt">): string {
+  const day = c.publishedAt?.slice(0, 10);
+  return day && !c.label.includes(day) ? `${c.label} (${day})` : c.label;
+}
+
 function select(name: string, label: string, choices: DocChoice[], chosen: DocChoice | null, none: string): Html {
   if (choices.length === 0) return html`<span class="small">${none}</span>`;
   return html`<label for="${name}">${label}</label>
-    <select id="${name}" name="${name}">${choices.map((c) => html`<option value="${choiceValue(c)}" ${chosen && c.documentId === chosen.documentId ? "selected" : ""}>${c.label}${c.publishedAt ? ` (${c.publishedAt.slice(0, 10)})` : ""}</option>`)}</select>`;
+    <select id="${name}" name="${name}">${choices.map((c) => html`<option value="${choiceValue(c)}" ${chosen && c.documentId === chosen.documentId ? "selected" : ""}>${choiceLabel(c)}</option>`)}</select>`;
 }
 
 function severityChip(item: ProfileItem): Html {

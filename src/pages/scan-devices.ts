@@ -68,10 +68,11 @@ function findingRow(n: number, f: DeviceFinding): Html {
 </article>`;
 }
 
-function scriptBox(scripts: readonly ScanScript[]): Html {
+function scriptBox(scripts: readonly ScanScript[], owner = true): Html {
   const mine = [...scriptsFor(scripts, "windows"), ...scriptsFor(scripts, "macos")].filter((s) => s.file.startsWith("bw-inventory"));
   return html`<div class="box">
     <h2>The inventory script</h2>
+    ${owner ? "" : html`<p class="small"><b>Pasting its report here needs the owner's sign-in.</b> Anyone may download and read the script.</p>`}
     <p class="small">Read it before you run it: it prints version numbers and package names, sends nothing anywhere, and changes nothing. Verify the sum against <a href="/scan/scripts/${sumsFile}">${sumsFile}</a>.</p>
     ${mine.map(
       (s) => html`<dl class="kv">
@@ -108,7 +109,7 @@ export function renderScanDevices(options: ScanDevicesOptions): string {
         <button type="submit" class="primary">Read it</button>
         <p class="small">The reading's verdicts and CVE ids are kept under the device's name, never the report itself; a name used before continues that device's history.</p>
       </form>`
-    : html`<p class="small"><a href="/login">Sign in</a> to paste a report; a device's software list is the owner's to show.</p>`;
+    : html`<p class="notice">Pasting a report needs the owner's sign-in: a device's software list is the owner's to show. <a href="/login">Owner sign-in</a>.</p>`;
   const content = html`<section class="scan">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>A device</b></p>
   <h1>Is this device affected? <span class="arrow">what it runs, against what the sources know</span></h1>
@@ -124,7 +125,7 @@ export function renderScanDevices(options: ScanDevicesOptions): string {
     </div>
     <aside class="side">
       ${owner ? devicesBox(devices, now) : ""}
-      ${scriptBox(scripts)}
+      ${scriptBox(scripts, owner)}
       <div class="box">
         <h2>What it can and cannot say</h2>
         <ul class="small plan">

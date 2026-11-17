@@ -25,7 +25,10 @@ describe("the digest", () => {
     recordReading(db, "study pc", base, [{ id: "windows", title: "Windows updates", state: "ok", text: "current", refs: [], quoted: [] }], at);
     setSetting(db, exposureKeys.last, JSON.stringify({ at, publicIp: "203.0.113.9", internet: null, router: null, firmware: null, findings: [{ id: "internet", title: "What the internet sees", state: "warn", text: "2 open ports on record.", refs: [], quoted: [] }, { id: "public-address", title: "Public address", state: "ok", text: "ok", refs: [], quoted: [] }] }), at);
     db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES ('cybercard.net', 1, 'R13', 'login.cybercard.net', '2026-10-21T08:00:00', '2027-01-19T08:00:00', ?)").run(at);
-    db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES ('cybercard.net', 2, 'R13', 'old.cybercard.net', '2026-09-01T08:00:00', '2026-12-01T08:00:00', '2026-09-01T09:00:00.000Z')").run();
+    // A domain's first read stores every certificate crt.sh holds, today, and makes News items only
+    // for the last week: the July one is a row seen in the window but not news, and is not counted.
+    db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES ('cybercard.net', 2, 'R13', 'old.cybercard.net', '2026-07-01T08:00:00', '2026-10-01T08:00:00', ?)").run(at);
+    db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, summary, published_at, fetched_at, signals_json) VALUES ('crtsh', 'article', 'cybercard.net:1', 'New certificate for login.cybercard.net (R13)', 'https://crt.sh/?id=1', 'x', '2026-10-21T08:00:00.000Z', ?, ?)").run(at, JSON.stringify({ domain: "cybercard.net", names: ["login.cybercard.net"], issuer: "R13" }));
     const { text, publicText } = buildDigest(db, { from, to: at, baseUrl: "https://bw.example", period: "daily" });
     expect(text).toContain("Devices: 1 with something open https://bw.example/scan/devices");
     expect(text).toContain("- laptop (exposed): Windows updates; read 2026-10-21");

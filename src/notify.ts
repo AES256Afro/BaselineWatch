@@ -140,3 +140,27 @@ export interface AlertRow {
 export function recentAlerts(db: DatabaseSync, limit = 20): AlertRow[] {
   return db.prepare("SELECT * FROM alerts ORDER BY sent_at DESC, id DESC LIMIT ?").all(limit) as unknown as AlertRow[];
 }
+
+/** An alert's delivery as a reader says it: "unconfigured" meant no notifier was set, not a fault. */
+export function alertStatusWord(status: string): string {
+  return status === "unconfigured" ? "not sent: no notifier" : status;
+}
+
+/**
+ * The alerts still worth showing as standing: a source's failure notice is dropped once that source
+ * has answered again since it was sent. The notice names the source by its Sources anchor
+ * (#src-<id>); a notice whose source cannot be read from it is kept. The alert log on /digest keeps
+ * every row; this only decides what Today calls current.
+ */
+export function standingAlerts(db: DatabaseSync, alerts: AlertRow[]): AlertRow[] {
+  const read = db.prepare("SELECT last_status, last_fetch_at, failing_since FROM sources WHERE id = ?");
+  return alerts.filter((a) => {
+    if (a.kind !== "source" || !a.url) return true;
+    const id = /#src-([a-z0-9][a-z0-9._-]*)$/i.exec(a.url)?.[1];
+    if (!id) return true;
+    const s = read.get(id) as { last_status: string | null; last_fetch_at: string | null; failing_since: string | null } | undefined;
+    if (!s) return true;
+    const answering = s.last_status === "ok" || s.last_status === "unchanged";
+    return !(answering && s.failing_since === null && s.last_fetch_at !== null && s.last_fetch_at > a.sent_at);
+  });
+}

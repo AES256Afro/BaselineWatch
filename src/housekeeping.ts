@@ -35,6 +35,11 @@ export interface Retention {
   deviceReadingDays: number;
   /** The alert log says what was sent, not what is true; it is trimmed. */
   alertDays: number;
+  /**
+   * An article's cached image is let go once the article is this old, unless the owner starred or
+   * triaged it: the card falls back to its text, and the sweep frees the file. The item stays.
+   */
+  imageDays: number;
   /** A blob nothing references is left alone until it is this old: a fetch may be mid-flight. */
   blobGraceHours: number;
   /** Rewrite the file when the free list is at least this share of it, and at least this many pages. */
@@ -54,6 +59,7 @@ export const defaultRetention: Retention = {
   networkScanDays: 180,
   deviceReadingDays: 365,
   alertDays: 180,
+  imageDays: 90,
   blobGraceHours: 24,
   vacuumFreeShare: 0.1,
   vacuumMinFreePages: 2_000,
@@ -69,6 +75,11 @@ export interface HousekeepingResult {
   /** Absent in results recorded before 0.48.0; read it as 0. */
   deviceReadingsDeleted?: number;
   alertsDeleted: number;
+  /** Items whose image was let go, and the bytes the sweep freed with them. Absent before 0.56.0; read as 0. */
+  imagesReleased?: number;
+  imageBytesFreed?: number;
+  /** Bytes of the images still held, measured as the sweep walked the store. Absent before 0.56.0. */
+  imageBytesHeld?: number;
   vacuumed: boolean;
   bytesBefore: number;
   bytesAfter: number;
@@ -205,6 +216,24 @@ export function sweepRuns(
   return { networkScans: Number(scans.changes), deviceReadings: Number(readings.changes), alerts: Number(alerts.changes) };
 }
 
+/**
+ * Lets go of the images of articles older than `imageDays` that the owner has not starred or
+ * triaged: the item keeps its text and its place, only its picture goes. Returns the hashes no
+ * item points at any more, which the blob sweep then frees.
+ */
+export function sweepImages(db: DatabaseSync, now: Date, retention: Retention = defaultRetention): { released: number; hashes: Set<string> } {
+  const before = new Date(now.getTime() - retention.imageDays * 86_400_000).toISOString();
+  const where = `image_blob IS NOT NULL AND starred = 0 AND COALESCE(published_at, fetched_at) < ?
+    AND NOT EXISTS (SELECT 1 FROM triage t WHERE t.subject_kind = 'item' AND t.subject_id = items.id)`;
+  const candidates = new Set((db.prepare(`SELECT DISTINCT image_blob FROM items WHERE ${where}`).all(before) as { image_blob: string }[]).map((r) => r.image_blob));
+  if (candidates.size === 0) return { released: 0, hashes: new Set() };
+  const released = Number(db.prepare(`UPDATE items SET image_blob = NULL, image_type = NULL, image_origin = NULL WHERE ${where}`).run(before).changes);
+  // An image another (newer, starred or triaged) item still carries stays.
+  const still = db.prepare("SELECT 1 FROM items WHERE image_blob = ? LIMIT 1");
+  const hashes = new Set([...candidates].filter((h) => !still.get(h)));
+  return { released, hashes };
+}
+
 /** Every blob hash something still points at: a snapshot, an article image, or the owner's branding. */
 export function referencedBlobs(db: DatabaseSync): Set<string> {
   const refs = new Set<string>();
@@ -227,9 +256,12 @@ export function sweepBlobs(
   dataDir: string,
   now: Date,
   retention: Retention = defaultRetention,
-): { deleted: number; bytesFreed: number } {
+  images: { released?: ReadonlySet<string> } = {},
+): { deleted: number; bytesFreed: number; imageBytesFreed: number; imageBytesHeld: number } {
   const root = path.join(dataDir, "blobs");
-  if (!existsSync(root)) return { deleted: 0, bytesFreed: 0 };
+  if (!existsSync(root)) return { deleted: 0, bytesFreed: 0, imageBytesFreed: 0, imageBytesHeld: 0 };
+  // The images still served, so the walk the sweep makes anyway can weigh them for /metrics.
+  const held = new Set((db.prepare("SELECT DISTINCT image_blob FROM items WHERE image_blob IS NOT NULL").all() as { image_blob: string }[]).map((r) => r.image_blob));
   const refs = referencedBlobs(db);
   // A bug that lost the references would empty the store; a populated index with no references is not a state this can be in.
   if (refs.size === 0 && (db.prepare("SELECT COUNT(*) AS n FROM snapshots").get() as { n: number }).n > 0) {
@@ -238,21 +270,28 @@ export function sweepBlobs(
   const cutoff = now.getTime() - retention.blobGraceHours * 3_600_000;
   let deleted = 0;
   let bytesFreed = 0;
+  let imageBytesFreed = 0;
+  let imageBytesHeld = 0;
   for (const shard of readdirSync(root, { withFileTypes: true })) {
     if (!shard.isDirectory() || !/^[0-9a-f]{2}$/.test(shard.name)) continue;
     const shardPath = path.join(root, shard.name);
     for (const entry of readdirSync(shardPath, { withFileTypes: true })) {
       if (!entry.isFile() || !/^[0-9a-f]{64}$/.test(entry.name)) continue;
-      if (refs.has(entry.name)) continue;
       const file = path.join(shardPath, entry.name);
+      if (refs.has(entry.name)) {
+        if (held.has(entry.name)) imageBytesHeld += statSync(file).size;
+        continue;
+      }
       const stat = statSync(file);
-      if (stat.mtimeMs > cutoff) continue;
+      // A released image is old by definition; the grace window is for bytes a fetch has just written.
+      if (stat.mtimeMs > cutoff && !images.released?.has(entry.name)) continue;
       rmSync(file);
       deleted += 1;
       bytesFreed += stat.size;
+      if (images.released?.has(entry.name)) imageBytesFreed += stat.size;
     }
   }
-  return { deleted, bytesFreed };
+  return { deleted, bytesFreed, imageBytesFreed, imageBytesHeld };
 }
 
 /** Statistics and the FTS indexes, so the planner and the search stay fast as the tables grow. */
@@ -295,7 +334,8 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   const bytesBefore = databaseBytes(db);
   const snapshotsDeleted = sweepSnapshots(db, now, retention);
   const runs = sweepRuns(db, now, retention);
-  const blobs = sweepBlobs(db, dataDir, now, retention);
+  const images = sweepImages(db, now, retention);
+  const blobs = sweepBlobs(db, dataDir, now, retention, { released: images.hashes });
   optimize(db);
   // A VACUUM can fail (a full disk, a reader holding the file); the sweep before it did its work,
   // so the pass is recorded either way. Thrown, it would skip the last-run mark below and the
@@ -314,6 +354,9 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
     networkScansDeleted: runs.networkScans,
     deviceReadingsDeleted: runs.deviceReadings,
     alertsDeleted: runs.alerts,
+    imagesReleased: images.released,
+    imageBytesFreed: blobs.imageBytesFreed,
+    imageBytesHeld: blobs.imageBytesHeld,
     vacuumed,
     bytesBefore,
     bytesAfter: databaseBytes(db),
@@ -323,7 +366,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   setSetting(db, lastResultKey, JSON.stringify(result), result.ranAt);
   log(
     `[housekeeping] ${counted(result.snapshotsDeleted, "snapshot")}, ${counted(result.blobsDeleted, "blob")} (${formatBytes(result.blobBytesFreed)}), ` +
-      `${counted(result.networkScansDeleted, "scan")}, ${counted(result.deviceReadingsDeleted ?? 0, "reading")}, ${counted(result.alertsDeleted, "alert")}; database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
+      `${counted(result.imagesReleased ?? 0, "image")} let go (${formatBytes(result.imageBytesFreed ?? 0)}), ${counted(result.networkScansDeleted, "scan")}, ${counted(result.deviceReadingsDeleted ?? 0, "reading")}, ${counted(result.alertsDeleted, "alert")}; database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
       `${result.vacuumed ? " (rewritten)" : ""} in ${result.durationMs} ms`,
   );
   return result;

@@ -181,12 +181,37 @@ describe("vulnerability store", () => {
     const sqlSaysNotable = bySql(notableSql);
     for (const row of all) expect(sqlSaysNotable.has(row.cve_id), `${row.cve_id}`).toBe(isNotable(row, false, seen));
 
-    // And with the window standing in for 'this one is new': still row for row.
-    const sqlSaysInWindow = bySql(notableInWindowSql, windowStart);
-    for (const row of all) {
+    // Two rows the window's 'new critical' arm decides: one published before the window that NVD
+    // scored critical inside it, nine days after publication (fresh at that sighting), and one it
+    // scored critical inside the window two years after publication (not news).
+    const addScoredLater = (id: string, publishedAt: string, scoredAt: string, before: string | null = null) => {
+      db.prepare("INSERT INTO vulns (cve_id, last_modified_at, published_at, first_seen_at, last_seen_at, cvss_score) VALUES (?, ?, ?, ?, ?, 9.8)").run(id, scoredAt, publishedAt, publishedAt, scoredAt);
+      db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, field, before_text, after_text) VALUES (?, ?, 'cvss', ?, '9.8')").run(id, scoredAt, before);
+    };
+    addScoredLater("CVE-2026-900001", "2026-09-26T00:00:00.000Z", "2026-10-05T00:00:00.000Z");
+    addScoredLater("CVE-2024-900002", "2024-09-26T00:00:00.000Z", "2026-10-05T00:00:00.000Z");
+    // A third the window must not count: already critical, rescored from 9.2 to 9.8 (isNotable's
+    // `fresh` is a rise from below 9, never a rescore of a critical).
+    addScoredLater("CVE-2026-900003", "2026-09-26T00:00:00.000Z", "2026-10-05T00:00:00.000Z", "9.2 (v4.0, CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N)");
+    // And one that rose into critical from a high: counted.
+    addScoredLater("CVE-2026-900004", "2026-09-26T00:00:00.000Z", "2026-10-05T00:00:00.000Z", "7.5 (v3.1, CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)");
+    const withScored = db.prepare("SELECT * FROM vulns").all() as unknown as Parameters<typeof isNotable>[0][];
+
+    // And with the window standing in for 'this one is new', as notableInWindowSql documents it:
+    // fresh when published in the window, or at a CVSS change in the window (the sighting that
+    // scored it), judged as of that sighting. Row for row.
+    const sqlSaysInWindow = bySql(notableInWindowSql, windowStart, windowStart);
+    const scoredInWindow = (db.prepare("SELECT cve_id, observed_at, before_text FROM vuln_changes WHERE field = 'cvss' AND observed_at >= ?").all(windowStart) as { cve_id: string; observed_at: string; before_text: string | null }[])
+      .filter((c) => c.before_text === null || (Number.parseFloat(c.before_text) || 0) < 9);
+    for (const row of withScored) {
       const publishedInWindow = row.published_at !== null && row.published_at >= windowStart;
-      expect(sqlSaysInWindow.has(row.cve_id), `${row.cve_id}`).toBe(isNotable(row, publishedInWindow, seen));
+      const expected = isNotable(row, publishedInWindow, seen) || scoredInWindow.some((c) => c.cve_id === row.cve_id && isNotable(row, true, c.observed_at));
+      expect(sqlSaysInWindow.has(row.cve_id), `${row.cve_id}`).toBe(expected);
     }
+    expect(sqlSaysInWindow.has("CVE-2026-900001")).toBe(true);
+    expect(sqlSaysInWindow.has("CVE-2024-900002")).toBe(false);
+    expect(sqlSaysInWindow.has("CVE-2026-900003")).toBe(false);
+    expect(sqlSaysInWindow.has("CVE-2026-900004")).toBe(true);
   });
 
   it("counts a CVE as moved only when it was published or really changed, not when it arrived", () => {
@@ -249,10 +274,13 @@ describe("NVD and EPSS pulls", () => {
     const result = await ingestSource(db, dataDir, source, { http: fakeHttp({ [source.url]: { bytes: new Uint8Array(gz) } }), now: () => at, log: () => {} });
     expect(result.status).toBe("ok");
     expect(result.detail).toContain("3 CVEs updated");
-    expect(result.detail).toContain("1 notable jumps");
+    // CVE-2021-44228's jump on a KEV row. CVE-2015-0204's first score is over 50% too, but a first
+    // score is a crossing only for a CVE published in the last thirty days (2015 is not), so a new
+    // instance's first EPSS file does not put every old CVE on the News.
+    expect(result.detail).toContain("1 notable jump");
     expect(getVuln(db, "CVE-2015-0204")?.epss).toBe(0.98685);
     expect(getVuln(db, "CVE-2021-44228")?.epss_date).toBe("2026-10-14");
-    expect(vulnChanges(db, "CVE-2021-44228").find((c) => c.field === "epss")).toMatchObject({ before_text: "0.50", after_text: "1.00" });
+    expect(vulnChanges(db, "CVE-2021-44228").find((c) => c.field === "epss")).toMatchObject({ before_text: "50%", after_text: "100%" });
     expect(epssAdapter.id).toBe("epss");
     expect(nvdAdapter.id).toBe("nvd");
   });
@@ -287,7 +315,7 @@ describe("vulnerability pages", () => {
     expect(list).toContain('<a href="/vulnerabilities"><small>CVEs known</small>');
     expect(list).toMatch(/<a href="\/vulnerabilities\?new=1"><small>New, 24 h<\/small><b>\d+<\/b><\/a>/);
     expect(list).toContain('<a href="/vulnerabilities?changed=1"><small>Changed, 24 h</small>');
-    expect(list).toContain('<a href="/vulnerabilities?kev=1"><small>In KEV</small>');
+    expect(list).toContain('<a href="/vulnerabilities?kev=1"><small>Known exploited (KEV)</small>');
     // The watchlist is the owner's (the audit of 28 October): a visitor's strip has no tile for it.
     expect(list).not.toContain("Match watchlist");
     // The EPSS date is provenance, not a metric: it sits on the line under the table that
@@ -307,11 +335,11 @@ describe("vulnerability pages", () => {
     const detail = await fetch(`${app.base}/vulnerabilities/cve-2021-44228`);
     expect(detail.status).toBe(200);
     const detailText = await detail.text();
-    expect(detailText).toContain('<h2><a href="#history">Change history</a> <span class="count"><a href="#history">');
+    expect(detailText).toContain('<h2><a href="#history">Change history</a> <span class="count">(');
     expect(detailText).toContain("First seen");
     expect(detailText).toMatch(/<dt>KEV<\/dt><dd><a href="\/vulnerabilities\?kev=1">added /);
     expect(detailText).toContain('<a href="/vulnerabilities?severity=critical">10.0 CRITICAL</a>');
-    expect(detailText).toContain("SSVC exploitation: active");
+    expect(detailText).toContain("CISA SSVC: exploited");
     expect(detailText).toContain("cpe:2.3:");
     expect((await fetch(`${app.base}/vulnerabilities/CVE-2026-0`)).status).toBe(404);
     expect((await fetch(`${app.base}/vulnerabilities/not-a-cve`)).status).toBe(404);

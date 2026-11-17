@@ -50,8 +50,12 @@ describe("pages", () => {
     expect(text).toContain('<a href="/sources"><small>Sources enabled</small>');
     expect(text).toContain('<a href="#tracked"><small>Snapshots</small>');
     expect(text).toContain('<a href="/?kind=release"><small>Changes</small>');
-    expect(text).toContain('<a href="/?unread=1"><small>News, unread</small>');
-    expect(text).toContain('<a href="#instance"><small>Database</small>');
+    // The News and the database are Today's and the Sources page's figures, not the Register's.
+    expect(text).not.toContain("<small>News, unread</small>");
+    expect(text).not.toContain("<small>Database</small>");
+    // Grouped by publisher, the blocklists in a fold of their own.
+    expect(text).toMatch(/<section class="fold-group" id="pub-nist">\s*<h2>NIST <span class="count">\(\d+\)<\/span><\/h2>/);
+    expect(text).toContain('<details class="fold" id="blocklists"><summary><b>Blocklists and canary lists</b>');
     expect(text).toContain('<h2><a href="/triage">Needs you</a></h2>');
     expect(text).toContain('<h2><a href="/?kind=kev">Known exploited, newest</a>');
     expect(text).toContain('<section class="box" id="instance">\n          <h2><a href="/health">This instance</a></h2>');
@@ -65,7 +69,7 @@ describe("pages", () => {
     expect(text).toContain("r/netsec");
     // Each group heads to the News filtered to it, its count to the table, and an item count to that source's items.
     expect(text).toMatch(/<section id="standards">\s*<h2><a href="\/\?group=standards">Standards and baselines<\/a> <span class="count"><a href="#standards">\d+<\/a><\/span><\/h2>/);
-    expect(text).toContain('<td class="n"><a href="/?source=cisa-kev">0</a></td>');
+    expect(text).toContain('<td class="n" data-label="Items"><a href="/?source=cisa-kev">0</a></td>');
     const wire = await (await fetch(`${app.base}/wire`)).text();
     expect(wire).toContain("Nothing here yet.");
     expect(wire).toContain('<h2><a href="/sources">Sources</a> <span class="count"><a href="/?unread=1">0 unread</a></span></h2>');

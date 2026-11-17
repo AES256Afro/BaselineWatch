@@ -56,7 +56,7 @@ describe("kev adapter", () => {
     const ahsay = items[0]!;
     expect(ahsay.kind).toBe("kev");
     expect(ahsay.externalId).toBe("CVE-2026-105134");
-    expect(ahsay.title).toBe("Ahsay AhsayCBS: Ahsay AhsayCBS Command Injection Vulnerability");
+    expect(ahsay.title).toBe("CVE-2026-105134 · Ahsay AhsayCBS Command Injection Vulnerability");
     expect(ahsay.url).toBe("https://nvd.nist.gov/vuln/detail/CVE-2026-105134");
     expect(ahsay.publishedAt).toBe("2026-10-14T00:00:00.000Z");
     expect(ahsay.signals).toMatchObject({ kev: true, cves: ["CVE-2026-105134"], dueDate: "2026-11-04", ransomware: false, cwes: ["CWE-78"] });

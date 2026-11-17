@@ -1,0 +1,20 @@
+/** The GPO names in the toolkit's baselines as of October 2026, each with the scope its settings' refs start with (policyScope). */
+export const toolkitGpoNames: readonly (readonly [string, string])[] = [
+  ["MSFT Windows 11 23H2 - Computer", "Windows 11 - Computer"],
+  ["MSFT Windows 11 24H2 - Defender Antivirus", "Windows 11 - Defender Antivirus"],
+  ["MSFT Windows 11 25H2 - Computer", "Windows 11 - Computer"],
+  ["MSFT Windows 11 26H2 - Domain Security", "Windows 11 - Domain Security"],
+  ["MSFT Windows 10 22H2 - BitLocker", "Windows 10 - BitLocker"],
+  ["MSFT Windows 10 20H2 - User", "Windows 10 - User"],
+  ["MSFT Windows 10 20H2 and Server 20H2 - Defender Antivirus", "Windows 10 and Server - Defender Antivirus"],
+  ["MSFT Windows 10 20H2 and Server 20H2 Member Server - Credential Guard", "Windows 10 and Server Member Server - Credential Guard"],
+  ["MSFT Windows Server 20H2 - Domain Controller", "Windows Server - Domain Controller"],
+  ["MSFT Windows 10 1809 - Computer", "Windows 10 - Computer"],
+  ["MSFT Windows 10 1809 and Server 2019 - Domain Security", "Windows 10 and Server 2019 - Domain Security"],
+  ["MSFT Windows 10 1809 and Server 2019 Member Server - Credential Guard", "Windows 10 and Server 2019 Member Server - Credential Guard"],
+  ["MSFT Windows Server 2019 - Member Server", "Windows Server 2019 - Member Server"],
+  ["MSFT Windows Server 2022 - Domain Controller Virtualization Based Security", "Windows Server 2022 - Domain Controller Virtualization Based Security"],
+  ["MSFT Windows Server 2025 v2602 - Member Server Credential Guard", "Windows Server 2025 - Member Server Credential Guard"],
+  ["MSFT Edge Version 151 - Computer", "Edge - Computer"],
+  ["MSFT Internet Explorer 11 - Computer", "Internet Explorer 11 - Computer"],
+];

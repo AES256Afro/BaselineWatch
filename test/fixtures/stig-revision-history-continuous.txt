@@ -1,0 +1,79 @@
+UNCLASSIFIED
+
+UNCLASSIFIED
+GOOGLE ANDROID 16 STIG
+
+REVISION HISTORY
+
+30 September 2026
+
+Developed by Google and DISA for the DoW
+
+UNCLASSIFIED
+Google Android 16 STIG Revision History DISA
+30 September 2026 Developed by Google and DISA for the DoW
+
+1
+UNCLASSIFIED
+REVISION HISTORY
+Document
+Revised
+Description of Change Release Date
+
+- Google
+Android 16
+COBO
+STIG, V1R3
+G oogle Android 16 COBO STIG, V1R4:
+- GOOG-16-008700, GOOG-16-009800 - Removed
+references to WPA2.
+- Requirements were updated throughout to reflect the change
+from DOD to DoW.
+30 September
+2026
+
+- Google
+Android 16
+COPE
+STIG, V1R3
+G oogle Android 16 COPE STIG, V1R4:
+- GOOG-16-008700, GOOG-16-009800 - Removed
+references to WPA2.
+- Requirements were updated throughout to reflect the change
+from DOD to DoW.
+30 September
+2026
+
+- Google
+Android 16
+COBO
+STIG, V1R2
+Google Android 16 COBO STIG, V1R3:
+- GOOG-16-010600, GOOG-16-013100 - Removed per CIO.
+13 April 2026
+
+- Google
+Android 16
+COPE
+STIG, V1R2
+Google Android 16 COPE STIG, V1R3:
+- GOOG-16-010600, GOOG-16-013100 - Removed per CIO.
+13 April 2026
+
+- Google
+Android 16
+COBO
+STIG, V1R1
+Google Android 16 COBO STIG, V1R2:
+- GOOG-16-013000 - Updated Check and Fix.
+01 April 2026
+
+- Google
+Android 16
+COPE
+STIG, V1R1
+Google Android 16 COPE STIG, V1R2:
+- GOOG-16-013000 - Updated Check and Fix.
+01 April 2026
+
+- NA - Initial Release. 26 August 2025

@@ -23,13 +23,27 @@ interface MentionRow {
 function mentionsSince(db: DatabaseSync, since: string): MentionRow[] {
   const rows = db
     .prepare(
-      `SELECT i.id, i.source_id, s.name AS source_name, s.group_name, i.title, i.url, i.published_at, i.signals_json
+      `SELECT i.id, i.source_id, s.name AS source_name, s.group_name, i.title, i.url, i.canonical_url, i.published_at, i.signals_json
        FROM items i JOIN sources s ON s.id = i.source_id
        WHERE i.kind = 'article' AND COALESCE(i.published_at, i.fetched_at) >= ? AND i.signals_json LIKE '%"cves"%'
        ORDER BY COALESCE(i.published_at, i.fetched_at) DESC`,
     )
-    .all(since) as { id: number; source_id: string; source_name: string; group_name: string; title: string; url: string | null; published_at: string | null; signals_json: string | null }[];
-  return rows.map((r) => ({ ...r, cves: parseJson<{ cves?: unknown }>(r.signals_json, {}).cves as string[] })).filter((r) => Array.isArray(r.cves) && r.cves.length > 0);
+    .all(since) as { id: number; source_id: string; source_name: string; group_name: string; title: string; url: string | null; canonical_url: string | null; published_at: string | null; signals_json: string | null }[];
+  // One page two feeds both carry (CISA's advisories and its ICS feed) is one mention, not two
+  // sources talking: the newest row for a page counts, the rest are dropped. A page is the
+  // canonical URL the ingester stored (canonicalUrl in src/adapters/types.ts, the rule the News
+  // de-duplicates on), else the URL as given.
+  const urls = new Set<string>();
+  return rows
+    .map(({ canonical_url: canonical, ...r }) => ({ ...r, key: canonical ?? r.url, cves: parseJson<{ cves?: unknown }>(r.signals_json, {}).cves as string[] }))
+    .filter((r) => Array.isArray(r.cves) && r.cves.length > 0)
+    .filter((r) => {
+      const key = r.key;
+      if (!key) return true;
+      if (urls.has(key)) return false;
+      urls.add(key);
+      return true;
+    });
 }
 
 export interface Mention {

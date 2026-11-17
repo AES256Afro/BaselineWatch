@@ -41,7 +41,9 @@ export const kevAdapter: Adapter = {
     const items: ParsedItem[] = catalog.vulnerabilities.map((v) => ({
       kind: "kev",
       externalId: v.cveID,
-      title: `${v.vendorProject} ${v.product}: ${v.vulnerabilityName}`.replace(/\s+/g, " ").trim(),
+      // CISA's name already says the vendor and product ("Collabora Online – … OS Command Injection
+      // Vulnerability"); writing them in front as well read "Collabora Collabora Online – …: Collabora Online – …".
+      title: `${v.cveID} · ${v.vulnerabilityName}`.replace(/\s+/g, " ").trim(),
       url: `https://nvd.nist.gov/vuln/detail/${v.cveID}`,
       summary: plainText(`${v.shortDescription} Required action: ${v.requiredAction}`, 800),
       publishedAt: isoDate(v.dateAdded),

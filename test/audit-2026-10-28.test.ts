@@ -246,7 +246,7 @@ describe("the watchlist is the owner's, and the platforms are everyone's", () =>
 
   it("opens the table on what is affecting each platform, each figure a link to its list", async () => {
     const page = await (await fetch(`${app.base}/vulnerabilities`)).text();
-    expect(page).toContain("What is affecting");
+    expect(page).toContain("By platform");
     expect(page).toContain('href="/vulnerabilities?platform=windows"');
     expect(page).toContain('href="/vulnerabilities?platform=windows&amp;kev=1"');
     expect(page).toContain('href="/vulnerabilities?danger=1"');

@@ -51,6 +51,12 @@ export interface Fix {
   microsoft: MsrcVuln | null;
   /** True when none of the above holds anything. */
   empty: boolean;
+  /**
+   * NVD's references it has not tagged yet (no Patch, Advisory or any other tag): often the vendor's
+   * own bulletin, waiting for NVD's analysis. Not counted as a fix, but never hidden behind "nothing
+   * published". `lead` is the one on the vendor's or the CNA's domain when one is, else the first.
+   */
+  untagged: { count: number; lead: { url: string; host: string; whose: "vendor" | "CNA" | null } | null };
 }
 
 export interface MitigationEntry {
@@ -189,9 +195,92 @@ function advisoriesFor(db: DatabaseSync, cveId: string, limit = 8): FixAdvisory[
   ).map((r) => ({ id: r.id, source: r.source, title: r.title, url: r.url, publishedAt: r.published_at }));
 }
 
+const hostOf = (url: string): string | null => {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+};
+/**
+ * The second levels under a two-letter country code that are read as a public suffix of two labels
+ * ("co.uk", "com.au", "ne.jp"). A hand-kept list (src/curated.ts): nothing else is guessed.
+ */
+export const twoLevelSuffixes: readonly string[] = ["co", "com", "org", "net", "gov", "ac", "edu", "or", "ne", "go"];
+
+/**
+ * The domain a host is registered under: "citrix.com" from "support.citrix.com", "bbc.co.uk"
+ * from "www.bbc.co.uk" (a two-letter country code under one of `twoLevelSuffixes`).
+ */
+export function registrableDomain(host: string): string {
+  const labels = host.toLowerCase().split(".").filter(Boolean);
+  const twoLevel = labels.length >= 3 && labels.at(-1)!.length === 2 && twoLevelSuffixes.includes(labels.at(-2)!);
+  return labels.slice(twoLevel ? -3 : -2).join(".");
+}
+
+/** The name a host is registered under: "citrix" from "support.citrix.com", "bbc" from "www.bbc.co.uk". */
+export function registrableName(host: string): string {
+  return registrableDomain(host).split(".")[0] ?? "";
+}
+/**
+ * Hosts that serve what their users publish, not what the domain's owner says. A hand-kept list
+ * (src/curated.ts): a reference there is never named as the vendor's.
+ */
+export const userContentHosts: readonly string[] = ["github.io", "sites.google.com", "raw.githubusercontent.com", "gist.github.com", "gitlab.io", "pages.dev", "blogspot.com"];
+export function userContentHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (/(^|\.)[a-z0-9-]*usercontent\.com$/.test(h)) return true;
+  return userContentHosts.some((u) => h === u || h.endsWith(`.${u}`));
+}
+const letters = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Words a company adds to its name that its domain leaves out ("QNAP Systems Inc." → qnap.com). A
+ * hand-kept list (src/curated.ts): a vendor's first word stands for the name only when every word
+ * after it is one of these, so "Justice AV Solutions" is not read as justice.gov.
+ */
+export const corporateSuffixes: readonly string[] = ["inc", "llc", "ltd", "gmbh", "corp", "corporation", "co", "company", "systems", "technologies", "kk"];
+
+/** The names a vendor's domain may carry: the whole name, and its first word when the rest is a corporate suffix. */
+export function vendorDomainNames(vendor: string): string[] {
+  const words = vendor.trim().split(/\s+/).filter(Boolean);
+  const out = [letters(vendor)];
+  if (words.length > 1 && words.slice(1).every((w) => corporateSuffixes.includes(letters(w)))) out.push(letters(words[0]!));
+  return out;
+}
+
+/**
+ * The untagged references and the one to name: on a domain registered under the vendor's name
+ * (from the CPEs), else on the CNA's own mail domain (`psirt@citrix.com`), else the first.
+ */
+export function untaggedReferences(refs: FixReference[], vendors: string[], sourceIdentifier: string | null): Fix["untagged"] {
+  const bare = refs.filter((r) => r.tags.length === 0 && /^https?:\/\//i.test(r.url));
+  if (!bare.length) return { count: 0, lead: null };
+  const withHost = bare.map((r) => ({ url: r.url, host: hostOf(r.url) })).filter((r): r is { url: string; host: string } => r.host !== null);
+  if (!withHost.length) return { count: bare.length, lead: null };
+  // The whole name, and its first word when the rest is a company suffix: CISA and the CNAs write
+  // "QNAP Systems Inc." for qnap.com, but "Justice AV Solutions" is not justice.gov.
+  const names = [...new Set(vendors.flatMap(vendorDomainNames))].filter((v) => v.length >= 3);
+  // The registrable domain's own name equals the vendor's (citrix.com, apache.org). A prefix matched
+  // googleusercontent.com for Google and githubusercontent.com for GitHub, and a host where anyone
+  // publishes (x.github.io, sites.google.com) is nobody's advisory however its domain reads.
+  const byVendor = withHost.find((r) => {
+    if (userContentHost(r.host)) return false;
+    const name = letters(registrableName(r.host));
+    return names.some((v) => name === v);
+  });
+  if (byVendor) return { count: bare.length, lead: { ...byVendor, whose: "vendor" } };
+  const cnaDomain = /@([a-z0-9.-]+)$/i.exec(sourceIdentifier ?? "")?.[1]?.toLowerCase();
+  const byCna = cnaDomain ? withHost.find((r) => registrableDomain(r.host) === registrableDomain(cnaDomain)) : undefined;
+  if (byCna) return { count: bare.length, lead: { ...byCna, whose: "CNA" } };
+  return { count: bare.length, lead: { ...withHost[0]!, whose: null } };
+}
+
 /** Everything published that fixes or mitigates a CVE, or an honest empty. */
 export function fixesFor(db: DatabaseSync, ctx: FixContext, row: VulnRow): Fix {
-  const references = parseJson<{ url: string; tags: string[] }[]>(row.references_json, []).filter((r) => r.tags.some((t) => fixTags.test(t)));
+  const allRefs = parseJson<{ url: string; tags?: string[] }[]>(row.references_json, []).map((r) => ({ url: r.url, tags: Array.isArray(r.tags) ? r.tags : [] }));
+  const references = allRefs.filter((r) => r.tags.some((t) => fixTags.test(t)));
+  const untagged = untaggedReferences(allRefs, parseJson<string[]>(row.vendors_json, []), row.source_identifier);
   const advisories = advisoriesFor(db, row.cve_id);
   const kev = row.kev === 1 || kevFor(db, row.cve_id) ? kevFor(db, row.cve_id) : null;
   const packages = parseJson<AffectedPackage[]>(row.packages_json, [])
@@ -207,13 +296,12 @@ export function fixesFor(db: DatabaseSync, ctx: FixContext, row: VulnRow): Fix {
   // The panel is still "empty" of fixes when only exploits are known: that is the honest, and worse, state.
   const exploits = exploitsFor(db, row.cve_id);
   const microsoft = msrcFor(db, row.cve_id);
-  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, exploits, microsoft, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 && !microsoft?.fixes.length };
+  return { cveId: row.cve_id, references, advisories, kev, packages, mitigations, exploits, microsoft, empty: references.length === 0 && advisories.length === 0 && !kev?.requiredAction && packages.length === 0 && mitigations.length === 0 && !microsoft?.fixes.length, untagged };
 }
 
 /** A one-line account of the fix for a list, from the same facts. */
 export function fixSummary(fix: Fix): string {
   const parts: string[] = [];
-  if (fix.exploits.length) parts.push(`${fix.exploits.length} public exploit${fix.exploits.length === 1 ? "" : "s"}${fix.exploits.some((e) => e.verified === 1) ? " (verified)" : ""}`);
   if (fix.microsoft?.fixes.length) {
     const named = fix.microsoft.fixes.slice(0, 3).map((f) => `${f.kb ? `KB${f.kb}` : (f.label ?? "update")}${f.products.length ? ` (${f.products.slice(0, 2).join(", ")}${f.products.length > 2 ? ", …" : ""})` : ""}`);
     parts.push(`Microsoft: ${named.join("; ")}${fix.microsoft.fixes.length > 3 ? "; …" : ""}`);
@@ -223,5 +311,20 @@ export function fixSummary(fix: Fix): string {
   if (fix.advisories.length) parts.push(`vendor advisory: ${fix.advisories[0]!.source}`);
   if (fix.packages.length) parts.push(`fixed in ${fix.packages[0]!.name} ${fix.packages[0]!.fixed[0]}`);
   if (fix.mitigations.length) parts.push(`STIG: ${fix.mitigations[0]!.rules[0]!.rule.label}`);
-  return parts.length ? parts.join(" · ") : "Nothing published yet: no patch, advisory or mitigation reference, no vendor advisory in the News, no KEV action.";
+  // The fix leads; the exploits, which are the reason to hurry and not a fix, follow it, labelled.
+  const exploits = fix.exploits.length ? `Public exploits: ${fix.exploits.length}${fix.exploits.some((e) => e.verified === 1) ? " (verified)" : ""}` : null;
+  const lead = parts.length ? parts.join(" · ") : fix.untagged.count ? untaggedSentence(fix.untagged) : "Nothing published yet: no patch, advisory or mitigation reference, no vendor advisory in the News, no KEV action.";
+  return exploits ? `${lead}${parts.length ? " · " : " "}${exploits}` : lead;
+}
+
+/** Whose the named untagged reference is, as the sentence says it: "the vendor's", "the CNA's" or "the first". */
+export function whoseWord(lead: Fix["untagged"]["lead"]): string {
+  return lead?.whose === "vendor" ? "the vendor's" : lead?.whose === "CNA" ? "the CNA's" : "the first";
+}
+
+/** "NVD has not tagged its 3 references yet; the vendor's: support.citrix.com". */
+function untaggedSentence(u: Fix["untagged"]): string {
+  const n = u.count === 1 ? "its 1 reference" : `its ${u.count.toLocaleString("en-US")} references`;
+  if (!u.lead) return `NVD has not tagged ${n} yet.`;
+  return `NVD has not tagged ${n} yet; ${whoseWord(u.lead)}: ${u.lead.host}`;
 }

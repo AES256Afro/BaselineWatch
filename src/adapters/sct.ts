@@ -85,13 +85,39 @@ function decodeXml(text: string): string {
   return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 }
 
-/** Strips the version token from a GPO name so refs stay stable across releases: "MSFT Windows Server 2025 v2602 - Member Server" → "Windows Server 2025 - Member Server". */
+/**
+ * Whether the word at `i` of a GPO's product name names a release rather than the product: a
+ * feature update ("25H2"), a four-digit release ("1809"; "Server 2019" names a product and stays),
+ * or an Edge version ("Version 151", both words). Migration 0061 applies the same test in SQL.
+ */
+function isReleaseWord(words: string[], i: number): boolean {
+  const word = words[i]!;
+  const prev = (words[i - 1] ?? "").toLowerCase();
+  const next = words[i + 1] ?? "";
+  if (/^\d{2}H\d$/i.test(word)) return true;
+  if (/^\d{4}$/.test(word)) return prev !== "server";
+  if (/^version$/i.test(word)) return /^\d+$/.test(next);
+  return /^\d+$/.test(word) && prev === "version";
+}
+
+/**
+ * Strips the release from a GPO name so refs stay stable across releases: "MSFT Windows Server
+ * 2025 v2602 - Member Server" → "Windows Server 2025 - Member Server", "MSFT Windows 11 25H2 -
+ * Computer" → "Windows 11 - Computer", "MSFT Edge Version 151 - Computer" → "Edge - Computer".
+ * Only the product part, before " - ", is read for release words.
+ */
 export function policyScope(policyName: string): string {
-  return policyName
+  const name = policyName
     .replace(/^MSFT\s+/i, "")
     .replace(/\s+v\d{2,}[A-Za-z0-9]*\b/i, "")
     .replace(/\s+/g, " ")
     .trim();
+  const dash = name.indexOf(" - ");
+  const product = dash >= 0 ? name.slice(0, dash) : name;
+  const rest = dash >= 0 ? name.slice(dash) : "";
+  const words = product.split(" ");
+  const kept = words.filter((w, i) => w !== "" && !isReleaseWord(words, i));
+  return `${kept.join(" ")}${rest}`.trim();
 }
 
 /** Every setting in a PolicyRules file as a requirement: the ref is scope + setting, the statement is the value. */

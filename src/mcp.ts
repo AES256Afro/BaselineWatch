@@ -13,6 +13,7 @@ import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiV
 import { getSource } from "./ingest.ts";
 import { changeSummaryFor, changeSummaryText, explanationsFor, getDocument, latestDocument, licenceOf, notesFor, releaseChanges, requirementIn } from "./register.ts";
 import { productName, productVersion } from "./version.ts";
+import { maxOffset } from "./vulns.ts";
 
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 
@@ -82,6 +83,8 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
     async (args) => {
       if (isLicensedSource(args.source)) return licensed(args.source);
       let doc = args.document_id !== undefined ? getDocument(db, args.document_id) : null;
+      // An id that names no version of this source is an error, never a quiet answer about another version.
+      if (args.document_id !== undefined && (!doc || doc.source_id !== args.source)) return failure(`No loaded version for ${args.source} with id ${args.document_id}.`);
       if (!doc) {
         const first = db.prepare("SELECT document_key FROM documents WHERE source_id = ? ORDER BY document_key LIMIT 1").get(args.source) as { document_key: string } | undefined;
         doc = first ? latestDocument(db, args.source, first.document_key) : null;
@@ -192,7 +195,7 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
         since,
         sort: z.enum(["modified", "published", "cvss", "epss"]).optional(),
         limit,
-        offset: z.number().int().min(0).max(100_000).optional(),
+        offset: z.number().int().min(0).max(maxOffset).optional(),
       },
       annotations: readOnly,
     },
@@ -215,7 +218,7 @@ function buildMcpServer(db: DatabaseSync, baseUrl: string): McpServer {
 
   server.registerTool(
     "vulnerability",
-    { title: "One CVE or advisory", description: "A vulnerability by id (CVE-..., or a GHSA id for an advisory NVD has not analysed) with its CPEs, references and change history.", inputSchema: { id: z.string().max(60).describe("CVE-2026-12345 or GHSA-xxxx-xxxx-xxxx") }, annotations: readOnly },
+    { title: "One CVE or advisory", description: "A vulnerability by id (CVE-..., or a GHSA id for an advisory NVD has not analysed) with its CPEs, references and change history.", inputSchema: { id: z.string().min(3).max(60).describe("CVE-2026-12345 or GHSA-xxxx-xxxx-xxxx") }, annotations: readOnly },
     async (args) => {
       const v = apiVuln(db, args.id.trim().toUpperCase());
       return v ? asText(v) : failure(`No vulnerability ${args.id} in this instance.`);

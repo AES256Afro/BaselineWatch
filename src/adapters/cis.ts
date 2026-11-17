@@ -23,7 +23,25 @@ export interface CisRecommendation {
 export interface CisParsed {
   title: string | null;
   version: string | null;
+  /** The cover's date beside the version ("v4.0.0 - 03-31-2025"), as YYYY-MM-DD. */
+  publishedAt: string | null;
   recommendations: CisRecommendation[];
+}
+
+/** "v4.0.0 - 03-31-2025": CIS prints the version and its date, month first, on the cover. */
+const versionDate = /\bv(\d+\.\d+\.\d+)\s*-\s*(\d{2})-(\d{2})-(\d{4})\b/;
+
+/** The cover date of `version`, or null when the text has none or it is not a calendar date. */
+function coverDate(lines: string[], version: string | null): string | null {
+  for (const line of lines) {
+    const m = versionDate.exec(line);
+    if (!m || m[1] !== version) continue;
+    const [month, day, year] = [Number(m[2]), Number(m[3]), Number(m[4])];
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    return `${m[4]}-${m[2]}-${m[3]}`;
+  }
+  return null;
 }
 
 /** The recommendations in a benchmark's text. Page furniture (page numbers, "Page N") is dropped. */
@@ -64,7 +82,7 @@ export function parseCisText(text: string): CisParsed {
     for (const key of Object.keys(r.sections)) r.sections[key] = unwrap(r.sections[key]!);
     seen.add(r.number);
   }
-  return { title: titleLine, version, recommendations: withBody };
+  return { title: titleLine, version, publishedAt: coverDate(lines, version), recommendations: withBody };
 }
 
 export function cisRequirements(parsed: CisParsed): NormalizedRequirement[] {
@@ -101,10 +119,12 @@ export const cisAdapter: Adapter = {
     const text = await pdfText(bytes);
     const parsed = parseCisText(text);
     if (parsed.recommendations.length === 0) throw new Error("no CIS recommendations found in this PDF; is it a CIS Benchmark?");
+    // Left blank, "Published" falls back to the cover's date, not the upload time: a benchmark
+    // uploaded after a newer one would otherwise read as the newest.
     return {
       title: parsed.title ?? target.key,
       versionLabel: target.versionLabel ?? parsed.version,
-      publishedAt: target.publishedAt ?? null,
+      publishedAt: target.publishedAt ?? (parsed.publishedAt ? `${parsed.publishedAt}T00:00:00.000Z` : null),
       requirements: cisRequirements(parsed),
     };
   },

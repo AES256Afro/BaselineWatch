@@ -21,6 +21,7 @@ import { localClock } from "./digest.ts";
 import { HttpError, httpGet, type HttpGet } from "./http.ts";
 import { notify, type Transport } from "./notify.ts";
 import { latestDocument, loadRequirements } from "./register.ts";
+import { tallyRun, type RunTally } from "./scanhistory.ts";
 
 export type NetOutcome = "resolved" | "sinkholed" | "timeout";
 
@@ -290,20 +291,16 @@ export function categoryTallies(rows: NetCanaryRow[]): CategoryTally[] {
   return canaryCategories.map((c) => byCategory.get(c.category)).filter((t): t is CategoryTally => t !== undefined);
 }
 
-/** What the /scan row and the Today view need in one glance. */
-export interface NetworkSummary {
+/** What the /scan row needs in one glance: the latest run and its tallies, counted by tallyRun as Today and /scan/network count them. */
+export interface NetworkSummary extends RunTally {
   scan: NetScanRow;
-  total: number;
-  sinkholed: number;
-  resolved: number;
 }
 
 export function networkSummary(db: DatabaseSync): NetworkSummary | null {
   const scan = latestNetScan(db);
   if (!scan) return null;
-  const counts = db.prepare("SELECT outcome, COUNT(*) AS n FROM net_canaries WHERE scan_id = ? GROUP BY outcome").all(scan.id) as { outcome: NetOutcome; n: number }[];
-  const of = (outcome: NetOutcome): number => counts.find((c) => c.outcome === outcome)?.n ?? 0;
-  return { scan, total: counts.reduce((sum, c) => sum + c.n, 0), sinkholed: of("sinkholed"), resolved: of("resolved") };
+  const rows = db.prepare("SELECT outcome FROM net_canaries WHERE scan_id = ?").all(scan.id) as { outcome: NetOutcome }[];
+  return { scan, ...tallyRun(rows) };
 }
 
 /** Due once per local date, the digest's rule: enabled, and no scan has run on today's date yet. */
@@ -329,20 +326,54 @@ function countFailure(error: unknown): string {
   return "unreadable";
 }
 
+/**
+ * Pi-hole v6's count of clients active in the last day: POST /api/auth with the password for a
+ * session id, then GET /api/stats/summary with that id. Neither request follows a redirect, as
+ * the password and the sid are the credential. The session is left to expire on its own (thirty
+ * minutes by default); one a day does not crowd the seats. Null when the answer has no count.
+ */
+export async function piholeV6Clients(base: string, password: string, http: HttpGet): Promise<number | null> {
+  const auth = await http(`${base}/api/auth`, { method: "POST", body: JSON.stringify({ password }), timeoutMs: 10_000, maxBytes: 64 * 1024, redirect: "manual", headers: { "content-type": "application/json", accept: "application/json" } });
+  const session = (JSON.parse(new TextDecoder().decode(auth.bytes)) as { session?: { valid?: unknown; sid?: unknown } }).session;
+  // A Pi-hole with no password set answers valid with a null sid, and its API is open.
+  if (session?.valid !== true) throw new HttpError(`${base}/api/auth`, 401);
+  const sid = typeof session.sid === "string" ? { sid: session.sid } : {};
+  const response = await http(`${base}/api/stats/summary`, { timeoutMs: 10_000, maxBytes: 1024 * 1024, redirect: "manual", headers: { ...sid, accept: "application/json" } });
+  const summary = JSON.parse(new TextDecoder().decode(response.bytes)) as { clients?: { active?: unknown } };
+  const clients = Number(summary.clients?.active);
+  return summary.clients?.active !== undefined && Number.isFinite(clients) ? clients : null;
+}
+
 async function clientCount(db: DatabaseSync, http: HttpGet): Promise<{ count: ClientCount | null; note: string | null }> {
   const piholeUrl = getSetting(db, netSettingKeys.piholeUrl);
   const piholeToken = getSetting(db, netSettingKeys.piholeToken);
   if (piholeUrl && piholeToken) {
+    const base = piholeUrl.replace(/\/+$/, "");
+    // Pi-hole v6 first: its API lives at /api and takes the password (or an app password) once,
+    // in a POST, for a session id. A v5 install has no /api, and falls through to the old one.
+    let v6Failure: string | null = null;
     try {
-      // Pi-hole's API takes the token in the query string, so a redirect must not be followed:
+      const clients = await piholeV6Clients(base, piholeToken, http);
+      if (clients !== null) return { count: { clients, source: "pihole" }, note: null };
+      v6Failure = "no client count in the answer";
+    } catch (error) {
+      // Only a 404 says there is no v6 API here. A timeout, a refusal or an answer that is not
+      // JSON stops: asking the v5 way would put the password in a URL for nothing.
+      v6Failure = error instanceof HttpError && error.status === 404 ? null : countFailure(error);
+    }
+    // A v6 install that refused the password is not asked again the v5 way, which puts it in the URL.
+    if (v6Failure !== null) return { count: null, note: `pihole: ${v6Failure}` };
+    try {
+      // Pi-hole v5's API takes the token in the query string, so a redirect must not be followed:
       // the credential would travel to wherever the 3xx points. The notifier keeps the same rule.
-      const response = await http(`${piholeUrl.replace(/\/+$/, "")}/admin/api.php?summaryRaw&auth=${encodeURIComponent(piholeToken)}`, { timeoutMs: 10_000, maxBytes: 1024 * 1024, redirect: "manual" });
+      const response = await http(`${base}/admin/api.php?summaryRaw&auth=${encodeURIComponent(piholeToken)}`, { timeoutMs: 10_000, maxBytes: 1024 * 1024, redirect: "manual" });
       const summary = JSON.parse(new TextDecoder().decode(response.bytes)) as { unique_clients?: unknown };
       const clients = Number(summary.unique_clients);
       if (Number.isFinite(clients)) return { count: { clients, source: "pihole" }, note: null };
       return { count: null, note: "pihole: no client count in the answer" };
     } catch (error) {
-      return { count: null, note: `pihole: ${countFailure(error)}` };
+      // The v6 answer is the one to report when that API was there and refused.
+      return { count: null, note: `pihole: ${v6Failure ?? countFailure(error)}` };
     }
   }
   const adguardUrl = getSetting(db, netSettingKeys.adguardUrl);
@@ -482,7 +513,7 @@ export async function runNetworkScan(db: DatabaseSync, deps: NetScanDeps = {}): 
   if (changes && (changes.newlyResolving.length > 0 || changes.resolverChanged)) {
     const lines: string[] = [];
     if (changes.resolverChanged) lines.push(`The resolver changed: ${changes.resolverChanged.from ?? "none"} → ${changes.resolverChanged.to ?? "none"}.`);
-    for (const c of changes.newlyResolving.slice(0, 10)) lines.push(`${c.name} (${categoryLabel(c.category).toLowerCase()}) now resolves; it was sinkholed yesterday.`);
+    for (const c of changes.newlyResolving.slice(0, 10)) lines.push(`${c.name} (${categoryLabel(c.category).toLowerCase()}) now resolves; it was sinkholed on the previous run (${previous?.started_at.slice(0, 10) ?? "the one before"}).`);
     if (changes.newlyResolving.length > 10) lines.push(`…and ${changes.newlyResolving.length - 10} more.`);
     const title = changes.newlyResolving.length > 0 ? `This network: ${changes.newlyResolving.length} canar${changes.newlyResolving.length === 1 ? "y" : "ies"} newly resolving` : "This network: the resolver changed";
     await notify(db, deps.transport ?? null, { kind: "network", title, body: lines.join("\n"), url: deps.baseUrl ? `${deps.baseUrl}/scan/network` : null }, http, now);

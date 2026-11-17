@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { crtshUrl, domainsKey, parseCrtsh } from "../src/adapters/crtsh.ts";
-import { recentCerts } from "../src/ct.ts";
+import { isKnownCert, knownCerts, recentCerts } from "../src/ct.ts";
 import { migrate, openDatabase } from "../src/db.ts";
 import { getSource, ingestSource } from "../src/ingest.ts";
 import { setSetting } from "../src/netscan.ts";
@@ -18,7 +18,10 @@ const text = () => new TextDecoder().decode(fixture("ct/cybercard.net.json"));
 describe("crt.sh's answer", () => {
   it("becomes one entry per certificate, newest first, with the issuer's common name and the names on it", () => {
     const entries = parseCrtsh(text());
-    expect(entries.length).toBe(14);
+    // Fourteen rows, ten issuances: crt.sh lists four of them twice, once as the precertificate and
+    // once as the certificate, with the same serial from the same issuer. The lower id stands for both.
+    expect(entries.length).toBe(10);
+    expect(entries.filter((e) => e.issuer === "YE1").map((e) => e.id)).toEqual([28052514573]);
     expect(entries[0]).toMatchObject({ id: 29944619056, issuer: "Cloudflare TLS Issuing ECC CA 4", names: ["*.cybercard.net", "cybercard.net"], notBefore: "2026-09-29T19:33:02", notAfter: "2026-12-28T01:42:46" });
     expect(entries.some((e) => e.issuer === "WE1" && e.names.includes("www.cybercard.net"))).toBe(true);
     expect(() => parseCrtsh("<html>502</html>")).toThrow(/JSON list/);
@@ -41,7 +44,7 @@ describe("the watch", () => {
       const http = fakeHttp({ [crtshUrl("cybercard.net")]: { bytes: fixture("ct/cybercard.net.json") }, [crtshUrl("example.org")]: { status: 502 } });
       const first = await ingestSource(db, dataDir, source, { http, now: () => now });
       expect(first.status).toBe("ok");
-      expect(first.items).toBe(14);
+      expect(first.items).toBe(10); // ten issuances in fourteen rows: see "crt.sh's answer"
       // The first read seeds; the newest certificate is three weeks old, so nothing is news. The domain crt.sh refused is named.
       expect(first.detail).toBe("1 of 2 domains read, 0 new certificates; crt.sh did not answer for 1 of them");
       expect(recentCerts(db, "cybercard.net").length).toBe(8);
@@ -55,12 +58,47 @@ describe("the watch", () => {
       const item = db.prepare("SELECT external_id, title, url, summary, published_at FROM items WHERE source_id = 'crtsh'").get() as { external_id: string; title: string; url: string; summary: string; published_at: string };
       expect(item).toMatchObject({ external_id: "cybercard.net:30000000001", title: "New certificate for login.cybercard.net (R13)", url: "https://crt.sh/?id=30000000001", published_at: "2026-10-21T08:00:00.000Z" });
       expect(item.summary).toContain("issued by R13. Expected?");
+      expect(db.prepare("SELECT serial, issuer_dn FROM ct_certs WHERE id = 30000000001").get()).toEqual({ serial: "01", issuer_dn: "C=US, O=Let's Encrypt, CN=R13" });
       // Read again: nothing new.
       const third = await ingestSource(db, dataDir, source, { http: fakeHttp({ [crtshUrl("cybercard.net")]: { text: JSON.stringify(added) }, [crtshUrl("example.org")]: { status: 502 } }), now: () => now });
       expect(third.inserted).toBe(0);
+
+      // A precertificate crt.sh lists only later, under an id lower than the certificate's already
+      // kept, is the same issuance: not a second item.
+      added.unshift({ ...added[0]!, id: 29999999999 });
+      const fourth = await ingestSource(db, dataDir, source, { http: fakeHttp({ [crtshUrl("cybercard.net")]: { text: JSON.stringify(added) }, [crtshUrl("example.org")]: { status: 502 } }), now: () => now });
+      expect(fourth.inserted).toBe(0);
     } finally {
       db.close();
       rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("knows an issuance by serial and issuer, as the parse folds it; a row stored without a serial by its issuer, names and start", () => {
+    const db = openDatabase(":memory:");
+    migrate(db);
+    try {
+      const dn = "C=US, O=Let's Encrypt, CN=R13";
+      const insert = db.prepare("INSERT INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at, serial, issuer_dn) VALUES ('example.org', ?, 'R13', 'a.example.org', '2026-10-21T08:00:00', NULL, ?, ?, ?)");
+      insert.run(1, at, "0a", dn);
+      insert.run(2, at, null, null); // stored before 0062
+      const known = knownCerts(db, "example.org");
+      const cert = { issuer: "R13", issuerDn: dn, names: ["a.example.org"], notBefore: "2026-10-21T08:00:00" };
+      // The other half of issuance 0a, under a new id: known.
+      expect(isKnownCert(known, { ...cert, id: 9, serial: "0A" })).toBe(true);
+      // Same names and start from the same issuer but another serial: a second issuance. The serial
+      // row does not answer for it; only the row stored without a serial does, by the old key.
+      db.prepare("DELETE FROM ct_certs WHERE id = 2").run();
+      expect(isKnownCert(knownCerts(db, "example.org"), { ...cert, id: 10, serial: "0b" })).toBe(false);
+      // The parse keys on the same pair: precertificate and certificate fold, two serials do not.
+      const parsed = parseCrtsh(JSON.stringify([
+        { id: 5, issuer_name: dn, name_value: "a.example.org", not_before: "2026-10-21T08:00:00", serial_number: "0A" },
+        { id: 4, issuer_name: dn, name_value: "a.example.org", not_before: "2026-10-21T08:00:00", serial_number: "0a" },
+        { id: 6, issuer_name: dn, name_value: "a.example.org", not_before: "2026-10-21T08:00:00", serial_number: "0b" },
+      ]));
+      expect(parsed.map((e) => [e.id, e.serial])).toEqual([[6, "0b"], [4, "0a"]]);
+    } finally {
+      db.close();
     }
   });
 

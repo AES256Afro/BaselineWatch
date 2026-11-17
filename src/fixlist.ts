@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { fixContext, fixTags, matchingEntries, type MitigationEntry } from "./fix.ts";
 import { parseJson } from "./json.ts";
-import { kbUrl, type MsrcFix } from "./msrc.ts";
+import { addProduct, fixKey, kbUrl, type MsrcFix } from "./msrc.ts";
 import { movedInWindowSql, notableInWindowSql, scopeSql, type AffectedPackage, type VulnRow } from "./vulns.ts";
 import type { PlatformChoice } from "./platforms.ts";
 import { counted } from "./words.ts";
@@ -113,13 +113,13 @@ export function fixListCandidates(db: DatabaseSync, since: string, limit = candi
         ORDER BY v.kev DESC, v.watch_hit DESC, v.epss IS NULL, v.epss DESC, v.cvss_score DESC
         LIMIT ?`,
     )
-    .all(since, since, since, ...narrowed.params, limit) as unknown as VulnRow[];
+    .all(since, since, since, since, ...narrowed.params, limit) as unknown as VulnRow[];
 }
 
 /** How many there were in all, so a truncated list can say what it is a prefix of. */
 export function fixListTotal(db: DatabaseSync, since: string, scope: FixScope = {}): number {
   const narrowed = scopeSql(scope);
-  return (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE ${movedInWindowSql} AND ${notableInWindowSql} AND ${settledSql}${narrowed.sql}`).get(since, since, since, ...narrowed.params) as { n: number }).n;
+  return (db.prepare(`SELECT COUNT(*) AS n FROM vulns v WHERE ${movedInWindowSql} AND ${notableInWindowSql} AND ${settledSql}${narrowed.sql}`).get(since, since, since, since, ...narrowed.params) as { n: number }).n;
 }
 
 /** Microsoft's published fixes for a set of CVEs, in one query rather than one per CVE. */
@@ -151,6 +151,9 @@ function kevActions(db: DatabaseSync, cveIds: string[]): Map<string, { action: s
   return out;
 }
 
+/** A title that announces an update ahead of its release (Adobe's, Oracle's "Advance Notification"). */
+const advanceNotice = /\badvance(?:d)? notification\b/i;
+
 /** The vendor advisories on the Wire that name any of these CVEs, in one scan rather than one per CVE. */
 function advisoriesByCve(db: DatabaseSync, cveIds: string[], since: string): Map<string, { id: number; source: string; title: string; url: string | null }[]> {
   const out = new Map<string, { id: number; source: string; title: string; url: string | null }[]>();
@@ -164,6 +167,8 @@ function advisoriesByCve(db: DatabaseSync, cveIds: string[], since: string): Map
     )
     .all(since) as { id: number; source: string; title: string; url: string | null; signals_json: string | null }[];
   for (const r of rows) {
+    // An advance notification announces a fix that is not out yet: nothing to install.
+    if (advanceNotice.test(r.title)) continue;
     for (const cve of parseJson<{ cves?: string[] }>(r.signals_json, {}).cves ?? []) {
       const key = String(cve).toUpperCase();
       if (!wanted.has(key)) continue;
@@ -205,6 +210,18 @@ const productLine = (products: string[]): string | null =>
   products.length === 0 ? null : products.length <= 2 ? products.join(" and ") : `${products.slice(0, 2).join(", ")} and ${products.length - 2} more`;
 
 /**
+ * The build a Microsoft fix reaches, per product when there is more than one: KB5127648 is
+ * 10.0.26100.9711 on 24H2 and 10.0.26200.9711 on 25H2, and naming only the first told a 25H2
+ * owner to look for 24H2's build.
+ */
+const buildLine = (builds: Map<string, string[]>): string => {
+  const list = [...builds.entries()];
+  if (list.length === 0) return "";
+  if (list.length === 1) return ` · fixed build ${list[0]![0]}`;
+  return ` · fixed builds ${list.map(([build, products]) => `${build} on ${productLine(products) ?? "its products"}`).join("; ")}`;
+};
+
+/**
  * The window's work, grouped by remedy. One pass over the candidate CVEs; every lookup it needs
  * was fetched in a handful of queries above, so this costs the same for one CVE and for a hundred.
  */
@@ -216,6 +233,8 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
   const mitigations = resolvedMitigations(db);
   const byKey = new Map<string, Remedy>();
   const fixedCves = new Set<string>();
+  /** Per Microsoft remedy: every product its entries name, and the build each product reaches. */
+  const msrcParts = new Map<string, { products: string[]; builds: Map<string, string[]>; restart: boolean }>();
 
   const add = (r: Omit<Remedy, "cves" | "kevCount" | "watchCount" | "dueDate">, cve: RemedyCve): void => {
     const existing = byKey.get(r.key);
@@ -239,21 +258,22 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
     };
     let placed = false;
 
-    // 1. Microsoft's own answer, which names the KB and the products it is for.
+    // 1. Microsoft's own answer, which names the KB and the products it is for. A KB is one row
+    //    for every Windows version it ships to; a fix with no KB is one row per product and build
+    //    (src/msrc.ts fixKey), so marking it done marks only the CVEs it actually clears.
     for (const f of msrc.get(id) ?? []) {
-      const what = f.kb ? `KB${f.kb}` : (f.label ?? "update");
-      add(
-        {
-          key: `kb:${what}`,
-          kind: "install",
-          verb: "Install",
-          what,
-          where: productLine(f.products),
-          detail: `Microsoft Security Update Guide${f.fixedBuild ? ` · fixed build ${f.fixedBuild}` : ""}${f.restart ? " · needs a restart" : ""}`,
-          url: f.url ?? (f.kb ? kbUrl(f.kb) : null),
-        },
-        cve,
-      );
+      const key = `kb:${fixKey(f)}`;
+      // Where and the build line are filled in below, from every entry that shares the key.
+      add({ key, kind: "install", verb: "Install", what: f.kb ? `KB${f.kb}` : (f.label ?? "update"), where: null, detail: "", url: f.url ?? (f.kb ? kbUrl(f.kb) : null) }, cve);
+      const part = msrcParts.get(key) ?? { products: [], builds: new Map<string, string[]>(), restart: false };
+      const names = f.products.map((p) => addProduct(part.products, p));
+      if (f.fixedBuild) {
+        const on = part.builds.get(f.fixedBuild) ?? [];
+        for (const p of names) addProduct(on, p);
+        part.builds.set(f.fixedBuild, on);
+      }
+      if (f.restart) part.restart = true;
+      msrcParts.set(key, part);
       placed = true;
     }
 
@@ -341,6 +361,13 @@ export function fixList(db: DatabaseSync, rows: VulnRow[], since: string, total 
         cve,
       );
     }
+  }
+
+  for (const [key, part] of msrcParts) {
+    const r = byKey.get(key);
+    if (!r) continue;
+    r.where = productLine(part.products);
+    r.detail = `Microsoft Security Update Guide${buildLine(part.builds)}${part.restart ? " · needs a restart" : ""}`;
   }
 
   const remedies = [...byKey.values()];

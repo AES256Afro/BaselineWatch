@@ -640,7 +640,8 @@ export interface ProfileSection {
   kept: number;
 }
 
-const sectionOrder: SectionId[] = ["cat1", "cat2", "cat3", "sct", "mscp", "controls"];
+/** The builder's page order: the STIG's rules by CAT, then what Microsoft or mSCP adds, then the controls. */
+export const sectionOrder: readonly SectionId[] = ["cat1", "cat2", "cat3", "sct", "mscp", "controls"];
 const sectionLabels: Record<SectionId, string> = {
   cat1: "STIG rules: CAT I",
   cat2: "STIG rules: CAT II",
@@ -651,7 +652,7 @@ const sectionLabels: Record<SectionId, string> = {
 };
 
 export function isSectionId(value: unknown): value is SectionId {
-  return typeof value === "string" && (sectionOrder as string[]).includes(value);
+  return typeof value === "string" && (sectionOrder as readonly string[]).includes(value);
 }
 
 /** The section an item is drawn in. */

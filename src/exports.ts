@@ -1,5 +1,5 @@
 import { escapeHtml } from "./html.ts";
-import type { Profile, ProfileItem } from "./baselines.ts";
+import { sectionOf, sectionOrder, type Profile, type ProfileItem } from "./baselines.ts";
 import { csvCell } from "./csv.ts";
 import { controlLabel } from "./stigs.ts";
 import { productName } from "./version.ts";
@@ -90,14 +90,20 @@ export function attribution(profile: Profile): string[] {
 
 const kindLabel: Record<ProfileItem["kind"], string> = { stig: "STIG rule", sct: "Microsoft baseline setting", mscp: "mSCP rule", control: "SP 800-53 control" };
 
-function sections(profile: Profile): { section: string; items: ProfileItem[] }[] {
-  const out: { section: string; items: ProfileItem[] }[] = [];
+/**
+ * The kept items under one heading per section, in the builder's order and, within it, in the
+ * order each section first appears; items keep their profile order inside a section. A STIG lists
+ * its rules by rule id with CAT I and CAT II interleaved, so grouping only neighbours drew one
+ * heading per run — "CAT I (1)" fourteen times in the Windows export.
+ */
+export function sections(profile: Profile): { section: string; items: ProfileItem[] }[] {
+  const by = new Map<string, { section: string; rank: number; items: ProfileItem[] }>();
   for (const item of profile.items.filter((i) => i.included)) {
-    const last = out[out.length - 1];
-    if (last && last.section === item.section) last.items.push(item);
-    else out.push({ section: item.section, items: [item] });
+    const found = by.get(item.section);
+    if (found) found.items.push(item);
+    else by.set(item.section, { section: item.section, rank: sectionOrder.indexOf(sectionOf(item)), items: [item] });
   }
-  return out;
+  return [...by.values()].sort((a, b) => a.rank - b.rank).map(({ section, items }) => ({ section, items }));
 }
 
 const regText = (r: ProfileItem["registry"][number]): string => `${r.hive}\\${r.key}\\${r.value}${r.type ? ` (${r.type})` : ""}${r.data ? ` = ${r.data}` : ""}`;

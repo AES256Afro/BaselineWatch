@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
-import { expectedNext, familyHeatmap, releaseTimeline, velocity } from "../atlas.ts";
-import { html, type Html } from "../html.ts";
+import { expectedNext, familyHeatmap, releaseTimeline, velocity, type TimelineRow } from "../atlas.ts";
+import { counted, html, type Html } from "../html.ts";
+import { isBlocklist } from "./home.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
 
@@ -19,8 +20,7 @@ function quarterLabel(d: Date): string {
  * Every mark is a link: a standard's name to its versions, a dot to that release. A dot sits on
  * a wider transparent circle so a four-pixel mark is not a four-pixel target.
  */
-function timelineSvg(db: DatabaseSync, from: Date, to: Date): Html {
-  const rows = releaseTimeline(db, from.toISOString(), to.toISOString());
+function timelineSvg(rows: TimelineRow[], from: Date, to: Date, label: string): Html {
   const W = 1000;
   const labelW = 230;
   const rowH = 34;
@@ -30,7 +30,7 @@ function timelineSvg(db: DatabaseSync, from: Date, to: Date): Html {
   const x = (iso: string) => labelW + ((new Date(iso).getTime() - from.getTime()) / span) * (W - labelW - 20);
   const quarters: Date[] = [];
   for (let d = new Date(Date.UTC(from.getUTCFullYear(), Math.floor(from.getUTCMonth() / 3) * 3 + 3, 1)); d < to; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 3, 1))) quarters.push(d);
-  return html`<div class="atlas-scroll" tabindex="0" role="region" aria-label="Release timeline, scrolls sideways on a narrow screen"><svg class="atlas-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Release timeline per standard">
+  return html`<div class="atlas-scroll" tabindex="0" role="region" aria-label="${label}: release timeline, scrolls sideways on a narrow screen"><svg class="atlas-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}: releases per standard">
     ${quarters.map((q) => html`<line class="grid" x1="${x(q.toISOString()).toFixed(1)}" y1="${top - 8}" x2="${x(q.toISOString()).toFixed(1)}" y2="${H - 24}"></line><text class="axis" x="${x(q.toISOString()).toFixed(1)}" y="${H - 8}" text-anchor="middle">${quarterLabel(q)}</text>`)}
     ${rows.map((row, i) => {
       const y = top + i * rowH + rowH / 2;
@@ -79,25 +79,49 @@ function heatmapSvg(db: DatabaseSync): Html {
   </svg></div>`;
 }
 
+/**
+ * The timeline's rows grouped as /register groups its standards: by publisher, the first word of the
+ * source's name, largest group first; the blocklists the network check reads are versioned like a
+ * standard but are not one, and are set apart.
+ */
+export function atlasGroups(db: DatabaseSync, rows: TimelineRow[]): { publishers: [string, TimelineRow[]][]; blocklists: TimelineRow[] } {
+  const formats = new Map((db.prepare("SELECT id, format FROM sources").all() as { id: string; format: string }[]).map((r) => [r.id, r.format]));
+  const blocklists = rows.filter((r) => isBlocklist({ id: r.sourceId, format: formats.get(r.sourceId) ?? "" }));
+  const byPublisher = new Map<string, TimelineRow[]>();
+  for (const r of rows) {
+    if (blocklists.includes(r)) continue;
+    const publisher = r.name.split(/\s+/)[0] ?? r.name;
+    byPublisher.set(publisher, [...(byPublisher.get(publisher) ?? []), r]);
+  }
+  return { publishers: [...byPublisher.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])), blocklists };
+}
+
 export function renderAtlas(options: { db: DatabaseSync; owner: boolean; open: boolean; now: Date; look: LookState }): string {
   const { db, owner, open, now, look } = options;
   const to = now;
   const from = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth() - 3, 1));
   const rows = releaseTimeline(db, from.toISOString(), to.toISOString());
+  const { publishers, blocklists } = atlasGroups(db, rows);
+  const standardCount = rows.length - blocklists.length;
   const v = velocity(db, new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString());
   const due = expectedNext(db, now);
 
   const content = html`
     <div class="wire-top">
       <h1>Atlas</h1>
-      <div class="small">${from.getUTCDate()} ${monthNames[from.getUTCMonth()]} ${from.getUTCFullYear()} → today · <a href="/register">${rows.length} standards with releases in view</a></div>
+      <div class="small">${from.getUTCDate()} ${monthNames[from.getUTCMonth()]} ${from.getUTCFullYear()} → today · <a href="/register">${counted(standardCount, "standard")} with releases in view</a></div>
     </div>
-    <p class="lede">Being in tune means knowing the rhythm, not just today's note. Each dot is a release <a href="/register">the Register</a> holds; its size is how many requirements changed. The map below is <a href="/standards/nist-sp-800-53">NIST SP 800-53</a>, release by release, family by family.</p>
+    <p class="lede">The releases of each standard <a href="/register">the Register</a> holds, over the last fifteen months, grouped by publisher. Each dot is a release; its size is how many requirements changed. The map below is <a href="/standards/nist-sp-800-53">NIST SP 800-53</a>, release by release, family by family.</p>
     <div class="cols">
       <section class="main">
         <section class="box">
           <h2><a href="/register">Releases per standard</a> <span class="count">dot size = requirements changed</span></h2>
-          ${rows.length ? timelineSvg(db, from, to) : html`<p class="small">No releases loaded in this window yet.</p>`}
+          ${standardCount
+            ? publishers.map(([publisher, group]) => html`<h3 class="small atlas-pub">${publisher} <span class="count">(${group.length})</span></h3>${timelineSvg(group, from, to, publisher)}`)
+            : html`<p class="small">No releases loaded in this window yet.</p>`}
+          ${blocklists.length
+            ? html`<details class="fold" id="atlas-blocklists"><summary><b>Blocklists and canary lists</b> <span class="small">${counted(blocklists.length, "list")} the network check reads; versioned like a standard, not counted as one</span></summary>${timelineSvg(blocklists, from, to, "Blocklists")}</details>`
+            : ""}
           <p class="atlas-legend"><span class="key first">first version loaded</span><span class="key changed">release with changes</span><span class="key quiet">republished, no change</span></p>
         </section>
         <section class="box">

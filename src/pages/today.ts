@@ -6,17 +6,20 @@ import { devicesTile } from "../devices.ts";
 import { latestDigest } from "../digest.ts";
 import { endingSupport, loadFleet } from "../fleet.ts";
 import { candidateLimit, fixList, fixListCandidates, fixListHeadline, fixListTotal, type FixList, type Remedy } from "../fixlist.ts";
-import { html, newTabIf, type Html, counted } from "../html.ts";
+import { html, newTabIf, type Html, counted, figure } from "../html.ts";
+import { kevChip } from "../wire.ts";
 import { parseJson } from "../json.ts";
 import type { LookState } from "../look.ts";
-import { recentAlerts } from "../notify.ts";
-import { pipelineHealth, pipelineSummary } from "../pipeline.ts";
+import { alertStatusWord, recentAlerts, standingAlerts } from "../notify.ts";
+import { cveDataStop, pipelineHealth, pipelineSummary } from "../pipeline.ts";
 import { listSaved } from "../saved.ts";
+import { savedLink } from "./saved.ts";
 import { scanTile } from "../scanhistory.ts";
 import { relativeTime } from "../time.ts";
 import { trendingCves } from "../trending.ts";
-import { triageCounts, triageInbox } from "../triage.ts";
-import { page, registerStrip } from "./layout.ts";
+import { triageCounts, triageInbox, triageInboxCount } from "../triage.ts";
+import { page, registerStrip, staleNotice } from "./layout.ts";
+import { overdueKev } from "../vulns.ts";
 import { triageButtons } from "./triage.ts";
 import { setupPending, type SetupStep } from "../setup.ts";
 import { alertHref, groupAlerts } from "./digest.ts";
@@ -179,41 +182,56 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
   );
 
   const counts = triageCounts(db);
-  const inbox = triageInbox(db, 6);
-  const ending = endingSupport(fleet, now, 90);
+  // A visitor's inbox is the window alone: an older card is there only because the owner watches its CVE.
+  const inbox = triageInbox(db, now, 6, { owner });
+  const waiting = inbox.length < 6 ? inbox.length : triageInboxCount(db, now, { owner });
+  const ending = endingSupport(fleet, now, 90, owner);
+  // The owner's KEV entries past CISA's due date: theirs because watched or triaged as affecting them.
+  const overdue = owner ? overdueKev(db, now.toISOString().slice(0, 10), 5) : { total: 0, cves: [] };
   const failing = db
     .prepare("SELECT id, name, last_error, (SELECT COUNT(*) FROM source_repairs r WHERE r.source_id = sources.id) AS repairs FROM sources WHERE enabled = 1 AND last_status = 'error' ORDER BY name")
     .all() as { id: string; name: string; last_error: string | null; repairs: number }[];
-  const alerts = recentAlerts(db, 4);
+  // A failure notice from a source that has answered since is history, not a standing alert: /digest keeps it.
+  const alerts = standingAlerts(db, recentAlerts(db, 12)).slice(0, 4);
   const talked = trendingCves(db, new Date(now.getTime() - 7 * 86_400_000).toISOString(), 8);
   const scan = scanTile(db);
   const saved = owner ? listSaved(db) : [];
   const devices = owner ? devicesTile(db) : null;
   const digest = latestDigest(db);
   const pipeline = pipelineHealth(db, now);
+  // A stopped CVE stream makes every window empty; the heading says where the data stops rather than that nothing mattered.
+  const stopped = cveDataStop(db, now);
+  // An empty window is one line, not five zeros and four boxes that each say "nothing".
+  const quiet = list.fixed === 0 && published.size === 0 && mitigateOnly.size === 0 && nothing.size === 0 && cleared === 0 && list.total === 0;
+  const shortWindow = hours === 24 ? "24 h" : hours === 72 ? "3 days" : "7 days";
   const windowLink = (h: number) => html`<a class="${hours === h ? "on" : ""}" href="${todayHref(h, scope)}">${h === 24 ? "24 h" : h === 72 ? "3 days" : "7 days"}</a>`;
 
   const content = html`
     <div class="wire-top">
-      <h1>${fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the fix, because one update is one job. Counted: CVEs being exploited now (on <a href="/guide#kev">CISA's lists</a>), on ${owner ? "your" : "the owner's"} watchlist, newly critical, or <a href="/guide#epss">likely to be attacked soon</a>. ${owner ? "What you marked done has left the list." : "What the owner marked done has left the list."} <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has the rest.</small></h1>
-      <div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>
+      <h1>${stopped && list.considered === 0 ? `CVE data stopped on ${stopped.day}` : fixListHeadline(list)}${scope.platform || scope.danger ? html` <span class="motto">· ${scope.platform ? platformChoiceName(scope.platform) : ""}${scope.platform && scope.danger ? ", " : ""}${scope.danger ? "the most dangerous" : ""} <a class="show-all" href="${todayHref(hours, {})}">show all</a></span>` : ""}<small>Grouped by the fix, because one update is one job. Counted: CVEs being exploited now (on <a href="/guide#kev">CISA's lists</a>), on ${owner ? "your" : "the owner's"} watchlist, newly critical, or <a href="/guide#epss">likely to be attacked soon</a>. ${owner ? "What you marked done has left the list." : "What the owner marked done has left the list."} <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has the rest.</small></h1>
+      ${quiet ? "" : html`<div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div>`}
     </div>
+    ${staleNotice(db, now)}
     ${owner && options.setup && setupPending(options.setup) ? setupBox(options.setup) : ""}
 
-    <div class="stats today">
+    ${quiet
+      ? ""
+      : html`<div class="stats today">
       <a class="tile${list.fixed ? " ok" : ""}" href="#install"><small>Fixed by an update</small><b>${list.fixed}</b><span>${counted(list.install.length, "update")} to install</span></a>
       <a class="tile" href="#published"><small>No update named</small><b>${published.size}</b><span>fix published, version not named</span></a>
       <a class="tile${mitigateOnly.size ? " warn" : ""}" href="#mitigate"><small>Mitigation only</small><b>${mitigateOnly.size}</b><span>published action, no patch yet</span></a>
       <a class="tile" href="#nofix"><small>Nothing published</small><b>${nothing.size}</b><span>watching for a fix</span></a>
       <a class="tile" href="/triage?state=done"><small>Cleared</small><b>${cleared}</b><span>you finished in the last ${windowWord}</span></a>
-    </div>
-    ${fleetRows.length
+    </div>`}
+    ${quiet ? "" : fleetRows.length
       ? html`<p class="small plat-line">Across your fleet in the last ${windowWord}: ${fleetRows.map((r, i) => html`${i ? ", " : ""}<a href="/vulnerabilities?platform=${r.key}&amp;moved=${hours === 24 ? 1 : hours}">${r.label} ${r.total}</a>${r.kev ? html` (${r.kev} exploited)` : ""}`)}. ${breakdown.total} CVEs changed in all.</p>`
       : html`<p class="small plat-line">No CVE changed in your fleet in the last ${windowWord}. ${breakdown.total} changed elsewhere, in <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">the table</a>.</p>`}
 
     <div class="cols">
       <section class="main">
-        ${group(
+        ${quiet ? html`<div class="quiet-window">${stopped
+          ? html`<p>Nothing has arrived since ${stopped.day}.</p><p class="small">The CVE data stops there, so every window is empty until it runs again. A wider window:</p>`
+          : html`<p>Nothing moved in the last ${shortWindow}.</p><p class="small">No CVE that this page counts was published or changed, and nothing was marked done. A wider window:</p>`}<div class="filters">${windowLink(24)}${windowLink(72)}${windowLink(168)}</div></div>` : html`${group(
           "install",
           "Install now",
           `${counted(list.install.length, "update")} · ${counted(list.fixed, "CVE")}`,
@@ -244,13 +262,14 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         )}
         ${group(
           "nofix",
-          "Nothing published yet",
+          "No fix named yet",
           `${counted(nothing.size, "CVE")}`,
           list.none,
           owner,
           back,
           "Everything that touches you in this window has either a fix or a published action.",
         )}
+        `}
         ${list.total > list.considered ? html`<p class="small">${list.considered} of ${list.total} CVEs that moved in this window, the most urgent first. <a href="/vulnerabilities?moved=${hours === 24 ? 1 : hours}">The table</a> has all of them.</p>` : ""}
       </section>
 
@@ -263,13 +282,17 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
         </section>
 
         <section class="box" id="needs">
-          <h2><a href="/triage">${owner ? "Needs you" : "On the owner's desk"}</a> <span class="count">${counts.affects + counts.reviewing} placed, ${inbox.length} not</span></h2>
+          <h2><a href="/triage">${owner ? "Needs you" : "On the owner's desk"}</a> <span class="count">${figure(waiting)} waiting for a decision${waiting > inbox.length ? ` (${inbox.length} shown)` : ""} · ${figure(counts.affects + counts.reviewing)} under review or affecting us</span></h2>
+          ${overdue.total
+            ? html`<p class="overdue-kev"><b>${counted(overdue.total, "KEV entry", "KEV entries")} past CISA's due date</b> <span class="small">on your watchlist or marked as affecting you: ${overdue.cves.map((c, i) => html`${i ? ", " : ""}<a href="/vulnerabilities/${c.cveId}">${c.cveId}</a> (due ${c.dueDate})`)}${overdue.total > overdue.cves.length ? html` and ${overdue.total - overdue.cves.length} more` : ""}</span></p>`
+            : ""}
           ${decisions.length
             ? html`<ul class="talked">${decisions.map((d) => html`<li><a href="${d.href}">${d.title}</a> <span class="small">${d.why}</span></li>`)}</ul>`
             : ""}
           ${inbox.length
             ? html`<ul class="need">${inbox.map((i) => html`<li class="${i.kind === "kev" ? "kev" : i.kind === "release" ? "std" : ""}">
-                <div class="need-main"><b>${i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>
+                <div class="need-main"><b>${i.cve_id ? html`<a href="/vulnerabilities/${i.cve_id}">${i.title}</a>` : i.url ? html`<a href="${i.url}" ${newTabIf(i.url)}>${i.title}</a>` : i.title}</b>${((s) => (i.kind === "kev" || s.kev === true ? html` ${kevChip(s.dueDate, now)}` : ""))(parseJson<{ kev?: boolean; dueDate?: string }>(i.signals_json, {}))}
+                  ${i.lead ? html`<span class="small">${i.lead}</span>` : ""}
                   <span class="small"><a href="/?source=${i.source_id}">${i.source_name}</a> · ${relativeTime(i.published_at, now)}</span></div>
                 ${owner ? triageButtons({ kind: "item", id: i.id }, null, `${back}#needs`, { compact: true }) : ""}
               </li>`)}</ul>`
@@ -286,7 +309,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             : html`<p class="small">Nothing marked done in this window.</p>`}
         </section>
 
-        ${saved.length ? html`<section class="box"><h2><a href="/saved">Saved searches</a></h2><ul class="talked">${saved.map((s) => html`<li><a href="${s.path}">${s.name}</a></li>`)}</ul></section>` : ""}
+        ${saved.length ? html`<section class="box"><h2><a href="/saved">Saved searches</a></h2><ul class="talked">${saved.map((s) => html`<li>${savedLink(db, s, now)}</li>`)}</ul></section>` : ""}
 
         <section class="box">
           <h2><a href="/vulnerabilities">Talked about</a> <span class="count">7 days, by sources</span></h2>
@@ -305,7 +328,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
             <li><span><a href="/digest">Last digest</a></span><b>${digest ? relativeTime(digest.generated_at, now) : "none yet"}</b></li>
           </ul>
           ${failing.length ? html`<ul class="src-fail">${failing.map((f) => html`<li><a href="/sources#src-${f.id}"><b>${f.name}</b></a> <span class="small">${f.last_error ?? "error"}</span>${owner && f.repairs ? html` · <a href="/sources#src-${f.id}">a repair is proposed</a>` : ""}</li>`)}</ul>` : ""}
-          ${alerts.length ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · ${times} times` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
+          ${alerts.length ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${alertStatusWord(a.status)}${times > 1 ? html` · ${times} times` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>` : ""}
         </section>
       </aside>
     </div>`;
@@ -314,7 +337,7 @@ export function renderToday(options: { db: DatabaseSync; owner: boolean; open: b
     title: "Today",
     active: "today",
     content,
-    meta: html`${counted(list.install.length, "update")} · ${list.fixed} fixed · ${published.size} with no version named · ${nothing.size} with nothing published`,
+    meta: html`This window: ${counted(list.install.length, "update")} · ${list.fixed} fixed · ${published.size} with no version named · ${nothing.size} with nothing published`,
     owner,
     open,
     strip: registerStrip(db, now),

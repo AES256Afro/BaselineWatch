@@ -1,8 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { eolFor, eolWord } from "./eol.ts";
+import { distroEcosystem, ecosystemCovers } from "./ecosystems.ts";
+import { eolFor, eolWord, windowsEdition } from "./eol.ts";
 import type { HttpGet } from "./http.ts";
 import { parseJson } from "./json.ts";
-import { compareDotted, newestVersion } from "./versions.ts";
+import { compareDebian, compareDotted, newestVersion } from "./versions.ts";
 import { agree, counted } from "./words.ts";
 
 /**
@@ -17,7 +18,19 @@ import { agree, counted } from "./words.ts";
 
 export interface InventoryReport {
   bw: number;
-  os: { family: "windows" | "macos" | "linux"; name: string | null; version: string | null; build: string | null; display: string | null; id: string | null; versionId: string | null };
+  os: {
+    family: "windows" | "macos" | "linux";
+    name: string | null;
+    version: string | null;
+    build: string | null;
+    display: string | null;
+    id: string | null;
+    versionId: string | null;
+    /** Windows: the registry's EditionID (Professional, EnterpriseS, IoTEnterpriseS, ServerStandard). */
+    edition?: string | null;
+    /** Linux: /etc/os-release's ID_LIKE, when the report carries it (the shell script of 2026-11 does not). */
+    idLike?: string | null;
+  };
   browsers: { name: string; version: string }[];
   packages: { name: string; version: string }[];
   /** Which package manager the list came from: dpkg, rpm, apk. */
@@ -56,7 +69,7 @@ export function readReport(text: string): InventoryReport {
     Array.isArray(v) ? v.slice(0, max).map((x) => read((x ?? {}) as Record<string, unknown>)).filter((x): x is T => x !== null) : [];
   return {
     bw: 1,
-    os: { family, name: str(os.name), version: str(os.version), build: str(os.build), display: str(os.display), id: str(os.id), versionId: str(os.version_id ?? os.versionId) },
+    os: { family, name: str(os.name), version: str(os.version), build: str(os.build), display: str(os.display), id: str(os.id), versionId: str(os.version_id ?? os.versionId), edition: str(os.edition, 60), idLike: str(os.id_like ?? os.idLike) },
     browsers: list(raw.browsers, (x) => (str(x.name) && str(x.version) ? { name: str(x.name)!, version: str(x.version)! } : null), 20),
     packages: list(raw.packages, (x) => (str(x.name) && str(x.version) ? { name: str(x.name)!, version: str(x.version)! } : null), 5000),
     packageSource: raw.package_source === "dpkg" || raw.package_source === "rpm" || raw.package_source === "apk" ? raw.package_source : null,
@@ -65,9 +78,19 @@ export function readReport(text: string): InventoryReport {
 
 // ------------------------------------------------------------------ Windows, from the guide
 
-/** "24H2" and a build "10.0.26100.9711" to the guide's product name: Windows 11 Version 24H2 (or Windows 10, by build). */
+/**
+ * The Windows version a report states: DisplayVersion's "24H2", or, where the script fell back to
+ * ReleaseId because the release predates DisplayVersion (Windows 10 LTSC 2019 is 1809, LTSB 2016
+ * is 1607), the four digits alone.
+ */
+function windowsVersion(display: string | null | undefined): string | null {
+  const d = (display ?? "").trim().toUpperCase();
+  return /\d{2}H\d/.exec(d)?.[0] ?? /^\d{4}$/.exec(d)?.[0] ?? null;
+}
+
+/** "24H2" (or "1809") and a build "10.0.26100.9711" to the guide's product name: Windows 11 Version 24H2 (or Windows 10, by build). */
 export function windowsProduct(display: string | null, build: string | null): string | null {
-  const v = display?.toUpperCase().match(/\d{2}H\d/)?.[0];
+  const v = windowsVersion(display);
   if (!v) return null;
   const major = Number(build?.split(".")[2] ?? 0);
   return `${major >= 22000 ? "Windows 11" : "Windows 10"} Version ${v}`;
@@ -96,7 +119,7 @@ export function matchWindows(db: DatabaseSync, report: InventoryReport): DeviceF
     id: "windows",
     title: "Windows updates",
     state: exploited ? "bad" : "warn",
-    text: `${counted(list.length, "CVE")} fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} ${agree(list.length, "is", "are")} not on this build${exploited ? `; ${exploited} of them Microsoft says are exploited` : ""}. Install the update and restart.`,
+    text: `${counted(list.length, "CVE")} fixed in ${kbs.slice(0, 3).join(", ")}${kbs.length > 3 ? ` and ${kbs.length - 3} more` : ""} ${agree(list.length, "is", "are")} not on this build${exploited ? `; Microsoft says ${exploited} of them ${agree(exploited, "is", "are")} exploited` : ""}. Install the update and restart.`,
     refs: list.slice(0, 60).map((m) => ({ id: m.cve_id, href: `/vulnerabilities/${m.cve_id}`, note: `${m.severity ?? ""}${m.exploited ? " · exploited" : ""} · ${m.kb ? `KB${m.kb}` : m.fixedBuild} (${m.release_id})` })),
     quoted: [...quoted, `Newest fixed build the guide names: ${newestVersion(list.map((m) => m.fixedBuild)) ?? "?"}`],
     links: kbs.filter((k) => k.startsWith("KB")).slice(0, 6).map((k) => ({ label: `${k} on Patch Tuesday`, href: `/vulnerabilities/microsoft?q=${k.slice(2)}` })),
@@ -190,8 +213,39 @@ function matchBrowsers(db: DatabaseSync, report: InventoryReport): DeviceFinding
 
 // ------------------------------------------------------------------ the OS, from Apple and endoflife.date
 
-export function matchOs(db: DatabaseSync, report: InventoryReport): DeviceFinding {
+const isoDay = (now: Date): string => now.toISOString().slice(0, 10);
+const isDate = (v: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+function matchWindowsSupport(db: DatabaseSync, report: InventoryReport, today: string): DeviceFinding {
   const { os } = report;
+  const product = windowsProduct(os.display, os.build);
+  const v = windowsVersion(os.display);
+  const edition = windowsEdition(os.edition);
+  const named = os.edition ? ` (${os.edition})` : "";
+  if (edition === "server") return { id: "os", title: "Windows support", state: "na", text: `This is a Windows Server edition${named}; its support dates are not read here (endoflife.date's Windows Server product is not one this instance follows).`, refs: [], quoted: [`${os.name ?? "Windows Server"}, build ${os.build ?? "?"}`] };
+  // An EditionID the mapping does not know (a new SKU, a Cloud or Team edition) is named, not
+  // guessed at: reading every edition's dates for it would say "the report does not say which".
+  if (os.edition && edition === null) return { id: "os", title: "Windows support", state: "na", text: `This is the ${os.edition} edition, which this check does not map to an endoflife.date cycle; its support dates are not read here.`, refs: [], quoted: [`${product ?? os.name ?? "Windows"}, build ${os.build ?? "?"}, edition ${os.edition}`] };
+  if (edition && v && product) {
+    // The edition picks one cycle (src/eol.ts keeps the mapping); the first that endoflife.date holds is the one.
+    const row = eolFor(db, "windows", product.startsWith("Windows 10") ? `10-${v}` : v, edition)[0];
+    const quoted = [`${product}, build ${os.build ?? "?"}, edition ${os.edition}`, ...(row ? [`endoflife.date ${row.cycle}: ${eolWord(row.eol)}`] : [])];
+    if (!row) return { id: "os", title: "Windows support", state: "na", text: `endoflife.date has no row for ${product} ${edition.word} yet.`, refs: [], quoted };
+    if (isDate(row.eol) && row.eol < today) return { id: "os", title: "Windows support", state: "bad", text: `Support for ${product} ${edition.word}, the edition here${named}, ended on ${row.eol}: no more security updates. Move to a supported version.`, refs: [], quoted };
+    return { id: "os", title: "Windows support", state: "ok", text: `${product} ${edition.word}, the edition here${named}, is in support${isDate(row.eol) ? ` until ${row.eol}` : ""}.`, refs: [], quoted };
+  }
+  const eol = v ? eolFor(db, "windows", product?.startsWith("Windows 10") ? `10-${v}` : v) : [];
+  const ended = eol.filter((c) => isDate(c.eol) && c.eol < today);
+  const quoted = [`${product ?? "Windows"}, build ${os.build ?? "?"}`, ...eol.map((c) => ["endoflife.date:", c.edition, eolWord(c.eol)].filter(Boolean).join(" "))];
+  if (eol.length === 0) return { id: "os", title: "Windows support", state: "na", text: "endoflife.date has no row for this version yet.", refs: [], quoted };
+  if (ended.length === eol.length) return { id: "os", title: "Windows support", state: "bad", text: `Support for ${product} ended on every edition (${ended.map((c) => c.eol).join(", ")}): no more security updates. Move to a supported version.`, refs: [], quoted };
+  if (ended.length) return { id: "os", title: "Windows support", state: "warn", text: `Support for ${product} has ended on ${ended.map((c) => c.edition ?? "one edition").join(" and ")}; the others continue. The report does not say which edition this is.`, refs: [], quoted };
+  return { id: "os", title: "Windows support", state: "ok", text: `${product} is in support: ${eol.map((c) => `${c.edition ?? "every edition"} until ${c.eol}`).join("; ")}.`, refs: [], quoted };
+}
+
+export function matchOs(db: DatabaseSync, report: InventoryReport, now: Date = new Date()): DeviceFinding {
+  const { os } = report;
+  const today = isoDay(now);
   if (os.family === "macos" && os.version) {
     const major = os.version.split(".")[0]!;
     const rows = (db.prepare("SELECT title, url, published_at FROM items WHERE source_id = 'apple-security' AND title LIKE 'macOS %' ORDER BY published_at DESC LIMIT 60").all() as { title: string; url: string | null; published_at: string | null }[])
@@ -205,25 +259,19 @@ export function matchOs(db: DatabaseSync, report: InventoryReport): DeviceFindin
     if (newer.length === 0) return { id: "os", title: "macOS", state: "ok", text: `${os.version} is the newest macOS ${major} with security content Apple has published.`, refs: [], quoted };
     return { id: "os", title: "macOS", state: newer.length >= 2 ? "bad" : "warn", text: `${os.version} is behind ${latest}: ${counted(newer.length, "newer release")} with security content. Software Update, then restart.`, refs: newer.slice(0, 8).map((n) => ({ id: n.version, href: n.url ?? "#", note: `${n.title}${n.published_at ? ` · ${n.published_at.slice(0, 10)}` : ""}` })), quoted };
   }
-  if (os.family === "windows") {
-    const product = windowsProduct(os.display, os.build);
-    const v = os.display?.toUpperCase().match(/\d{2}H\d/)?.[0];
-    const eol = v ? eolFor(db, "windows", product?.startsWith("Windows 10") ? `10-${v}` : v) : [];
-    const ended = eol.filter((c) => /^\d{4}-/.test(c.eol) && c.eol < new Date().toISOString().slice(0, 10));
-    const quoted = [`${product ?? "Windows"}, build ${os.build ?? "?"}`, ...eol.map((c) => `endoflife.date: ${c.edition ?? ""} ${eolWord(c.eol)}`.trim())];
-    if (eol.length === 0) return { id: "os", title: "Windows support", state: "na", text: "endoflife.date has no row for this version yet.", refs: [], quoted };
-    if (ended.length === eol.length) return { id: "os", title: "Windows support", state: "bad", text: `Support for ${product} ended on every edition (${ended.map((c) => c.eol).join(", ")}): no more security updates. Move to a supported version.`, refs: [], quoted };
-    if (ended.length) return { id: "os", title: "Windows support", state: "warn", text: `Support for ${product} has ended on ${ended.map((c) => c.edition ?? "one edition").join(" and ")}; the others continue.`, refs: [], quoted };
-    return { id: "os", title: "Windows support", state: "ok", text: `${product} is in support: ${eol.map((c) => `${c.edition} until ${c.eol}`).join("; ")}.`, refs: [], quoted };
-  }
+  if (os.family === "windows") return matchWindowsSupport(db, report, today);
   if (os.family === "linux" && os.id && os.versionId) {
     const key = os.id === "ubuntu" ? `ubuntu-${os.versionId}` : /^(rhel|redhat)$/.test(os.id) ? `rhel-${os.versionId.split(".")[0]}` : null;
     const eol = key ? eolFor(db, "linux", key) : [];
     const quoted = [`${os.name ?? os.id} ${os.versionId}`, ...eol.map((c) => `endoflife.date: ${eolWord(c.eol)}${c.support ? ` (support ${eolWord(c.support)})` : ""}`)];
     if (eol.length === 0) return { id: "os", title: "Distribution support", state: "na", text: "endoflife.date has no row for this distribution and release here (Ubuntu and RHEL are read).", refs: [], quoted };
     const c = eol[0]!;
-    const today = new Date().toISOString().slice(0, 10);
-    if (/^\d{4}-/.test(c.eol) && c.eol < today) return { id: "os", title: "Distribution support", state: "bad", text: `Support ended ${c.eol}: no more security updates for this release.`, refs: [], quoted };
+    if (isDate(c.eol) && c.eol < today) {
+      // An Ubuntu LTS goes on under Ubuntu Pro's Expanded Security Maintenance; the table holds no ESM end to name.
+      const esm = key?.startsWith("ubuntu-") && c.lts === 1;
+      const after = esm ? "security updates continue only under Ubuntu Pro (ESM), for a machine attached to it; the ESM end date is not read here" : "no more security updates for this release";
+      return { id: "os", title: "Distribution support", state: "bad", text: `Standard support ended ${c.eol}: ${after}.`, refs: [], quoted };
+    }
     return { id: "os", title: "Distribution support", state: "ok", text: `In support${/^\d{4}-/.test(c.eol) ? ` until ${c.eol}` : ""}.`, refs: [], quoted };
   }
   return { id: "os", title: "Operating system", state: "na", text: "The report carries no OS version to read.", refs: [], quoted: [] };
@@ -233,29 +281,38 @@ export function matchOs(db: DatabaseSync, report: InventoryReport): DeviceFindin
 
 export const osvBatchUrl = "https://api.osv.dev/v1/querybatch";
 
-/** The OSV ecosystem for a distribution as /etc/os-release names it; null for one OSV does not carry. */
-export function osvEcosystem(id: string | null, versionId: string | null, source: InventoryReport["packageSource"]): string | null {
+/**
+ * The distribution whose packages a derivative installs, for asking OSV: Pop!_OS and Linux Mint
+ * are built on an Ubuntu release, Raspbian and LMDE on a Debian one. The inventory script of
+ * 2026-11 sends ID and VERSION_ID only, so the derivatives seen in practice are mapped here by
+ * hand (Mint's own release numbers to Ubuntu's); a report that carries ID_LIKE is read through it
+ * when its VERSION_ID is already the parent's.
+ */
+export function packageBase(id: string | null, versionId: string | null, idLike?: string | null): { id: string; versionId: string; via: string | null } | null {
   if (!id || !versionId) return null;
-  const major = versionId.split(".")[0]!;
-  switch (id.toLowerCase()) {
-    case "debian":
-      return `Debian:${major}`;
-    case "ubuntu": {
-      const [y, m] = versionId.split(".");
-      return `Ubuntu:${versionId}${Number(y) % 2 === 0 && m === "04" ? ":LTS" : ""}`;
-    }
-    case "alpine":
-      return `Alpine:v${versionId.split(".").slice(0, 2).join(".")}`;
-    case "almalinux":
-      return `AlmaLinux:${major}`;
-    case "rocky":
-      return `Rocky Linux:${major}`;
-    case "rhel":
-    case "redhat":
-      return "Red Hat";
-    default:
-      return source === "apk" ? `Alpine:v${versionId.split(".").slice(0, 2).join(".")}` : null;
+  const lower = id.toLowerCase();
+  const major = Number(versionId.split(".")[0]);
+  if (lower === "pop") return { id: "ubuntu", versionId, via: "Pop!_OS" };
+  if (lower === "raspbian") return { id: "debian", versionId: String(major), via: "Raspbian" };
+  if (lower === "linuxmint") {
+    const ubuntu: Record<number, string> = { 19: "18.04", 20: "20.04", 21: "22.04", 22: "24.04" };
+    const lmde: Record<number, string> = { 4: "10", 5: "11", 6: "12", 7: "13" };
+    if (ubuntu[major]) return { id: "ubuntu", versionId: ubuntu[major], via: `Linux Mint ${major}` };
+    if (lmde[major]) return { id: "debian", versionId: lmde[major], via: `LMDE ${major}` };
+    return null;
   }
+  if (distroEcosystem(lower, versionId)) return { id: lower, versionId, via: null };
+  const like = (idLike ?? "").toLowerCase().split(/\s+/);
+  if (like.includes("ubuntu") && /^\d{2}\.\d{2}$/.test(versionId)) return { id: "ubuntu", versionId, via: id };
+  if (like.includes("debian") && /^\d+$/.test(versionId)) return { id: "debian", versionId, via: id };
+  return null;
+}
+
+/** The OSV ecosystem for a device's distribution, through the parent a derivative's packages come from; an apk report from an unnamed distribution is Alpine's. */
+export function osvEcosystem(id: string | null, versionId: string | null, source: InventoryReport["packageSource"], idLike?: string | null): string | null {
+  if (!id || !versionId) return null;
+  const base = packageBase(id, versionId, idLike);
+  return (base ? distroEcosystem(base.id, base.versionId) : null) ?? (source === "apk" ? distroEcosystem("alpine", versionId) : null);
 }
 
 export interface PackageHit {
@@ -289,44 +346,140 @@ function refFor(db: DatabaseSync, id: string): { id: string; href: string; note:
   return { id, href: `https://osv.dev/vulnerability/${encodeURIComponent(id)}`, note: null };
 }
 
+export const osvQueryUrl = "https://api.osv.dev/v1/query";
+
+/** At most this many packages are asked of OSV one by one for their advisories' fixed versions, six at a time. */
+const fixLookupLimit = 150;
+const fixLookupConcurrency = 6;
+
+interface OsvAffected {
+  package?: { name?: string; ecosystem?: string };
+  ranges?: { type?: string; events?: Record<string, string>[] }[];
+}
+
+/**
+ * Whether an advisory publishes a fixed version above the installed one for this package. OSV has
+ * already said the installed version is affected; the question is whether a range carries a
+ * `fixed` event. For Debian and Ubuntu that event is compared with the installed version by
+ * Debian's rules; for the others, whose version rules this does not implement, a fixed event in a
+ * range that covers the installed version is taken as the fix.
+ */
+export function hasFixAbove(affected: OsvAffected[], name: string, ecosystem: string, installed: string): boolean {
+  const family = ecosystem.split(":")[0]!.toLowerCase();
+  const same = (eco: string | undefined): boolean => !!eco && eco.split(":")[0]!.toLowerCase() === family && (ecosystemCovers(eco, ecosystem) || ecosystemCovers(ecosystem, eco));
+  const ours = affected.filter((a) => same(a.package?.ecosystem));
+  const named = ours.filter((a) => a.package?.name === name);
+  const fixed = (named.length ? named : ours).flatMap((a) => (a.ranges ?? []).flatMap((r) => (r.events ?? []).map((e) => e.fixed).filter((f): f is string => typeof f === "string" && f !== "")));
+  if (family === "debian" || family === "ubuntu") return fixed.some((f) => compareDebian(f, installed) > 0);
+  return fixed.length > 0;
+}
+
+/** Runs `work` over `items`, `limit` at a time, in order of the results. */
+async function pooled<T, R>(items: T[], limit: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array<R>(items.length);
+  let next = 0;
+  const run = async (): Promise<void> => {
+    while (next < items.length) {
+      const k = next;
+      next += 1;
+      out[k] = await work(items[k]!, k);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
+  return out;
+}
+
+interface SplitHit extends PackageHit {
+  /** Advisories with a fixed version above the installed one: the update that ends them is published. */
+  fixable: string[];
+  /** Advisories OSV lists for the installed version with no fix published. */
+  unfixed: string[];
+  /** Whether the advisories were read for their fixes; false past the lookup limit or when OSV did not answer. */
+  checked: boolean;
+}
+
+/**
+ * Splits each hit's advisories into those with a published fix and those without, by asking OSV
+ * for the package's full records (one /v1/query per package with hits, bounded in count and
+ * concurrency). A hit past the limit, or whose query fails, is left whole as fixable: unread is
+ * not the same as no fix.
+ */
+async function splitByFix(http: HttpGet, ecosystem: string, hits: PackageHit[], limit = fixLookupLimit): Promise<SplitHit[]> {
+  return pooled(hits, fixLookupConcurrency, async (hit, k) => {
+    const whole: SplitHit = { ...hit, fixable: hit.ids, unfixed: [], checked: false };
+    if (k >= limit) return whole;
+    try {
+      const body = JSON.stringify({ package: { name: hit.name, ecosystem }, version: hit.version });
+      const response = await http(osvQueryUrl, { method: "POST", body, headers: { accept: "application/json", "content-type": "application/json" }, timeoutMs: 30_000, maxBytes: 20 * 1024 * 1024 });
+      const data = parseJson<{ vulns?: { id?: string; affected?: OsvAffected[] }[] }>(new TextDecoder().decode(response.bytes), {});
+      if (!Array.isArray(data.vulns)) return whole;
+      const records = new Map(data.vulns.filter((v) => typeof v.id === "string").map((v) => [v.id!, v.affected ?? []]));
+      const fixable: string[] = [];
+      const unfixed: string[] = [];
+      for (const id of hit.ids) {
+        const affected = records.get(id);
+        // An id the batch named but the query did not return is left with the fixable: unread.
+        if (!affected || hasFixAbove(affected, hit.name, ecosystem, hit.version)) fixable.push(id);
+        else unfixed.push(id);
+      }
+      return { ...hit, fixable, unfixed, checked: true };
+    } catch {
+      return whole;
+    }
+  });
+}
+
 export async function matchPackages(db: DatabaseSync, http: HttpGet, report: InventoryReport): Promise<DeviceFinding> {
-  const ecosystem = osvEcosystem(report.os.id, report.os.versionId, report.packageSource);
-  if (report.packages.length === 0) return { id: "packages", title: "Installed packages", state: "na", text: "The report lists no packages (the script reads dpkg, rpm or apk on Linux).", refs: [], quoted: [] };
-  if (!ecosystem) return { id: "packages", title: "Installed packages", state: "na", text: `OSV carries no advisories for ${report.os.name ?? report.os.id ?? "this distribution"} ${report.os.versionId ?? ""}, so ${report.packages.length} packages cannot be judged here.`, refs: [], quoted: [] };
+  const ecosystem = osvEcosystem(report.os.id, report.os.versionId, report.packageSource, report.os.idLike);
+  const n = report.packages.length;
+  const packagesWord = counted(n, "package");
+  if (n === 0) return { id: "packages", title: "Installed packages", state: "na", text: "The report lists no packages (the script reads dpkg, rpm or apk on Linux).", refs: [], quoted: [] };
+  if (!ecosystem) return { id: "packages", title: "Installed packages", state: "na", text: `OSV carries no advisories for ${[report.os.name ?? report.os.id ?? "this distribution", report.os.versionId].filter(Boolean).join(" ")}, so ${packagesWord} cannot be judged here.`, refs: [], quoted: [] };
   let hits: PackageHit[];
   try {
     hits = await queryOsv(http, ecosystem, report.packages);
   } catch (error) {
-    return { id: "packages", title: "Installed packages", state: "na", text: `OSV did not answer (${error instanceof Error ? error.message : String(error)}); ${report.packages.length} packages were not judged.`, refs: [], quoted: [] };
+    return { id: "packages", title: "Installed packages", state: "na", text: `OSV did not answer (${error instanceof Error ? error.message : String(error)}); ${packagesWord} ${agree(n, "was", "were")} not judged.`, refs: [], quoted: [] };
   }
-  const quoted = [`${report.packages.length} packages as ${ecosystem}, asked of OSV`];
-  if (hits.length === 0) return { id: "packages", title: "Installed packages", state: "ok", text: `OSV lists no open advisory for any of the ${report.packages.length} installed versions.`, refs: [], quoted };
+  const base = packageBase(report.os.id, report.os.versionId, report.os.idLike);
+  const quoted = [`${packagesWord} as ${ecosystem}, asked of OSV${base?.via ? ` (${base.via} installs that release's packages)` : ""}`];
+  if (hits.length === 0) return { id: "packages", title: "Installed packages", state: "ok", text: `OSV lists no open advisory for any of the ${n === 1 ? "1 installed version" : `${n} installed versions`}.`, refs: [], quoted };
+  const split = await splitByFix(http, ecosystem, hits);
+  const unchecked = split.filter((h) => !h.checked).length;
+  if (unchecked) quoted.push(`${counted(unchecked, "package")} with advisories ${agree(unchecked, "was", "were")} not read for a fix (OSV's records are read for the first ${fixLookupLimit}); ${agree(unchecked, "it is", "they are")} counted as open`);
   // One lookup per advisory id, not three: a report can carry five thousand packages, and the
   // same row was being read again inside the note it had just been read for.
-  const refs = hits.flatMap((h) =>
-    h.ids.slice(0, 12).map((id) => {
+  const refsOf = (h: SplitHit, ids: string[], extra: string | null) =>
+    ids.slice(0, 12).map((id) => {
       const ref = refFor(db, id);
-      return { ...ref, note: `${h.name} ${h.version}${ref.note ? ` · ${ref.note}` : ""}` };
-    }),
-  );
+      return { ...ref, note: [`${h.name} ${h.version}`, ref.note, extra].filter(Boolean).join(" · ") };
+    });
   const seen = new Set<string>();
-  const unique = refs.filter((r) => (seen.has(`${r.id}|${r.note}`) ? false : (seen.add(`${r.id}|${r.note}`), true)));
-  const kev = unique.filter((r) => r.note?.includes("KEV")).length;
+  const dedupe = <R extends { id: string; note: string | null }>(list: R[]): R[] => list.filter((r) => (seen.has(`${r.id}|${r.note}`) ? false : (seen.add(`${r.id}|${r.note}`), true)));
+  const open = split.filter((h) => h.fixable.length > 0);
+  const openRefs = dedupe(open.flatMap((h) => refsOf(h, h.fixable, null)));
+  const waiting = split.filter((h) => h.unfixed.length > 0);
+  const unfixedCount = waiting.reduce((sum, h) => sum + h.unfixed.length, 0);
+  const waitingRefs = dedupe(waiting.flatMap((h) => refsOf(h, h.unfixed, "no fix published")));
+  const noFix = unfixedCount ? `${counted(unfixedCount, "advisory", "advisories")} on ${counted(waiting.length, "package")} ${agree(unfixedCount, "has", "have")} no fix published yet; the distribution has nothing to install for ${agree(unfixedCount, "it", "them")}.` : "";
+  const refs = [...openRefs, ...waitingRefs].slice(0, 200);
+  if (open.length === 0) return { id: "packages", title: "Installed packages", state: "ok", text: `No installed version has an advisory with a fix published. ${noFix}`.trim(), refs, quoted };
+  const kev = openRefs.filter((r) => r.note?.includes("KEV")).length;
   return {
     id: "packages",
     title: "Installed packages",
     state: kev ? "bad" : "warn",
-    text: `${hits.length === 1 ? "1 package has" : `${hits.length} packages have`} open advisories for the installed version: ${hits.slice(0, 6).map((h) => h.name).join(", ")}${hits.length > 6 ? ` and ${hits.length - 6} more` : ""}${kev ? `; ${kev} of the CVEs are on the KEV` : ""}. Update the distribution's packages.`,
-    refs: unique.slice(0, 200),
+    text: `${counted(open.length, "package")} ${agree(open.length, "has", "have")} advisories with a fixed version published above the one installed: ${open.slice(0, 6).map((h) => h.name).join(", ")}${open.length > 6 ? ` and ${open.length - 6} more` : ""}${kev ? `; ${counted(kev, "of the CVEs is", "of the CVEs are")} on the KEV` : ""}. Update the distribution's packages.${noFix ? ` ${noFix}` : ""}`,
+    refs,
     quoted,
   };
 }
 
 /** The whole reading of a report. */
-export async function readDevice(db: DatabaseSync, http: HttpGet, report: InventoryReport): Promise<DeviceFinding[]> {
+export async function readDevice(db: DatabaseSync, http: HttpGet, report: InventoryReport, now: Date = new Date()): Promise<DeviceFinding[]> {
   const findings: DeviceFinding[] = [];
   if (report.os.family === "windows") findings.push(matchWindows(db, report));
-  findings.push(matchOs(db, report));
+  findings.push(matchOs(db, report, now));
   findings.push(...matchBrowsers(db, report));
   if (report.os.family === "linux") findings.push(await matchPackages(db, http, report));
   return findings;

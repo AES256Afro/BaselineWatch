@@ -37,11 +37,11 @@ const groups: { id: Finding["group"]; title: string; blurb: string }[] = [
 
 const stateWord: Record<Finding["state"], string> = { ok: "Good", warn: "Could be better", bad: "Missing or wrong", na: "Not applicable" };
 
-function row(n: number, f: Finding, domain: string): Html {
+function row(n: number, f: Finding, domain: string, report: Finding[]): Html {
   // What to do about it, for a row that is not already good. The check used to stop at the
   // verdict, which left a reader who learns their domain publishes no CAA record to go and find
   // out what one looks like; this is the record, beside the body that defines it.
-  const fix = fixFor(f, domain);
+  const fix = fixFor(f, domain, report);
   return html`<article class="check" id="check-${f.id}">
   <span class="n">${String(n).padStart(2, "0")}</span>
   <div>
@@ -86,16 +86,16 @@ export function renderScanDomain(options: ScanDomainOptions): string {
         (g) => html`<section class="box wide" id="${g.id}">
           <h2>${g.title}</h2>
           <p class="small">${g.blurb}</p>
-          <div class="checks">${report.findings.filter((f) => f.group === g.id).map((f) => row(++n, f, report.domain))}</div>
+          <div class="checks">${report.findings.filter((f) => f.group === g.id).map((f) => row(++n, f, report.domain, report.findings))}</div>
         </section>`,
       )}
-      <p class="small">Read in ${report.durationMs} ms by DNS questions to this server's resolver, one question to Cloudflare's validating resolver for the DNSSEC flag, and GETs of the domain's own front page and well-known files. No port was probed beyond 443, and 80 to see whether it redirects. Nothing was stored.</p>`
+      <p class="small">Read in ${report.durationMs} ms by DNS questions to this server's resolver, one question to Cloudflare's validating resolver for the DNSSEC flag, and GETs of the domain's own front page (over HTTPS and plain HTTP), its security.txt and its MTA-STS policy, with one TLS handshake. No port was probed beyond 443, and 80 to see whether it redirects. Nothing was stored.</p>`
     : html`<section class="box wide"><p class="small">${problem ?? "Type a domain. The check reads it by DNS and HTTPS alone — the way internet.nl, Hardenize and MXToolbox do — and quotes every record beside its verdict."}</p></section>`;
   const content = html`<section class="scan">
   <p class="crumbs"><a href="/">Home</a><span>›</span><a href="/scan">Scan</a><span>›</span><b>A domain</b></p>
   <h1>Check a domain <span class="arrow">its mail, DNS and web posture, each record quoted</span></h1>
   <p class="lede">
-    SPF, DMARC and DKIM say whether forged mail from the domain is refused; MTA-STS and TLS-RPT whether mail to it travels encrypted; DNSSEC and CAA who may answer for it and certify it; HSTS, the security headers, the certificate and <code>security.txt</code> what the front page binds a browser to and whom to tell about a flaw. Lookups only, from this server; nothing is sent to the domain beyond a GET of its front page.
+    Checks one domain's public setup by looking it up: whether someone else can send mail in its name, whether mail to it is encrypted on the way, who may answer for it and issue its certificates, and what its website asks a browser to enforce. Each answer is quoted as the domain publishes it. In the records' own names: SPF, DMARC and DKIM say whether forged mail from the domain is refused; MTA-STS and TLS-RPT whether mail to it travels encrypted; DNSSEC and CAA who may answer for it and certify it; HSTS, the security headers, the certificate and <code>security.txt</code> what the front page binds a browser to and whom to tell about a flaw. From this server: DNS questions, then what is sent to the domain itself — a GET of its front page over HTTPS (and of the page a redirect there leads to) and over plain HTTP, a GET of <code>/.well-known/security.txt</code> and of the MTA-STS policy file on its <code>mta-sts</code> subdomain, and one TLS handshake on 443. No other port is touched.
   </p>
   <div class="cols">
     <div class="main">

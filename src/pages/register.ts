@@ -14,9 +14,13 @@ import {
   baselinesFor,
   changeSummaryFor,
   changeSummaryText,
+  documentName,
   explanationsFor,
   getDocument,
+  latestDocument,
   licenceOf,
+  stigRuleIds,
+  stigRuleName,
   listDocuments,
   loadRequirements,
   notedChangeCount,
@@ -28,7 +32,8 @@ import {
   type DocumentRow,
 } from "../register.ts";
 import { relativeTime, shortStamp } from "../time.ts";
-import { cciMap, controlPageBase, stigRulesForControl } from "../stigs.ts";
+import { changesExportable } from "../api.ts";
+import { cciMap, controlLabel, controlPageBase, stigRulesForControl } from "../stigs.ts";
 import { getTriage } from "../triage.ts";
 import { keyLabel, numberOfKey, openDrafts, seriesOf } from "../publications.ts";
 import type { LookState } from "../look.ts";
@@ -177,7 +182,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
         <div class="when">${doc.requirement_count} entries · published ${doc.published_at ? doc.published_at.slice(0, 10) : "date unknown"}<br><a href="/standards/${sourceId}/${documentId}">Changes in this version</a></div>
       </div>
       ${withheldBox(source, open)}`;
-    return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${doc.requirement_count} entries`, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}/browse` } });
+    return page({ title: documentName(source.id, source.name, doc), active: "register", content, meta: html`${doc.requirement_count} entries`, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}/browse` } });
   }
   const all = loadRequirements(db, documentId);
   const families = [...new Set(all.map((r) => r.family).filter((f): f is string => f !== null))].sort();
@@ -215,7 +220,7 @@ export function renderBrowse(options: { db: DatabaseSync; sourceId: string; docu
     </table></div>
     <p class="small">${rows.length > 400 ? `Showing 400 of ${rows.length}; narrow with the search or a family.` : `${rows.length} of ${all.length}.`}</p>`;
 
-  return page({ title: `${source.name} ${doc.version_label ?? ""}`.trim(), active: "register", content, meta: html`${all.length} requirements`, owner, open, look });
+  return page({ title: documentName(source.id, source.name, doc), active: "register", content, meta: html`${all.length} requirements`, owner, open, look });
 }
 
 /** One release and its changes, narrowed to one family when `family` is given: the Atlas map leads here cell by cell. */
@@ -233,9 +238,20 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
   // A generated summary of a restricted release would quote its entries (none is made; an old one is not shown either).
   const explanations = explanationsFor(db, documentId).filter((e) => !withheld || e.kind !== "generated");
   const labels = new Map<string, { label: string; title: string; family: string | null }>();
+  const inThisVersion = new Set<string>();
   if (!withheld) {
     for (const r of loadRequirements(db, documentId)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+    for (const ref of labels.keys()) inThisVersion.add(ref);
     if (previous) for (const r of loadRequirements(db, previous.id)) if (!labels.has(r.ref)) labels.set(r.ref, { label: r.label, title: r.title, family: r.family });
+  }
+  // A rule id in the publisher's note ("WN11-00-000040", "V-253286") leads to that rule, in this version or the one before.
+  const ruleLinks = new Map<string, string>();
+  if (!withheld) {
+    for (const [ref, meta] of labels) {
+      const href = `/standards/${sourceId}/${inThisVersion.has(ref) ? documentId : (previous?.id ?? documentId)}/${ref}`;
+      ruleLinks.set(meta.label.toUpperCase(), href);
+      ruleLinks.set(ref.toUpperCase(), href);
+    }
   }
   // The pills name the first few refs of each kind and lead to the table below; for a withheld release they count them and lead to the box that stands in for the tables.
   const named = (refs: string[]): Html => (withheld ? html`` : html`: ${refs.map((r) => labels.get(r)?.label ?? r).slice(0, 10).join(", ")}${refs.length > 10 ? "…" : ""}`);
@@ -287,7 +303,7 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
     </div>
     ${explanations.map((e) =>
       e.kind === "publisher"
-        ? html`<div class="why"><small>Why this release, in the publisher's words</small><p>${e.text}</p>${e.source_url ? html`<cite><a href="${e.source_url}" ${newTabIf(e.source_url)}>${e.source_url}</a></cite>` : ""}</div>`
+        ? html`<div class="why"><small>Why this release, in the publisher's words</small><p>${withheld ? e.text : linkRuleIds(e.text, ruleLinks)}</p>${e.source_url ? html`<cite><a href="${e.source_url}" ${newTabIf(e.source_url)}>${e.source_url}</a></cite>` : ""}</div>`
         : e.kind === "generated"
           ? html`<div class="why gen"><small>Summary <span class="badge">Generated</span></small><p>${e.text}</p></div>`
           : html`<div class="why none"><small>Why this release</small><p>${e.text}</p></div>`,
@@ -306,11 +322,11 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
           ? html`<section class="box" id="editorial"><h2><a href="#editorial">Discussion, related-control and assessment updates${inWords}</a> <span class="count"><a href="#editorial">${editorial.length}</a></span></h2>
               <div class="table-wrap"><table><caption class="visually-hidden">Discussion, related-control and assessment updates</caption><thead><tr><th scope="col">Control</th><th scope="col">Title</th><th scope="col">What moved</th></tr></thead><tbody>${editorial.map(row)}</tbody></table></div></section>`
           : ""}`}
-    <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
+    <p class="small">${withheld ? "" : html`<a href="/standards/${sourceId}/${documentId}/browse">Read every requirement in this version</a> · `}${changes.length && changesExportable(source) ? html`<a href="/standards/${sourceId}/${documentId}/changes.csv">These changes as CSV</a> · ` : ""}<a href="/standards/${sourceId}">All versions of ${source.name}</a></p>`;
 
   // The look switch on a withheld release leads back to the bare page, not to a family someone typed into the address.
   return page({
-    title: `${source.name} ${doc.version_label ?? ""}${family ? ` · ${family}` : ""}`.trim(),
+    title: `${documentName(source.id, source.name, doc)}${family ? ` · ${family}` : ""}`,
     active: "register",
     content,
     meta: html`${changes.length} changes`,
@@ -318,6 +334,38 @@ export function renderRelease(options: { db: DatabaseSync; sourceId: string; doc
     open,
     look: withheld ? { ...look, back: `/standards/${sourceId}/${documentId}` } : look,
   });
+}
+
+/** Control refs in reading order: ac-2 before ac-2.1 before ac-3 before ac-20. */
+export function sortRefs(refs: readonly string[]): string[] {
+  return [...refs].sort((a, b) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" }));
+}
+
+/** The publisher's prose with each rule id it names linked to that rule's page, where this instance holds it. */
+export function linkRuleIds(text: string, links: Map<string, string>): Html {
+  const parts: Html[] = [];
+  let at = 0;
+  for (const m of stigRuleIds(text)) {
+    const href = links.get(m.id.toUpperCase());
+    if (!href) continue;
+    parts.push(html`${text.slice(at, m.index)}<a href="${href}">${m.id}</a>`);
+    at = m.index + m.id.length;
+  }
+  return html`${parts}${text.slice(at)}`;
+}
+
+/**
+ * Where a requirement's "part of" pill leads, or null for plain text. The parent is linked in the
+ * version being read, or in the one before for a requirement this version removed. A baseline can
+ * hold an enhancement without its base control (SP 800-53B's privacy baseline has AC-3(14) and no
+ * AC-3), so a parent the document lacks is linked in the SP 800-53 catalogue when it is there; a
+ * CIS section number ("1.1") is never a recommendation of its own, so it stays text.
+ */
+function parentHref(db: DatabaseSync, sourceId: string, doc: DocumentRow, previous: DocumentRow | null, parentRef: string): { href: string; elsewhere: boolean } | null {
+  for (const d of [doc, previous]) if (d && requirementIn(db, d.id, parentRef)) return { href: `/standards/${sourceId}/${d.id}/${parentRef}`, elsewhere: false };
+  const catalogue = sourceId === "nist-sp-800-53" ? null : latestDocument(db, "nist-sp-800-53", "catalog");
+  if (catalogue && requirementIn(db, catalogue.id, parentRef)) return { href: `/standards/nist-sp-800-53/${catalogue.id}/${parentRef}`, elsewhere: true };
+  return null;
 }
 
 function paramsText(r: NormalizedRequirement): string | null {
@@ -336,7 +384,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     const content = html`
       <div class="rel">
         <h1><code class="ref">${withheldLabel}</code> Entry shown to the owner only</h1>
-        <div class="when">${source.name} ${doc.version_label ?? ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
+        <div class="when">${documentName(source.id, source.name, doc)}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
       </div>
       ${withheldBox(source, open)}`;
     return page({ title: `${withheldLabel} · ${source.name}`, active: "register", content, owner, open, look: { ...look, back: `/standards/${sourceId}/${documentId}` } });
@@ -347,6 +395,7 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
   if (!after && !before) return null;
   const shown = after ?? before!;
   const baselines = baselinesFor(db, ref);
+  const parent = shown.parentRef ? { label: shown.parentRef.toUpperCase(), href: parentHref(db, sourceId, doc, previous, shown.parentRef) } : null;
   const changedFields = new Set(releaseChanges(db, documentId).filter((c) => c.ref === ref).map((c) => c.field ?? c.kind));
   const kind = !before ? (previous ? "added" : "first") : !after ? "removed" : changedFields.size ? "modified" : "unchanged";
   const notes = notesFor(db, documentId, ref);
@@ -386,15 +435,15 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
 
   const content = html`
     <div class="rel">
-      <h1><code class="ref">${shown.label}</code> ${shown.title}${before && after && before.title !== after.title ? html` <span class="small">(was: ${before.title})</span>` : ""}</h1>
-      <div class="when">${source.name} ${doc.version_label ?? ""}${previous ? html` against ${previous.version_label ?? "previous"}` : ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
+      <h1><code class="ref">${sourceId === "disa-stigs" ? stigRuleName(shown.label, shown.ref) : shown.label}</code> ${shown.title}${before && after && before.title !== after.title ? html` <span class="small">(was: ${before.title})</span>` : ""}</h1>
+      <div class="when">${documentName(source.id, source.name, doc)}${previous && previous.version_label !== doc.version_label ? html` against ${previous.version_label ?? "the previous version"}` : previous ? ", republished with no earlier version to compare" : ""}<br><a href="/standards/${sourceId}/${documentId}">All changes in this version</a></div>
     </div>
     <div class="pills">
       <a class="pill ${kind === "added" ? "ins" : kind === "removed" ? "del" : kind === "modified" ? "mod" : "none"}" href="/standards/${sourceId}/${documentId}">${kind === "first" ? "first version loaded" : kind}</a>
       ${shown.family ? html`<a class="pill" href="/standards/${sourceId}/${documentId}?family=${encodeURIComponent(shown.family)}">${shown.family}</a>` : ""}
       ${shown.status === "withdrawn" ? html`<span class="pill del">withdrawn</span>` : ""}
       ${baselines.map((b) => html`<a class="pill" href="/standards/nist-sp-800-53b">${b.charAt(0).toUpperCase()}${b.slice(1)} baseline</a>`)}
-      ${shown.parentRef ? html`<a class="pill" href="/standards/${sourceId}/${documentId}/${shown.parentRef}">part of ${shown.parentRef.toUpperCase()}</a>` : ""}
+      ${parent ? (parent.href ? html`<a class="pill" href="${parent.href.href}">part of ${parent.label}${parent.href.elsewhere ? " in SP 800-53" : ""}</a>` : html`<span class="pill">part of ${parent.label}</span>`) : ""}
     </div>
     ${mapping}
     ${notes.map((n) => html`<div class="why"><small>Why it changed, in the publisher's words</small><p>${n.text}</p>${n.source_url ? html`<cite><a href="${n.source_url}" ${newTabIf(n.source_url)}>${n.source_url}</a></cite>` : ""}</div>`)}
@@ -407,7 +456,15 @@ export function renderControl(options: { db: DatabaseSync; sourceId: string; doc
     ${field("statement", "Control", before?.statement ?? null, after?.statement ?? null)}
     ${field("guidance", "Discussion", before?.guidance ?? null, after?.guidance ?? null)}
     ${field("params", "Parameters", before ? paramsText(before) : null, after ? paramsText(after) : null)}
-    ${field("related", "Related controls", before?.related.length ? [...before.related].sort().join(", ") : null, after?.related.length ? [...after.related].sort().join(", ") : null)}
+    ${changedFields.has("related") && kind !== "first"
+      ? field("related", "Related controls", before?.related.length ? sortRefs(before.related).join(", ") : null, after?.related.length ? sortRefs(after.related).join(", ") : null)
+      : shown.related.length
+        ? html`<section class="field"><h3>Related controls</h3><p class="prose related">${sortRefs(shown.related).map((r, i) => {
+            const target = parentHref(db, sourceId, doc, previous, r);
+            const label = sourceId.startsWith("nist-sp-800-53") ? controlLabel(r) : r.toUpperCase();
+            return html`${i ? ", " : ""}${target ? html`<a href="${target.href}">${label}</a>` : label}`;
+          })}</p></section>`
+        : ""}
     ${field("extra", "Fix", typeof before?.extra.fix === "string" ? before.extra.fix : null, typeof after?.extra.fix === "string" ? after.extra.fix : null)}
     ${field("extra", "Assessment objective", typeof before?.extra.assessmentObjective === "string" ? before.extra.assessmentObjective : null, typeof after?.extra.assessmentObjective === "string" ? after.extra.assessmentObjective : null)}
     ${typeof shown.extra.url === "string" && /^https?:\/\//i.test(shown.extra.url) ? html`<section class="field"><h3>Published at</h3><p class="prose"><a href="${shown.extra.url}" ${newTabIf(shown.extra.url)}>${shown.extra.url}</a></p></section>` : ""}

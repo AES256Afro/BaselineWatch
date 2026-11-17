@@ -5,7 +5,7 @@ import { csvLine } from "./csv.ts";
 import { parse as parseYaml } from "yaml";
 import { buildProfile, isBuilderPlatform, type Profile, type ProfileItem, type ProfileOptions } from "./baselines.ts";
 import { latestDocument } from "./register.ts";
-import { applicability, appliesToAll, findHardware, findRelease, fleetPlatformName, hardwareOf, isFleetPlatform, loadFleet, parseApplies, releasesOf, type Applicability, type Applies, type Fleet, type FleetPlatform, type Hardware, type Release } from "./fleet.ts";
+import { applicability, appliesToAll, findHardware, findRelease, fleetPlatformName, hardwareForVisitor, hardwareOf, isFleetPlatform, loadFleet, parseApplies, releaseForVisitor, releasesOf, type Applicability, type Applies, type Fleet, type FleetPlatform, type Hardware, type Release } from "./fleet.ts";
 import { escapeHtml } from "./html.ts";
 import { ourDecision, recommends } from "./decisions.ts";
 import { renderDocx, renderLatex, renderPdf, reportStyle, type Block, type Inline } from "./report.ts";
@@ -213,30 +213,55 @@ export interface TestPlan {
   skippedTemplates: { template: Template; reason: string }[];
   /** Derived checks left out because the owner decided not to apply their rule. */
   notApplied: PlanItem[];
+  /** Rules the profile applies that publish neither a check nor a profile payload to test from. */
+  noProcedure: PlanItem[];
   /** The profile items the owner decided on (modified or not applied), in profile order. */
   decided: ProfileItem[];
-  counts: { included: number; dropped: number; inapplicable: number; untested: number; derived: number; template: number; byArea: Record<Area, number> };
+  counts: { included: number; dropped: number; inapplicable: number; untested: number; noProcedure: number; derived: number; template: number; byArea: Record<Area, number> };
 }
 
+/** The reason a rule with neither a check nor a profile payload is listed under "Not tested, and why". */
+export const noProcedureReason = "no check procedure published";
+
+const payloadValue = (v: unknown): string => (typeof v === "string" ? v : JSON.stringify(v));
+
+/**
+ * A check read off the rule's configuration-profile payloads, one line per key, for an mSCP rule
+ * that publishes no check text: every rule of mSCP's iOS guidance carries a blank `check`, the
+ * profile being the whole of the rule. The keys and values are mSCP's; the sentence around them is ours.
+ */
+export function payloadProcedure(item: Pick<ProfileItem, "mscp">): string | null {
+  const lines = (item.mscp?.payloads ?? []).flatMap((p) => Object.entries(p.keys).map(([key, value]) => `Verify the installed profile sets ${p.domain} ${key} = ${payloadValue(value)}.`));
+  return lines.length ? lines.join("\n") : null;
+}
+
+/**
+ * A rule of the profile as a check to run, or null when it is not a rule (a control, a Microsoft
+ * setting). A rule with no check text is tested from its profile payloads when it has them; one
+ * with neither comes back with `applicable.ok` false and the reason, for the caller to list as not
+ * tested rather than drop.
+ */
 function derived(item: ProfileItem, dropped: Set<string>): PlanItem | null {
   if (item.kind !== "stig" && item.kind !== "mscp") return null;
-  if (!item.check) return null;
+  const check = item.check && item.check.trim() !== "" ? item.check : null;
+  const fromPayload = check ? null : payloadProcedure(item);
+  const procedure = check ?? fromPayload;
   const id = `test:${item.id}`;
   return {
     id,
-    area: areaOf({ title: item.title, check: item.check, label: item.label }),
+    area: areaOf({ title: item.title, check: procedure, label: item.label }),
     label: item.label,
     title: item.title,
     severity: item.severity,
     source: item.kind === "mscp" ? "mscp" : "stig",
-    procedure: item.check,
+    procedure,
     expected: null,
     fail: null,
     url: item.url,
-    sourceTitle: null,
-    applicable: { ok: true, reason: null },
+    sourceTitle: fromPayload ? "Procedure read from the rule's mSCP configuration-profile payload; the rule publishes no check text" : null,
+    applicable: procedure ? { ok: true, reason: null } : { ok: false, reason: noProcedureReason },
     ourValue: item.decision?.decision === "modify" ? (item.decision.value ?? "see the decision") : null,
-    included: !dropped.has(id),
+    included: procedure !== null && !dropped.has(id),
   };
 }
 
@@ -267,13 +292,18 @@ export function releaseChoices(db: DatabaseSync, release: Release | null): { sti
 /**
  * The plan as a visitor may see it: each decision stays (it is the teaching value) but its reason
  * and the name of whoever signed it are the owner's, as on the decisions board (`publicDecisions`).
+ * The release and hardware read as /fleet draws them for a visitor: without the owner's "verify"
+ * marks, and without an ended release's notes (`releaseForVisitor`).
  */
-export function planForVisitor(plan: TestPlan): TestPlan {
+export function planForVisitor(plan: TestPlan, now: Date): TestPlan {
   const bare = <T extends { decision?: { reason: string | null; owner: string | null } | null }>(i: T): T => (i.decision ? { ...i, decision: { ...i.decision, reason: null, owner: null } } : i);
   return {
     ...plan,
     notApplied: plan.notApplied.map((i) => ({ ...i, applicable: { ok: false, reason: "not applied" } })),
     decided: plan.decided.map(bare),
+    release: plan.release ? releaseForVisitor(plan.release, now) : null,
+    hardware: plan.hardware ? hardwareForVisitor(plan.hardware) : null,
+    choices: { releases: plan.choices.releases.map((r) => releaseForVisitor(r, now)), hardware: plan.choices.hardware.map(hardwareForVisitor) },
   };
 }
 
@@ -290,11 +320,14 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
   const dropped = new Set(options.drop ?? []);
   const items: PlanItem[] = [];
   const notApplied: PlanItem[] = [];
+  const noProcedure: PlanItem[] = [];
   if (profile) {
     for (const item of profile.items) {
       const d = derived(item, dropped);
       // A rule the owner decided not to apply is not tested; the plan says so and why.
       if (d && item.decision?.decision === "exclude") notApplied.push({ ...d, included: false, applicable: { ok: false, reason: `not applied${item.decision.reason ? `: ${item.decision.reason}` : ""}` } });
+      // Nor is one with nothing to test from, and the plan says that too rather than leave it out.
+      else if (d && d.procedure === null) noProcedure.push(d);
       else if (d) items.push(d);
     }
   }
@@ -353,12 +386,14 @@ export function buildTestPlan(db: DatabaseSync, options: PlanOptions, templateDi
     fleetErrors: fleet.errors,
     skippedTemplates,
     notApplied,
+    noProcedure,
     decided: profile ? profile.items.filter((i) => i.decision && i.decision.decision !== "apply") : [],
     counts: {
       included: items.filter(tested).length,
       dropped: items.filter((i) => !i.included && i.applicable.ok).length,
       inapplicable: items.filter((i) => !i.applicable.ok).length,
       untested: items.filter((i) => i.included && !areasChosen.includes(i.area)).length,
+      noProcedure: noProcedure.length,
       derived: items.filter((i) => i.source !== "template" && tested(i)).length,
       template: items.filter((i) => i.source === "template" && tested(i)).length,
       byArea,
@@ -447,13 +482,16 @@ function facts(plan: TestPlan, meta: { generatedAt: string; version: string }): 
   for (const i of plan.items) {
     if (!i.applicable.ok) notTested.push({ label: i.label, title: i.title, why: i.applicable.reason ?? "does not apply" });
     else if (i.included && !plan.areasChosen.includes(i.area)) notTested.push({ label: i.label, title: i.title, why: `${areaLabel(i.area)} is not being tested this time` });
+    // The owner's own choice, said rather than left out: counts.dropped counted these and no export named them.
+    else if (!i.included) notTested.push({ label: i.label, title: i.title, why: "unticked for this plan" });
   }
   for (const i of plan.notApplied) notTested.push({ label: i.label, title: i.title, why: i.applicable.reason ?? "not applied" });
+  for (const i of plan.noProcedure) notTested.push({ label: i.label, title: i.title, why: noProcedureReason });
   for (const s of plan.skippedTemplates) notTested.push({ label: s.template.id, title: s.template.title, why: s.reason });
   return {
     title: planTitle(plan),
     stem,
-    summary: `Generated by ${productName} ${meta.version} at ${meta.generatedAt}. ${plan.counts.included} checks: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates.${plan.release ? ` Release: ${plan.release.label}${plan.release.supportEnds ? ` (support: ${plan.release.supportEnds})` : ""}.` : ""}${plan.hardware ? ` Hardware: ${plan.hardware.label}.` : ""}${plan.profile ? ` Baseline decisions: ${plan.profile.counts.decisions.apply} applied as published, ${plan.profile.counts.decisions.modify} modified, ${plan.profile.counts.decisions.exclude} not applied.` : ""}`,
+    summary: `Generated by ${productName} ${meta.version} at ${meta.generatedAt}. ${plan.counts.included} checks: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates.${plan.counts.dropped ? ` ${plan.counts.dropped} unticked.` : ""}${plan.release ? ` Release: ${plan.release.label}${plan.release.supportEnds ? ` (support: ${plan.release.supportEnds})` : ""}.` : ""}${plan.hardware ? ` Hardware: ${plan.hardware.label}.` : ""}${plan.profile ? ` Baseline decisions: ${plan.profile.counts.decisions.apply} applied as published, ${plan.profile.counts.decisions.modify} modified, ${plan.profile.counts.decisions.exclude} not applied.` : ""}`,
     grouped: areas.map((a) => ({ area: a, items: kept.filter((i) => i.area === a.id) })).filter((g) => g.items.length),
     notTested,
   };
@@ -540,6 +578,9 @@ export function exportPlan(plan: TestPlan, format: PlanFormat, meta: { baseUrl: 
   if (format === "csv") {
     const rows = ["done,area,id,severity,title,source,procedure,expected,if not,our value,reference"];
     for (const i of kept) rows.push(csvLine(["", areaLabel(i.area), i.label, i.severity ?? "", i.title, i.source === "template" ? (i.sourceTitle ?? "template") : i.source.toUpperCase(), i.procedure ?? "", i.expected ?? "", i.fail ?? "", i.ourValue ?? "", absolute(i.url, meta.baseUrl) ?? ""]));
+    // The checklist rows stay the checks to do; the summary, with what was unticked, closes the file.
+    const unticked = f.notTested.filter((n) => n.why === "unticked for this plan").map((n) => n.label);
+    if (unticked.length) rows.push(csvLine([`${f.summary} Unticked: ${unticked.join("; ")}.`]));
     return { body: `${rows.join("\r\n")}\r\n`, contentType: "text/csv; charset=utf-8", filename: `${f.stem}.csv` };
   }
   if (format === "md") {

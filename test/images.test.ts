@@ -129,11 +129,11 @@ describe("image backfill for existing articles", () => {
       "https://img.test/a2.jpg": { bytes: jpegBytes, contentType: "image/jpeg" },
     });
 
-    const limited = await backfillImages(db, dataDir, { http }, { limit: 1, delayMs: 0 });
+    const limited = await backfillImages(db, dataDir, { http }, { limit: 1, delayMs: 0, now: new Date("2026-10-20T00:00:00Z") });
     expect(limited).toEqual({ examined: 1, stored: 1 });
     expect(http.calls.map((c) => c.url)).toEqual(["https://news.test/a1/", "https://img.test/a1.png"]);
 
-    const rest = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0 });
+    const rest = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0, now: new Date("2026-10-20T00:00:00Z") });
     expect(rest).toEqual({ examined: 2, stored: 1 });
     const rows = db.prepare("SELECT external_id, image_origin FROM items WHERE image_blob IS NOT NULL ORDER BY external_id").all();
     expect(rows).toEqual([
@@ -144,7 +144,7 @@ describe("image backfill for existing articles", () => {
     expect(http.calls.some((c) => c.url.startsWith("https://vendor.test/"))).toBe(false);
 
     // The page without an og:image is remembered and never asked again.
-    const third = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0 });
+    const third = await backfillImages(db, dataDir, { http }, { limit: 10, delayMs: 0, now: new Date("2026-10-20T00:00:00Z") });
     expect(third).toEqual({ examined: 0, stored: 0 });
   });
 });

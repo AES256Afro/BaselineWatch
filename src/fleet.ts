@@ -149,6 +149,52 @@ export function supportDates(release: Release): string[] {
   return [...new Set((release.supportEnds ?? "").match(/\b20\d\d-\d\d-\d\d\b/g) ?? [])].sort();
 }
 
+/**
+ * A release's status on a given day. The file's word stands until every support date the release
+ * names has passed; then it has ended whatever the file still says, so a status typed in October
+ * does not read "supported" in green in November (23H2's last edition ended 2026-11-10). The day a
+ * date falls on is still a supported day, as `endingSupport` counts it ("ends today").
+ */
+export function releaseStatus(release: Release, now: Date): Release["status"] {
+  const dates = supportDates(release);
+  if (release.status === "ended" || dates.length === 0) return release.status;
+  const today = now.toISOString().slice(0, 10);
+  return dates.every((d) => d < today) ? "ended" : release.status;
+}
+
+/**
+ * The fleet file's "verify" marks are the owner's to-do notes: a date inferred from the vendor's
+ * practice, a branch name to confirm. The owner sees them; a visitor reads the fact without the
+ * note — "(verify)" and "(verify it has been published)" go, and "…, verify)" closes on the fact.
+ * The one rule for every page and export that shows a visitor the fleet's words.
+ */
+export function withoutVerify(text: string): string {
+  return text
+    .replace(/\s*\(verify\b[^)]*\)/gi, "")
+    .replace(/[;,]\s*verify\b[^)]*\)/gi, ")")
+    .trim();
+}
+
+/**
+ * A release as a visitor reads it: support, models, baselines and notes without the owner's
+ * "verify" marks, and no notes once the dates say it has ended (they were written while it was
+ * supported), as /fleet draws it.
+ */
+export function releaseForVisitor(release: Release, now: Date): Release {
+  return {
+    ...release,
+    supportEnds: release.supportEnds === null ? null : withoutVerify(release.supportEnds),
+    models: release.models === null ? null : withoutVerify(release.models),
+    baselines: release.baselines.map(withoutVerify),
+    notes: releaseStatus(release, now) === release.status ? release.notes.map(withoutVerify) : [],
+  };
+}
+
+/** A hardware family as a visitor reads it: its note without the owner's "verify" marks. */
+export function hardwareForVisitor(hardware: Hardware): Hardware {
+  return hardware.note ? { ...hardware, note: withoutVerify(hardware.note) } : hardware;
+}
+
 export interface SupportEnding {
   release: Release;
   /** The support date that falls inside the window. */
@@ -164,7 +210,7 @@ export interface SupportEnding {
  * Today tile and the Platforms page say which editions are about to stop getting fixes. A date
  * already past is not "ending"; the release's status says it ended.
  */
-export function endingSupport(fleet: Fleet, now: Date, days = 90): SupportEnding[] {
+export function endingSupport(fleet: Fleet, now: Date, days = 90, owner = true): SupportEnding[] {
   const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const out: SupportEnding[] = [];
   for (const release of fleet.releases) {
@@ -173,7 +219,8 @@ export function endingSupport(fleet: Fleet, now: Date, days = 90): SupportEnding
       const ahead = Math.round((at - start) / 86_400_000);
       if (ahead < 0 || ahead > days) continue;
       const clause = (release.supportEnds ?? "").split(/;|\(/).map((c) => c.trim()).find((c) => c.includes(date)) ?? date;
-      out.push({ release, date, days: ahead, clause: clause.replace(/\)$/, "") });
+      // A visitor reads the clause without the owner's "verify" note, as /fleet's rows do; read before the ")" goes, which the rule closes on.
+      out.push({ release, date, days: ahead, clause: (owner ? clause : withoutVerify(clause)).replace(/\)$/, "").trim() });
     }
   }
   return out.sort((a, b) => a.days - b.days || a.release.label.localeCompare(b.release.label));

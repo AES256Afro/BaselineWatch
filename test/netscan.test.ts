@@ -195,7 +195,7 @@ describe("the network scan", () => {
     expect(alerts).toHaveLength(1);
     expect(alerts[0]!.title).toBe("This network: 2 canaries newly resolving");
     expect(alerts[0]!.body).toContain(ads[0]!);
-    expect(alerts[0]!.body).toContain("it was sinkholed yesterday");
+    expect(alerts[0]!.body).toContain("it was sinkholed on the previous run (2026-10-20)");
     expect(alerts[0]!.url).toBe("https://bw.example/scan/network");
     expect(alerts[0]!.status).toBe("unconfigured"); // no transport in the test; the row is still the audit trail
 
@@ -212,6 +212,8 @@ describe("the network scan", () => {
     setSetting(db, netSettingKeys.piholeUrl, "http://192.0.2.10", at.toISOString());
     setSetting(db, netSettingKeys.piholeToken, "token-abc", at.toISOString());
     const http = fakeHttp({
+      // A v5 install: no /api, so v6's sign-in is a 404 and the old API is asked.
+      "http://192.0.2.10/api/auth": { status: 404 },
       "http://192.0.2.10/admin/api.php?summaryRaw&auth=token-abc": { text: '{"unique_clients": 23}' },
       // No DoH route: the fake throws, which the scan reads as blocked from this LAN.
     });

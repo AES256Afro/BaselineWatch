@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getSource, ingestSource } from "../src/ingest.ts";
+import { tierNames } from "../src/adapters/blocklists.ts";
 import { traceIndicators } from "../src/traces.ts";
 import { fakeHttp, fixture, startTestApp, type FakeRoute, type TestApp } from "./helpers.ts";
 
@@ -65,7 +66,7 @@ describe("the Traces page", () => {
   it("says so when the list has never been fetched", async () => {
     const text = await (await fetch(`${empty.base}/scan/traces`)).text();
     expect(text).toContain("Not fetched yet");
-    expect(await (await fetch(`${empty.base}/scan/traces/indicators.json`)).json()).toEqual({ version: null, publishedAt: null, indicators: [] });
+    expect(await (await fetch(`${empty.base}/scan/traces/indicators.json`)).json()).toEqual({ version: null, publishedAt: null, indicators: [], tiers: tierNames });
   });
 
   it("serves the list the Register holds, each indicator with its type and tier", async () => {

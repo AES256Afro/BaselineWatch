@@ -37,11 +37,11 @@ function longLists(): string[] {
 }
 
 describe("the hand-kept ledger (M20.1)", () => {
-  it("names only paths and constants that exist", () => {
+  it("names only paths and constants (or functions) that exist", () => {
     for (const store of curatedStores) {
       const { path: p, name } = storePath(store.where);
       expect(existsSync(path.join(root, p)), store.where).toBe(true);
-      if (name) expect(readFileSync(path.join(root, p), "utf8"), store.where).toMatch(new RegExp(`\\bconst ${name}\\b`));
+      if (name) expect(readFileSync(path.join(root, p), "utf8"), store.where).toMatch(new RegExp(`\\b(?:const|function) ${name}\\b`));
       expect(store.reviewed).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       if (store.retiredBy) expect(store.retiredBy).toMatch(/^M20\.\d$/);
     }

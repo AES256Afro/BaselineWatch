@@ -1,11 +1,12 @@
 import { setSiteBase } from "./pages/layout.ts";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
+import { createGzip, gzipSync } from "node:zlib";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 
-import { apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
+import { ApiRefusal, apiChanges, apiDigest, apiItems, apiStandards, apiTriage, apiVuln, apiVulns, type ApiQuery } from "./api.ts";
 
-import { authState, isKnownDevice, issueSession, knownDeviceCookieHeader, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey } from "./auth.ts";
+import { authState, isKnownDevice, issueSession, knownDeviceCookieHeader, LoginThrottle, passwordMatches, RateWindow, sameOriginOnly, sessionCookieHeader, throttleKey, WorkBudget } from "./auth.ts";
 
 import type { Config } from "./config.ts";
 import { countRows, databaseBytes } from "./db.ts";
@@ -112,6 +113,86 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction): void
   next();
 }
 
+/** Text worth compressing; a zip, a PDF, an image or a font is compressed already, and an event stream must not wait for a buffer. */
+const compressibleType = /^(text\/(?!event-stream)|application\/(json|javascript|xml|rss\+xml|atom\+xml|xhtml\+xml|manifest\+json|ld\+json|x-ndjson)|image\/svg\+xml)/i;
+/** Below this a response goes as it is: gzip's header and the CPU cost outweigh the bytes saved. */
+const gzipThreshold = 8 * 1024;
+
+/**
+ * gzip for text responses over 8 KB, with node:zlib and no dependency. A page here runs to 100 KB
+ * of HTML and the stylesheet to 60 KB, compressed to a fifth. Only when the request accepts gzip,
+ * never for HEAD, a 304, a 206, a 204 or a body something already encoded; Vary: Accept-Encoding on every
+ * compressible answer, its 304s and 206s included, so a shared cache keeps the two apart. It works at res.write/res.end, after
+ * Express has set the ETag and answered a conditional request with 304, so that behaviour is
+ * unchanged (the weak ETag names the content, which is the same either way).
+ */
+function gzipText(req: Request, res: Response, next: NextFunction): void {
+  const accepts = /\bgzip\b/i.test(String(req.headers["accept-encoding"] ?? "")) && req.method !== "HEAD";
+  const write = res.write.bind(res) as (chunk: unknown, encoding?: BufferEncoding) => boolean;
+  const end = res.end.bind(res) as (chunk?: unknown, encoding?: BufferEncoding) => Response;
+  let decided: "plain" | "gzip" | null = null;
+  let gzip: ReturnType<typeof createGzip> | null = null;
+  const toBuffer = (chunk: unknown, encoding?: unknown): Buffer | null =>
+    chunk === undefined || chunk === null || typeof chunk === "function" ? null : Buffer.isBuffer(chunk) ? chunk : typeof chunk === "string" ? Buffer.from(chunk, typeof encoding === "string" ? (encoding as BufferEncoding) : "utf8") : chunk instanceof Uint8Array ? Buffer.from(chunk) : null;
+  // Decided once, at the first byte, from the headers as they stand then.
+  const decide = (firstLength: number | null, ending: boolean): "plain" | "gzip" => {
+    if (decided) return decided;
+    decided = "plain";
+    if (res.headersSent || res.statusCode < 200 || res.statusCode === 204) return decided;
+    const type = String(res.getHeader("Content-Type") ?? "");
+    // A 304 or a 206 is never compressed, but it carries the Vary its full answer would, so a
+    // shared cache revalidating one variant does not hand it to a client that asked for the other.
+    // Express strips a 304's Content-Type, so a 304 is given it whatever its type was.
+    if (res.statusCode === 304 || res.statusCode === 206) {
+      if (res.statusCode === 304 || compressibleType.test(type)) res.vary("Accept-Encoding");
+      return decided;
+    }
+    if (!compressibleType.test(type) || res.getHeader("Content-Encoding")) return decided;
+    const declared = Number(res.getHeader("Content-Length"));
+    const length = Number.isFinite(declared) && declared > 0 ? declared : ending ? (firstLength ?? 0) : null;
+    if (length !== null && length < gzipThreshold) return decided;
+    res.vary("Accept-Encoding");
+    if (!accepts || /\bno-transform\b/i.test(String(res.getHeader("Cache-Control") ?? ""))) return decided;
+    res.setHeader("Content-Encoding", "gzip");
+    res.removeHeader("Content-Length");
+    // A byte range of the plain body means nothing against the gzip stream.
+    res.removeHeader("Accept-Ranges");
+    decided = "gzip";
+    return decided;
+  };
+  res.write = ((chunk: unknown, encoding?: unknown, callback?: unknown): boolean => {
+    const buffer = toBuffer(chunk, encoding);
+    if (decide(buffer?.length ?? 0, false) === "plain") return write.call(res, chunk, encoding as BufferEncoding);
+    if (!gzip) {
+      gzip = createGzip();
+      gzip.on("data", (data: Buffer) => write(data));
+      gzip.on("end", () => end());
+    }
+    if (buffer) gzip.write(buffer);
+    if (typeof callback === "function") (callback as () => void)();
+    else if (typeof encoding === "function") (encoding as () => void)();
+    return true;
+  }) as Response["write"];
+  res.end = ((chunk?: unknown, encoding?: unknown, callback?: unknown): Response => {
+    const buffer = toBuffer(chunk, encoding);
+    if (decide(buffer?.length ?? 0, true) === "plain") return end.call(res, chunk, encoding as BufferEncoding);
+    const done = typeof callback === "function" ? callback : typeof encoding === "function" ? encoding : typeof chunk === "function" ? chunk : null;
+    if (gzip) {
+      // A streamed body (express.static): the rest goes through the same stream, which ends the response.
+      if (buffer) gzip.write(buffer);
+      gzip.end();
+      if (done) res.once("finish", done as () => void);
+      return res;
+    }
+    // One body handed over whole (res.send): compressed at once, with its length.
+    const body = gzipSync(buffer ?? Buffer.alloc(0));
+    res.setHeader("Content-Length", body.length);
+    if (done) res.once("finish", done as () => void);
+    return end.call(res, body);
+  }) as Response["end"];
+  next();
+}
+
 export { safeBack } from "./paths.ts";
 
 export function createApp(ctx: AppContext): Express {
@@ -131,6 +212,7 @@ export function createApp(ctx: AppContext): Express {
   app.set("etag", "weak");
   app.set("trust proxy", config.trustedProxies);
   app.use(securityHeaders);
+  app.use(gzipText);
   if (config.baseUrl.startsWith("https://")) {
     // Behind TLS (a tunnel or a proxy), tell browsers to stay on it.
     app.use((_req, res, next) => {
@@ -152,6 +234,61 @@ export function createApp(ctx: AppContext): Express {
   // of the same-origin guard, so it carries its own allowance: generous enough that an agent
   // working through a question never notices, narrow enough that it is not a free amplifier.
   const mcpCalls = new RateWindow(120, 60_000);
+  // Anonymous heavy work (the table, search, the builder, the API, MCP) shares twenty seconds a
+  // minute across every address, a third of the event loop at most; one address may spend five of
+  // them, and when all twenty are gone an address that has had one second still is refused while a
+  // light reader is served.
+  const anonymousWork = new WorkBudget(20_000, 60_000, 5_000, 1_000);
+  const busy = "The site is busy; try again in half a minute.";
+  const heavySelf = "This address has asked for a lot of the site's time this minute; try again in a minute.";
+  // What is charged is the event loop's time, not the reader's wait. A route that renders in one
+  // go is charged until it finishes (or the client resets the socket, which still made the query
+  // run). A route that waits on the network (the domain check, the InternetDB lookup) sets
+  // res.locals.uncharged and carries its own allowances: it is charged only for the part that ran
+  // before its first wait (res.locals.syncMs, set by the gate below), never for seconds spent
+  // waiting on someone else's server.
+  const timed = (req: Request, res: Response): void => {
+    const started = performance.now();
+    const key = throttleKey(req.ip, 56);
+    let charged = false;
+    const charge = (): void => {
+      if (charged) return;
+      charged = true;
+      const wall = performance.now() - started;
+      const sync = typeof res.locals.syncMs === "number" ? res.locals.syncMs : wall;
+      anonymousWork.spend(key, res.locals.uncharged === true ? sync : wall, now().getTime());
+    };
+    res.once("finish", charge);
+    res.once("close", charge);
+  };
+  // The pages a stranger can make the database work hardest on (the table under any filter, its CSV,
+  // search, the baseline builder, the API, the News and its feed under a filter) carry an allowance
+  // per address, an IPv6 /56 being one address: a reader never meets it, a loop that would hold the
+  // event loop does. Together they also draw on the shared budget above. The owner is not counted.
+  const heavyReads = new RateWindow(90, 60_000);
+  /** Counts one anonymous heavy read; false when it was refused, with the answer already sent. */
+  const heavyAllowed = (req: Request, res: Response, light = false): boolean => {
+    if (!heavyReads.allow(throttleKey(req.ip, 56), now().getTime())) {
+      res.status(429).set("Retry-After", "60").type("text").send("Too many requests from this address for these pages; ninety a minute is the allowance. Try again in a minute.");
+      return false;
+    }
+    return budgetAllowed(req, res, light);
+  };
+  /**
+   * Charges any anonymous request's time to the budget; false when the address or everyone is out of it.
+   * A light request (an image, the unfiltered News, a CVE's own page) is refused only when this
+   * address has spent its own share, never because others have spent everyone's.
+   */
+  const budgetAllowed = (req: Request, res: Response, light = false): boolean => {
+    let budget = anonymousWork.check(throttleKey(req.ip, 56), now().getTime());
+    if (budget === "busy" && light) budget = "ok";
+    if (budget !== "ok") {
+      res.status(budget === "self" ? 429 : 503).set("Retry-After", budget === "self" ? "60" : "30").type("text").send(budget === "self" ? heavySelf : busy);
+      return false;
+    }
+    timed(req, res);
+    return true;
+  };
   // Parsed here, not by the transport, so a batch can be counted before any of it runs.
   app.post("/mcp", express.json({ limit: maxMcpRequestBytes }), async (req, res) => {
     const state = authState(req, config, now().getTime());
@@ -161,15 +298,23 @@ export function createApp(ctx: AppContext): Express {
     }
     // A JSON-RPC batch is many calls in one POST; each one counts, and a stranger's batch is short.
     const calls = Array.isArray(req.body) ? req.body.length : 1;
-    if (!state.owner && calls > 10) {
-      res.status(400).json({ jsonrpc: "2.0", error: { code: -32600, message: "A batch of more than ten calls is not taken from an anonymous caller." }, id: null });
+    if (!state.owner && calls > 5) {
+      res.status(400).json({ jsonrpc: "2.0", error: { code: -32600, message: "A batch of more than five calls is not taken from an anonymous caller." }, id: null });
       return;
     }
     let allowed = true;
-    for (let i = 0; i < calls && allowed; i++) allowed = state.owner || mcpCalls.allow(throttleKey(req.ip), now().getTime());
+    for (let i = 0; i < calls && allowed; i++) allowed = state.owner || mcpCalls.allow(throttleKey(req.ip, 56), now().getTime());
     if (!allowed) {
       res.status(429).set("Retry-After", "60").json({ jsonrpc: "2.0", error: { code: -32000, message: "Too many calls from this address; a hundred and twenty a minute is the allowance." }, id: null });
       return;
+    }
+    if (!state.owner) {
+      const budget = anonymousWork.check(throttleKey(req.ip, 56), now().getTime());
+      if (budget !== "ok") {
+        res.status(budget === "self" ? 429 : 503).set("Retry-After", budget === "self" ? "60" : "30").json({ jsonrpc: "2.0", error: { code: -32000, message: budget === "self" ? heavySelf : busy }, id: null });
+        return;
+      }
+      timed(req, res);
     }
     try {
       await handleMcpRequest(db, config.baseUrl, req, res, req.body);
@@ -185,7 +330,7 @@ export function createApp(ctx: AppContext): Express {
   app.delete("/mcp", postOnly);
 
   app.use(sameOriginOnly);
-  // The stylesheet's address carries the version (`?v=`), so a release is a new address and that
+  // The stylesheet's address carries a hash of its bytes (`?v=`), so any change is a new address and that
   // one can be kept a year; everything else under /assets, the scan scripts among it, keeps the hour.
   app.use(
     "/assets",
@@ -227,6 +372,7 @@ export function createApp(ctx: AppContext): Express {
   const apiRead = (handler: (req: Request, res: Response) => void) => (req: Request, res: Response) => {
     const state = authState(req, config, now().getTime());
     if (!config.publicRead && !state.owner) return res.status(401).json({ error: "sign in first" });
+    if (!state.owner && !heavyAllowed(req, res)) return;
     handler(req, res);
   };
   app.get("/api/v1/items", apiRead((req, res) => json(res, { items: apiItems(db, req.query as ApiQuery, config.baseUrl, authState(req, config, now().getTime()).owner) })));
@@ -256,6 +402,7 @@ export function createApp(ctx: AppContext): Express {
   app.get("/metrics", (req, res) => {
     const full = config.publicRead || authState(req, config, now().getTime()).owner;
     const at = now();
+    const owner = authState(req, config, at.getTime()).owner;
     const h = pipelineHealth(db, at);
     const storage = storageReport(db);
     res.setHeader("Cache-Control", "no-store");
@@ -276,8 +423,8 @@ export function createApp(ctx: AppContext): Express {
           snapshots: countRows(db, "snapshots"),
           exploits: countRows(db, "exploits"),
           msrcVulns: countRows(db, "msrc_vulns"),
-          certificates: countRows(db, "ct_certs"),
-          deviceReadings: countRows(db, "device_readings"),
+          certificates: owner ? countRows(db, "ct_certs") : null,
+          deviceReadings: owner ? countRows(db, "device_readings") : null,
         },
         bytes: { database: storage.databaseBytes, snapshots: storage.snapshotBytes },
         images: storage.imageBlobs,
@@ -287,7 +434,7 @@ export function createApp(ctx: AppContext): Express {
               snapshotsDeleted: storage.lastRun.snapshotsDeleted,
               blobsDeleted: storage.lastRun.blobsDeleted,
               networkScansDeleted: storage.lastRun.networkScansDeleted,
-              deviceReadingsDeleted: storage.lastRun.deviceReadingsDeleted ?? 0,
+              deviceReadingsDeleted: owner ? (storage.lastRun.deviceReadingsDeleted ?? 0) : null,
               vacuumed: storage.lastRun.vacuumed,
             }
           : null,
@@ -330,7 +477,8 @@ export function createApp(ctx: AppContext): Express {
     const state = authState(req, config, now().getTime());
     const next = safeBack(((req.body ?? {}) as Record<string, unknown>).next, "/");
     if (state.open) return res.redirect(303, next);
-    const key = throttleKey(req.ip);
+    // A /56 per sign-in key, as on the heavy pages: one household cannot rotate through 256 fresh brakes.
+    const key = throttleKey(req.ip, 56);
     const peer = throttleKey(req.socket.remoteAddress ?? undefined);
     // A browser the owner signed in from before is let past the peer's brake, which behind a tunnel is everyone's.
     const known = isKnownDevice(req, config, now().getTime());
@@ -401,15 +549,25 @@ export function createApp(ctx: AppContext): Express {
     res.status(403).type("html").send(renderLogin({ next: sent ? from : safeBack(req.originalUrl, "/"), open: false, error: sent ? "Only the owner can do that. If you were signed in, the sign-in has lapsed: sign in again and you will be taken back. What you sent was not saved." : "That page is the owner's. Sign in to see it.", look: lookOf(req) }));
   };
   const who = (req: Request, res: Response): { owner: boolean; open: boolean; look: LookState } => ({ owner: res.locals.owner === true, open: res.locals.open === true, look: lookOf(req) });
-  // The pages a stranger can make the database work hardest on (the table under any filter, its CSV,
-  // search, the baseline builder) carry an allowance per address: a reader never meets it, a loop
-  // that would hold the event loop does. The owner is not counted.
-  const heavyReads = new RateWindow(90, 60_000);
+  // The heavy pages' allowance (defined with the budget above; the API counts in apiRead).
+  const heavyPath = /^\/(vulnerabilities|search|baselines)(\/|\.csv|$)/i;
+  const filteredNews = /^\/(feed\.xml)?$/i;
+  const cvePage = /^\/vulnerabilities\/CVE-\d{4}-\d+$/i;
   app.use((req, res, next) => {
     // Case-blind and HEAD-aware, as Express's own routing is: /SEARCH and a HEAD do the same work.
-    if (res.locals.owner === true || (req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST") || !/^\/(vulnerabilities|search|baselines)(\/|\.csv|$)/i.test(req.path)) return next();
-    if (heavyReads.allow(throttleKey(req.ip), now().getTime())) return next();
-    res.status(429).set("Retry-After", "60").type("text").send("Too many requests from this address for these pages; ninety a minute is the allowance. Try again in a minute.");
+    if (res.locals.owner === true || (req.method !== "GET" && req.method !== "HEAD" && req.method !== "POST")) return next();
+    // The named pages carry the per-address allowance as well; every other page still draws on the
+    // budget, since /controls?q=, /today and the standards' pages cost as much as some of them.
+    const heavy = heavyPath.test(req.path) || (filteredNews.test(req.path) && Object.keys(req.query).length > 0);
+    // The pages a reader comes for are never turned away because others have spent the shared
+    // budget: an image, the News unfiltered, a CVE's own page, each cacheable and cheap.
+    const plain = (req.method === "GET" || req.method === "HEAD") && Object.keys(req.query).length === 0;
+    const light = /^\/img\//.test(req.path) || (plain && (req.path === "/" || cvePage.test(req.path)));
+    if (!(heavy ? heavyAllowed(req, res, light) : budgetAllowed(req, res, light))) return;
+    // The handler's own time on the event loop: everything up to its first wait runs inside next().
+    const started = performance.now();
+    next();
+    res.locals.syncMs = performance.now() - started;
   });
   const routeContext: RouteContext = { app, config, db, now, ctx, lookOf, who, requireOwner, secureCookies, brandMarks };
   mountNews(routeContext);
@@ -437,6 +595,12 @@ export function createApp(ctx: AppContext): Express {
     // limit, or not the encoding it claims — with the status it means. That is an answer to send,
     // not a failure to log: a 20 kB triage note is a 413, and the log stays for real faults.
     const status = error.status ?? error.statusCode;
+    // The API's own refusals (a release id that is unknown, licensed or restricted: one 404, so it
+    // never says which exist) answer in JSON with their reason.
+    if (error instanceof ApiRefusal) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
     if (typeof status === "number" && status >= 400 && status < 500) {
       res.status(status).type("text").send(status === 413 ? "That request is larger than this page accepts." : "That request could not be read.");
       return;

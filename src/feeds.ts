@@ -1,12 +1,14 @@
+import { isBuilderPlatform } from "./baselines.ts";
 import type { DatabaseSync } from "node:sqlite";
 import { publicSummary } from "./api.ts";
 import { fleetPlatforms } from "./fleet.ts";
 import { html, type Html } from "./html.ts";
 import { parseJson } from "./json.ts";
 import { platformChoiceName } from "./platforms.ts";
+import { activeVulnFilters } from "./pages/vulnerabilities.ts";
 import { productName } from "./version.ts";
 import { listVulns, type VulnFilters } from "./vulns.ts";
-import { listWire, type WireFilters } from "./wire.ts";
+import { ftsQuery, listWire, type WireFilters } from "./wire.ts";
 
 /**
  * What a reader, a calendar or a crawler can take away (N6): the News and the Vulnerabilities
@@ -53,10 +55,23 @@ ${e.category ? html`<category>${e.category}</category>` : ""}
 
 const feedLimit = 50;
 
+/** A search in a feed's title, when the list read it as one. */
+const searchWord = (q: string | undefined): string | null => (q && ftsQuery(q) !== null ? `“${q}”` : null);
+
 /** The News under the Wire's own filters: group, source, kind, q. */
 export function wireFeed(db: DatabaseSync, baseUrl: string, filters: WireFilters, self: string): string {
   const items = listWire(db, { ...filters, unread: false, before: undefined, limit: feedLimit });
-  const words = [filters.group, filters.source, filters.kind, filters.q ? `“${filters.q}”` : null].filter((w) => w);
+  // The title names every filter the list applied, and only those: a q that reads as no search
+  // (ftsQuery null) filtered nothing, and AI hidden is ignored when the AI topic is asked for.
+  const words = [
+    filters.group,
+    filters.source,
+    filters.kind,
+    filters.platform ? platformChoiceName(filters.platform) : null,
+    filters.danger ? "most dangerous" : null,
+    filters.topic === "ai" ? "AI" : filters.hideAi ? "AI hidden" : null,
+    searchWord(filters.q),
+  ].filter((w) => w);
   return rssDocument(
     { title: `${productName} · News${words.length ? ` · ${words.join(" · ")}` : ""}`, link: `${baseUrl}/`, description: "News, advisories and CVEs that matter, as BaselineWatch reads them.", self },
     // A release item's address is a path on this site; a feed reader has no page to resolve it against.
@@ -64,11 +79,16 @@ export function wireFeed(db: DatabaseSync, baseUrl: string, filters: WireFilters
   );
 }
 
-/** The Vulnerabilities table under its own filters; a CVE that changes comes round again, because the change is the news. */
-/** The table as RSS. "Your stack" marks a watched CVE in the owner's copy only; a feed reader sends no cookie, so it gets the plain one. */
+/**
+ * The Vulnerabilities table as RSS under its own filters; a CVE that changes comes round again,
+ * because the change is the news. "Your stack" marks a watched CVE in the owner's copy only; a
+ * feed reader sends no cookie, so it gets the plain one.
+ */
 export function vulnFeed(db: DatabaseSync, baseUrl: string, filters: VulnFilters, self: string, owner = false): string {
   const { rows } = listVulns(db, { ...filters, offset: 0, limit: feedLimit });
-  const words = [filters.kev ? "KEV" : null, filters.exploit ? "public exploit" : null, filters.watch ? "your stack" : null, filters.platform ? platformChoiceName(filters.platform) : null, filters.danger ? "most dangerous" : null, filters.severity, filters.minCvss !== undefined ? `CVSS ≥ ${filters.minCvss}` : null, filters.q ? `“${filters.q}”` : null].filter((w) => w);
+  // The title names the filters in the words the table's own filter line uses (EPSS bands, due,
+  // new, changed, moved and a watch label included), and a q that reads as no search not at all.
+  const words = activeVulnFilters({ ...filters, q: searchWord(filters.q) === null ? undefined : filters.q }).map((a) => a.label);
   return rssDocument(
     { title: `${productName} · Vulnerabilities${words.length ? ` · ${words.join(" · ")}` : ""}`, link: `${baseUrl}/vulnerabilities`, description: "CVEs as NVD, CISA and FIRST describe them, newest change first.", self },
     rows.map((r) => {
@@ -158,7 +178,8 @@ export function foldIcsLine(line: string): string {
 const icsDate = (iso: string): string => iso.slice(0, 10).replace(/-/g, "");
 
 /** CISA KEV due dates as all-day events, from a month ago on, so a calendar shows what is due and what just was. */
-export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch: boolean; now: Date }): string {
+export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch: boolean; now: Date; owner?: boolean }): string {
+  const owner = options.owner === true;
   const since = new Date(options.now.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
   const rows = db
     .prepare(`SELECT cve_id, kev_due_date, kev_date_added, description, watch_hit FROM vulns WHERE kev = 1 AND kev_due_date IS NOT NULL AND kev_due_date >= ?${options.watch ? " AND watch_hit = 1" : ""} ORDER BY kev_due_date, cve_id LIMIT 500`)
@@ -177,7 +198,7 @@ export function kevCalendar(db: DatabaseSync, baseUrl: string, options: { watch:
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${icsDate(due)}`,
       `DTEND;VALUE=DATE:${icsDate(next)}`,
-      `SUMMARY:${icsText(`KEV due: ${r.cve_id}${r.watch_hit ? " (your stack)" : ""}${what ? ` — ${what.length > 80 ? `${what.slice(0, 79)}…` : what}` : ""}`)}`,
+      `SUMMARY:${icsText(`KEV due: ${r.cve_id}${r.watch_hit && owner ? " (your stack)" : ""}${what ? ` — ${what.length > 80 ? `${what.slice(0, 79)}…` : what}` : ""}`)}`,
       `DESCRIPTION:${icsText(`${what}${r.kev_date_added ? ` Added to CISA's catalog ${r.kev_date_added.slice(0, 10)}.` : ""} ${baseUrl}/vulnerabilities/${r.cve_id}`.trim())}`,
       `URL:${baseUrl}/vulnerabilities/${r.cve_id}`,
       "END:VEVENT",
@@ -208,7 +229,7 @@ export function sitemapDocument(db: DatabaseSync, baseUrl: string): string {
   const paths = [
     "/", "/today", "/standards", "/baselines", "/controls", "/stigs", "/register", "/atlas", "/learn", "/vulnerabilities", "/vulnerabilities/microsoft", "/scan", "/scan/traces", "/scan/guide", "/guide", "/feeds",
     ...standards,
-    ...fleetPlatforms.map((p) => `/baselines/${p.id}`),
+    ...fleetPlatforms.filter((p) => isBuilderPlatform(p.id)).map((p) => `/baselines/${p.id}`),
     ...["windows", "macos", "linux", "ios", "android"].map((os) => `/scan/guide/${os}`),
   ];
   const body = html`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

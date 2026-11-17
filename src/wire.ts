@@ -1,8 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ItemKind } from "./adapters/types.ts";
+import { html, type Html } from "./html.ts";
 import { newsQuery, platformKeysOf, type PlatformChoice } from "./platforms.ts";
 import { aiHeadlineQuery, aiItemSql } from "./topics.ts";
-import { dangerSql } from "./vulns.ts";
+import { dangerSql, liveSql } from "./vulns.ts";
 
 /**
  * The News timeline's queries: the filters a reader can set, the page of items they select with
@@ -15,6 +16,8 @@ export interface WireFilters {
   kind?: ItemKind | undefined;
   q?: string | undefined;
   unread?: boolean;
+  /** Only the items the owner starred. */
+  starred?: boolean;
   /** Cursor: the id of the last item shown; the page continues below it in the list's own order (date, then id). */
   before?: number | undefined;
   /** Only items published (or, undated, fetched) at or after this instant. */
@@ -48,6 +51,18 @@ export interface WireItem {
   /** The cached lead image's blob hash and type, when one arrived with the item. */
   image_blob: string | null;
   image_type: string | null;
+}
+
+/**
+ * The KEV mark, with CISA's due date and "overdue" once that date has passed: one helper for the
+ * News, the triage board, the CVE table and Today's desk, so a past date reads the same on all of
+ * them. A date is past once the day after it begins, as overdueKev reads it.
+ */
+export function kevChip(due: string | null | undefined, now: Date | string): Html {
+  const today = typeof now === "string" ? now.slice(0, 10) : now.toISOString().slice(0, 10);
+  const date = due ? due.slice(0, 10) : null;
+  const overdue = date !== null && date < today;
+  return html`<span class="chip kev${overdue ? " overdue" : ""}"${overdue ? html` title="CISA's due date has passed"` : ""}>KEV${date ? html` · due ${date}${overdue ? " · overdue" : ""}` : ""}</span>`;
 }
 
 /** Turns free text into an FTS5 query that cannot be mistaken for FTS syntax: every word quoted, all required. */
@@ -95,6 +110,7 @@ function build(filters: WireFilters, options: { copies?: boolean; owner?: boolea
     params.push(filters.kind);
   }
   if (filters.unread) clauses.push("i.read = 0");
+  if (filters.starred) clauses.push("i.starred = 1");
   if (filters.q) {
     const query = ftsQuery(filters.q);
     if (query) {
@@ -122,7 +138,7 @@ function build(filters: WireFilters, options: { copies?: boolean; owner?: boolea
     clauses.push(`NOT ${aiItemSql}`);
     params.push(aiHeadlineQuery);
   }
-  if (filters.danger) clauses.push(`(i.kind = 'kev' OR ${namesCveIn(`(SELECT v.cve_id FROM vulns v WHERE ${dangerSql})`)})`);
+  if (filters.danger) clauses.push(`(i.kind = 'kev' OR ${namesCveIn(`(SELECT v.cve_id FROM vulns v WHERE ${liveSql} AND ${dangerSql})`)})`);
   if (filters.since) {
     clauses.push("COALESCE(i.published_at, i.fetched_at) >= ?");
     params.push(filters.since);
@@ -152,6 +168,53 @@ export function listWire(db: DatabaseSync, filters: WireFilters = {}, options: {
        LIMIT ?`,
     )
     .all(...params, limit) as unknown as WireItem[];
+}
+
+/** What makes two articles one story: the same address once canonical, or the same headline (a short one proves nothing). */
+export function storyKeys(item: Pick<WireItem, "kind" | "canonical_url" | "title">): string[] {
+  if (item.kind !== "article") return [];
+  const keys: string[] = [];
+  if (item.canonical_url) keys.push(`u:${item.canonical_url}`);
+  const headline = item.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().slice(0, 80);
+  if (headline.length >= 24) keys.push(`t:${headline}`);
+  return keys;
+}
+
+type Foldable = Pick<WireItem, "id" | "source_id" | "kind" | "canonical_url" | "title">;
+
+/**
+ * One story from several sources is one card: the first by date, the others named on it. Rows come
+ * newest first, as the page lists them, and fold only among themselves.
+ */
+export function foldStories<T extends Foldable>(rows: T[]): { items: T[]; alsoOn: Map<number, T[]> } {
+  const alsoOn = new Map<number, T[]>();
+  const firstByKey = new Map<string, T>();
+  const items: T[] = [];
+  for (const item of rows) {
+    const keys = storyKeys(item);
+    const first = keys.map((k) => firstByKey.get(k)).find((f) => f !== undefined && f.source_id !== item.source_id);
+    if (first) {
+      alsoOn.set(first.id, [...(alsoOn.get(first.id) ?? []), item]);
+      continue;
+    }
+    for (const k of keys) if (!firstByKey.has(k)) firstByKey.set(k, item);
+    items.push(item);
+  }
+  return { items, alsoOn };
+}
+
+/**
+ * How many stories the News page draws under these filters: every copy that matches, folded by
+ * story among the matching rows alone, as the page lists them (hiding copies among all items
+ * would count a story whose first copy the filters leave out as none). With `arrivedSince`, only the stories whose card was fetched since then.
+ */
+export function countStories(db: DatabaseSync, filters: WireFilters = {}, options: { owner?: boolean } = {}, arrivedSince?: string): { total: number; fresh: number } {
+  const { where, params } = build({ ...filters, before: undefined }, { copies: true, owner: options.owner === true });
+  const rows = db
+    .prepare(`SELECT i.id, i.source_id, i.kind, i.canonical_url, i.title, i.fetched_at FROM items i ${where} ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC`)
+    .all(...params) as unknown as (Foldable & { fetched_at: string })[];
+  const { items } = foldStories(rows);
+  return { total: items.length, fresh: arrivedSince ? items.filter((i) => i.fetched_at >= arrivedSince).length : items.length };
 }
 
 export function markAllRead(db: DatabaseSync, filters: WireFilters = {}, upto?: number, drawnAt?: string): number {

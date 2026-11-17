@@ -1,10 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { digestTextFor, latestDigest, listDigests, type DigestRow } from "../digest.ts";
 import { html, newTabIf, type Html } from "../html.ts";
-import { recentAlerts } from "../notify.ts";
+import { alertStatusWord, recentAlerts } from "../notify.ts";
 import { relativeTime, shortStamp } from "../time.ts";
 import type { LookState } from "../look.ts";
-import { page } from "./layout.ts";
+import { menuName, page, staleNotice } from "./layout.ts";
 
 /**
  * The Digest page: the digests written so far, each with its links drawn as links, and the alert log
@@ -27,7 +27,25 @@ function localPath(url: string, baseUrl: string): string | null {
   return null;
 }
 
-/** The digest is stored as the plain text that was sent; on the page its URLs become links. */
+/** A path on this site as the name of what it shows: a CVE by its id, a standard's release as "the release", a page by its menu name (the masthead's own table). */
+export function pathName(path: string): string {
+  const segments = path.split(/[?#]/)[0]!.split("/").filter(Boolean);
+  const cve = segments[0] === "vulnerabilities" && segments[1] && /^CVE-\d{4}-\d+$/i.test(segments[1]) ? segments[1].toUpperCase() : undefined;
+  if (cve) return cve;
+  if (segments[0] === "standards" && segments.length >= 3) return "the release";
+  return menuName(path) ?? segments[0] ?? "News";
+}
+
+/** Another site's address as its host, the full address on hover. */
+function hostName(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/** The digest is stored as the plain text that was sent; on the page its URLs become links, named rather than spelled out. */
 export function linkified(line: string, baseUrl: string): Html {
   const parts: Html[] = [];
   let last = 0;
@@ -35,7 +53,7 @@ export function linkified(line: string, baseUrl: string): Html {
     parts.push(html`${line.slice(last, m.index)}`);
     const url = m[0]!;
     const local = localPath(url, baseUrl);
-    parts.push(local ? html`<a href="${local}">${local}</a>` : html`<a href="${url}" ${newTabIf(url)}>${url}</a>`);
+    parts.push(local ? html`<a href="${local}">${pathName(local)}</a>` : html`<a href="${url}" ${newTabIf(url)} title="${url}">${hostName(url)}</a>`);
     last = m.index + url.length;
   }
   parts.push(html`${line.slice(last)}`);
@@ -57,6 +75,7 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
       <h1>Digest</h1>
       ${owner ? html`<form method="post" action="/digest/run" class="inline"><button type="submit">Write one now</button></form>` : ""}
     </div>
+    ${staleNotice(db, now)}
     <p class="lede">${options.period === "off" ? "The digest is switched off (BW_DIGEST)." : `Written ${options.period} at ${String(options.hour).padStart(2, "0")}:00 ${options.timeZone}`}${options.notifyConfigured ? ", and sent to your notifier." : ". No notifier is configured (BW_NOTIFY_URL), so it only appears here."}</p>
     <div class="cols">
       <section class="main">
@@ -69,7 +88,7 @@ export function renderDigest(options: { db: DatabaseSync; owner: boolean; open: 
         <section class="box" id="alerts">
           <h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">${alerts.length}</a></span></h2>
           ${alerts.length
-            ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${a.status}${times > 1 ? html` · <b>${times} times</b>` : ""}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>`
+            ? html`<ul class="alerts">${groupAlerts(alerts).map(({ a, times }) => html`<li class="${a.status}"><span class="when">${relativeTime(a.sent_at, now)} · ${a.kind} · ${alertStatusWord(a.status)}${times > 1 ? html` · <b>${times} times</b>` : ""}${a.error ? html` <span class="small">${a.error}</span>` : ""}</span>${alertHref(a.url) ? html`<a href="${alertHref(a.url)}" ${newTabIf(alertHref(a.url))}>${a.title}</a>` : a.title}</li>`)}</ul>`
             : html`<p class="small">None yet. KEV additions, watched CVE changes and standard releases are sent as they arrive, after a source's first load.</p>`}
         </section>
       </aside>

@@ -54,7 +54,8 @@ export function eolItems(rows: Omit<EolCycle, "seen_at">[], now: Date): ParsedIt
   for (const r of rows) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(r.eol)) continue;
     const end = new Date(`${r.eol}T00:00:00Z`).getTime();
-    const days = Math.round((end - now.getTime()) / day);
+    // Counted from the start of today in UTC, as the dates are: "ends today" all of that day.
+    const days = Math.round((end - Date.parse(`${now.toISOString().slice(0, 10)}T00:00:00Z`)) / day);
     if (days > warnDays || days < -gracedDays) continue;
     const name = `${productLabel[r.product] ?? r.product} ${r.label ?? r.cycle}`;
     const ended = days < 0;

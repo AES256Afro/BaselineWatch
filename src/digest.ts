@@ -2,10 +2,11 @@ import type { DatabaseSync } from "node:sqlite";
 import { rehearsalLine, storageLine, storageReport } from "./housekeeping.ts";
 import { latestReadings } from "./devices.ts";
 import { latestExposure } from "./exposure.ts";
-import { failingSources } from "./pipeline.ts";
-import { stateLabel, triageCounts, type TriageState } from "./triage.ts";
+import { failingSources, newestCveChange, staleCveHours } from "./pipeline.ts";
+import { stateLabel, triageCounts, triageInboxCount, type TriageState } from "./triage.ts";
 import { parseJson } from "./json.ts";
-import { counted, epssPercent } from "./words.ts";
+import { overdueKev } from "./vulns.ts";
+import { counted, durationWord, epssPercent } from "./words.ts";
 
 /**
  * The digest: what moved since the last one, as plain text a notifier can carry and the
@@ -80,11 +81,17 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
       `SELECT v.cve_id, v.cvss_score, v.epss, v.kev, v.watch_labels_json, GROUP_CONCAT(DISTINCT c.field) AS fields
        FROM vuln_changes c JOIN vulns v ON v.cve_id = c.cve_id
        WHERE c.observed_at > ? AND c.observed_at <= ? AND v.watch_hit = 1
-       GROUP BY v.cve_id ORDER BY v.epss DESC NULLS LAST, v.cvss_score DESC NULLS LAST LIMIT 20`,
+       GROUP BY v.cve_id
+       ORDER BY v.kev DESC, MAX(c.field IN ('new', 'kev', 'cvss')) DESC, v.epss DESC NULLS LAST, v.cvss_score DESC NULLS LAST`,
     )
     .all(from, to) as { cve_id: string; cvss_score: number | null; epss: number | null; kev: number; watch_labels_json: string | null; fields: string }[];
-  mine(`Your stack: ${watched.length ? `${counted(watched.length, "CVE")} new or changed` : "no CVE changes"}`);
-  for (const w of watched) {
+  // KEV first, then a CVE that is new, newly listed or rescored, then by likelihood: a status-only
+  // touch with a tiny EPSS no longer pushes an exploited CVE out of the twenty shown.
+  const shownWatched = watched.slice(0, 20);
+  mine(
+    `Your stack: ${watched.length ? `${counted(watched.length, "CVE")} new or changed${watched.length > shownWatched.length ? `, the first ${shownWatched.length} below` : ""}` : "no CVE changes"}`,
+  );
+  for (const w of shownWatched) {
     const labels = parseJson<string[]>(w.watch_labels_json, []).join(", ");
     mine(`- ${w.cve_id} (${labels})${w.cvss_score !== null ? ` CVSS ${w.cvss_score.toFixed(1)}` : ""}${w.epss !== null ? ` EPSS ${epssPercent(w.epss)}` : ""}${w.kev ? " KEV" : ""}: ${w.fields} ${baseUrl}/vulnerabilities/${w.cve_id}`);
   }
@@ -95,7 +102,7 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   const starred = db
     .prepare("SELECT title, url FROM items WHERE starred = 1 AND fetched_at > ? AND fetched_at <= ? ORDER BY published_at DESC LIMIT 10")
     .all(from, to) as { title: string; url: string | null }[];
-  both(`News: ${news} new stories, ${notable} notable CVEs`);
+  both(`News: ${counted(news, "new story", "new stories")}, ${counted(notable, "notable CVE")}`);
   if (starred.length) mine(`Starred: ${starred.length}`);
   for (const s of starred) mine(`- ${s.title}${s.url ? ` ${s.url}` : ""}`);
   both("");
@@ -142,34 +149,55 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
   }
 
   // Certificates the transparency logs showed for the owner's domains in the window (S3): each one is worth a look.
-  const certs = db.prepare("SELECT domain, names, issuer, not_before FROM ct_certs WHERE seen_at > ? AND seen_at <= ? ORDER BY not_before DESC LIMIT 20").all(from, to) as { domain: string; names: string; issuer: string | null; not_before: string | null }[];
-  if (certs.length) {
-    mine(`Certificates logged: ${certs.length} for your domains ${baseUrl}/scan/domain`);
+  // Counted from the News items the watch made, not from the rows it keeps: a domain's first read
+  // stores every certificate crt.sh holds (months of them) and makes items only for the last week.
+  const certWhere = "FROM items WHERE source_id = 'crtsh' AND fetched_at > ? AND fetched_at <= ?";
+  const certTotal = (db.prepare(`SELECT COUNT(*) AS n ${certWhere}`).get(from, to) as { n: number }).n;
+  const certs = (db.prepare(`SELECT signals_json, published_at ${certWhere} ORDER BY published_at DESC LIMIT 10`).all(from, to) as { signals_json: string | null; published_at: string | null }[]).map((r) => {
+    const signals = parseJson<{ names?: string[]; issuer?: string | null }>(r.signals_json, {});
+    return { names: (signals.names ?? []).join("\n"), issuer: signals.issuer ?? null, not_before: r.published_at };
+  });
+  if (certTotal) {
+    mine(`Certificates logged: ${certTotal} for your domains ${baseUrl}/scan/domain`);
     for (const c of certs.slice(0, 10)) mine(`- ${c.names.split("\n").join(", ")}${c.issuer ? ` by ${c.issuer}` : ""}${c.not_before ? `, from ${c.not_before.slice(0, 10)}` : ""}`);
     mine("");
   }
 
   const counts = triageCounts(db);
-  const open = (["affects", "reviewing", "new"] as TriageState[]).map((s) => `${counts[s]} ${stateLabel[s].toLowerCase()}`).join(", ");
+  const open = (["affects", "reviewing"] as TriageState[]).map((s) => `${counts[s]} ${stateLabel[s].toLowerCase()}`).join(", ");
   const due = db.prepare("SELECT COUNT(*) AS n FROM triage WHERE due_at IS NOT NULL AND due_at < ? AND state NOT IN ('done', 'dismissed')").get(day(to)) as { n: number };
-  both(`Triage: ${open}${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`);
+  // "Waiting" is the inbox Today shows, counted the same way for each half: the owner's carries the
+  // watchlist arm, a visitor's the window alone. A count of state 'new' in the triage table read
+  // "0 new" beside an inbox of hundreds until the audit of 16 November.
+  const triageLine = (owner: boolean): string => `Triage: ${open}, ${triageInboxCount(db, new Date(to), { owner })} waiting${due.n ? `; ${due.n} past due` : ""} ${baseUrl}/triage`;
+  lines.push(triageLine(true));
+  publicLines.push(triageLine(false));
+  // Which of the owner's KEV entries CISA's clock has run out on: the watchlist is theirs, so the line is too.
+  const overdue = overdueKev(db, day(to));
+  // Each CVE by its own address: the table's watch-and-KEV filter lists a different set (every watched KEV entry, due or not).
+  if (overdue.total) mine(`KEV past CISA's due date on your watchlist or affecting you: ${overdue.total} (${overdue.cves.map((c) => `${c.cveId}, due ${c.dueDate}, ${baseUrl}/vulnerabilities/${c.cveId}`).join("; ")}${overdue.total > overdue.cves.length ? `; and ${overdue.total - overdue.cves.length} more` : ""})`);
   // How long, not just which: an hour is a passing 403, a day is something to act on (M13.2).
   const failing = failingSources(db, new Date(to));
   if (failing.length) {
-    both(`Sources failing: ${failing.map((f) => (f.hours === null ? f.name : `${f.name} (${f.hours} h)`)).join(", ")} ${baseUrl}/sources`);
+    both(`Sources failing: ${failing.map((f) => (f.hours === null ? f.name : `${f.name} (${durationWord(f.hours)})`)).join(", ")} ${baseUrl}/sources`);
   }
   both(storageLine(storageReport(db), baseUrl));
   const rehearsal = rehearsalLine(db, new Date(to), baseUrl);
-  if (rehearsal) both(rehearsal);
+  // The owner's own backups: a visitor's half of the digest leaves the restore line out.
+  if (rehearsal) mine(rehearsal);
   // The lesson of the three-day NVD stall: staleness is a headline, not something to go look for.
-  const newestVuln = (db.prepare("SELECT MAX(last_modified_at) AS m FROM vulns").get() as { m: string | null }).m;
+  // The same reading and the same threshold as the tile and the notice, so the three agree on when the stream stopped.
+  const newestVuln = newestCveChange(db);
   if (newestVuln) {
     const ageDays = (Date.parse(to) - Date.parse(newestVuln)) / 86_400_000;
-    if (ageDays >= 1.5) both(`Pipeline: the newest CVE change is ${counted(Math.floor(ageDays), "day")} old — the CVE pull may be stuck ${baseUrl}/sources`);
+    if (ageDays * 24 >= staleCveHours) both(`Pipeline: the newest CVE change is ${counted(Math.floor(ageDays), "day")} old — the CVE pull may be stuck ${baseUrl}/sources`);
   }
   const tidy = (out: string[]): string => out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return { text: tidy(lines), publicText: tidy(publicLines) };
 }
+
+/** Lines that are the owner's whatever half they were written into: the restore drill names the instance's own backups. */
+const ownerOnlyLine = (line: string): boolean => line.startsWith("Restore:");
 
 /**
  * The text of a digest as this caller may read it. The owner gets all of it; everyone else gets
@@ -179,7 +207,12 @@ export function buildDigest(db: DatabaseSync, options: { from: string; to: strin
  */
 export function digestTextFor(d: DigestRow, owner: boolean): string {
   if (owner) return d.text;
-  return d.public_text ?? "This digest was written before BaselineWatch separated the owner's own network from the part anyone may read, so it is the owner's alone. The next one will have a public half.";
+  if (d.public_text === null) return "This digest was written before BaselineWatch separated the owner's own network from the part anyone may read, so it is the owner's alone. The next one will have a public half.";
+  // Older public halves carried the owner's restore line; the page, the API and the MCP tool all read through here.
+  return d.public_text
+    .split("\n")
+    .filter((line) => !ownerOnlyLine(line))
+    .join("\n");
 }
 
 export function latestDigest(db: DatabaseSync): DigestRow | null {

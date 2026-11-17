@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { csvLine } from "./csv.ts";
 import { withheldLabel } from "./register.ts";
 import { parseJson } from "./json.ts";
+import { cveIdPattern } from "./vulns.ts";
 
 /**
  * Triage: the owner's state on any item, CVE or control-in-a-release — new, reviewing, affects us,
@@ -79,11 +80,8 @@ export interface TriageCard extends TriageRow {
 }
 
 /**
- * Every triaged subject, newest first, joined to its item, CVE or requirement. A requirement of a
- * licence-restricted source is named only when the owner is asking (`owner`); the API never is.
- */
-/**
- * The board's cards. Two different things may be withheld, and conflating them on one `owner`
+ * The board's cards: every triaged subject joined to its item, CVE or requirement, by state and
+ * then newest first. Two different things may be withheld, and conflating them on one `owner`
  * flag is what let the second one out until the audit of 25 October:
  *
  * - `notes`: the owner's own note on a card — their working text, up to two thousand characters of
@@ -96,7 +94,7 @@ export interface TriageCard extends TriageRow {
  *
  * The state, the subject and the due date stay public either way: those are what the board teaches.
  */
-export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number; notes?: boolean; restrictedLabels?: boolean } = {}): TriageCard[] {
+export function listTriage(db: DatabaseSync, options: { state?: TriageState | undefined; limit?: number | null; notes?: boolean; restrictedLabels?: boolean } = {}): TriageCard[] {
   const params: (string | number)[] = [];
   let where = "";
   if (options.state) {
@@ -118,9 +116,10 @@ export function listTriage(db: DatabaseSync, options: { state?: TriageState | un
        LEFT JOIN requirements r ON t.subject_kind = 'control' AND r.document_id = t.subject_id AND r.ref = t.subject_key
        ${where}
        ORDER BY CASE t.state WHEN 'affects' THEN 0 WHEN 'reviewing' THEN 1 WHEN 'new' THEN 2 WHEN 'done' THEN 3 ELSE 4 END, t.updated_at DESC
-       LIMIT ?`,
+       ${options.limit === null ? "" : "LIMIT ?"}`,
     )
-    .all(...params, Math.min(options.limit ?? 200, 500)) as unknown as (TriageRow & Record<string, unknown>)[];
+    // limit: null is every row, for the owner's CSV; a page or the API is capped at five hundred.
+    .all(...params, ...(options.limit === null ? [] : [Math.min(options.limit ?? 200, 500)])) as unknown as (TriageRow & Record<string, unknown>)[];
 
   // The owner's own note, kept or dropped once rather than at each of the places that draw it.
   const note = (r: { note: string | null }): string | null => (options.notes ? r.note : null);
@@ -160,22 +159,169 @@ export function triageCounts(db: DatabaseSync): Record<TriageState, number> {
   return counts;
 }
 
-/** Notable, unread, untriaged timeline items: the inbox the board starts from. */
-export function triageInbox(db: DatabaseSync, limit = 30): { id: number; title: string; url: string | null; kind: string; published_at: string | null; signals_json: string | null; source_id: string; source_name: string }[] {
-  return db
+/** How far back the inbox reaches: older than this, only a CVE on the watchlist waits for a decision. */
+export const inboxDays = 30;
+
+/** The instant the inbox's window starts: midnight UTC of the day thirty days back, so the date the backlog button names is the whole boundary. */
+export function inboxCutoff(now: Date): string {
+  return `${new Date(now.getTime() - inboxDays * 86_400_000).toISOString().slice(0, 10)}T00:00:00.000Z`;
+}
+
+/** Unread timeline items of the kinds the board places, with no triage row yet. */
+const waitingSql = `i.kind IN ('kev', 'vulnerability', 'release') AND i.read = 0
+  AND NOT EXISTS (SELECT 1 FROM triage t WHERE t.subject_kind = 'item' AND t.subject_id = i.id)`;
+/** An item that names a CVE the watchlist marks. */
+const watchedSql = "(i.kind IN ('kev', 'vulnerability') AND i.external_id IN (SELECT cve_id FROM vulns WHERE watch_hit = 1))";
+/**
+ * The inbox: what is waiting and either arrived in the window or is on the watchlist. Without the
+ * window it held every KEV entry since 2021 (2,751 on the public instance, 2026-11-16), which is a
+ * backlog, not an inbox; the backlog is cleared with one action below.
+ *
+ * The watchlist arm is the owner's alone: an older card shown to a visitor would be there only
+ * because its CVE is watched, which is the watchlist read out one card at a time.
+ */
+const inboxSqlFor = (owner: boolean): string =>
+  owner ? `${waitingSql} AND (COALESCE(i.published_at, i.fetched_at) >= ? OR ${watchedSql})` : `${waitingSql} AND COALESCE(i.published_at, i.fetched_at) >= ?`;
+
+/** Who the inbox is drawn for: the owner sees the watchlist arm, anyone else the window alone. */
+interface InboxOptions {
+  owner?: boolean;
+  offset?: number;
+}
+
+export interface InboxItem {
+  id: number;
+  title: string;
+  url: string | null;
+  kind: string;
+  published_at: string | null;
+  signals_json: string | null;
+  source_id: string;
+  source_name: string;
+  /** The CVE a KEV or vulnerability item is about, for its page on this site. */
+  cve_id: string | null;
+  /** The CVE's description, or the item's summary, to its first sentence. */
+  lead: string | null;
+}
+
+/** Words that say a sentence is about a flaw rather than about the project. */
+const flawWords = /vulnerab|affect|allows?\b|could|attacker|overflow|injection|bypass|flaw|issue|exploit|cross-site|denial of service|execut|disclos|traversal|improper|missing|unauthori[sz]ed|vulnerable/i;
+
+/** A description's first sentence, cut at a word if it runs long: what a card has room for. */
+export function firstSentence(text: string | null, max = 220): string | null {
+  const flat = (text ?? "").replace(/\s+/g, " ").trim();
+  if (!flat) return null;
+  // A full stop that ends a sentence: followed by a space and a capital, or the end. "v1.2" and "e.g. a" do not end one.
+  const endOf = (from: string): number => {
+    const end = /[.!?](?=\s+[A-Z(“"]|$)/.exec(from);
+    return end ? end.index + 1 : from.length;
+  };
+  let sentence = flat.slice(0, endOf(flat));
+  // A description that opens with the project's own blurb ("Wasmtime is a runtime for WebAssembly.")
+  // leads with the next sentence when the first names no flaw and the next one does.
+  const rest = flat.slice(sentence.length).trim();
+  if (rest && !flawWords.test(sentence)) {
+    const next = rest.slice(0, endOf(rest));
+    if (flawWords.test(next)) sentence = next;
+  }
+  if (sentence.length <= max) return sentence;
+  const cut = sentence.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max / 2))}…`;
+}
+
+/** Notable, unread, untriaged timeline items from the last thirty days or on the watchlist: the inbox the board starts from. */
+export function triageInbox(db: DatabaseSync, now: Date, limit = 30, options: InboxOptions = {}): InboxItem[] {
+  const rows = db
     .prepare(
-      `SELECT i.id, i.title, i.url, i.kind, i.published_at, i.signals_json, s.id AS source_id, s.name AS source_name
+      `SELECT i.id, i.title, i.url, i.kind, i.published_at, i.signals_json, i.summary, s.id AS source_id, s.name AS source_name,
+              CASE WHEN i.kind IN ('kev', 'vulnerability') THEN COALESCE(v.cve_id, i.external_id) END AS cve_id, v.description AS description
        FROM items i JOIN sources s ON s.id = i.source_id
-       WHERE i.kind IN ('kev', 'vulnerability', 'release') AND i.read = 0
-         AND NOT EXISTS (SELECT 1 FROM triage t WHERE t.subject_kind = 'item' AND t.subject_id = i.id)
-       ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC LIMIT ?`,
+       LEFT JOIN vulns v ON i.kind IN ('kev', 'vulnerability') AND v.cve_id = i.external_id
+       WHERE ${inboxSqlFor(options.owner === true)}
+       ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC LIMIT ? OFFSET ?`,
     )
-    .all(limit) as never;
+    .all(inboxCutoff(now), limit, Math.max(0, Math.floor(options.offset ?? 0))) as unknown as (Omit<InboxItem, "lead"> & { summary: string | null; description: string | null })[];
+  // A CVE this instance has no row for still has a page here: it says where to read it.
+  return rows.map(({ summary, description, ...r }) => ({ ...r, cve_id: r.cve_id && cveIdPattern.test(r.cve_id) ? r.cve_id : null, lead: firstSentence(description ?? summary) }));
+}
+
+/** How many items the inbox holds in all, however many a page draws. */
+export function triageInboxCount(db: DatabaseSync, now: Date, options: InboxOptions = {}): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM items i WHERE ${inboxSqlFor(options.owner === true)}`).get(inboxCutoff(now)) as { n: number }).n;
+}
+
+/**
+ * The backlog: KEV entries and notable CVEs that wait from before the window and name no watched
+ * CVE. A standard release is not in it: a release is read, not dismissed in bulk, and the button
+ * swept them in with the CVEs until the audit of 16 November.
+ */
+const backlogSql = `${waitingSql} AND i.kind IN ('kev', 'vulnerability') AND COALESCE(i.published_at, i.fetched_at) < ? AND NOT ${watchedSql}`;
+
+/** What waits from before the window and is not on the watchlist: the backlog the inbox no longer shows. */
+export function triageBacklogCount(db: DatabaseSync, now: Date, before = inboxCutoff(now)): number {
+  return (db.prepare(`SELECT COUNT(*) AS n FROM items i WHERE ${backlogSql}`).get(before) as { n: number }).n;
+}
+
+/** The app_settings key that holds the last bulk dismissal's stamp, so it can be undone. */
+const backlogStampKey = "triage.backlog.last";
+/** How long the last bulk dismissal can be undone. */
+export const backlogUndoHours = 24;
+
+/**
+ * Marks the backlog "not ours" in one go: every waiting KEV or CVE item from before `before` that
+ * names no watched CVE. A watched CVE is the owner's by definition and stays in the inbox. Every
+ * row it writes carries `at` as both its created and updated stamp, and `at` is kept, so
+ * `undoBacklog` can take back exactly those rows the owner has not touched since. Returns how many.
+ */
+export function dismissBacklog(db: DatabaseSync, before: string, at: string): number {
+  const n = Number(
+    db
+      .prepare(
+        `INSERT INTO triage (subject_kind, subject_id, subject_key, state, note, due_at, created_at, updated_at)
+         SELECT 'item', i.id, '', 'dismissed', NULL, NULL, ?, ? FROM items i WHERE ${backlogSql}`,
+      )
+      .run(at, at, before).changes,
+  );
+  if (n > 0) {
+    db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at").run(
+      backlogStampKey,
+      JSON.stringify({ at, count: n }),
+      at,
+    );
+  }
+  return n;
+}
+
+/** The last bulk dismissal, while it can still be undone: when it ran and how many it marked. */
+export function lastBacklogDismissal(db: DatabaseSync, now: Date): { at: string; count: number } | null {
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(backlogStampKey) as { value: string } | undefined;
+  const last = parseJson<{ at?: unknown; count?: unknown } | null>(row?.value ?? null, null);
+  if (!last || typeof last.at !== "string" || typeof last.count !== "number") return null;
+  const age = now.getTime() - Date.parse(last.at);
+  if (!Number.isFinite(age) || age > backlogUndoHours * 3_600_000) return null;
+  return { at: last.at, count: last.count };
+}
+
+/**
+ * Takes the last bulk dismissal back: its rows, still dismissed and untouched since, are removed,
+ * so those items wait in the backlog again. A row the owner has moved or noted since is theirs and
+ * stays. Returns how many came back; zero once the undo window has passed.
+ */
+export function undoBacklog(db: DatabaseSync, now: Date): number {
+  const last = lastBacklogDismissal(db, now);
+  if (!last) return 0;
+  const n = Number(
+    db
+      .prepare("DELETE FROM triage WHERE subject_kind = 'item' AND state = 'dismissed' AND note IS NULL AND due_at IS NULL AND created_at = ? AND updated_at = ?")
+      .run(last.at, last.at).changes,
+  );
+  db.prepare("DELETE FROM app_settings WHERE key = ?").run(backlogStampKey);
+  return n;
 }
 
 /** The owner's download, so every card is named. */
 export function triageCsv(db: DatabaseSync): string {
-  const cards = listTriage(db, { limit: 500, notes: true, restrictedLabels: true });
+  const cards = listTriage(db, { limit: null, notes: true, restrictedLabels: true });
   const lines = ["state,kind,title,url,note,due,updated"];
   for (const c of cards) lines.push(csvLine([c.state, c.subject_kind, c.title, c.url, c.note ?? "", c.due_at ?? "", c.updated_at]));
   return `${lines.join("\n")}\n`;

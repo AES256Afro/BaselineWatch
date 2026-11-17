@@ -1,9 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { html, newTabIf, type Html } from "../html.ts";
+import { counted, html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import type { NormalizedRequirement } from "../oscal.ts";
 import { lines } from "../redline.ts";
-import { changeSummaryFor, changeSummaryText, loadRequirements, notesFor, releaseChanges } from "../register.ts";
+import { changeSummaryFor, changeSummaryText, loadRequirements, notesFor, publisherListedRules, releaseChanges } from "../register.ts";
 import { relativeTime } from "../time.ts";
 import {
 
@@ -75,7 +75,9 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
       <div class="table-wrap"><table><caption class="visually-hidden">STIGs followed</caption>
         <thead><tr><th scope="col">STIG</th><th scope="col">Version</th><th scope="col">Published</th><th scope="col"><a href="/guide#cat" title="Category I: the most severe">CAT I</a></th><th scope="col"><a href="/guide#cat" title="Category II">CAT II</a></th><th scope="col"><a href="/guide#cat" title="Category III: the least severe">CAT III</a></th><th scope="col">Against the previous version</th></tr></thead>
         <tbody>${stigs.map((s) => {
-          const summary = s.previous ? changeSummaryText(changeSummaryFor(db, s.latest.id)) : "first version loaded";
+          // With no earlier version loaded there is nothing to diff, but DISA's own revision history still says what changed.
+          const listed = s.previous ? [] : publisherListedRules(db, s.latest.id);
+          const summary = s.previous ? changeSummaryText(changeSummaryFor(db, s.latest.id)) : listed.length ? `DISA lists ${counted(listed.length, "changed rule")}` : "first version loaded";
           const cat = (n: 1 | 2 | 3) => `/stigs/${platform.id}?stig=${encodeURIComponent(s.key)}&cat=${n}`;
           return html`<tr>
             <td><a href="/stigs/${platform.id}?stig=${encodeURIComponent(s.key)}"><b>${s.product}</b></a></td>
@@ -84,7 +86,7 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
             <td class="n"><a href="${cat(1)}">${s.counts["CAT I"]}</a></td>
             <td class="n"><a href="${cat(2)}">${s.counts["CAT II"]}</a></td>
             <td class="n"><a href="${cat(3)}">${s.counts["CAT III"]}</a></td>
-            <td>${s.previous ? html`<a href="/standards/disa-stigs/${s.latest.id}">${summary}</a>` : html`<a href="/standards/disa-stigs/${s.latest.id}/browse">${summary}</a>`} <span class="small">· loaded ${relativeTime(s.latest.parsed_at, now)}</span></td>
+            <td>${s.previous || listed.length ? html`<a href="/standards/disa-stigs/${s.latest.id}">${summary}</a>` : html`<a href="/standards/disa-stigs/${s.latest.id}/browse">${summary}</a>`} <span class="small">· loaded ${relativeTime(s.latest.parsed_at, now)}</span></td>
           </tr>`;
         })}</tbody>
       </table></div>
@@ -113,8 +115,8 @@ export function renderStigsIndex(options: { db: DatabaseSync; now: Date } & Who)
           })}</ul>
         </section>
         <section class="box">
-          <h2><a href="/watchlist">Follow another STIG</a></h2>
-          <p class="small">The library holds over four hundred documents; only the followed ones are downloaded. ${owner ? html`Add a <a href="/watchlist">watchlist</a> entry of kind Baseline with the product's name as DISA writes it ("Oracle Linux 9", "VMware vSphere 8.0") and fetch the library again. Entries replace the default set.` : "The owner follows more through the watchlist."}</p>
+          <h2><a href="${owner ? "/watchlist" : "/guide#watchlist"}">Follow another STIG</a></h2>
+          <p class="small">The library holds over four hundred documents; only the followed ones are downloaded. ${owner ? html`Add a <a href="/watchlist">watchlist</a> entry of kind Baseline with the product's name as DISA writes it ("Oracle Linux 9", "VMware vSphere 8.0") and fetch the library again. Entries replace the default set.` : html`The owner follows more through the <a href="/guide#watchlist">watchlist</a>.`}</p>
         </section>
       </aside>
     </div>`;
@@ -160,7 +162,7 @@ export function renderStigPlatform(options: StigPlatformOptions): string {
   let main: Html;
   let aside: Html = html``;
   if (!chosen) {
-    main = html`<div class="empty"><b>No ${label} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> (kind Baseline, the product's name) and fetch the DISA library from <a href="/sources">Sources</a>.` : "The owner can follow one through the watchlist."}</p></div>`;
+    main = html`<div class="empty"><b>No ${label} STIG loaded.</b><p>${owner ? html`Follow one through the <a href="/watchlist">watchlist</a> (kind Baseline, the product's name) and fetch the DISA library from <a href="/sources">Sources</a>.` : html`The owner can follow one through the <a href="/guide#watchlist">watchlist</a>.`}</p></div>`;
   } else {
     const rules = loadRequirements(db, chosen.latest.id);
     const grouped = rulesByCat(rules);

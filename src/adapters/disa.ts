@@ -170,6 +170,8 @@ const severityFamily: Record<string, string> = { high: "CAT I", medium: "CAT II"
 export interface ParsedStig extends ParsedDocument {
   benchmarkId: string | null;
   releaseInfo: string | null;
+  /** "V1R4": the benchmark's <version> and the release in its release-info, as DISA's Revision History heads a release. */
+  revision: string | null;
 }
 
 export function parseXccdf(xml: string): ParsedStig {
@@ -216,13 +218,16 @@ export function parseXccdf(xml: string): ParsedStig {
       });
     }
   }
+  const release = releaseInfo ? (/Release:\s*([\d.]+)/i.exec(releaseInfo)?.[1] ?? null) : null;
+  const benchmarkVersion = text(benchmark.version)?.trim() ?? null;
   return {
     title,
-    versionLabel: releaseInfo ? (/Release:\s*([\d.]+)/i.exec(releaseInfo)?.[1] ?? null) : null,
+    versionLabel: release,
     publishedAt: statusDate ? `${statusDate}T00:00:00.000Z` : null,
     requirements,
     benchmarkId: typeof benchmark["@_id"] === "string" ? benchmark["@_id"] : null,
     releaseInfo,
+    revision: release && benchmarkVersion && /^\d+$/.test(benchmarkVersion) && /^\d+(?:\.\d+)?$/.test(release) ? `V${benchmarkVersion}R${release}` : null,
   };
 }
 
@@ -249,10 +254,14 @@ export const disaAdapter: Adapter = {
     if (history) {
       try {
         const text = await pdfText(history.bytes);
-        const parsedHistory = parseStigRevisionHistory(text, versionLabel);
+        // The history heads each release "V1R4"; a continuous STIG's label is its file token
+        // (Y26M10), so the release is read from the XCCDF the history came with.
+        const parsedHistory = parseStigRevisionHistory(text, parsed.revision ?? versionLabel);
         notes = parsedHistory.notes;
         const summary = [...parsedHistory.notes.map((n) => `${n.label}: ${n.text}`), ...parsedHistory.general];
-        if (summary.length) rationale = { text: `Revision History, ${versionLabel ?? "this release"}:\n${summary.map((s) => `- ${s}`).join("\n")}`, url: target.url };
+        const release = parsedHistory.version ?? versionLabel;
+        const heading = release && versionLabel && release !== versionLabel.toUpperCase() ? `${release} (${versionLabel})` : (release ?? "this release");
+        if (summary.length) rationale = { text: `Revision History, ${heading}:\n${summary.map((s) => `- ${s}`).join("\n")}`, url: target.url };
       } catch {
         // A revision history that will not parse costs nothing but the rationale.
       }

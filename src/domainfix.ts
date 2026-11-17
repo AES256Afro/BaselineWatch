@@ -38,17 +38,21 @@ const rfc = (number: number, label: string): { label: string; url: string } => (
  * one that does not apply, and the purely descriptive rows (the addresses, the name servers, the
  * mail exchangers) which report what is there rather than judge it.
  */
-export function fixFor(finding: Finding, domain: string): DomainFix | null {
+export function fixFor(finding: Finding, domain: string, report: Finding[] = []): DomainFix | null {
   if (finding.state === "ok" || finding.state === "na") return null;
   switch (finding.id) {
-    case "caa":
+    case "caa": {
+      // The issuer the handshake saw, as a hint: the CAA domain is the authority's to state, and a
+      // name guessed from its organisation would be a record that stops renewals.
+      const issuer = /^Issuer: (.+?) · /.exec(report.find((f) => f.id === "tls")?.quoted.find((q) => q.startsWith("Issuer: ")) ?? "")?.[1];
       return {
         kind: "dns",
-        text: "Name the certificate authorities allowed to issue for this domain, so no other one may.",
-        lines: [`${domain}. IN CAA 0 issue "letsencrypt.org"`, `${domain}. IN CAA 0 iodef "mailto:security@${domain}"`],
+        text: `Name the certificate authorities allowed to issue for this domain, so no other one may.${issuer && issuer !== "?" ? ` The certificate served today is from ${issuer}; its CAA domain is in that authority's documentation.` : ""}`,
+        lines: [`${domain}. IN CAA 0 issue "<CA-DOMAIN>"    ; the domain each authority publishes for CAA`, `${domain}. IN CAA 0 iodef "mailto:security@${domain}"`],
         caution: "List every authority that issues for you — the one your host or CDN uses as well as your own. A CAA record that leaves one out stops it renewing, and the certificate expires rather than failing loudly.",
         source: rfc(8659, "DNS Certification Authority Authorization"),
       };
+    }
     case "dnssec":
       return {
         kind: "setting",
@@ -61,12 +65,16 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
       return {
         kind: "dns",
         // Each finding of judgeSpf has its own remedy; "end it in -all" answers only the record that ends permissively.
-        text: /no SPF/i.test(finding.text)
+        text: /^no SPF/i.test(finding.text)
           ? "Publish one SPF record saying who may send as this domain. A domain that sends no mail says so with a bare hard fail."
           : /SPF records:/.test(finding.text)
             ? "Merge the records into one. Receivers treat two v=spf1 records as a permanent error, so neither counts: put every sender's include: in a single record."
             : /DNS lookups/.test(finding.text)
               ? "Cut the lookups to ten or fewer: drop includes for services that no longer send as you, and replace an include that expands to a few fixed addresses with those ip4:/ip6: terms."
+              : /publishe?s? no SPF record/.test(finding.text)
+              ? "Correct or remove the include that names a domain with no SPF record: a receiver cannot evaluate the record past it and gives a permanent error."
+              : /more than one SPF record/.test(finding.text)
+              ? "Have the included domain merge its SPF records into one, or include a name of theirs that publishes one: a receiver gives a permanent error at an include with two."
               : /no all term/.test(finding.text)
                 ? "End the record with an all term, -all to refuse mail from anywhere the record does not name."
                 : "Tighten the record: end it in -all so a receiver refuses mail from anywhere the record does not name.",
@@ -99,20 +107,7 @@ export function fixFor(finding: Finding, domain: string): DomainFix | null {
         source: rfc(6376, "DomainKeys Identified Mail"),
       };
     case "mta-sts":
-      return {
-        kind: "file",
-        text: "MTA-STS is a DNS record pointing at a policy file, so a sending server knows to insist on TLS to your mail exchangers rather than accept a downgrade.",
-        lines: [
-          `_mta-sts.${domain}. IN TXT "v=STSv1; id=1"    ; any short string: change it whenever the policy file changes`,
-          `# then, at https://mta-sts.${domain}/.well-known/mta-sts.txt, served over valid HTTPS:`,
-          "version: STSv1",
-          "mode: testing",
-          `mx: <each of your MX host names, one "mx:" line each>`,
-          "max_age: 604800",
-        ],
-        caution: "Start in testing mode, which reports without refusing. mode: enforce with an mx list that misses one of your exchangers makes mail to it fail, and the id must change whenever the policy does or senders keep the old one.",
-        source: rfc(8461, "SMTP MTA Strict Transport Security"),
-      };
+      return mtaStsFix(finding, domain);
     case "tls-rpt":
       return {
         kind: "dns",
@@ -199,4 +194,53 @@ function dmarcLines(finding: { text: string; quoted: string[] }, domain: string)
   else if (/Policy none/.test(finding.text)) next = current.replace(/\bp=none\b/i, "p=quarantine");
   else if (/Policy quarantine/.test(finding.text)) next = current.replace(/\bp=quarantine\b/i, "p=reject").replace(/;\s*pct=\d+/i, "");
   return next && next !== current ? [`_dmarc.${domain}. IN TXT "${next}"`] : [];
+}
+
+/**
+ * The MTA-STS fix for what the check found: no MTA-STS at all is the record and a testing policy;
+ * a record whose policy file did not answer is the file alone; a policy in testing or none is the
+ * same policy moved to enforce, with the id in the record changed so senders fetch it again.
+ */
+function mtaStsFix(finding: Finding, domain: string): DomainFix {
+  const source = rfc(8461, "SMTP MTA Strict Transport Security");
+  const where = `# at https://mta-sts.${domain}/.well-known/mta-sts.txt, served over valid HTTPS:`;
+  const mx = `mx: <each of your MX host names, one "mx:" line each>`;
+  const mode = /Published in mode (\w+)/.exec(finding.text)?.[1];
+  if (mode) {
+    const policy = finding.quoted.filter((q) => q.startsWith("policy: ")).map((q) => q.slice("policy: ".length));
+    // A policy the check quoted whole is moved to enforce as it stands, every mx and the max_age
+    // kept; one it cut is not rewritten from part of itself, which would drop exchangers.
+    const whole = policy.length > 0 && finding.policyCut !== true;
+    const lines = whole ? policy.map((l) => (/^mode:/i.test(l) ? "mode: enforce" : l)) : ["version: STSv1", "mode: enforce", mx, "max_age: 604800"];
+    return {
+      kind: "file",
+      text: `The policy is published in mode ${mode}, which reports failures but refuses nothing. Once the TLS-RPT reports show every sender reaching your exchangers over TLS, serve it with mode: enforce and change the id in the _mta-sts record.`,
+      lines: [where, ...lines, `_mta-sts.${domain}. IN TXT "v=STSv1; id=<a new value>"    ; changed, so senders fetch the new policy`],
+      caution: "mode: enforce with an mx list that misses one of your exchangers makes mail to it fail. Check the mx lines against the MX records before switching.",
+      source,
+    };
+  }
+  if (/policy file did not answer/.test(finding.text)) {
+    return {
+      kind: "file",
+      text: `The _mta-sts record is published, but no policy file answered at https://mta-sts.${domain}/.well-known/mta-sts.txt. Serve the file there over HTTPS with a certificate valid for mta-sts.${domain}; without it senders ignore the record.`,
+      lines: [where, "version: STSv1", "mode: testing", mx, "max_age: 604800"],
+      caution: "The host name mta-sts." + domain + " needs its own DNS record and a certificate that names it; a certificate for the apex alone does not cover it.",
+      source,
+    };
+  }
+  return {
+    kind: "file",
+    text: "MTA-STS is a DNS record pointing at a policy file, so a sending server knows to insist on TLS to your mail exchangers rather than accept a downgrade.",
+    lines: [
+      `_mta-sts.${domain}. IN TXT "v=STSv1; id=1"    ; any short string: change it whenever the policy file changes`,
+      `# then, at https://mta-sts.${domain}/.well-known/mta-sts.txt, served over valid HTTPS:`,
+      "version: STSv1",
+      "mode: testing",
+      mx,
+      "max_age: 604800",
+    ],
+    caution: "Start in testing mode, which reports without refusing. mode: enforce with an mx list that misses one of your exchangers makes mail to it fail, and the id must change whenever the policy does or senders keep the old one.",
+    source,
+  };
 }

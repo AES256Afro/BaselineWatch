@@ -141,8 +141,9 @@ describe("packages", () => {
     migrate(db);
     db.prepare("INSERT INTO vulns (cve_id, last_modified_at, cvss_score, kev, first_seen_at, last_seen_at) VALUES ('CVE-2023-5363', ?, 7.5, 1, ?, ?)").run(at, at, at);
     const finding = await matchPackages(db, fakeHttp({ [osvBatchUrl]: { bytes: fixture("osv/querybatch.json") } }), { bw: 1, os: { family: "linux", name: "Debian GNU/Linux", version: "12", build: null, display: null, id: "debian", versionId: "12" }, browsers: [], packages, packageSource: "dpkg" });
+    // No per-package record answered here, so every advisory stays counted as open: unread is not "no fix".
     expect(finding.state).toBe("bad");
-    expect(finding.text).toContain("3 packages have open advisories");
+    expect(finding.text).toContain("3 packages have advisories with a fixed version published");
     expect(finding.text).toContain("on the KEV");
     expect(finding.refs.find((r) => r.id === "CVE-2023-5363")).toMatchObject({ href: "/vulnerabilities/CVE-2023-5363", note: expect.stringContaining("KEV") });
     expect(finding.refs.some((r) => r.href.startsWith("https://osv.dev/vulnerability/"))).toBe(true);

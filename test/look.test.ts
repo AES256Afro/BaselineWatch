@@ -154,7 +154,7 @@ describe("the switch on the site", () => {
     expect(text).not.toContain("<Acme>");
     // A failing source is named with its error in the side column, where it was always drawn too.
     expect(text).toContain('<a href="/sources#src-bleeping"><b>BleepingComputer</b></a> <span class="small">HTTP 503</span>');
-    expect(text).toContain('<h2><a href="/triage">Needs you</a> <span class="count">1 placed,');
+    expect(text).toMatch(/<h2><a href="\/triage">Needs you<\/a> <span class="count">\d+ waiting for a decision[^<]* · 1 under review or affecting us<\/span>/);
   });
 });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrate, openDatabase } from "../src/db.ts";
-import { listNetScans, scanTile } from "../src/scanhistory.ts";
+import { listNetScans, scanTile, runVerdict, tallyRun } from "../src/scanhistory.ts";
 import { startTestApp } from "./helpers.ts";
 
 /** The scans over time (S6): the stored runs as a history, and Today's one figure for the area. */
@@ -48,5 +48,17 @@ describe("the runs", () => {
     } finally {
       await app.close();
     }
+  });
+});
+
+describe("one verdict for a run (CODE3-10)", () => {
+  it("reads the page's line and Today's tile from the same tallies", () => {
+    const rows = (...outcomes: string[]) => outcomes.map((outcome) => ({ outcome }));
+    expect(runVerdict(tallyRun([]))).toBe("none");
+    expect(runVerdict(tallyRun(rows("sinkholed", "resolved")))).toBe("resolving");
+    expect(runVerdict(tallyRun(rows("timeout", "timeout")))).toBe("silent");
+    expect(runVerdict(tallyRun(rows("sinkholed", "timeout")))).toBe("partial");
+    expect(runVerdict(tallyRun(rows("sinkholed", "sinkholed")))).toBe("enforced");
+    expect(tallyRun(rows("sinkholed", "timeout", "resolved"))).toEqual({ total: 3, resolved: 1, sinkholed: 1, timeout: 1 });
   });
 });

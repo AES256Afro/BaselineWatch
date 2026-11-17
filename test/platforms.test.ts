@@ -1,5 +1,6 @@
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { renderTestPlan } from "../src/pages/testplans.ts";
 import { pdfText } from "../src/pdf.ts";
 import { buildTestPlan, exportPlan, releaseChoices, testedItems } from "../src/testplans.ts";
 import { loadBaselineFixtures } from "./baseline-fixtures.ts";
@@ -18,6 +19,18 @@ describe("platform engineering: the release and hardware under test", () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it("reads a release's support from its dates, not the yaml's status", () => {
+    // 23H2 says "supported" in data/platforms.yaml, but its last edition's support ended 2026-11-10.
+    const plan = buildTestPlan(app.db, { platform: "windows", version: "23H2" });
+    const look = { look: "console", scheme: "system", back: "/" } as const;
+    const after = renderTestPlan({ db: app.db, plan, owner: true, open: false, look, now: new Date("2026-11-16T09:00:00Z") });
+    expect(after).toContain("<b>Out of support.</b>");
+    expect(after).toMatch(/Windows 11, version 23H2 \(support ended\)/);
+    const before = renderTestPlan({ db: app.db, plan, owner: true, open: false, look, now: new Date("2026-10-19T09:00:00Z") });
+    expect(before).not.toContain("Out of support.");
+    expect(before).not.toMatch(/23H2 \(support ended\)/);
   });
 
   it("leaves out the steps a release or a device cannot take, and says why", () => {

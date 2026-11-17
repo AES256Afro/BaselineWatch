@@ -6,7 +6,8 @@
  * never a package's back catalogue.
  */
 import { scoreCvss3 } from "../cvss.ts";
-import { advisoryKey, applyAdvisory, isNotable, loadWatchlist, parsePackageValue, recordVulnItem, type AffectedPackage, type NormalizedAdvisory, type WatchEntry } from "../vulns.ts";
+import { canonicalEcosystem } from "../ecosystems.ts";
+import { advisoryKey, applyAdvisory, cvssChangeText, isNotable, loadWatchlist, parsePackageValue, publishedWithin, recentDays, recordVulnItem, type AffectedPackage, type NormalizedAdvisory, type WatchEntry } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
 import { counted } from "../words.ts";
@@ -28,22 +29,6 @@ export interface OsvVuln {
 export interface OsvQueryResponse {
   vulns?: OsvVuln[];
   next_page_token?: string;
-}
-
-/** OSV's ecosystem names, from the way people type them. */
-const ecosystemNames: Record<string, string> = {
-  npm: "npm", pypi: "PyPI", go: "Go", maven: "Maven", "crates.io": "crates.io", crates: "crates.io", cargo: "crates.io", rubygems: "RubyGems", gem: "RubyGems",
-  nuget: "NuGet", packagist: "Packagist", composer: "Packagist", pub: "Pub", hex: "Hex", hackage: "Hackage", cran: "CRAN", conancenter: "ConanCenter",
-  "github actions": "GitHub Actions", swifturl: "SwiftURL", bitnami: "Bitnami", linux: "Linux", "oss-fuzz": "OSS-Fuzz", debian: "Debian", ubuntu: "Ubuntu",
-  alpine: "Alpine", "rocky linux": "Rocky Linux", almalinux: "AlmaLinux", mageia: "Mageia", opensuse: "openSUSE", suse: "SUSE", "red hat": "Red Hat",
-  chainguard: "Chainguard", wolfi: "Wolfi",
-};
-
-/** `pypi` → `PyPI`, `debian:12` → `Debian:12`; anything unknown passes through as typed. */
-export function osvEcosystem(name: string): string {
-  const [head = "", ...rest] = name.split(":");
-  const canonical = ecosystemNames[head.trim().toLowerCase()] ?? head.trim();
-  return [canonical, ...rest].join(":");
 }
 
 export function normalizeOsv(v: OsvVuln, fallbackModified: string): NormalizedAdvisory {
@@ -84,7 +69,6 @@ export function normalizeOsv(v: OsvVuln, fallbackModified: string): NormalizedAd
   };
 }
 
-const freshDays = 30;
 const pauseMs = 300;
 const lastPullKey = "osv.last_pull";
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -119,12 +103,13 @@ function storeOsvRecords(
       const result = applyAdvisory(ctx.db, advisory, observedAt, watch);
       if (result.isNew) inserted += 1;
       else if (result.changes.length) updated += 1;
-      const publishedRecently = advisory.publishedAt !== null && new Date(observedAt).getTime() - new Date(advisory.publishedAt).getTime() <= freshDays * 24 * 60 * 60 * 1000;
-      const fresh = result.isNew ? publishedRecently : result.changes.length > 0;
-      if (fresh && isNotable(result.row, result.isNew, observedAt)) {
+      // A package's back catalogue (old advisories on its first pull) is not news; anything else
+      // is judged as NVD's records are, by upsertVuln's `fresh` (a first record or a new critical).
+      const backCatalogue = result.isNew && !publishedWithin(advisory.publishedAt, observedAt, recentDays);
+      if (!backCatalogue && (result.fresh || result.changes.length > 0) && isNotable(result.row, result.fresh, observedAt)) {
         recordVulnItem(ctx.db, result.row, result.changes, observedAt);
         if (announce && result.row.watch_hit === 1) {
-          const what = result.isNew ? "new advisory" : result.changes.map((c) => (c.field === "cvss" ? `CVSS ${c.before ?? "unscored"} → ${c.after ?? "unscored"}` : c.field)).join(", ");
+          const what = result.isNew ? "new advisory" : result.changes.map((c) => (c.field === "cvss" ? cvssChangeText(c) : c.field)).join(", ");
           alerts.push({
             kind: "watch",
             title: `${result.row.cve_id}: ${result.watchLabels.join(", ")}`,
@@ -174,7 +159,7 @@ export const osvAdapter: Adapter = {
     let requests = 0;
     const alerts: AlertDraft[] = [];
     for (const pkg of packages) {
-      const ecosystem = osvEcosystem(pkg.ecosystem);
+      const ecosystem = canonicalEcosystem(pkg.ecosystem);
       let token: string | undefined;
       let found = 0;
       do {

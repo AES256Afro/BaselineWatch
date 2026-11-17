@@ -1,7 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { normalizeNvd } from "../src/adapters/nvd.ts";
-import { normalizeOsv, osvAdapter, osvEcosystem, type OsvQueryResponse } from "../src/adapters/osv.ts";
+import { normalizeOsv, osvAdapter, type OsvQueryResponse } from "../src/adapters/osv.ts";
+import { canonicalEcosystem, ecosystemCovers } from "../src/ecosystems.ts";
+import { osvEcosystem } from "../src/inventory.ts";
+import { purlToWatch } from "../src/sbom.ts";
 import { scoreCvss3 } from "../src/cvss.ts";
 import { migrate, openDatabase } from "../src/db.ts";
 import type { HttpGet } from "../src/http.ts";
@@ -35,9 +38,20 @@ describe("package values and OSV records", () => {
     expect(parsePackageValue("Ubuntu:24.04:LTS:openssl")).toEqual({ ecosystem: "Ubuntu:24.04:LTS", name: "openssl" });
     expect(parsePackageValue("express")).toBeNull();
     expect(parsePackageValue("npm:")).toBeNull();
-    expect(osvEcosystem("pypi")).toBe("PyPI");
-    expect(osvEcosystem("debian:12")).toBe("Debian:12");
-    expect(osvEcosystem("Something New")).toBe("Something New");
+    expect(canonicalEcosystem("pypi")).toBe("PyPI");
+    expect(canonicalEcosystem("debian:12")).toBe("Debian:12");
+    expect(canonicalEcosystem("ubuntu:24.04")).toBe("Ubuntu:24.04:LTS");
+    expect(canonicalEcosystem("photon os:5.0")).toBe("Photon OS:5.0");
+    expect(canonicalEcosystem("Something New")).toBe("Something New");
+  });
+
+  it("matches an SBOM's Ubuntu LTS package to the advisory OSV files under the LTS name (CODE1-1)", () => {
+    const entry = parsePackageValue(purlToWatch("pkg:deb/ubuntu/openssl@3.0.13?distro=ubuntu-24.04")!)!;
+    expect(entry.ecosystem).toBe(osvEcosystem("ubuntu", "24.04", "dpkg"));
+    expect(ecosystemCovers("Ubuntu:24.04", "Ubuntu:24.04:LTS")).toBe(true);
+    expect(ecosystemCovers("Debian", "Debian:12")).toBe(true);
+    expect(ecosystemCovers("Alpine:v3.2", "Alpine:v3.20")).toBe(false);
+    expect(ecosystemCovers("Debian:12", "Debian")).toBe(false);
   });
 
   it("normalises an OSV record with its score, packages and fixed versions", () => {
@@ -108,6 +122,38 @@ describe("OSV pull", () => {
     expect(second).toMatchObject({ items: 3, inserted: 0, updated: 0 });
     expect(second.alerts ?? []).toHaveLength(0);
     expect(vulnChanges(db, "CVE-2026-101917").map((c) => c.field)).toEqual(["new"]);
+  });
+
+  it("puts a GitHub-owned advisory on the News when it is rescored critical inside thirty days", async () => {
+    db.prepare("INSERT INTO watchlist (kind, value, label, created_at) VALUES ('package', 'PyPI:pyjwt', NULL, ?)").run(at.toISOString());
+    // An advisory whose package the watchlist does not name, so only the critical arm can make it news.
+    const record = (vector: string) => ({
+      vulns: [
+        {
+          id: "GHSA-aaaa-bbbb-cccc",
+          aliases: ["CVE-2026-200001"],
+          summary: "A flaw in a library the watchlist does not name.",
+          published: "2026-10-05T00:00:00Z",
+          modified: "2026-10-05T00:00:00Z",
+          affected: [{ package: { name: "otherlib", ecosystem: "PyPI" }, ranges: [{ type: "ECOSYSTEM", events: [{ introduced: "0" }, { fixed: "1.2.0" }] }] }],
+          severity: [{ type: "CVSS_V3", score: vector }],
+          database_specific: { github_reviewed: true },
+        },
+      ],
+    });
+    let body = record("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N");
+    const served: HttpGet = async (url) => ({ url, status: 200, notModified: false, bytes: new TextEncoder().encode(JSON.stringify(body)), etag: null, lastModified: null, contentType: "application/json" });
+    const pull = (now: Date) => osvAdapter.pull!({ ...ctx(now), http: served });
+    await pull(at);
+    expect(getVuln(db, "CVE-2026-200001")).toMatchObject({ source_identifier: "github-advisories", cvss_score: 5.3, watch_hit: 0 });
+    expect(listWire(db, { kind: "vulnerability" })).toHaveLength(0);
+
+    body = record("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H");
+    await pull(new Date("2026-10-16T12:00:00Z"));
+    expect(getVuln(db, "CVE-2026-200001")?.cvss_score).toBe(9.8);
+    const wire = listWire(db, { kind: "vulnerability" });
+    expect(wire.map((i) => i.external_id)).toEqual(["CVE-2026-200001"]);
+    expect(wire[0]?.summary).toMatch(/^CVSS 5\.3 .*→ 9\.8 /);
   });
 
   it("keeps the packages when NVD later describes the same CVE, and attaches them to a CVE NVD already has", async () => {

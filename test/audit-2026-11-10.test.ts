@@ -47,12 +47,13 @@ describe("the audit of 10 November", () => {
     try {
       const call = (id: number) => ({ jsonrpc: "2.0", id, method: "tools/list", params: {} });
       const post = (body: unknown) => fetch(`${app.base}/mcp`, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" }, body: JSON.stringify(body) });
-      const long = await post(Array.from({ length: 11 }, (_, i) => call(i)));
+      const long = await post(Array.from({ length: 6 }, (_, i) => call(i)));
       expect(long.status).toBe(400);
-      // Twelve batches of ten spend the allowance of 120; one more single call is refused.
-      for (let i = 0; i < 12; i++) expect((await post(Array.from({ length: 10 }, (_, j) => call(j)))).status).not.toBe(429);
+      // Twenty-four batches of five spend the allowance of 120; one more single call is refused.
+      // (Five since 2026-11-16, SEC1-1: ten deep queries in one POST held the process 4.7 s.)
+      for (let i = 0; i < 24; i++) expect((await post(Array.from({ length: 5 }, (_, j) => call(j)))).status).not.toBe(429);
       expect((await post(call(1))).status).toBe(429);
-      expect(((await long.json()) as { error: { message: string } }).error.message).toContain("more than ten");
+      expect(((await long.json()) as { error: { message: string } }).error.message).toContain("more than five");
     } finally {
       await app.close();
     }

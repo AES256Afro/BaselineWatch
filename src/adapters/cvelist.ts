@@ -6,7 +6,7 @@
  * multi-hundred-megabyte "all CVEs" baseline is never loaded; older records arrive through NVD.
  */
 import { HttpError } from "../http.ts";
-import { kevSourceIdentifier, loadWatchlist, upsertVuln, type NormalizedVuln, type VulnRow } from "../vulns.ts";
+import { cvelistSourceIdentifier, kevSourceIdentifier, loadWatchlist, recomputePlatforms, recomputeWatchHits, upsertVuln, type NormalizedVuln, type VulnRow } from "../vulns.ts";
 import { unzipAll } from "../zip.ts";
 import type { Adapter, PullContext, PullOutcome } from "./types.ts";
 import { isoDate } from "./types.ts";
@@ -91,7 +91,7 @@ export function normalizeCvelist(record: CveRecord, observedAt: string): Normali
 
   return {
     cveId: meta.cveId.toUpperCase(),
-    sourceIdentifier: "cvelist-v5",
+    sourceIdentifier: cvelistSourceIdentifier,
     publishedAt: isoDate(meta.datePublished),
     lastModifiedAt: isoDate(meta.dateUpdated) ?? isoDate(meta.datePublished) ?? observedAt,
     vulnStatus: rejected ? "Rejected" : "Published",
@@ -137,6 +137,11 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
     "UPDATE vulns SET description = COALESCE(?, description), vuln_status = ?, published_at = COALESCE(?, published_at), last_modified_at = ?, last_seen_at = ? WHERE cve_id = ?",
   );
   const change = ctx.db.prepare("INSERT INTO vuln_changes (cve_id, observed_at, nvd_modified_at, field, before_text, after_text) VALUES (?, ?, ?, ?, ?, ?)");
+  // A reworded row with no CPEs may be placed by its words (rowPlatforms, step 4): its platforms are
+  // cleared here and read again by recomputePlatforms once the delta is stored.
+  const unplace = ctx.db.prepare("UPDATE vulns SET platforms_json = NULL WHERE cve_id = ? AND (cpes_json IS NULL OR cpes_json = '[]')");
+  // Rows whose words this delta replaced outside upsertVuln: a keyword watch reads the description.
+  const reworded: string[] = [];
   ctx.db.exec("BEGIN IMMEDIATE");
   try {
     for (const record of records) {
@@ -146,18 +151,26 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
       if (!existing) {
         upsertVuln(ctx.db, n, observedAt, watch);
         inserted += 1;
-      } else if (existing.source_identifier === "cvelist-v5") {
+      } else if (existing.source_identifier === cvelistSourceIdentifier) {
         if (upsertVuln(ctx.db, n, observedAt, watch).changes.length) updated += 1;
       } else if (existing.source_identifier === kevSourceIdentifier) {
         // A row the KEV catalogue made: the CNA's words and real publication date replace the
         // catalogue's stand-ins quietly. The CVE is years old, not news; NVD's record still fills it in.
         fillKevRow.run(n.description, n.vulnStatus, n.publishedAt, n.lastModifiedAt, observedAt, n.cveId);
+        if (n.description !== null && n.description !== existing.description) {
+          unplace.run(n.cveId);
+          reworded.push(n.cveId);
+        }
       } else if (!hasNvdData(existing)) {
         // An NVD row still awaiting analysis: lend it the CNA's words and dates, nothing more.
         const moved = (n.description !== null && n.description !== existing.description) || (existing.vuln_status ?? null) !== n.vulnStatus;
         if (n.description !== null && n.description !== existing.description) change.run(n.cveId, observedAt, n.lastModifiedAt, "description", existing.description, n.description);
         if ((existing.vuln_status ?? null) !== n.vulnStatus) change.run(n.cveId, observedAt, n.lastModifiedAt, "status", existing.vuln_status, n.vulnStatus);
         touch.run(n.description, n.vulnStatus, n.publishedAt, n.lastModifiedAt, observedAt, n.cveId);
+        if (n.description !== null && n.description !== existing.description) {
+          unplace.run(n.cveId);
+          reworded.push(n.cveId);
+        }
         if (moved) updated += 1;
       } else {
         skipped += 1;
@@ -167,6 +180,10 @@ export function storeCvelistRecords(ctx: Pick<PullContext, "db" | "now">, record
   } catch (error) {
     ctx.db.exec("ROLLBACK");
     throw error;
+  }
+  if (reworded.length) {
+    recomputePlatforms(ctx.db);
+    if (watch.length) recomputeWatchHits(ctx.db, reworded);
   }
   return { inserted, updated, skipped };
 }

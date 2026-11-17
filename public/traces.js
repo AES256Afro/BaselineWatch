@@ -25,26 +25,30 @@
  * test/traces-script.test.ts drives them with Blobs and Node's WebCrypto.
  */
 
-/** Files are searched in windows this size, overlapping by enough to hold the longest name twice over in UTF-16. */
 /** "1 file", "3 files": a count with its noun agreeing. */
 const filesText = (n) => `${n} ${n === 1 ? "file" : "files"}`;
 
+/** Files are searched in windows this size, overlapping by enough to hold the longest name twice over in UTF-16. */
 export const CHUNK = 16 * 1024 * 1024;
 const OVERLAP = 1024;
 
 /** Larger files are searched but not fingerprinted; the skip is reported. */
 export const HASH_LIMIT = 256 * 1024 * 1024;
 
-/** What a match in each tier means, in the order of how seriously to take it. */
-export const TIERS = Object.freeze({
-  sample: { label: "Spyware sample", meaning: "The fingerprint of a published Candiru sample. A file with this fingerprint is that sample: conclusive, not circumstantial." },
-  cc: { label: "Command-and-control", meaning: "A Candiru command-and-control server, the address an implant talks to. The most serious kind of network indicator." },
-  validator: { label: "Validator server", meaning: "A Candiru validator: it profiled a device and decided whether to deliver an exploit to it. Contact suggests the device was being assessed as a target." },
-  candiru: { label: "Candiru infrastructure", meaning: "A server Recorded Future attributes to Candiru without saying which role it played. Serious, but unspecified." },
-  historical: { label: "Earlier Candiru infrastructure", meaning: "Infrastructure from older, separate Candiru campaigns. Read a dated record against the cited report; who runs it now is not established." },
-  "candiru-ip": { label: "Candiru address", meaning: "An address attributed to Candiru infrastructure in 2025. Weak on its own: cloud addresses pass to unrelated customers within months, so only a dated record from that period means much." },
-  delivery: { label: "Ad delivery", meaning: "Advertising infrastructure of the network that delivered the spyware. An ad from it is not evidence of infection; it says an ad reached this browser, or that its name was saved." },
-  "vuln-driver": { label: "Abused signed driver", meaning: "A legitimate, signed driver this actor brings along to switch protections off. It ships with real products and sits on clean machines for honest reasons: a lead to check, not proof of spyware." },
+/**
+ * What a match in each tier means, in the order of how seriously to take it. A tier's name is not
+ * here: the indicator list carries the server's names (src/adapters/blocklists.ts), and a tier the
+ * list does not name is shown by its id.
+ */
+export const TIER_MEANINGS = Object.freeze({
+  sample: "The fingerprint of a published Candiru sample. A file with this fingerprint is that sample: conclusive, not circumstantial.",
+  cc: "A Candiru command-and-control server, the address an implant talks to. The most serious kind of network indicator.",
+  validator: "A Candiru validator: it profiled a device and decided whether to deliver an exploit to it. Contact suggests the device was being assessed as a target.",
+  candiru: "A server Recorded Future attributes to Candiru without saying which role it played. Serious, but unspecified.",
+  historical: "Infrastructure from older, separate Candiru campaigns. Read a dated record against the cited report; who runs it now is not established.",
+  "candiru-ip": "An address attributed to Candiru infrastructure in 2025. Weak on its own: cloud addresses pass to unrelated customers within months, so only a dated record from that period means much.",
+  delivery: "Advertising infrastructure of the network that delivered the spyware. An ad from it is not evidence of infection; it says an ad reached this browser, or that its name was saved.",
+  "vuln-driver": "A legitimate, signed driver this actor brings along to switch protections off. It ships with real products and sits on clean machines for honest reasons: a lead to check, not proof of spyware.",
 });
 
 /** Evidence grades, strongest first, with the words a row and its reader use. */
@@ -63,8 +67,8 @@ export const SINKS = Object.freeze(["0.0.0.0", "127.0.0.1", "::1", "::", "0:0:0:
 
 // ---------------------------------------------------------------- the list
 
-/** The list as served by /scan/traces/indicators.json, indexed for matching. */
-export function indicatorSet(list) {
+/** The list as served by /scan/traces/indicators.json, indexed for matching; `tiers` is the same response's names of the tiers. */
+export function indicatorSet(list, tiers) {
   const byValue = new Map();
   const domains = new Set();
   const ips = new Set();
@@ -72,13 +76,19 @@ export function indicatorSet(list) {
   for (const raw of list ?? []) {
     const value = String(raw.value ?? "").trim().toLowerCase();
     if (!value) continue;
-    const indicator = { value, type: raw.type, tier: raw.tier, confidence: raw.confidence ?? null, source: raw.source ?? null };
+    const indicator = { value, type: raw.type, tier: raw.tier, tierName: tierName(tiers, raw.tier), confidence: raw.confidence ?? null, source: raw.source ?? null };
     byValue.set(value, indicator);
     if (raw.type === "domain") domains.add(value);
     else if (raw.type === "ip") ips.add(value);
     else if (raw.type === "sha256") hashes.add(value);
   }
-  return { byValue, domains, ips, hashes, hsts: new Map() };
+  return { byValue, domains, ips, hashes, hsts: new Map(), tiers: tiers ?? {} };
+}
+
+/** A tier's name from the served table, or its id when the table does not name it. */
+function tierName(tiers, id) {
+  const name = tiers && Object.hasOwn(tiers, id) ? tiers[id] : null;
+  return typeof name === "string" && name !== "" ? name : String(id ?? "");
 }
 
 /** Chromium keeps HSTS hosts as base64(SHA-256(DNS wire form)); hashing the list's domains the same way matches a host exactly and learns nothing else. */
@@ -351,7 +361,7 @@ export function findingsOf(results, set) {
   const by = new Map();
   for (const r of results) {
     for (const hit of r.hits) {
-      const indicator = set.byValue.get(hit.value) ?? { value: hit.value, tier: "candiru", type: "domain", confidence: null, source: null };
+      const indicator = set.byValue.get(hit.value) ?? { value: hit.value, tier: "candiru", tierName: tierName(set.tiers, "candiru"), type: "domain", confidence: null, source: null };
       const f = by.get(hit.value) ?? { indicator, places: [], evidence: hit.evidence, action: 0 };
       f.places.push({ path: r.path, label: r.art.label, evidence: hit.evidence, seenAs: hit.seenAs });
       if (evidenceOrder.indexOf(hit.evidence) < evidenceOrder.indexOf(f.evidence)) f.evidence = hit.evidence;
@@ -428,7 +438,7 @@ function size(bytes) {
 const stateClass = (action) => (action >= 2 ? "bad" : action === 1 ? "warn" : "na");
 
 function findingRow(doc, n, f) {
-  const tier = TIERS[f.indicator.tier] ?? { label: f.indicator.tier, meaning: "" };
+  const tier = { label: f.indicator.tierName ?? f.indicator.tier, meaning: TIER_MEANINGS[f.indicator.tier] ?? "" };
   const places = el(doc, "ul", { class: "ev" });
   for (const p of f.places.slice(0, 12)) {
     places.append(el(doc, "li", {}, el(doc, "code", {}, p.path), ` — ${p.label}: ${EVIDENCE[p.evidence]?.meaning ?? p.evidence}`, p.seenAs && p.seenAs !== f.indicator.value ? ` (as ${defang(p.seenAs)})` : ""));
@@ -551,7 +561,7 @@ export function wire(doc, view) {
       const response = await view.fetch("/scan/traces/indicators.json", { credentials: "omit" });
       if (!response.ok) throw new Error(`the indicator list did not load (${response.status})`);
       const body = await response.json();
-      set = indicatorSet(body.indicators);
+      set = indicatorSet(body.indicators, body.tiers);
       if (set.byValue.size === 0) throw new Error("this instance holds no indicator list yet; the Register fetches it daily");
       await prepareHsts(set, subtle);
     }

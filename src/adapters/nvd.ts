@@ -1,4 +1,4 @@
-import { isNotable, loadWatchlist, recordVulnItem, upsertVuln, type NormalizedVuln } from "../vulns.ts";
+import { cvssChangeText, isNotable, loadWatchlist, recordVulnItem, upsertVuln, type NormalizedVuln } from "../vulns.ts";
 import type { Adapter, AlertDraft, PullContext, PullOutcome } from "./types.ts";
 import { counted } from "../words.ts";
 
@@ -160,10 +160,10 @@ export function storeNvdRecords(
       const result = upsertVuln(ctx.db, normalized, observedAt, watch);
       if (result.isNew) inserted += 1;
       else if (result.changes.length) updated += 1;
-      if ((result.isNew || result.changes.length) && isNotable(result.row, result.isNew, observedAt)) {
+      if ((result.fresh || result.changes.length) && isNotable(result.row, result.fresh, observedAt)) {
         recordVulnItem(ctx.db, result.row, result.changes, observedAt);
         if (result.row.watch_hit === 1) {
-          const what = result.isNew ? "new" : result.changes.map((c) => (c.field === "cvss" ? `CVSS ${c.before ?? "unscored"} → ${c.after ?? "unscored"}` : c.field)).join(", ");
+          const what = result.isNew || !result.changes.length ? "new" : result.changes.map((c) => (c.field === "cvss" ? cvssChangeText(c) : c.field)).join(", ");
           alerts.push({
             kind: "watch",
             title:

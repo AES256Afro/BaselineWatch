@@ -19,6 +19,11 @@ export function unzipAll(bytes: Uint8Array): ZipEntry[] {
   const files = unzipSync(bytes, {
     filter: (file) => {
       if (file.originalSize > maxEntryBytes) throw new Error(`zip entry ${file.name} would inflate to ${file.originalSize} bytes, over the ${maxEntryBytes} limit`);
+      // The declared size is the archive's word: fflate inflates the whole stream whatever it says and
+      // cuts the output to fit. Deflate never grows data by more than a fraction, so an entry holding
+      // more bytes than it claims to inflate to is lying; and a thousand to one is a bomb, not XML.
+      if (file.size > file.originalSize + file.originalSize / 100 + 1024) throw new Error(`zip entry ${file.name} holds ${file.size} bytes but declares ${file.originalSize}`);
+      if (file.originalSize > 1024 * 1024 && file.originalSize / Math.max(file.size, 1) > 1000) throw new Error(`zip entry ${file.name} would inflate over a thousand times`);
       total += file.originalSize;
       if (total > maxArchiveBytes) throw new Error(`zip would inflate to over ${maxArchiveBytes} bytes`);
       return true;

@@ -168,12 +168,12 @@ export function mountBaselines(r: RouteContext): void {
     return drop.length ? { ...base, drop } : base;
   };
   // A decision's reason and signer are the owner's, in the page and in every export format alike.
-  const visible = (res: Response, plan: TestPlan): TestPlan => (res.locals.owner === true ? plan : planForVisitor(plan));
+  const visible = (res: Response, plan: TestPlan): TestPlan => (res.locals.owner === true ? plan : planForVisitor(plan, now()));
   const drawPlan = (req: Request, res: Response, next: NextFunction, fields: Record<string, unknown>): void => {
     const platform = String(req.params.platform);
     if (!isPlanPlatform(platform)) return next();
     const area = str(fields.section, 20) ?? str(fields.shown, 20);
-    res.type("html").send(renderTestPlan({ db, plan: visible(res, buildTestPlan(db, planOptions(platform, fields))), area: isArea(area) ? area : undefined, ...who(req, res) }));
+    res.type("html").send(renderTestPlan({ db, plan: visible(res, buildTestPlan(db, planOptions(platform, fields))), area: isArea(area) ? area : undefined, now: now(), ...who(req, res) }));
   };
   // Renamed from Platforms to Fleet (it is the owner's own inventory, and src/fleet.ts always
   // called it that); the old address keeps working the way /wire does.

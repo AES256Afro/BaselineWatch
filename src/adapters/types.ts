@@ -167,7 +167,7 @@ export interface Adapter {
   parseDocument?(bytes: Uint8Array, target: DocumentTarget, ctx: DocumentContext): ParsedDocument | Promise<ParsedDocument>;
 }
 
-export const cvePattern = /\bCVE-\d{4}-\d{4,}\b/g;
+const cvePattern = /\bCVE-\d{4}-\d{4,}\b/g;
 
 /** Every CVE id mentioned in a text, uppercased and unique, in order of first appearance. */
 export function cveIdsIn(text: string): string[] {
@@ -196,7 +196,7 @@ const entities: Record<string, string> = {
  * process while it works. Generous enough that no real title, summary or policy paragraph is
  * touched, bounded so a hostile one cannot cost more than a tenth of a second.
  */
-const maxPlainTextInput = 256 * 1024;
+export const maxPlainTextInput = 256 * 1024;
 
 /**
  * Strips tags, decodes the common entities, collapses whitespace and trims to `max` characters.
@@ -227,7 +227,13 @@ export function plainText(htmlOrText: string | null | undefined, max = 600): str
     .replace(/\s+/g, " ")
     .trim();
   if (text === "") return null;
-  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+  return clipText(text, max);
+}
+
+/** Text cut to `max` characters with an ellipsis, as plainText cuts it; for a second, shorter cut of its result. */
+export function clipText<T extends string | null>(text: T, max: number): T {
+  if (text === null || text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…` as T;
 }
 
 const trackingParams = /^(utm_[a-z]+|fbclid|gclid|mc_cid|mc_eid|ref|source|si)$/i;

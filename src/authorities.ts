@@ -114,7 +114,7 @@ export const authorities: Authority[] = [
     rung: "law",
     sectors: ["industry", "us-dod"],
     what: "The defense contract clause that flows NIST SP 800-171 down to any contractor holding controlled unclassified information, with incident reporting attached.",
-    because: "This clause is why a machine shop in Ohio has to care about a NIST publication. It is the normalisation path from federal rules to private business.",
+    because: "This clause is why a private defense supplier of any size is bound by a NIST publication. It is the normalisation path from federal rules to private business.",
     derivesFrom: [],
     links: [
       { label: "DFARS 252.204-7012", href: "https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.", access: "public" },
@@ -245,7 +245,7 @@ export const authorities: Authority[] = [
     rung: "framework",
     sectors: ["industry", "international"],
     what: "Eighteen controls in three implementation groups, ordered by what stops the most attacks for the least work.",
-    because: "The private-sector counterpart to a federal catalogue: prioritised rather than complete, and written to be started on a Monday.",
+    because: "The private-sector counterpart to a federal catalogue: prioritised rather than complete, with implementation groups that let a small organisation start with the first group alone.",
     derivesFrom: [],
     links: [
       { label: "CIS Controls", href: "https://www.cisecurity.org/controls", access: "registration" },
@@ -617,13 +617,19 @@ export function isRung(value: string): value is Rung {
 /**
  * A worked trace down the ladder, end to end, for one kind of system. A step names the body it
  * passes through where this registry has one, so the reader can leave the trace and read the source.
+ * Such a step carries no rung of its own: it stands on its body's rung (stepRung), so a trace can
+ * never place a body somewhere its own entry does not. Only a step with no body names its rung.
  */
-export interface ChainStep {
-  rung: Rung;
-  /** The body this step passes through, where there is one. */
-  authority?: string;
-  /** What the rule says at this rung, in concrete words. */
-  says: string;
+export type ChainStep =
+  | { authority: string; rung?: never; /** What the rule says at this rung, in concrete words. */ says: string }
+  | { authority?: never; rung: Rung; says: string };
+
+/** The rung a trace step stands on: its body's, or the one it names when no body answers it. */
+export function stepRung(step: ChainStep): Rung {
+  if (step.authority === undefined) return step.rung;
+  const body = authorities.find((a) => a.id === step.authority);
+  if (!body) throw new Error(`trace step names an unknown body: ${step.authority}`);
+  return body.rung;
 }
 
 export interface Chain {
@@ -646,13 +652,13 @@ export const chains: Chain[] = [
     sector: "us-federal",
     line: "The plain FISMA chain: obliged by statute, categorised, baselined, enforced, assessed.",
     steps: [
-      { rung: "law", authority: "fisma", says: "The agency must run an information security programme, and NIST's standards are mandatory for this system." },
-      { rung: "policy", authority: "omb-a130", says: "OMB tells the agency what that programme looks like and binds it to the NIST framework." },
-      { rung: "framework", authority: "fips-199-200", says: "The system is categorised moderate for confidentiality, integrity and availability." },
-      { rung: "catalog", authority: "sp-800-53", says: "AC-11 Device Lock: prevent further access by initiating a device lock after a period of inactivity." },
-      { rung: "baseline", authority: "sp-800-53b", says: "The moderate baseline includes AC-11, and the agency's parameter sets the period at 15 minutes." },
-      { rung: "setting", authority: "mscp", says: "On macOS: a screensaver idle time of 900 seconds, with the lock delay at zero, in a configuration profile." },
-      { rung: "check", authority: "sp-800-53a", says: "The assessor examines the profile and tests a machine; the result goes in the assessment that supports the authorisation." },
+      { authority: "fisma", says: "The agency must run an information security programme, and NIST's standards are mandatory for this system." },
+      { authority: "omb-a130", says: "OMB tells the agency what that programme looks like and binds it to the NIST framework." },
+      { authority: "fips-199-200", says: "The system is categorised moderate for confidentiality, integrity and availability." },
+      { authority: "sp-800-53", says: "AC-11 Device Lock: prevent further access by initiating a device lock after a period of inactivity." },
+      { authority: "sp-800-53b", says: "The moderate baseline includes AC-11, and the agency's parameter sets the period at 15 minutes." },
+      { authority: "mscp", says: "On macOS: a screensaver idle time of 900 seconds, with the lock delay at zero, in a configuration profile." },
+      { authority: "sp-800-53a", says: "The assessor examines the profile and tests a machine; the result goes in the assessment that supports the authorisation." },
     ],
   },
   {
@@ -661,13 +667,13 @@ export const chains: Chain[] = [
     sector: "us-dod",
     line: "The same control, a different committee, and a rule concrete enough to run.",
     steps: [
-      { rung: "law", authority: "fisma", says: "FISMA applies, and for a national security system CNSS policy applies instead of the civilian line." },
-      { rung: "policy", authority: "dodi-8500", says: "DoD adopts the RMF and puts DISA's content in force: the STIG is policy, not advice." },
-      { rung: "framework", authority: "rmf", says: "Categorise, select, implement, assess, authorise, monitor — with an authorising official who signs." },
-      { rung: "catalog", authority: "cnssi-1253", says: "The 800-53 catalogue with the national security baselines and overlays applied, so the selected set differs from the civilian one." },
-      { rung: "baseline", authority: "disa-srg", says: "The Operating System SRG: the OS must initiate a session lock after a period of inactivity." },
-      { rung: "setting", authority: "disa-stig", says: "A named rule for this exact Windows release, CAT II, with check text and fix text — the registry value, and the command to set it." },
-      { rung: "check", authority: "disa-cci", says: "The rule cites a CCI, the CCI points back at AC-11, and a scanner's XCCDF result rolls the finding up to the control." },
+      { authority: "fisma", says: "FISMA applies, and for a national security system CNSS policy applies instead of the civilian line." },
+      { authority: "dodi-8500", says: "DoD adopts the RMF and puts DISA's content in force: the STIG is policy, not advice." },
+      { authority: "rmf", says: "Categorise, select, implement, assess, authorise, monitor — with an authorising official who signs." },
+      { authority: "cnssi-1253", says: "The 800-53 catalogue with the national security baselines and overlays applied, so the selected set differs from the civilian one." },
+      { authority: "disa-srg", says: "The Operating System SRG: the OS must initiate a session lock after a period of inactivity." },
+      { authority: "disa-stig", says: "A named rule for this exact Windows release, CAT II, with check text and fix text — the registry value, and the command to set it." },
+      { authority: "disa-cci", says: "The rule cites a CCI, the CCI points back at AC-11, and a scanner's XCCDF result rolls the finding up to the control." },
     ],
   },
   {
@@ -676,13 +682,13 @@ export const chains: Chain[] = [
     sector: "industry",
     line: "Nothing here is obliged by FISMA. It arrives by contract, by market, or by choice.",
     steps: [
-      { rung: "law", authority: "dfars-7012", says: "A defense contract flows SP 800-171 down — or no contract does, and everything below is voluntary." },
+      { authority: "dfars-7012", says: "A defense contract flows SP 800-171 down — or no contract does, and everything below is voluntary." },
       { rung: "policy", says: "There is no rung here. No OMB circular reaches a private company; its own policy is the only policy." },
-      { rung: "framework", authority: "csf", says: "CSF 2.0 organises the work by function, or CIS Controls prioritises it, or ISO 27001 certifies it — whichever the customer asks for." },
-      { rung: "catalog", authority: "sp-800-171", says: "3.1.10: use session lock with pattern-hiding displays to prevent access after a period of inactivity." },
-      { rung: "baseline", authority: "cis-benchmarks", says: "The CIS Benchmark for the platform, Level 1 for a workstation, Level 2 where the data warrants it." },
-      { rung: "setting", authority: "microsoft-baselines", says: "The vendor's own baseline sets the machine inactivity limit, imported as a GPO or an Intune policy." },
-      { rung: "check", authority: "cmmc", says: "A CMMC assessment, a customer's questionnaire, or an ISO audit — somebody outside the company asks for the evidence." },
+      { authority: "csf", says: "CSF 2.0 organises the work by function, or CIS Controls prioritises it, or ISO 27001 certifies it — whichever the customer asks for." },
+      { authority: "sp-800-171", says: "3.1.10: use session lock with pattern-hiding displays to prevent access after a period of inactivity." },
+      { authority: "cis-benchmarks", says: "The CIS Benchmark for the platform, Level 1 for a workstation, Level 2 where the data warrants it." },
+      { authority: "microsoft-baselines", says: "The vendor's own baseline sets the machine inactivity limit, imported as a GPO or an Intune policy." },
+      { authority: "cmmc", says: "A CMMC assessment, a customer's questionnaire, or an ISO audit — somebody outside the company asks for the evidence." },
     ],
   },
 ];

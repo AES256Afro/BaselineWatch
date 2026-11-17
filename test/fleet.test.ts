@@ -2,8 +2,25 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applicability, endingSupport, findHardware, findRelease, fleetFile, hardwareOf, loadFleet, parseApplies, parseVersionRule, releasesOf, runsOn, supportDates, versionMatches } from "../src/fleet.ts";
+import { applicability, endingSupport, findHardware, findRelease, fleetFile, hardwareOf, loadFleet, parseApplies, parseVersionRule, releaseStatus, releasesOf, runsOn, supportDates, versionMatches, type Release } from "../src/fleet.ts";
 import { loadTemplates, templatesDir } from "../src/testplans.ts";
+import { startTestApp } from "./helpers.ts";
+
+describe("the Fleet page", () => {
+  it("reads a release's status from its own support dates, not only the file's word", async () => {
+    // On 2026-11-16 /fleet showed 23H2 "supported" in green beside its own row saying both editions had ended.
+    const app = await startTestApp({ now: () => new Date("2026-11-16T09:00:00Z") });
+    try {
+      const page = await (await fetch(`${app.base}/fleet`)).text();
+      const row = (label: string): string => page.split("<tr ").find((r) => r.includes(`<b>${label}</b>`)) ?? "";
+      expect(row("Windows 11, version 23H2")).toMatch(/^class="ended">/);
+      expect(row("Windows 11, version 23H2")).toContain('<span class="state err">support ended</span>');
+      expect(row("Windows 11, version 24H2")).toContain('<span class="state ok">supported</span>');
+    } finally {
+      await app.close();
+    }
+  });
+});
 
 describe("the fleet file", () => {
   const fleet = loadFleet(fleetFile);
@@ -60,6 +77,22 @@ describe("the fleet file", () => {
     // A wider window reaches the next ones; a narrow one reaches none.
     expect(endingSupport(fleet, new Date("2026-10-19T12:00:00Z"), 400).length).toBeGreaterThan(1);
     expect(endingSupport(fleet, new Date("2026-10-19T12:00:00Z"), 7)).toEqual([]);
+  });
+
+  it("calls a release ended once every support date it names has passed, whatever the file says", () => {
+    const release = (status: Release["status"], supportEnds: string | null): Release => ({ ...findRelease(fleet, "windows", "23H2")!, status, supportEnds });
+    const twoEditions = release("supported", "Home and Pro ended 2025-11-11; Enterprise and Education 2026-11-10");
+    expect(releaseStatus(twoEditions, new Date("2026-10-19T12:00:00Z"))).toBe("supported");
+    // The last day is still a supported day, as endingSupport says "ends today".
+    expect(releaseStatus(twoEditions, new Date("2026-11-10T23:00:00Z"))).toBe("supported");
+    expect(releaseStatus(twoEditions, new Date("2026-11-11T00:00:00Z"))).toBe("ended");
+    expect(releaseStatus(release("current", "Full support to 2030-05-31"), new Date("2026-11-16T00:00:00Z"))).toBe("current");
+    // No date to judge by: the file's word stands. An ended release never comes back.
+    expect(releaseStatus(release("supported", "Security updates while Apple ships them (verify)"), new Date("2040-01-01T00:00:00Z"))).toBe("supported");
+    expect(releaseStatus(release("ended", "Ended 2025-10-14; the consumer programme ends 2027-10-12"), new Date("2026-11-16T00:00:00Z"))).toBe("ended");
+    // The fleet file as it stands: 23H2's Enterprise and Education servicing ended 2026-11-10.
+    expect(releaseStatus(findRelease(fleet, "windows", "23H2")!, new Date("2026-11-16T09:00:00Z"))).toBe("ended");
+    expect(releaseStatus(findRelease(fleet, "windows", "24H2")!, new Date("2026-11-16T09:00:00Z"))).toBe("supported");
   });
 
   it("judges version rules by the platform's release order, newest first", () => {

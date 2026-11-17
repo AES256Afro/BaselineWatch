@@ -1,4 +1,4 @@
-import { lookup } from "node:dns/promises";
+import { Resolver } from "node:dns/promises";
 import http from "node:http";
 import https from "node:https";
 import { isIP } from "node:net";
@@ -27,6 +27,8 @@ export interface HttpOptions {
    * addresses are refused, and every redirect hop is checked again before it is followed.
    */
   publicOnly?: boolean;
+  /** For a publicOnly request: how many times a timed-out name is asked (resolveHost's `tries`). */
+  resolveTries?: number;
 }
 
 export interface HttpResponse {
@@ -136,12 +138,51 @@ export function privateAddress(ip: string): boolean {
 }
 
 /**
+ * c-ares, not getaddrinfo: dns.lookup runs on libuv's four-thread pool with no timeout of its own,
+ * so a visitor's domain check on a zone whose servers drop queries held every thread for 10 to 20
+ * seconds and queued every file read behind it. This asks on the event loop and gives up in three.
+ */
+const resolver = new Resolver({ timeout: 3000, tries: 1 });
+
+/** The two questions resolveHost asks; a test hands in its own. */
+export type HostResolver = Pick<Resolver, "resolve4" | "resolve6">;
+
+export interface ResolveOptions {
+  /**
+   * How many times to ask when the resolver timed out or was refused, three seconds each. Two by
+   * default, so one lost UDP packet does not fail a scheduled source; a name a visitor typed
+   * (the domain check) passes one, so their wait stays bounded.
+   */
+  tries?: number;
+  resolver?: HostResolver;
+}
+
+/** A resolver error worth asking again: the packet was lost or the server refused, not "no such name". */
+const transientDns = new Set(["ETIMEOUT", "ECONNREFUSED"]);
+
+/** A name's A and AAAA addresses; an error only when neither question was answered. */
+export async function resolveHost(host: string, options: ResolveOptions = {}): Promise<{ address: string }[]> {
+  const using = options.resolver ?? resolver;
+  const tries = Math.max(1, options.tries ?? 2);
+  for (let attempt = 1; ; attempt += 1) {
+    const [v4, v6] = await Promise.allSettled([using.resolve4(host), using.resolve6(host)]);
+    const addresses = [...(v4.status === "fulfilled" ? v4.value : []), ...(v6.status === "fulfilled" ? v6.value : [])];
+    if (addresses.length === 0 && v4.status === "rejected") {
+      const code = (v4.reason as NodeJS.ErrnoException | undefined)?.code;
+      if (attempt < tries && code !== undefined && transientDns.has(code)) continue;
+      throw v4.reason;
+    }
+    return addresses.map((address) => ({ address }));
+  }
+}
+
+/**
  * Refuses a URL that is not http(s) to a public host; the host is resolved and every address
  * checked. Answers the addresses, so the request can go to one of them rather than resolve the
  * name again: a name with a short TTL that answers public once and private the next time would
  * otherwise slip a LAN address past the check (DNS rebinding).
  */
-export async function assertPublicUrl(url: string): Promise<string[]> {
+export async function assertPublicUrl(url: string, resolve: ResolveOptions = {}): Promise<string[]> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -151,7 +192,7 @@ export async function assertPublicUrl(url: string): Promise<string[]> {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error(`refusing ${parsed.protocol} URL`);
   const host = parsed.hostname.replace(/^\[|\]$/g, "");
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) throw new Error(`refusing ${host}: not a public host`);
-  const addresses = isIP(host) ? [host] : (await lookup(host, { all: true })).map((a) => a.address);
+  const addresses = isIP(host) ? [host] : (await resolveHost(host, resolve)).map((a) => a.address);
   if (addresses.length === 0 || addresses.some(privateAddress)) throw new Error(`refusing ${host}: not a public host`);
   return addresses;
 }
@@ -298,7 +339,7 @@ export const httpGet: HttpGet = async (url, options = {}) => {
   for (let hop = 0; ; hop += 1) {
     let response: Reply;
     if (options.publicOnly) {
-      const addresses = await assertPublicUrl(target);
+      const addresses = await assertPublicUrl(target, options.resolveTries !== undefined ? { tries: options.resolveTries } : {});
       const left = deadline - Date.now();
       if (left <= 0) throw new Error(`${target}: timed out after ${options.timeoutMs ?? 30_000} ms across ${hop} redirects`);
       response = await pinnedRequest(target, addresses[0]!, { method, headers, ...(body !== undefined ? { body } : {}), timeoutMs: left });

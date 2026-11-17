@@ -1,3 +1,4 @@
+import { newForDays } from "./publications.ts";
 import { html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { page } from "./layout.ts";
@@ -162,7 +163,9 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
           A score says how bad a flaw could be; an <span class="chip exploit">exploit</span> chip
           says someone has already written the code. The table reads three free indexes once a day
           — Exploit-DB, Metasploit's modules and the PoC-in-GitHub list — and the CVE page lists
-          each entry under <b>Fix</b>, linking to the index, never to the code. <i>Verified</i> is
+          each entry under <b>Fix</b>, linking to where it is published: the Exploit-DB entry, the
+          Metasploit module's source or the GitHub repository. Those pages hold working exploit
+          code. <i>Verified</i> is
           Exploit-DB's own flag or a Metasploit module ranked good or better; a GitHub repository
           is a claim. For Microsoft's products the CVE page also carries <b>Microsoft's update</b>:
           the KB per product from the Security Update Guide, and whether Microsoft itself says the
@@ -182,10 +185,11 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
       </section>
       <section class="box" id="feeds">
         <h2>Feeds, the calendar, search</h2>
-        <p>
+        <p id="api">
           Everything the pages show can leave with you: the News and the table as RSS under any
           filter, every source as OPML, CISA's KEV due dates as a calendar you subscribe to, the
-          same facts as JSON under <code>/api/v1/</code>. The <a href="/feeds">Feeds</a> page
+          same facts as JSON under <code>/api/v1/</code> and as tools for a model at
+          <code>/mcp</code>, the pipeline's figures at <code>/metrics</code>. The <a href="/feeds">Feeds</a> page
           writes every address out in full. The box in the masthead searches CVEs, the News,
           every standard's controls, Microsoft's updates and the sources in one go; a CVE id typed
           whole opens its page.
@@ -244,12 +248,35 @@ export function renderGuide(options: { owner: boolean; open: boolean; look: Look
       <section class="box" id="watchlist">
         <h2>The watchlist, and an SBOM</h2>
         <p>
-          The <a href="/watchlist">watchlist</a> is how the table knows your stack: products,
+          The ${options.owner ? html`<a href="/watchlist">watchlist</a>` : "watchlist"} is how the table knows the owner's stack: products,
           packages, platforms, keywords. A software bill of materials (CycloneDX or SPDX JSON)
           turns into package entries in one upload, so the advisories for what a system actually
           ships mark it as yours. Versions are not kept — the advisory says which — and nothing
           else from the file is stored.
         </p>
+      </section>
+      <section class="box wide" id="chips">
+        <h2>The other marks</h2>
+        <dl class="kv glossary">
+          <dt id="chip-ransomware"><span class="chip kev">ransomware</span></dt>
+          <dd>CISA marks the <a href="#kev">KEV</a> entry as known to be used in ransomware campaigns. <a href="/vulnerabilities?ransomware=1">Every such entry</a>.</dd>
+          <dt id="chip-overdue"><span class="chip kev overdue">KEV · due … · overdue</span></dt>
+          <dd>CISA's remediation due date for the KEV entry has passed: the day after the date has begun. The News, Today, the triage board and the table mark it the same way.</dd>
+          <dt id="chip-msrc-severity"><span class="chip sev critical">Critical</span> <span class="chip sev high">Important</span></dt>
+          <dd>Microsoft's own severity for an update on <a href="/vulnerabilities/microsoft">Patch Tuesday</a>: Critical, Important, Moderate, Low. It is Microsoft's rating of the update, not a <a href="#cvss">CVSS</a> score: an Important update can carry a CVSS 9.8 flaw, and CVSS critical means a score of 9.0 or above.</dd>
+          <dt id="chip-unscored"><span class="chip">unscored</span></dt>
+          <dd>NVD has not given the CVE a CVSS score yet; analysis often follows publication by days. <a href="/vulnerabilities?severity=unscored">The unscored CVEs</a>.</dd>
+          <dt id="chip-new"><span class="chip ok">new</span></dt>
+          <dd>On a standard, a version published in the last ${newForDays} days; in the table's filters, a CVE first seen here in the window named beside it.</dd>
+          <dt id="chip-draft"><span class="chip na">draft</span> <span class="chip na">pending</span> <span class="chip na">open for comment</span></dt>
+          <dd>A draft is a publisher's version not yet final; pending means the source is followed but no version has been read yet; open for comment is a draft the publisher has announced for public comment, with the date it was announced.</dd>
+          <dt id="chip-current"><span class="chip">current</span></dt>
+          <dd>The newest final version of a standard this instance holds, neither new nor draft.</dd>
+          <dt id="chip-untagged">untagged references</dt>
+          <dd>Links on NVD's record that NVD has not yet tagged as a patch, an advisory or a mitigation. One of them is often the vendor's own bulletin, so the CVE page names the one on the vendor's or the CNA's domain.</dd>
+          <dt id="chip-disclosed"><span class="chip exploit">disclosed</span></dt>
+          <dd>Microsoft says the flaw was publicly disclosed before its update shipped: details are out, which is not the same as <span class="chip kev">exploited</span>.</dd>
+        </dl>
       </section>
       <section class="box" id="cat">
         <h2>CAT I, II and III — STIG severities</h2>

@@ -1,4 +1,4 @@
-import { knownCertIds } from "../ct.ts";
+import { isKnownCert, issuanceKey, knownCerts } from "../ct.ts";
 import { upsertItems } from "../items.ts";
 import { parseJson } from "../json.ts";
 import { getSetting } from "../netscan.ts";
@@ -25,6 +25,10 @@ export const firstReadWindowDays = 7;
 
 export interface CtEntry {
   id: number;
+  /** The serial number, lower-case hex, when crt.sh gives one. */
+  serial: string | null;
+  /** The issuer's distinguished name as crt.sh gives it; `issuer` is the word for it. */
+  issuerDn: string | null;
   issuer: string | null;
   names: string[];
   notBefore: string | null;
@@ -40,13 +44,22 @@ function issuerName(dn: string): string | null {
 export function parseCrtsh(text: string): CtEntry[] {
   const data = parseJson<unknown>(text, null);
   if (!Array.isArray(data)) throw new Error("crt.sh did not answer with the JSON list expected");
-  const out = new Map<number, CtEntry>();
+  // One issuance, one entry: crt.sh lists the precertificate and the certificate under two ids,
+  // with the same serial from the same issuer. Keyed by the pair (issuanceKey, the key the next
+  // read checks against), the lowest id kept, so the choice does not depend on the order crt.sh
+  // answers in.
+  const out = new Map<string, CtEntry>();
   for (const raw of data) {
     const e = (raw ?? {}) as Record<string, unknown>;
     const id = typeof e.id === "number" ? e.id : Number(e.id);
-    if (!Number.isInteger(id) || out.has(id)) continue;
+    if (!Number.isInteger(id)) continue;
+    const serial = typeof e.serial_number === "string" && e.serial_number ? e.serial_number.toLowerCase() : null;
+    const issuerDn = typeof e.issuer_name === "string" ? e.issuer_name : null;
+    const key = issuanceKey(serial, issuerDn) ?? `id:${id}`;
+    const held = out.get(key);
+    if (held && held.id <= id) continue;
     const names = typeof e.name_value === "string" ? [...new Set(e.name_value.split(/\r?\n/).map((n) => n.trim().toLowerCase()).filter((n) => n))] : [];
-    out.set(id, { id, issuer: typeof e.issuer_name === "string" ? issuerName(e.issuer_name) : null, names, notBefore: typeof e.not_before === "string" ? e.not_before : null, notAfter: typeof e.not_after === "string" ? e.not_after : null });
+    out.set(key, { id, serial, issuerDn, issuer: issuerDn !== null ? issuerName(issuerDn) : null, names, notBefore: typeof e.not_before === "string" ? e.not_before : null, notAfter: typeof e.not_after === "string" ? e.not_after : null });
   }
   return [...out.values()].sort((a, b) => (b.notBefore ?? "").localeCompare(a.notBefore ?? "") || b.id - a.id);
 }
@@ -72,7 +85,7 @@ export const crtshAdapter: Adapter = {
     const at = now.toISOString();
     const domains = (getSetting(ctx.db, domainsKey) ?? "").split(",").map((d) => d.trim().toLowerCase()).filter((d) => d);
     if (domains.length === 0) return { items: 0, inserted: 0, updated: 0, detail: "no domain listed on the domain check; nothing to read" };
-    const insert = ctx.db.prepare("INSERT OR IGNORE INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    const insert = ctx.db.prepare("INSERT OR IGNORE INTO ct_certs (domain, id, issuer, names, not_before, not_after, seen_at, serial, issuer_dn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     const items: ParsedItem[] = [];
     let seen = 0;
     const skipped: string[] = [];
@@ -86,13 +99,13 @@ export const crtshAdapter: Adapter = {
         skipped.push(domain);
         continue;
       }
-      const known = knownCertIds(ctx.db, domain);
-      const firstRead = known.size === 0;
+      const known = knownCerts(ctx.db, domain);
+      const firstRead = known.ids.size === 0;
       const since = now.getTime() - firstReadWindowDays * 86_400_000;
       for (const c of entries) {
         seen += 1;
-        if (known.has(c.id)) continue;
-        insert.run(domain, c.id, c.issuer, c.names.join("\n"), c.notBefore, c.notAfter, at);
+        if (isKnownCert(known, c)) continue;
+        insert.run(domain, c.id, c.issuer, c.names.join("\n"), c.notBefore, c.notAfter, at, c.serial, c.issuerDn);
         const issued = c.notBefore ? new Date(`${c.notBefore}Z`).getTime() : 0;
         if (!firstRead || issued >= since) items.push(certItem(domain, c));
       }

@@ -27,14 +27,43 @@ export const eolProducts = ["windows", "macos", "ios", "ipados", "android", "rhe
 
 export const productLabel: Record<string, string> = { windows: "Windows", macos: "macOS", ios: "iOS", ipados: "iPadOS", android: "Android", rhel: "RHEL", ubuntu: "Ubuntu" };
 
-/** The endoflife.date cycles a fleet release is, with the word for each when a version has several. */
-export function eolCyclesFor(platform: FleetPlatform, releaseId: string): { product: string; cycle: string; edition: string | null }[] {
+/**
+ * endoflife.date's cycle suffix for a Windows EditionID, with the word for it. Microsoft's own
+ * grouping: Home and Pro (Core*, Professional*, which includes Pro Education and Pro for
+ * Workstations) on the -w cycle; Enterprise and Education (and Enterprise multi-session, whose
+ * EditionID is ServerRdsh, and IoT Enterprise) on -e; the long-term servicing channels on their
+ * own. A Server edition is its own product; null for an edition this does not know.
+ */
+export function windowsEdition(edition: string | null | undefined): { suffix: "w" | "e" | "e-lts" | "iot-lts"; word: string } | "server" | null {
+  const e = (edition ?? "").trim().toLowerCase();
+  if (!e) return null;
+  if (/^iotenterprises/.test(e)) return { suffix: "iot-lts", word: "IoT Enterprise LTSC" };
+  if (/^enterprises/.test(e)) return { suffix: "e-lts", word: "Enterprise LTSC" };
+  if (e === "serverrdsh" || /^(enterprise|education|iotenterprise)/.test(e)) return { suffix: "e", word: "Enterprise and Education" };
+  if (/^server/.test(e)) return "server";
+  if (/^(core|professional)/.test(e)) return { suffix: "w", word: "Home and Pro" };
+  return null;
+}
+
+/** A Windows edition as windowsEdition reads it, other than a Server edition. */
+export type WindowsEdition = Exclude<ReturnType<typeof windowsEdition>, "server" | null>;
+
+/**
+ * The endoflife.date cycles a fleet release is, with the word for each when a version has several.
+ * Given a Windows edition, only that edition's cycle — and, for Home/Pro and Enterprise/Education,
+ * the bare cycle Windows 10 22H2 uses for every edition — in that order.
+ */
+export function eolCyclesFor(platform: FleetPlatform, releaseId: string, edition?: WindowsEdition): { product: string; cycle: string; edition: string | null }[] {
   const id = releaseId.trim();
   if (platform === "windows") {
-    const win10 = /^10-(\d{2}H\d)$/i.exec(id);
+    const win10 = /^10-(\d{2}H\d|\d{4})$/i.exec(id);
     const win11 = /^(\d{2}H\d)$/i.exec(id);
     const base = win10 ? `10-${win10[1]!.toLowerCase()}` : win11 ? `11-${win11[1]!.toLowerCase()}` : null;
     if (!base) return [];
+    if (edition) {
+      const own = { product: "windows", cycle: `${base}-${edition.suffix}`, edition: edition.word };
+      return edition.suffix === "w" || edition.suffix === "e" ? [own, { product: "windows", cycle: base, edition: edition.word }] : [own];
+    }
     // endoflife.date splits a Windows 11 release by edition (-w, -e); Windows 10 22H2 is one cycle,
     // "10-22h2", so a Windows 10 release is asked for both forms and keeps whichever exists.
     const split = [{ product: "windows", cycle: `${base}-w`, edition: "Home and Pro" }, { product: "windows", cycle: `${base}-e`, edition: "Enterprise and Education" }];
@@ -51,9 +80,9 @@ export function eolCyclesFor(platform: FleetPlatform, releaseId: string): { prod
 }
 
 /** What endoflife.date holds for a fleet release: each cycle that is it, with its edition word. */
-export function eolFor(db: DatabaseSync, platform: FleetPlatform, releaseId: string): (EolCycle & { edition: string | null })[] {
+export function eolFor(db: DatabaseSync, platform: FleetPlatform, releaseId: string, edition?: WindowsEdition): (EolCycle & { edition: string | null })[] {
   const select = db.prepare("SELECT * FROM eol_cycles WHERE product = ? AND cycle = ?");
-  return eolCyclesFor(platform, releaseId).flatMap((c) => {
+  return eolCyclesFor(platform, releaseId, edition).flatMap((c) => {
     const row = select.get(c.product, c.cycle) as unknown as EolCycle | undefined;
     return row ? [{ ...row, edition: c.edition }] : [];
   });

@@ -146,7 +146,7 @@ describe("the blob sweep", () => {
   });
 
   it("does nothing when the store has never been written", () => {
-    expect(sweepBlobs(db, path.join(dataDir, "empty"), now)).toEqual({ deleted: 0, bytesFreed: 0 });
+    expect(sweepBlobs(db, path.join(dataDir, "empty"), now)).toEqual({ deleted: 0, bytesFreed: 0, imageBytesFreed: 0, imageBytesHeld: 0 });
   });
 });
 

@@ -82,7 +82,7 @@ export function renderBranding(options: { brand: Brand; marks: BrandMark[]; owne
         ${marks.length
           ? html`<section class="box" id="marks">
               <h2><a href="#marks">The repo's marks</a></h2>
-              <p class="small">From the design sheets: the twenty, the refinements and the detail passes. Each swaps ink and accent for dark mode on its own.${owner ? " Pick where a mark goes:" : ""}</p>
+              <p class="small">Marks from the project's design sheets. Each swaps ink and accent for dark mode on its own.${owner ? " Pick where a mark goes:" : ""}</p>
               <div class="mark-grid">${marks.map((mark) => markCard(mark))}</div>
             </section>`
           : ""}

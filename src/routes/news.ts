@@ -24,7 +24,7 @@ export function mountNews(r: RouteContext): void {
   const { app, config, db, now, who, requireOwner, secureCookies } = r;
   // News is home; the Register (the old home) lives at /register; /wire stays good as an alias.
   app.get("/", (req, res) => {
-    const filters = wireFilters(req.query as Record<string, unknown>);
+    const filters = wireFilters(req.query as Record<string, unknown>, res.locals.owner === true);
     // AI stories come in unless this browser said otherwise; `ai=show` or `ai=hide` on a link wins over the cookie.
     const asked = str((req.query as Record<string, unknown>).ai);
     filters.hideAi = asked === "hide" ? true : asked === "show" ? false : parseCookies(req.headers.cookie)[aiCookie] === "hide";
@@ -68,7 +68,7 @@ export function mountNews(r: RouteContext): void {
   app.post("/items/:id/unstar", requireOwner, itemAction("unstar"));
   app.post("/wire/read-all", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    markAllRead(db, wireFilters(body), Number(body.upto), typeof body.drawn === "string" ? body.drawn : undefined);
+    markAllRead(db, wireFilters(body, true), Number(body.upto), typeof body.drawn === "string" ? body.drawn : undefined);
     res.redirect(303, safeBack(body.back, "/"));
   });
 }

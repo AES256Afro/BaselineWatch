@@ -1,9 +1,27 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { html, newTab, type Html } from "../html.ts";
 import { lookAttributes, type LookState } from "../look.ts";
 import { relativeTime } from "../time.ts";
 import { defaultBrandText } from "../branding.ts";
 import { productName, productVersion, repositoryUrl } from "../version.ts";
+import { cveSourceFailing, staleCveLine } from "../pipeline.ts";
+import { stigProduct } from "../register.ts";
+
+/**
+ * The stylesheet's address names its own bytes, not the release: it is cached for a year, so a
+ * change shipped without a version bump (a hotfix, a branch preview) reached nobody who had the
+ * page before. Read once at start; the file does not change under a running process.
+ */
+const cssVersion = (() => {
+  try {
+    return createHash("sha256").update(readFileSync(path.join(import.meta.dirname, "..", "..", "public", "app.css"))).digest("hex").slice(0, 12);
+  } catch {
+    return productVersion;
+  }
+})();
 
 /**
  * The page frame every page is drawn in: the masthead and its two menus built from the ladder, the
@@ -49,7 +67,8 @@ export type Area =
  * fleet and work, then the instance, then how it looks. Both groups are plain <details> menus:
  * no script, CSP intact.
  */
-const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
+/** The masthead's table: every area's menu label, address and line. Other pages name an address by it (`menuName`). */
+export const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   wire: { label: "News", path: "/" },
   today: { label: "Today", path: "/today" },
   catalog: { label: "Standards", path: "/standards", blurb: "the rulebooks this instance tracks" },
@@ -66,7 +85,7 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   feeds: { label: "Feeds", path: "/feeds", blurb: "RSS, OPML and a KEV calendar for your reader" },
   scan: { label: "This browser", path: "/scan", blurb: "ads, trackers and filtering DNS, seen from this tab" },
   "scan-domain": { label: "A domain", path: "/scan/domain", blurb: "mail, DNS and web posture, each record quoted" },
-  "scan-devices": { label: "A device", path: "/scan/devices", blurb: "paste what it runs, see which CVEs apply" },
+  "scan-devices": { label: "A device", path: "/scan/devices", blurb: "paste what it runs, see which CVEs apply (owner sign-in)" },
   "scan-traces": { label: "Traces", path: "/scan/traces", blurb: "its saved data read against the spyware indicators, in this tab" },
   "scan-network": { label: "The server's network", path: "/scan/network", blurb: "the resolver of the network this site runs on, daily" },
   "scan-guide": { label: "By hand", path: "/scan/guide", blurb: "the same checks done yourself, per platform" },
@@ -80,6 +99,17 @@ const areas: Record<Area, { label: string; path: string; blurb?: string }> = {
   guide: { label: "Guide", path: "/guide" },
   search: { label: "Search", path: "/search" },
 };
+
+/** An address on this site by the menu's label for it: the area whose path is the longest that holds it ("/scan/domain" is "A domain"). */
+export function menuName(path: string): string | undefined {
+  const bare = path.split(/[?#]/)[0]!.replace(/\/+$/, "") || "/";
+  let best: { label: string; path: string } | undefined;
+  for (const item of Object.values(areas)) {
+    const holds = item.path === "/" ? bare === "/" : bare === item.path || bare.startsWith(`${item.path}/`);
+    if (holds && (!best || item.path.length > best.path.length)) best = item;
+  }
+  return best?.label;
+}
 
 /** The ladder, in order, then the tools that cut across it, then where it all comes from. */
 const standardsGroup: Area[] = ["catalog", "baselines", "controls"];
@@ -121,15 +151,16 @@ export interface PageOptions {
 export function latestRegisterChanges(db: DatabaseSync, limit = 3): { documentId: number; sourceId: string; documentKey: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[] {
   const rows = db
     .prepare(
-      `SELECT d.id AS documentId, d.source_id AS sourceId, d.document_key AS documentKey, s.name, d.version_label AS versionLabel,
+      `SELECT d.id AS documentId, d.source_id AS sourceId, d.document_key AS documentKey, s.name, d.title, d.version_label AS versionLabel,
               COALESCE(d.published_at, d.parsed_at) AS at, d.previous_document_id AS previousId,
               (SELECT COUNT(*) FROM changes c WHERE c.to_document_id = d.id) AS changeCount
        FROM documents d JOIN sources s ON s.id = d.source_id
        WHERE s.group_name = 'standards'
        ORDER BY at DESC, d.id DESC LIMIT ?`,
     )
-    .all(limit) as { documentId: number; sourceId: string; documentKey: string; name: string; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
-  return rows;
+    .all(limit) as { documentId: number; sourceId: string; documentKey: string; name: string; title: string | null; versionLabel: string | null; at: string; changeCount: number; previousId: number | null }[];
+  // A STIG goes by its own name ("Windows 11 STIG"), not by the library that fetched it.
+  return rows.map(({ title, ...r }) => (r.sourceId === "disa-stigs" ? { ...r, name: `${stigProduct(title, r.documentKey)} STIG` } : r));
 }
 
 /** The amber Register ribbon: the latest standards changes ride the page, each linking into its diff. */
@@ -156,6 +187,17 @@ export function registerStrip(db: DatabaseSync, now: Date): Html {
   // labelled, focusable region so a keyboard can reach and scroll it, and it ends in the way out:
   // before the audit of 25 October the overflow was simply invisible and unreachable.
   return html`<div class="strip"><div class="strip-inner" role="region" aria-label="Latest standards releases" tabindex="0"><a class="lab" href="/register">Register</a> ${entries}<span class="dot">·</span><a class="all" href="/register">the register</a></div></div>`;
+}
+
+/** The notice a page that counts CVEs carries when the CVE stream has stopped, so a stall never reads as a quiet day. */
+export function staleNotice(db: DatabaseSync, now: Date): Html {
+  const line = staleCveLine(db, now);
+  if (!line) return html``;
+  // Naming a failing feed only when one is failing: with every CVE source answering, the likely cause is the schedule itself.
+  const why = cveSourceFailing(db)
+    ? html`<a href="/sources">Sources</a> shows which feed is failing.`
+    : html`No CVE source reports an error; the schedule may not be running. <a href="/health">/health</a> says whether the process is up and how long it has run.`;
+  return html`<p class="notice warn stale-cves" role="status">${line} ${why}</p>`;
 }
 
 /** The instance's public address, set once by createApp, so canonical and OpenGraph tags can be absolute. */
@@ -202,7 +244,7 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 ${canonical && siteBase ? html`<link rel="canonical" href="${siteBase}${canonical}">
 <meta property="og:url" content="${siteBase}${canonical}">
 ` : ""}${look.brand?.favicon ? html`<link rel="icon" href="/branding/favicon?v=${look.brand.favicon.sha256.slice(0, 12)}">` : ""}
-<link rel="stylesheet" href="/assets/app.css?v=${productVersion}">
+<link rel="stylesheet" href="/assets/app.css?v=${cssVersion}">
 ${feed ? html`<link rel="alternate" type="application/rss+xml" title="${feed.title}" href="${feed.href}">
 ` : ""}<meta name="color-scheme" content="${look.scheme === "light" ? "light" : look.scheme === "dark" ? "dark" : "light dark"}">
 ${script ? html`<script type="module" src="${script}?v=${productVersion}"></script>` : ""}
@@ -242,7 +284,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
       <summary>Desk</summary>
       <div class="menu right wide">
         <span class="cap">Your fleet and your work</span>
-        ${deskGroup.filter((a) => owner || a !== "watchlist").map((a) => entry(a))}
+        ${deskGroup.filter((a) => owner || a !== "watchlist").map((a) => entry(a))}${owner ? html`<a class="entry" href="/?starred=1"><b>Starred</b><small>the news items you kept</small></a>` : ""}
         <hr>
         <span class="cap">This instance</span>
         ${deskInstance.map((a) => entry(a))}

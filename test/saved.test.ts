@@ -51,11 +51,11 @@ describe("the desk", () => {
       const again = await (await fetch(`${app.base}/vulnerabilities?kev=1`, { headers: { cookie } })).text();
       expect(again).toContain('This list is <a href="/saved">saved</a>.');
       const list = await (await fetch(`${app.base}/saved`, { headers: { cookie } })).text();
-      expect(list).toContain('<a href="/vulnerabilities?kev=1"><b>In the KEV</b></a>');
+      expect(list).toContain('<a href="/saved/1/open"><b>In the KEV</b></a>');
       expect(list).toContain('aria-current="page"><b>Saved searches</b>');
       const today = await (await fetch(`${app.base}/today`, { headers: { cookie } })).text();
       expect(today).toContain('<h2><a href="/saved">Saved searches</a></h2>');
-      expect(today).toContain('<li><a href="/vulnerabilities?kev=1">In the KEV</a></li>');
+      expect(today).toContain('<li><a href="/saved/1/open">In the KEV</a>');
       // The News and a search carry the form too; a visitor's Today has no box.
       expect(await (await fetch(`${app.base}/?group=news`, { headers: { cookie } })).text()).toContain('name="path" value="/?group=news"');
       expect(await (await fetch(`${app.base}/search?q=widget`, { headers: { cookie } })).text()).toContain('name="path" value="/search?q=widget"');

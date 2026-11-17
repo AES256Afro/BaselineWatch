@@ -1,4 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
+import { vulnFilters, wireFilters } from "./routes/query.ts";
+import { countVulns } from "./vulns.ts";
+import { countStories } from "./wire.ts";
 
 /**
  * Saved searches (N6): the owner names a filtered list once — a table filter, a News filter, a
@@ -11,6 +14,8 @@ export interface SavedSearch {
   name: string;
   path: string;
   created_at: string;
+  /** When the owner last opened it through /saved/<id>/open (migration 0072); null before the first time. */
+  last_opened_at: string | null;
 }
 
 /** The pages whose lists are worth saving: each takes filters in its query string. */
@@ -41,4 +46,40 @@ export function deleteSaved(db: DatabaseSync, id: number): boolean {
 /** The pages' way of telling the Save form what they are showing: the path with its query, when it has one. */
 export function isSaved(db: DatabaseSync, path: string): boolean {
   return db.prepare("SELECT 1 FROM saved_searches WHERE path = ?").get(path) !== undefined;
+}
+
+/** Opening a saved search: the time is kept so the next count of what is new starts there. Its path, or null for no such search. */
+export function openSaved(db: DatabaseSync, id: number, at: string): string | null {
+  const row = db.prepare("SELECT path FROM saved_searches WHERE id = ?").get(id) as { path: string } | undefined;
+  if (!row) return null;
+  db.prepare("UPDATE saved_searches SET last_opened_at = ? WHERE id = ?").run(at, id);
+  return row.path;
+}
+
+/**
+ * What a saved list holds now and how much of it is new since it was last opened, counted with one
+ * COUNT through the same query builder the page uses: the Vulnerabilities table's filters (vulnQuery)
+ * and the News's (wire.ts' build). "New" is a CVE first seen, or a story fetched, after the last
+ * opening. Pages that are not a counted list (a search, the controls, Patch Tuesday, the register)
+ * give null and show no figure. The owner's lists, counted as the owner sees them.
+ */
+export function savedCounts(db: DatabaseSync, s: SavedSearch, now: Date): { total: number; fresh: number } | null {
+  const at = s.path.indexOf("?");
+  const page = at < 0 ? s.path : s.path.slice(0, at);
+  const query = Object.fromEntries(new URLSearchParams(at < 0 ? "" : s.path.slice(at + 1)));
+  const since = s.last_opened_at ?? undefined;
+  if (page === "/vulnerabilities") {
+    const filters = { ...vulnFilters(query, now, true), offset: 0 };
+    const total = countVulns(db, filters);
+    if (!since) return { total, fresh: total };
+    // The later of the list's own window and the last opening, so a 24-hour list never counts more than it holds.
+    const newSince = filters.newSince && filters.newSince > since ? filters.newSince : since;
+    return { total, fresh: countVulns(db, { ...filters, newSince }) };
+  }
+  if (page === "/") {
+    const filters = { ...wireFilters(query, true), before: undefined };
+    // Counted the way the page lists: every matching copy, folded by story among those rows.
+    return countStories(db, filters, { owner: true }, since);
+  }
+  return null;
 }

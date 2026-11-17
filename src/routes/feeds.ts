@@ -27,7 +27,7 @@ export function mountFeeds(r: RouteContext): void {
   app.get("/sources.opml", (_req, res) => send(res, "text/x-opml; charset=utf-8", opmlDocument(db, config.baseUrl)));
   app.get("/vulnerabilities/kev.ics", (req, res) => {
     res.setHeader("Content-Disposition", 'inline; filename="kev.ics"');
-    send(res, "text/calendar; charset=utf-8", kevCalendar(db, config.baseUrl, { watch: res.locals.owner === true && String((req.query as Record<string, unknown>).watch ?? "") === "1", now: now() }));
+    send(res, "text/calendar; charset=utf-8", kevCalendar(db, config.baseUrl, { watch: res.locals.owner === true && String((req.query as Record<string, unknown>).watch ?? "") === "1", now: now(), owner: res.locals.owner === true }));
   });
   app.get("/sitemap.xml", (_req, res) => send(res, "application/xml; charset=utf-8", sitemapDocument(db, config.baseUrl)));
   app.get("/feeds", (req, res) => {

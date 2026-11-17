@@ -86,11 +86,11 @@ describe("triage", () => {
     const kev = getSource(db, "cisa-kev")!;
     db.prepare("INSERT INTO items (source_id, kind, external_id, title, url, published_at, fetched_at, signals_json) VALUES (?, 'kev', 'CVE-2026-1', 'Vendor Thing: RCE', 'https://nvd/1', ?, ?, ?)").run(kev.id, at.toISOString(), at.toISOString(), JSON.stringify({ kev: true, dueDate: "2026-11-01" }));
     const item = (db.prepare("SELECT id FROM items").get() as { id: number }).id;
-    expect(triageInbox(db).map((i) => i.id)).toEqual([item]);
+    expect(triageInbox(db, at).map((i) => i.id)).toEqual([item]);
 
     const first = setTriage(db, { kind: "item", id: item }, { state: "reviewing" }, at.toISOString());
     expect(first.state).toBe("reviewing");
-    expect(triageInbox(db)).toHaveLength(0);
+    expect(triageInbox(db, at)).toHaveLength(0);
     const second = setTriage(db, { kind: "item", id: item }, { note: "Checked edge firewalls.", dueAt: "2026-10-20" }, at.toISOString());
     expect(second).toMatchObject({ state: "reviewing", note: "Checked edge firewalls.", due_at: "2026-10-20" });
     setTriage(db, { kind: "item", id: item }, { state: "affects" }, at.toISOString());
@@ -155,7 +155,10 @@ describe("alerts from the pipeline", () => {
     expect(log.every((a) => a.status === "sent" && a.kind === "kev")).toBe(true);
     expect(log.some((a) => a.title === "2 more KEV additions")).toBe(true);
     expect(notifier.calls).toHaveLength(6);
-    expect(notifier.calls[0]?.headers.title).toMatch(/^KEV: /);
+    // A KEV title carries "CVE id · name", so the header goes out RFC 2047-encoded; it reads the same once decoded.
+    const header = notifier.calls[0]?.headers.title ?? "";
+    const encoded = /^=\?UTF-8\?B\?(.+)\?=$/.exec(header);
+    expect(encoded ? Buffer.from(encoded[1]!, "base64").toString("utf8") : header).toMatch(/^KEV: CVE-\d{4}-\d+ · /);
   });
 
   it("alerts on a standard's new version with changes but not on its first load, and on watched CVE changes after the first pull", async () => {
@@ -185,10 +188,10 @@ describe("alerts from the pipeline", () => {
 
 describe("digest links on the page", () => {
   it("turns the stored text's URLs into links, this instance's and localhost's as paths", () => {
-    expect(linkified("Triage: 2 open https://cybercard.net/triage", "https://cybercard.net").value).toBe('Triage: 2 open <a href="/triage">/triage</a>');
-    expect(linkified("old http://localhost:8080/vulnerabilities/CVE-2026-0001", "https://cybercard.net").value).toBe('old <a href="/vulnerabilities/CVE-2026-0001">/vulnerabilities/CVE-2026-0001</a>');
+    expect(linkified("Triage: 2 open https://cybercard.net/triage", "https://cybercard.net").value).toBe('Triage: 2 open <a href="/triage">Triage</a>');
+    expect(linkified("old http://localhost:8080/vulnerabilities/CVE-2026-0001", "https://cybercard.net").value).toBe('old <a href="/vulnerabilities/CVE-2026-0001">CVE-2026-0001</a>');
     expect(linkified("A story https://example.com/a?b=1 worth reading", "https://cybercard.net").value).toBe(
-      'A story <a href="https://example.com/a?b=1" target="_blank" rel="noopener">https://example.com/a?b=1</a> worth reading',
+      'A story <a href="https://example.com/a?b=1" target="_blank" rel="noopener" title="https://example.com/a?b=1">example.com</a> worth reading',
     );
     expect(linkified("no links here", "https://cybercard.net").value).toBe("no links here");
   });
@@ -213,7 +216,7 @@ describe("digest", () => {
     expect(text).toContain("- Vendor Thing: RCE (due 2026-11-01)");
     expect(text).toContain("Standards: 1 release");
     expect(text).toContain("https://cybercard.net/standards/nist-sp-800-53/9");
-    expect(text).toContain("1 new stories, 0 notable CVEs");
+    expect(text).toContain("1 new story, 0 notable CVEs");
     // What the owner starred is their own reading, so it sits in the owner's half.
     expect(text).toContain("Starred: 1");
     expect(text).toContain("Sources failing: Krebs on Security");
@@ -260,7 +263,8 @@ describe("triage and digest pages", () => {
     const kev = getSource(app.db, "cisa-kev")!;
     await ingestSource(app.db, app.dataDir, kev, { http: fakeHttp({ [kev.url]: { bytes: fixture("kev.json") } }), now: () => at });
     const board = await (await fetch(`${app.base}/triage`)).text();
-    expect(board).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">3</a></span></h2>');
+    // The 2021 entry is the backlog, not the inbox: older than thirty days and not on the watchlist.
+    expect(board).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">2</a></span></h2>');
     expect(board).toContain('<a href="#affects">0 affect us</a> · <a href="#reviewing">0 reviewing</a> · <a href="#done">0 done</a>');
     expect(board).toContain("Ahsay AhsayCBS");
     expect(board).not.toContain("Affects us</button>");
@@ -271,7 +275,7 @@ describe("triage and digest pages", () => {
     const moved = await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "affects", back: "/triage" }, cookie);
     expect(moved.status).toBe(303);
     const after = await (await fetch(`${app.base}/triage`, { headers: { cookie } })).text();
-    expect(after).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">2</a></span></h2>');
+    expect(after).toContain('<h2><a href="#new">Inbox</a> <span class="count"><a href="#new">1</a></span></h2>');
     expect(after).toContain('<h2><a href="#affects">Affects us</a> <span class="count"><a href="#affects">1</a></span></h2>');
     // Dismissed cards stay out of the way under Done; their count opens them.
     expect((await formPost(app.base, "/triage", { kind: "item", id: String(itemId), key: "", state: "dismissed", back: "/triage" }, cookie)).status).toBe(303);
@@ -311,10 +315,10 @@ describe("triage and digest pages", () => {
     const digestAfter = await (await fetch(`${app.base}/digest`)).text();
     expect(digestAfter).toContain('<section class="box digest" id="latest"><h2><a href="#latest">Daily digest</a> <span class="count"><a href="#latest">');
     expect(digestAfter).toContain("Known exploited (CISA KEV): 3 added");
-    expect(digestAfter).toContain("digest · unconfigured");
+    expect(digestAfter).toContain("digest · not sent: no notifier");
     expect(digestAfter).toContain('<h2><a href="#alerts">Alerts sent</a> <span class="count"><a href="#alerts">1</a></span></h2>');
     // The digest's own URLs are links on the page, this instance's as paths.
-    expect(digestAfter).toContain('<a href="/triage">/triage</a>');
+    expect(digestAfter).toContain('<a href="/triage">Triage</a>');
     // The owner's box is the owner's: a visitor's /register does not show the inbox or the alerts.
     expect(await (await fetch(`${app.base}/register`)).text()).not.toContain("Needs you");
     const home = await (await fetch(`${app.base}/register`, { headers: { cookie } })).text();

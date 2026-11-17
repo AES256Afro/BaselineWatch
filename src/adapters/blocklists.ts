@@ -49,7 +49,8 @@ function unique(requirements: NormalizedRequirement[]): NormalizedRequirement[] 
 // ---------------------------------------------------------------------------------------------
 // Zero Breach: the AdFection / Candiru indicator list and its exports.
 
-const tierNames: Record<string, string> = {
+/** Each tier's name. The one table: /scan/traces/indicators.json serves it and the traces page reads it from there. */
+export const tierNames: Readonly<Record<string, string>> = {
   cc: "Command-and-control",
   validator: "Validator server",
   delivery: "Ad delivery",

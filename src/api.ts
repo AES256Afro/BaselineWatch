@@ -7,6 +7,7 @@ import { getVuln, listVulns, vulnChanges, type VulnFilters } from "./vulns.ts";
 import { listWire, type WireFilters } from "./wire.ts";
 import { vulnFilters } from "./routes/query.ts";
 import { parseJson } from "./json.ts";
+import { csvLine } from "./csv.ts";
 
 /**
  * The read-only JSON API, for BoxPilot's agents, dashboards and scripts. Same read gating as
@@ -177,21 +178,44 @@ export function apiStandards(db: DatabaseSync, baseUrl: string) {
   }));
 }
 
-export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
-  const since = sinceOf(q.since);
-  const source = str(q.source);
-  // A change row is a ref with its text: nothing of a restricted source's, nor of the owner's licensed copies, leaves through here.
+/** One change row as the API and the release's CSV name it. */
+interface ChangeRow {
+  id: number;
+  source_id: string;
+  document_key: string;
+  to_document_id: number;
+  ref: string;
+  kind: string;
+  field: string | null;
+  before_text: string | null;
+  after_text: string | null;
+  version_label: string | null;
+  published_at: string | null;
+  label: string | null;
+  title: string | null;
+  note: string | null;
+}
+
+/**
+ * The change rows that may leave this instance: never a restricted source's, nor the owner's
+ * licensed copies'. Every reader of changes outside a page goes through here, so the rule is one line.
+ */
+function exportableChanges(db: DatabaseSync, filters: { since?: string | undefined; source?: string | undefined; documentId?: number | undefined }, limit: number | null): ChangeRow[] {
   const clauses: string[] = ["s.restricted = 0", `c.source_id NOT IN (${licensedSources.map(() => "?").join(", ")})`];
   const params: (string | number)[] = [...licensedSources];
-  if (since) {
+  if (filters.since) {
     clauses.push("d.published_at >= ?");
-    params.push(since);
+    params.push(filters.since);
   }
-  if (source) {
+  if (filters.source) {
     clauses.push("c.source_id = ?");
-    params.push(source);
+    params.push(filters.source);
   }
-  const rows = db
+  if (filters.documentId !== undefined) {
+    clauses.push("c.to_document_id = ?");
+    params.push(filters.documentId);
+  }
+  return db
     .prepare(
       `SELECT c.id, c.source_id, c.document_key, c.to_document_id, c.ref, c.kind, c.field, c.before_text, c.after_text, d.version_label, d.published_at,
               COALESCE(r.label, p.label) AS label, COALESCE(r.title, p.title) AS title,
@@ -200,24 +224,38 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
        LEFT JOIN requirements r ON r.document_id = c.to_document_id AND r.ref = c.ref
        LEFT JOIN requirements p ON p.document_id = c.from_document_id AND p.ref = c.ref
        WHERE ${clauses.join(" AND ")}
-       ORDER BY d.published_at DESC, c.ref, c.field LIMIT ?`,
+       ORDER BY d.published_at DESC, c.ref, c.field${limit === null ? "" : " LIMIT ?"}`,
     )
-    .all(...params, limitOf(q.limit, 100)) as {
-    id: number;
-    source_id: string;
-    document_key: string;
-    to_document_id: number;
-    ref: string;
-    kind: string;
-    field: string | null;
-    before_text: string | null;
-    after_text: string | null;
-    version_label: string | null;
-    published_at: string | null;
-    label: string | null;
-    title: string | null;
-    note: string | null;
-  }[];
+    .all(...params, ...(limit === null ? [] : [limit])) as unknown as ChangeRow[];
+}
+
+/**
+ * A request the API answers with a refusal rather than an empty list: an error carrying its
+ * status, which the app's error handler sends as that status.
+ */
+export class ApiRefusal extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiRefusal";
+    this.status = status;
+  }
+}
+
+/**
+ * The change list. With `document`, every row of that one release, not the first page of it. A
+ * release the API does not serve — no such id, or a licensed or restricted source's — is one
+ * answer, 404, rather than an empty list that reads as "nothing changed"; a 403 for the licensed
+ * ones alone would say which ids exist.
+ */
+export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
+  const document = Number(str(q.document, 12));
+  const documentId = Number.isInteger(document) && document > 0 ? document : undefined;
+  if (documentId !== undefined) {
+    const source = db.prepare("SELECT s.id, s.restricted FROM documents d JOIN sources s ON s.id = d.source_id WHERE d.id = ?").get(documentId) as { id: string; restricted: number } | undefined;
+    if (!source || !changesExportable(source)) throw new ApiRefusal(404, "No release with that id is served through the API.");
+  }
+  const rows = exportableChanges(db, { since: sinceOf(q.since), source: str(q.source), documentId }, documentId === undefined ? limitOf(q.limit, 100) : null);
   return rows.map((c) => ({
     id: c.id,
     source: c.source_id,
@@ -236,22 +274,44 @@ export function apiChanges(db: DatabaseSync, q: ApiQuery, baseUrl: string) {
   }));
 }
 
+/** Whether a source's changes may leave as a file: not restricted by its licence, and not the owner's licensed copy. */
+export function changesExportable(source: { id: string; restricted: number | boolean }): boolean {
+  return !source.restricted && !isLicensedSource(source.id);
+}
+
+/**
+ * One release's changes as CSV: every field-level row, its before and after, and the publisher's
+ * note where there is one. Null for a source whose text may not leave (`changesExportable`).
+ */
+export function releaseChangesCsv(db: DatabaseSync, source: { id: string; restricted: number | boolean }, documentId: number, baseUrl: string): string | null {
+  if (!changesExportable(source)) return null;
+  const rows = exportableChanges(db, { source: source.id, documentId }, null);
+  const lines = ["source,document,version,published,ref,label,title,kind,field,before,after,publisher_note,url"];
+  for (const c of rows) {
+    lines.push(csvLine([c.source_id, c.document_key, c.version_label ?? "", c.published_at?.slice(0, 10) ?? "", c.ref, c.label ?? "", c.title ?? "", c.kind, c.field ?? "", c.before_text ?? "", c.after_text ?? "", c.note ?? "", `${baseUrl}/standards/${c.source_id}/${c.to_document_id}/${c.ref}`]));
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 export function apiTriage(db: DatabaseSync, q: ApiQuery, baseUrl: string, owner = false) {
   const state = str(q.state);
   const valid: TriageState[] = ["new", "reviewing", "affects", "done", "dismissed"];
   // The owner's notes follow who is asking; a restricted source's requirement is never named
   // here, not even for the owner, because the API is how content would be redistributed.
   return listTriage(db, { state: valid.includes(state as TriageState) ? (state as TriageState) : undefined, limit: limitOf(q.limit, 200), notes: owner, restrictedLabels: false }).map((c) => {
-    // A triaged control of a licensed standard is named by its label alone; its title is the publisher's text.
+    // A triaged control of a licensed standard is named by its standard and version alone: its key,
+    // label and address carry the publisher's words (for Microsoft's baselines, the registry path and
+    // the policy name), which the API never repeats.
     const row = c as unknown as Record<string, unknown>;
     const licensed = c.subject_kind === "control" && isLicensedSource(String(row.doc_source ?? ""));
+    const url = licensed ? `/standards/${String(row.doc_source)}/${c.subject_id}` : c.url;
     return {
     kind: c.subject_kind,
     id: c.subject_id,
-    key: c.subject_key || null,
+    key: licensed ? null : c.subject_key || null,
     state: c.state,
-    title: licensed ? `${String(row.req_label ?? c.subject_key.toUpperCase())} (${String(row.doc_standard ?? row.doc_source)}; the text is on the page)` : c.title,
-    url: c.url.startsWith("/") ? `${baseUrl}${c.url}` : c.url,
+    title: licensed ? `A setting in ${String(row.doc_standard ?? row.doc_source)}${row.doc_version ? ` ${String(row.doc_version)}` : ""} (named on the page)` : c.title,
+    url: url.startsWith("/") ? `${baseUrl}${url}` : url,
     note: c.note,
     due: c.due_at,
     updated: c.updated_at,

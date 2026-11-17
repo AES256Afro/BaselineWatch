@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { ParsedItem, SourceRow } from "./adapters/types.ts";
 import { putBlob } from "./blobs.ts";
 import type { HttpGet } from "./http.ts";
+import { defaultRetention } from "./housekeeping.ts";
 
 /**
  * Article images, pulled passively as items arrive: the feed's own media when it carries any
@@ -120,13 +121,14 @@ export async function fetchNewItemImages(db: DatabaseSync, dataDir: string, sour
  * over existing news articles that have none, for the backlog from before the pipeline and the
  * tail the per-run cap left behind. One og:image page fetch per item, newest first, politely
  * paced; an item whose page yields nothing is remembered (image_checked_at) and never asked
- * again, by this pass or by ingest.
+ * again, by this pass or by ingest. Only articles inside the image retention (`imageDays`) are
+ * asked: an older one's image is one the weekly pass let go, and fetching it again would undo it.
  */
 export async function backfillImages(
   db: DatabaseSync,
   dataDir: string,
   deps: ImageDeps,
-  options: { limit?: number; delayMs?: number } = {},
+  options: { limit?: number; delayMs?: number; now?: Date; imageDays?: number } = {},
 ): Promise<{ examined: number; stored: number }> {
   const log = deps.log ?? (() => {});
   const limit = Math.min(Math.max(options.limit ?? 200, 1), 10_000);
@@ -136,9 +138,10 @@ export async function backfillImages(
       `SELECT i.id, i.url FROM items i JOIN sources s ON s.id = i.source_id
        WHERE s.group_name = 'news' AND i.kind = 'article' AND i.image_blob IS NULL
          AND i.image_checked_at IS NULL AND i.url IS NOT NULL AND i.url LIKE 'http%'
+         AND COALESCE(i.published_at, i.fetched_at) >= ?
        ORDER BY COALESCE(i.published_at, i.fetched_at) DESC, i.id DESC LIMIT ?`,
     )
-    .all(limit) as { id: number; url: string }[];
+    .all(new Date((options.now ?? new Date()).getTime() - (options.imageDays ?? defaultRetention.imageDays) * 86_400_000).toISOString(), limit) as { id: number; url: string }[];
   const miss = db.prepare("UPDATE items SET image_checked_at = ? WHERE id = ? AND image_blob IS NULL");
   let stored = 0;
   for (const [index, row] of rows.entries()) {

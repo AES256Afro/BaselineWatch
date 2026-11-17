@@ -2,6 +2,7 @@ import { createHash, webcrypto } from "node:crypto";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+import { tierNames } from "../src/adapters/blocklists.ts";
 
 /**
  * The traces script (public/traces.js) driven with Blobs and Node's WebCrypto: the boundary rules
@@ -55,7 +56,8 @@ interface Coverage {
 }
 interface TracesScript {
   CHUNK: number;
-  indicatorSet(list: unknown[]): IndicatorSet;
+  indicatorSet(list: unknown[], tiers?: Record<string, string>): IndicatorSet;
+  TIER_MEANINGS: Record<string, string>;
   hstsFingerprint(host: string, subtle: unknown): Promise<string>;
   prepareHsts(set: IndicatorSet, subtle: unknown): Promise<void>;
   defang(value: string): string;
@@ -279,5 +281,24 @@ describe("the verdict", () => {
     expect(t.judge(t.findingsOf(disk, set), t.coverageOf(disk))).toMatchObject({ tone: "bad", action: 3 });
     const storage = [result("Default/Local Storage/leveldb/1.log", [{ value: "controlium.net", evidence: "contacted", seenAs: "controlium.net" }])];
     expect(t.judge(t.findingsOf(storage, set), t.coverageOf(storage)).text).toContain("do not call for a helpline");
+  });
+});
+
+describe("tier names", () => {
+  it("names a tier as the server's table does, and by its id when the table does not name it", () => {
+    const named = t.indicatorSet(
+      [
+        { value: "old.example", type: "domain", tier: "historical" },
+        { value: "odd.example", type: "domain", tier: "unheard-of" },
+      ],
+      tierNames,
+    );
+    const byValue = (named as unknown as { byValue: Map<string, { tierName: string }> }).byValue;
+    expect(byValue.get("old.example")?.tierName).toBe(tierNames.historical);
+    expect(byValue.get("odd.example")?.tierName).toBe("unheard-of");
+  });
+
+  it("has a meaning for every tier the server names, and none the server does not", () => {
+    expect(Object.keys(t.TIER_MEANINGS).sort()).toEqual(Object.keys(tierNames).sort());
   });
 });

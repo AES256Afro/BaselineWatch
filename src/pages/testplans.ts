@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { usesMscp, type DocChoice } from "../baselines.ts";
-import { runsOn } from "../fleet.ts";
+import { releaseStatus, runsOn } from "../fleet.ts";
 import { html, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { lines } from "../redline.ts";
@@ -54,6 +54,8 @@ export interface TestPlanOptions extends Who {
   plan: TestPlan;
   /** The area to draw; the first with checks when absent or empty. */
   area?: Area | undefined;
+  /** The clock a release's support dates are read against; the yaml's status lags them. */
+  now?: Date | undefined;
 }
 
 export function renderTestPlan(options: TestPlanOptions): string {
@@ -66,6 +68,8 @@ export function renderTestPlan(options: TestPlanOptions): string {
   // The other areas' drops ride along as hidden fields; the current area's are its unticked boxes.
   const carried = current ? plan.items.filter((i) => !i.included && i.applicable.ok && i.area !== current.id) : [];
   const release = plan.release;
+  const now = options.now ?? new Date();
+  const releaseState = release ? releaseStatus(release, now) : null;
   const hardwareChoices = plan.choices.hardware;
 
   const deriveFrom = plan.profile
@@ -86,14 +90,14 @@ export function renderTestPlan(options: TestPlanOptions): string {
       </fieldset>`;
 
   const releaseFacts = release
-    ? html`<span class="small">${release.status === "ended" ? html`<b>Out of support.</b> ` : release.status === "upcoming" ? html`<b>Not yet released.</b> ` : ""}${release.supportEnds ? html`Support: ${release.supportEnds}.` : ""}${release.hardware.length && release.hardware.length < hardwareChoices.length ? html` Runs on ${release.hardware.map((h) => hardwareChoices.find((x) => x.id === h)?.label ?? h).join("; ")} only.` : ""}</span>`
+    ? html`<span class="small">${releaseState === "ended" ? html`<b>Out of support.</b> ` : releaseState === "upcoming" ? html`<b>Not yet released.</b> ` : ""}${release.supportEnds ? html`Support: ${release.supportEnds}.` : ""}${release.hardware.length && release.hardware.length < hardwareChoices.length ? html` Runs on ${release.hardware.map((h) => hardwareChoices.find((x) => x.id === h)?.label ?? h).join("; ")} only.` : ""}</span>`
     : html``;
 
   const underTest = html`<fieldset class="build-from">
     <legend>The release under test</legend>
     ${plan.choices.releases.length
       ? html`<label for="version">Version</label>
-        <select id="version" name="version"><option value="">Any release</option>${plan.choices.releases.map((r) => html`<option value="${r.id}" ${release && r.id === release.id ? "selected" : ""}>${r.label}${r.status === "current" ? " (current)" : r.status === "ended" ? " (support ended)" : r.status === "upcoming" ? " (upcoming)" : ""}</option>`)}</select>`
+        <select id="version" name="version"><option value="">Any release</option>${plan.choices.releases.map((r) => html`<option value="${r.id}" ${release && r.id === release.id ? "selected" : ""}>${r.label}${((st) => (st === "current" ? " (current)" : st === "ended" ? " (support ended)" : st === "upcoming" ? " (upcoming)" : ""))(releaseStatus(r, now))}</option>`)}</select>`
       : html`<span class="small">No releases for ${name} in data/platforms.yaml yet.</span>`}
     ${hardwareChoices.length
       ? html`<label for="hardware">Hardware</label>
@@ -158,7 +162,7 @@ export function renderTestPlan(options: TestPlanOptions): string {
           <dl class="kv">
             ${c.stig ? html`<dt>STIG</dt><dd><a href="/standards/disa-stigs/${c.stig.documentId}">${c.stig.label}</a></dd>` : ""}
             ${c.mscp ? html`<dt>mSCP</dt><dd><a href="/standards/nist-mscp/${c.mscp.documentId}">${c.mscp.label}</a></dd>` : ""}
-            <dt>Checks</dt><dd>${plan.counts.included} tested: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates${plan.counts.dropped ? html`; ${plan.counts.dropped} dropped` : ""}${plan.counts.inapplicable ? html`; ${plan.counts.inapplicable} not applicable` : ""}${plan.counts.untested ? html`; ${plan.counts.untested} in areas not tested` : ""}</dd>
+            <dt>Checks</dt><dd>${plan.counts.included} tested: ${plan.counts.derived} from the publishers' procedures, ${plan.counts.template} from the owner's templates${plan.counts.dropped ? html`; ${plan.counts.dropped} dropped` : ""}${plan.counts.inapplicable ? html`; ${plan.counts.inapplicable} not applicable` : ""}${plan.counts.untested ? html`; ${plan.counts.untested} in areas not tested` : ""}${plan.counts.noProcedure ? html`; ${plan.counts.noProcedure} with no check procedure published` : ""}</dd>
             <dt>By area</dt><dd>${areas.filter((a) => plan.counts.byArea[a.id]).map((a, i) => html`${i ? ", " : ""}${a.label} ${plan.counts.byArea[a.id]}`)}</dd>
           </dl>
         </section>`
@@ -172,13 +176,13 @@ export function renderTestPlan(options: TestPlanOptions): string {
     <section class="box">
       <h2>Templates <span class="count">${plan.templates.length}</span></h2>
       ${plan.templates.length
-        ? html`<ul class="change-list">${plan.templates.map((t) => html`<li><b>${t.title}</b> <span class="small">${t.steps.length} steps · ${areas.find((a) => a.id === t.area)?.label ?? t.area} · ${t.file}</span>${t.notes ? html`<div class="note">${t.notes}</div>` : ""}</li>`)}</ul>`
+        ? html`<ul class="change-list">${plan.templates.map((t) => html`<li><b>${t.title}</b> <span class="small">${t.steps.length} steps · ${areas.find((a) => a.id === t.area)?.label ?? t.area}${owner ? ` · ${t.file}` : ""}</span>${t.notes ? html`<div class="note">${t.notes}</div>` : ""}</li>`)}</ul>`
         : html`<p class="small">No template applies to ${name}${release ? html` on ${release.label}` : ""}.</p>`}
       ${plan.notApplied.length ? html`<h3 class="small">Rules not applied <span class="count">${plan.notApplied.length}</span></h3><ul class="change-list">${plan.notApplied.slice(0, 20).map((i) => html`<li><b>${i.label}</b> <span class="chip del">not applied</span> <span class="small">${i.title}</span></li>`)}${plan.notApplied.length > 20 ? html`<li class="small">and ${plan.notApplied.length - 20} more</li>` : ""}</ul><p class="small">The owner's <a href="/baselines/${p}/decisions">decisions</a> keep these out of the plan; a modified rule stays in and is tested for the organisation's value.</p>` : ""}
       ${plan.skippedTemplates.length ? html`<h3 class="small">Left out</h3><ul class="change-list">${plan.skippedTemplates.map((s) => html`<li><b>${s.template.title}</b> <span class="small">${s.reason}</span></li>`)}</ul>` : ""}
-      ${plan.templateErrors.length ? html`<p class="small">Could not read: ${plan.templateErrors.join("; ")}</p>` : ""}
-      ${plan.fleetErrors.length ? html`<p class="small">data/platforms.yaml: ${plan.fleetErrors.join("; ")}</p>` : ""}
-      <p class="small">Templates are YAML files under <code>data/test-plans</code> in the repository; the owner extends them by adding a file. Each says which releases and hardware it applies to, what success looks like and what to do when a step fails, and cites the document it follows. They are labelled as the owner's, not the publisher's.</p>
+      ${owner && plan.templateErrors.length ? html`<p class="small">Could not read: ${plan.templateErrors.join("; ")}</p>` : ""}
+      ${owner && plan.fleetErrors.length ? html`<p class="small">data/platforms.yaml: ${plan.fleetErrors.join("; ")}</p>` : ""}
+      <p class="small">${owner ? html`Templates are YAML files under <code>data/test-plans</code> in the repository; you extend them by adding a file.` : "Templates are the owner's own test steps."} Each says which releases and hardware it applies to, what success looks like and what to do when a step fails, and cites the document it follows. They are labelled as the owner's, not the publisher's.</p>
     </section>
     <section class="box">
       <h2>How the areas are chosen</h2>

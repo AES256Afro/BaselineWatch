@@ -53,11 +53,11 @@ export function renderWatchlist(options: { db: DatabaseSync; owner: boolean; ope
                   <option value="package">Package: ecosystem:name (npm:express, PyPI:django, Maven:group:artifact, Debian:12:openssl), advisories from OSV and GitHub</option>
                   <option value="platform">Platform: windows, apple, linux, android, chrome, firefox, edge or network, so every CVE on it is your stack</option>
                   <option value="keyword">Keyword in the description</option>
-                  <option value="baseline">Baseline I follow (Register, M3)</option>
-                  <option value="family">Control family I own (Register, M3)</option>
+                  <option value="baseline">Baseline to download: a STIG by name ("Windows Server 2025") or "mscp: &lt;branch&gt;", fetched beside the default set</option>
+                  <option value="family">Control family I own: a label kept with the list; nothing is matched against it yet</option>
                 </select>
-                <label for="value">Value</label>
-                <input type="text" id="value" name="value" required maxlength="200" placeholder="fortinet:fortios">
+                <label for="value">Value, one a line</label>
+                <textarea id="value" name="value" required rows="4" maxlength="20000" placeholder="fortinet:fortios&#10;cisco:ios_xe"></textarea>
                 <label for="label">Label (optional)</label>
                 <input type="text" id="label" name="label" maxlength="60" placeholder="Edge firewalls">
                 <button type="submit" class="primary">Add</button>

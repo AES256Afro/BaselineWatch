@@ -9,6 +9,11 @@ export function counted(n: number, one: string, many = `${one}s`): string {
   return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
 }
 
+/** A span of hours as a person reads it: "30 h" up to two days, then "25 days". */
+export function durationWord(hours: number): string {
+  return hours < 48 ? `${hours} h` : counted(Math.floor(hours / 24), "day");
+}
+
 /** The verb that agrees with a count: `agree(1, "is", "are")` is "is". */
 export function agree(n: number, one: string, many: string): string {
   return n === 1 ? one : many;

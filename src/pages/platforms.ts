@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { isBuilderPlatform } from "../baselines.ts";
 import { eolFor, eolWord } from "../eol.ts";
-import { endingSupport, fleetPlatforms, hardwareOf, loadFleet, releasesOf, type Fleet, type Release } from "../fleet.ts";
+import { endingSupport, fleetPlatforms, hardwareOf, loadFleet, releaseStatus, releasesOf, withoutVerify, type Fleet, type Release } from "../fleet.ts";
 import { html, newTab, newTabIf, type Html } from "../html.ts";
 import type { LookState } from "../look.ts";
 import { latestDocument } from "../register.ts";
@@ -40,7 +40,9 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
   const { db, owner, open, look } = options;
   const fleet = options.fleet ?? loadFleet();
   const templates = options.templates ?? loadTemplates().templates;
-  const ending = endingSupport(fleet, options.now ?? new Date(), 90);
+  const now = options.now ?? new Date();
+  const note = (text: string): string => (owner ? text : withoutVerify(text));
+  const ending = endingSupport(fleet, now, 90, owner);
   const soon = (r: Release): Html => {
     const hits = ending.filter((e) => e.release === r);
     return hits.length ? html`${hits.map((e) => html`<div><span class="chip na">${e.days === 0 ? "ends today" : `ends in ${e.days} day${e.days === 1 ? "" : "s"}`}</span> <span class="small">${e.clause}</span></div>`)}` : html``;
@@ -57,26 +59,29 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
       <p class="std-note">${p.blurb}</p>
       <div class="std-meta">${isBuilderPlatform(p.id) ? html`<a href="/baselines/${p.id}">Baseline builder</a>` : ""}<a href="/baselines/${p.id}/tests">Test plan</a></div>
       ${releases.length
-        ? html`<div class="table-wrap"><table class="fleet"><caption class="visually-hidden">The fleet's releases</caption>
+        ? html`<div class="table-wrap"><table class="fleet cards"><caption class="visually-hidden">The fleet's releases</caption>
             <thead><tr><th scope="col">Release</th><th scope="col">Status</th><th scope="col">Released</th><th scope="col">Support</th><th scope="col">Runs on</th><th scope="col">In the Register</th><th scope="col"></th></tr></thead>
-            <tbody>${releases.map(
-              (r) => html`<tr class="${r.status}">
-                <td><b>${r.label}</b>${r.models ? html`<div class="note">${r.models}</div>` : ""}${r.notes.length ? html`<ul class="note">${r.notes.map((n) => html`<li>${n}</li>`)}</ul>` : ""}</td>
-                <td><span class="state ${r.status === "current" || r.status === "supported" ? "ok" : r.status === "ended" ? "err" : "wait"}">${statusLabel[r.status]}</span></td>
-                <td>${r.released ?? "—"}</td>
-                <td class="small">${soon(r)}${r.supportEnds ?? "—"}${(() => {
+            <tbody>${releases.map((r) => {
+              // The file's status until every support date has passed; then the dates win, and the
+              // file's notes, written while it was supported ("weeks left"), are no longer shown.
+              const status = releaseStatus(r, now);
+              return html`<tr class="${status}">
+                <td data-label="Release"><b>${r.label}</b>${r.models ? html`<div class="note">${note(r.models)}</div>` : ""}${r.notes.length && status === r.status ? html`<ul class="note">${r.notes.map((n) => html`<li>${note(n)}</li>`)}</ul>` : ""}</td>
+                <td data-label="Status"><span class="state ${status === "current" || status === "supported" ? "ok" : status === "ended" ? "err" : "wait"}">${statusLabel[status]}</span></td>
+                <td data-label="Released">${r.released ?? "—"}</td>
+                <td class="small" data-label="Support">${soon(r)}${r.supportEnds ? note(r.supportEnds) : "—"}${(() => {
                   const cycles = eolFor(db, p.id, r.id);
                   return cycles.length ? html`<div class="note">endoflife.date: ${cycles.map((c, i) => html`${i ? " · " : ""}${c.edition ? `${c.edition} ` : ""}${eolWord(c.eol)}${c.support && c.support !== c.eol && c.support !== "true" ? ` (support ${eolWord(c.support)})` : ""}${c.latest ? ` · latest ${c.latest}` : ""}`)}</div>` : "";
                 })()}</td>
-                <td class="small">${r.hardware.length ? r.hardware.map((h) => hardware.find((x) => x.id === h)?.label ?? h).join("; ") : "every family"}</td>
-                <td class="small">${held(db, r).map((h, i) => html`${i ? " · " : ""}${h}`)}${r.baselines.length ? html`<details><summary>Published baselines</summary><ul class="note">${r.baselines.map((b) => html`<li>${b}</li>`)}</ul></details>` : ""}</td>
-                <td><a href="/baselines/${p.id}/tests?version=${encodeURIComponent(r.id)}">Plan</a>${r.sources.length ? html`<div class="note">${r.sources.map((s, i) => html`${i ? " · " : ""}<a href="${s.url}" ${newTabIf(s.url)}>source</a>`)}</div>` : ""}</td>
-              </tr>`,
-            )}</tbody>
+                <td class="small" data-label="Runs on">${r.hardware.length ? r.hardware.map((h) => hardware.find((x) => x.id === h)?.label ?? h).join("; ") : "every family"}</td>
+                <td class="small" data-label="In the Register">${held(db, r).map((h, i) => html`${i ? " · " : ""}${h}`)}${r.baselines.length ? html`<details><summary>Published baselines</summary><ul class="note">${r.baselines.map((b) => html`<li>${note(b)}</li>`)}</ul></details>` : ""}</td>
+                <td data-label="Test"><a href="/baselines/${p.id}/tests?version=${encodeURIComponent(r.id)}">Plan</a>${r.sources.length ? html`<div class="note">${r.sources.map((s, i) => html`${i ? " · " : ""}<a href="${s.url}" ${newTabIf(s.url)}>source</a>`)}</div>` : ""}</td>
+              </tr>`;
+            })}</tbody>
           </table></div>`
         : html`<p class="small">No releases in data/platforms.yaml yet.</p>`}
       ${hardware.length
-        ? html`<ul class="hw" id="${p.id}-hardware">${hardware.map((h) => html`<li><b>${h.label}</b>${h.secureElement ? html` <span class="chip ok">secure element</span>` : html` <span class="chip na">no secure element</span>`}${h.note ? html`<div class="note">${h.note}</div>` : ""}</li>`)}</ul>`
+        ? html`<ul class="hw" id="${p.id}-hardware">${hardware.map((h) => html`<li><b>${h.label}</b>${h.secureElement ? html` <span class="chip ok">secure element</span>` : html` <span class="chip na">no secure element</span>`}${h.note ? html`<div class="note">${note(h.note)}</div>` : ""}</li>`)}</ul>`
         : ""}
     </details>`;
   });
@@ -86,7 +91,7 @@ export function renderPlatforms(options: { db: DatabaseSync; now?: Date; fleet?:
       <section class="main">
         <h1>Fleet</h1>
         <p class="lede">Platform engineering, one place: each operating system the team runs, each release of it with the vendor's support dates, the hardware each release runs on, the baselines published for it, and what the Register already holds. Every row leads to a test plan for that release; the builder platforms lead to their baseline too. The facts are the vendors', kept in <code>data/platforms.yaml</code> with the page each came from.</p>
-        ${fleet.errors.length ? html`<div class="notice error">data/platforms.yaml: ${fleet.errors.join("; ")}</div>` : ""}
+        ${owner && fleet.errors.length ? html`<div class="notice error">data/platforms.yaml: ${fleet.errors.join("; ")}</div>` : ""}
         ${ending.length ? html`<div class="notice warn"><b>Support ending within 90 days:</b> ${ending.map((e, i) => html`${i ? " · " : ""}<a href="#${e.release.platform}">${e.release.label}</a> (${e.clause}, ${e.days === 0 ? "today" : `in ${e.days} day${e.days === 1 ? "" : "s"}`})`)}</div>` : ""}
         <ul class="stds">${sections}</ul>
       </section>

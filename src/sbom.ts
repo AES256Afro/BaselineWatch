@@ -1,3 +1,4 @@
+import { canonicalEcosystem, distroEcosystem } from "./ecosystems.ts";
 import { parseJson } from "./json.ts";
 
 /**
@@ -24,18 +25,11 @@ export interface SbomReading {
   skipped: number;
 }
 
-/** purl types to the ecosystem names OSV uses, which the watchlist matches case-insensitively. */
-const ecosystems: Record<string, string> = {
-  npm: "npm", pypi: "PyPI", maven: "Maven", golang: "Go", cargo: "crates.io", nuget: "NuGet", gem: "RubyGems", composer: "Packagist",
-  hex: "Hex", pub: "Pub", cran: "CRAN", hackage: "Hackage", swift: "SwiftURL", cocoapods: "CocoaPods", conan: "ConanCenter", bitnami: "Bitnami", github: "GitHub Actions",
-};
+/** purl types that are package ecosystems OSV carries; the name is OSV's (src/ecosystems.ts). */
+const ecosystemTypes = new Set(["npm", "pypi", "maven", "golang", "cargo", "nuget", "gem", "composer", "hex", "pub", "cran", "hackage", "swift", "cocoapods", "conan", "bitnami", "github"]);
 
-/** Distribution purl types: the release comes from the `distro` qualifier when it is there. */
-const distributions: Record<string, { ecosystem: string; release: (distro: string) => string | null }> = {
-  deb: { ecosystem: "Debian", release: (d) => /^debian-(\d+)/i.exec(d)?.[1] ?? null },
-  apk: { ecosystem: "Alpine", release: (d) => (/^alpine-(\d+\.\d+)/i.exec(d)?.[1] ? `v${/^alpine-(\d+\.\d+)/i.exec(d)![1]}` : null) },
-  rpm: { ecosystem: "Red Hat", release: () => null },
-};
+/** Distribution purl types as os-release ids; the release comes from the `distro` qualifier (`debian-12`, `alpine-3.20`). */
+const distributions: Record<string, string> = { deb: "debian", apk: "alpine", rpm: "rhel" };
 
 const maxPackages = 5000;
 
@@ -50,17 +44,15 @@ export function purlToWatch(purl: string): string | null {
   if (parts.length === 0) return null;
   const name = parts[parts.length - 1]!;
   const namespace = parts.slice(0, -1).join("/");
-  if (type === "deb" && /^ubuntu$/i.test(namespace)) {
-    const release = /^ubuntu-(\d+\.\d+)/i.exec(qualifiers.get("distro") ?? "")?.[1];
-    return `Ubuntu${release ? `:${release}` : ""}:${name}`;
+  const distribution = type === "deb" && /^ubuntu$/i.test(namespace) ? "ubuntu" : distributions[type];
+  if (distribution) {
+    const release = /^[a-z]+-(\d+(?:\.\d+)*)/i.exec(qualifiers.get("distro") ?? "")?.[1];
+    // Without a release the entry names every release of the distribution: `Debian:openssl`.
+    const ecosystem = distroEcosystem(distribution, release ?? "") ?? "";
+    return `${release ? ecosystem : ecosystem.split(":")[0]}:${name}`;
   }
-  const distro = distributions[type];
-  if (distro) {
-    const release = distro.release(qualifiers.get("distro") ?? "");
-    return `${distro.ecosystem}${release ? `:${release}` : ""}:${name}`;
-  }
-  const ecosystem = ecosystems[type];
-  if (!ecosystem) return null;
+  if (!ecosystemTypes.has(type)) return null;
+  const ecosystem = canonicalEcosystem(type);
   if (type === "maven") return namespace ? `Maven:${namespace}:${name}` : null;
   if (type === "golang" || type === "composer" || type === "github" || type === "swift") return `${ecosystem}:${namespace ? `${namespace}/${name}` : name}`;
   // npm scopes come through the purl namespace: pkg:npm/%40scope/name.

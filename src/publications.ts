@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { draftTitle } from "./adapters/feed.ts";
 import type { DocumentRow } from "./register.ts";
 
 /**
@@ -95,9 +96,11 @@ export function draftNumber(title: string): string | null {
 
 /** The drafts CSRC has open for comment, as the csrc-drafts feed last delivered them. */
 export function openDrafts(db: DatabaseSync, limit = 100): OpenDraft[] {
-  return db
-    .prepare("SELECT title, url, published_at FROM items WHERE source_id = 'csrc-drafts' ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ?")
-    .all(limit) as unknown as OpenDraft[];
+  return (
+    db
+      .prepare("SELECT title, url, published_at FROM items WHERE source_id = 'csrc-drafts' ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ?")
+      .all(limit) as unknown as OpenDraft[]
+  ).map((d) => (d.title ? { ...d, title: draftTitle(d.title) } : d));
 }
 
 /** Whether an open-for-comment announcement is a draft of this publication; a part must be named as that part. */

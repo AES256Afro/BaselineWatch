@@ -76,6 +76,8 @@ export function mountScan(r: RouteContext): void {
   const everyone = new RateWindow(600, 10 * 60_000);
   const ceiling = "This instance is answering as many of these as it will for now; the check costs it a request of its own. Try again in a little while.";
   app.post("/scan/exposure", async (req, res) => {
+    // It waits on InternetDB, not on this server; its own allowances below are its cost.
+    res.locals.uncharged = true;
     const ip = (str(((req.body ?? {}) as Record<string, unknown>).ip, 64) ?? "").replace(/^::ffff:/, "");
     if (!isIP(ip) || privateAddress(ip)) return res.status(400).type("text").send("The lookup takes one public address.");
     // A visitor asks about the address they came from; the owner may ask about any.
@@ -110,6 +112,8 @@ export function mountScan(r: RouteContext): void {
   const asked = new RateWindow(12, tenMinutes);
   const ownDomains = (): string[] => ((db.prepare("SELECT value FROM app_settings WHERE key = 'scan.domains'").get() as { value: string } | undefined)?.value ?? "").split(",").map((d) => d.trim()).filter((d) => d);
   app.get("/scan/domain", async (req, res) => {
+    // Seconds of lookups are waiting, not work: the allowances below are what it costs a visitor.
+    res.locals.uncharged = true;
     const query = req.query as Record<string, unknown>;
     const typed = str(query.name, 260);
     const selectorText = str(query.selectors, 200) ?? "";
@@ -128,7 +132,7 @@ export function mountScan(r: RouteContext): void {
     const t = now().getTime();
     const cached = reports.get(key);
     if (cached && t - cached.at < tenMinutes) return res.type("html").send(renderScanDomain({ ...base, domain, report: cached.report, problem: null, certs }));
-    if (!asked.allow(throttleKey(req.ip), t)) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
+    if (!asked.allow(throttleKey(req.ip, 56), t)) return res.status(429).type("html").send(renderScanDomain({ ...base, domain, report: null, problem: "A dozen checks in ten minutes from this address; try again in a little while." }));
     if (!everyone.allow("scan", t)) return res.status(429).set("Retry-After", "600").type("html").send(renderScanDomain({ ...base, domain, report: null, problem: ceiling }));
     const report = await checkDomain(domain, owner ? domainDeps : visitorDomainDeps, { selectors });
     if (reports.size >= 200) reports.delete(reports.keys().next().value as string);

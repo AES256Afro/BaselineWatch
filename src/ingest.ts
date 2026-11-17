@@ -149,6 +149,7 @@ export async function storeUploadedDocument(
   options: { filename: string; keyFor: (title: string | null) => string; versionLabel: string | null; publishedAt: string | null; now: () => Date },
 ): Promise<DocumentOutcome> {
   const base = { key: "", documentId: null as number | null, versionLabel: null as string | null, summary: null as string | null, error: null as string | null };
+  const startedAt = options.now().getTime();
   try {
     if (!adapter.parseDocument) throw new Error(`adapter ${adapter.id} cannot parse documents`);
     const probe: DocumentTarget = { key: "upload", url: `upload:${options.filename}`, versionLabel: options.versionLabel, publishedAt: options.publishedAt };
@@ -164,7 +165,8 @@ export async function storeUploadedDocument(
     }
     const fetchedAt = options.now().toISOString();
     const outcome = await storeParsedDocument(db, dataDir, source, target, parsed, bytes, sha256, { fetchedAt, contentType: "application/pdf", etag: null, lastModified: null, http: httpGet });
-    db.prepare("UPDATE sources SET last_fetch_at = ?, last_status = 'ok', last_error = NULL, fetch_count = fetch_count + 1 WHERE id = ?").run(fetchedAt, source.id);
+    // Through recordOutcome, so a stored upload also ends a failure episode and says how long it took.
+    recordOutcome(db, source, { status: "ok", fetchedAt, durationMs: options.now().getTime() - startedAt });
     return outcome;
   } catch (error) {
     return { ...base, status: "error", error: error instanceof Error ? error.message : String(error) };

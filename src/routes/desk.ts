@@ -23,7 +23,7 @@ import { renderTriage } from "../pages/triage.ts";
 
 import { renderWatchlist } from "../pages/watchlist.ts";
 import { renderSaved } from "../pages/saved.ts";
-import { addSaved, deleteSaved, savablePath } from "../saved.ts";
+import { addSaved, deleteSaved, openSaved, savablePath } from "../saved.ts";
 
 import { applyBrandMark, clearBrandImage, isBrandKind, maxBrandBytes, readBrand, saveBrandImage, saveBrandText } from "../branding.ts";
 import { renderBranding } from "../pages/branding.ts";
@@ -38,9 +38,10 @@ import { writeDigest } from "../digest.ts";
 import { notify, parseNotifyUrl } from "../notify.ts";
 
 import { checkLatestRelease } from "../pipeline.ts";
-import { clearTriage, isTriageState, setTriage, triageCsv, type TriageKind } from "../triage.ts";
+import { clearTriage, dismissBacklog, inboxCutoff, isTriageState, setTriage, triageBacklogCount, triageCsv, undoBacklog, type TriageKind } from "../triage.ts";
 
 import { str } from "./query.ts";
+import { requirementIn } from "../register.ts";
 import { type RouteContext } from "./context.ts";
 import { counted } from "../words.ts";
 
@@ -65,26 +66,36 @@ export function mountDesk(r: RouteContext): void {
   app.post("/watchlist", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const kind = str(body.kind);
-    const value = str(body.value);
+    // One entry a line: a list pasted from an inventory goes in at once. A single value is the one-line case.
+    const raw = typeof body.value === "string" ? body.value : "";
+    const values = [...new Set(raw.split(/\r?\n/).map((line) => str(line)).filter((v): v is string => v !== undefined))];
     const label = str(body.label, 60) ?? null;
-    if (!kind || !["product", "keyword", "baseline", "family", "package", "platform"].includes(kind) || !value) {
+    if (!kind || !["product", "keyword", "baseline", "family", "package", "platform"].includes(kind) || values.length === 0) {
       return res.status(400).type("text").send("A kind and a value are needed.");
     }
-    if (kind === "package" && !parsePackageValue(value)) {
-      return res.status(400).type("text").send("A package is written ecosystem:name, such as npm:express or PyPI:django.");
+    if (values.length > 200) return res.status(400).type("text").send("Two hundred entries at a time at most.");
+    for (const value of values) {
+      if (kind === "package" && !parsePackageValue(value)) {
+        return res.status(400).type("text").send(`A package is written ecosystem:name, such as npm:express or PyPI:django; "${value}" is not.`);
+      }
+      if (kind === "platform" && !isPlatformKey(value.toLowerCase())) {
+        return res.status(400).type("text").send(`A platform is one of ${platformKeys.join(", ")}.`);
+      }
     }
-    if (kind === "platform" && !isPlatformKey(value.toLowerCase())) {
-      return res.status(400).type("text").send(`A platform is one of ${platformKeys.join(", ")}.`);
-    }
-    db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)").run(kind, kind === "platform" ? value.toLowerCase() : value, label, now().toISOString());
-    const changed = recomputeWatchHits(db);
-    res.append("Set-Cookie", flashHeader(`Added ${value}; ${counted(changed, "CVE")} re-marked.`, secureCookies(req)));
-    res.redirect(303, "/watchlist");
+    const insert = db.prepare("INSERT OR IGNORE INTO watchlist (kind, value, label, created_at) VALUES (?, ?, ?, ?)");
+    const at = now().toISOString();
+    let added = 0;
+    for (const value of values) added += Number(insert.run(kind, kind === "platform" ? value.toLowerCase() : value, label, at).changes);
+    const changed = added ? recomputeWatchHits(db) : 0;
+    const what = values.length === 1 ? values[0] : counted(added, "entry", "entries");
+    res.append("Set-Cookie", flashHeader(`Added ${what}; ${counted(changed, "CVE")} re-marked.`, secureCookies(req)));
+    // The CVE page's Watch buttons come back to the CVE; the form on /watchlist comes back to the list.
+    res.redirect(303, safeBack(body.back, "/watchlist"));
   });
   // An SBOM's components as package entries, by file: the one upload the watchlist takes.
   // Saved searches: a named path with its query, kept on the desk.
   app.get("/saved", (req, res) => {
-    res.type("html").send(renderSaved({ db, ...who(req, res), notice: flashText(req, res, secureCookies(req)) }));
+    res.type("html").send(renderSaved({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)) }));
   });
   app.post("/saved", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
@@ -93,6 +104,15 @@ export function mountDesk(r: RouteContext): void {
     if (!path || !name) return res.status(400).type("text").send("A saved search is a name and a list page with its filters.");
     const added = addSaved(db, name, path, now().toISOString());
     res.append("Set-Cookie", flashHeader(added ? `Saved “${name}”.` : "That list was already saved.", secureCookies(req)));
+    res.redirect(303, path);
+  });
+  // Opening a saved search through here keeps the time, so "new since last opened" starts again.
+  // A GET that only moves the owner's own timestamp; a visitor is sent to sign in.
+  app.get("/saved/:id/open", requireOwner, (req, res) => {
+    const id = Number(req.params.id);
+    const path = Number.isInteger(id) ? openSaved(db, id, now().toISOString()) : null;
+    if (!path) return res.status(404).type("text").send("No such saved search.");
+    res.setHeader("Cache-Control", "no-store");
     res.redirect(303, path);
   });
   app.post("/saved/:id/delete", requireOwner, (req, res) => {
@@ -146,12 +166,30 @@ export function mountDesk(r: RouteContext): void {
   });
 
   app.get("/triage", (req, res) => {
-    res.type("html").send(renderTriage({ db, ...who(req, res), now: now(), notice: flashText(req, res, secureCookies(req)), dismissed: str(req.query.dismissed) === "1" }));
+    const offset = Number(str(req.query.offset, 9) ?? 0);
+    const viewer = who(req, res);
+    res.type("html").send(
+      renderTriage({
+        db,
+        ...viewer,
+        now: now(),
+        notice: flashText(req, res, secureCookies(req)),
+        dismissed: str(req.query.dismissed) === "1",
+        offset: Number.isInteger(offset) && offset > 0 ? offset : 0,
+        confirmBacklog: viewer.owner && str(req.query.confirm) === "older",
+      }),
+    );
   });
   app.get("/triage.csv", requireOwner, (_req, res) => {
     res.setHeader("Content-Disposition", 'attachment; filename="baselinewatch-triage.csv"');
     res.type("text/csv").send(triageCsv(db));
   });
+  // 2026-02-31 matches the pattern and Date rolls it into March; only a day that reads back as itself is one.
+  const isCalendarDay = (day: string): boolean => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+    const parsed = new Date(`${day}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day;
+  };
   const triageSubject = (body: Record<string, unknown>): { kind: TriageKind; id: number; key: string } | null => {
     const kind = str(body.kind);
     const id = Number(str(body.id));
@@ -165,9 +203,42 @@ export function mountDesk(r: RouteContext): void {
     if (!subject || !isTriageState(state)) return res.status(400).type("text").send("A subject and a state are needed.");
     const note = body.note === undefined ? undefined : (str(body.note, 2000) ?? null);
     const due = body.due === undefined ? undefined : (str(body.due, 10) ?? null);
-    if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return res.status(400).type("text").send("The due date must be YYYY-MM-DD.");
+    if (due && !isCalendarDay(due)) return res.status(400).type("text").send("The due date must be a real day, YYYY-MM-DD.");
+    // A control is placed by its release and ref; one the release does not hold would be a card for nothing.
+    if (subject.kind === "control" && !requirementIn(db, subject.id, subject.key)) return res.status(400).type("text").send("No such control in that release.");
+    // Nor is a CVE or an item this instance has no row for: a phantom card linked /vulnerabilities/null.
+    if (subject.kind === "vuln" && !db.prepare("SELECT 1 FROM vulns WHERE id = ?").get(subject.id)) return res.status(400).type("text").send("No such CVE.");
+    if (subject.kind === "item" && !db.prepare("SELECT 1 FROM items WHERE id = ?").get(subject.id)) return res.status(400).type("text").send("No such item.");
     setTriage(db, subject, { state, note, dueAt: due }, now().toISOString());
     res.redirect(303, safeBack(body.back, "/triage"));
+  });
+  // The backlog in one action: what waits from before the inbox's window and is not watched, marked not ours.
+  app.post("/triage/dismiss-older", requireOwner, (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    // One click asks; the confirming form, which shows the count, carries confirm=1.
+    if (str(body.confirm) !== "1") return res.redirect(303, "/triage?confirm=older#backlog");
+    const before = str(body.before, 10);
+    if (!before || !/^\d{4}-\d{2}-\d{2}$/.test(before) || Number.isNaN(Date.parse(before))) return res.status(400).type("text").send("A date, YYYY-MM-DD, is needed.");
+    // No later than the inbox's own window: the button names that date, and a typed later one would sweep the inbox itself.
+    const cutoff = inboxCutoff(now()).slice(0, 10);
+    const day = before < cutoff ? before : cutoff;
+    // The form names a count; if the backlog has moved since it was drawn (new items, another tab),
+    // what would be marked is not what was confirmed, so ask again with the count as it is now.
+    const shown = Number(str(body.count, 9));
+    if (Number.isInteger(shown) && shown >= 0 && shown !== triageBacklogCount(db, now(), `${day}T00:00:00.000Z`)) {
+      res.append("Set-Cookie", flashHeader("The backlog changed since that count was shown; nothing was marked. Check the new count and confirm again.", secureCookies(req)));
+      return res.redirect(303, "/triage?confirm=older#backlog");
+    }
+    if (!Number.isInteger(shown)) return res.status(400).type("text").send("The confirming form's count is needed.");
+    const marked = dismissBacklog(db, `${day}T00:00:00.000Z`, now().toISOString());
+    res.append("Set-Cookie", flashHeader(`Marked ${counted(marked, "item")} from before ${day} not ours. The inbox has an undo for the next day.`, secureCookies(req)));
+    res.redirect(303, "/triage");
+  });
+  // The last bulk dismissal taken back, within its day: rows the owner has touched since stay.
+  app.post("/triage/undo-dismiss", requireOwner, (req, res) => {
+    const restored = undoBacklog(db, now());
+    res.append("Set-Cookie", flashHeader(restored ? `${counted(restored, "item")} back in the backlog.` : "Nothing to undo: the last bulk dismissal is more than a day old or already undone.", secureCookies(req)));
+    res.redirect(303, "/triage");
   });
   app.post("/triage/clear", requireOwner, (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;

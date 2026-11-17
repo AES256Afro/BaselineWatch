@@ -1,13 +1,13 @@
 import { platformChoiceName } from "../platforms.ts";
 import type { DatabaseSync } from "node:sqlite";
-import { fixContext, fixesFor, fixSummary, kevFor } from "../fix.ts";
-import { html, newTab, newTabIf, type Html } from "../html.ts";
+import { fixContext, fixesFor, fixSummary, kevFor, whoseWord } from "../fix.ts";
+import { figure, html, newTab, newTabIf, type Html } from "../html.ts";
 import { getVuln } from "../vulns.ts";
 import { relativeTime } from "../time.ts";
 import { triageCounts, type TriageState } from "../triage.ts";
-import { listWire, ownerOnlySources, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
+import { foldStories, kevChip, listWire, ownerOnlySources, sourceCounts, type WireFilters, type WireItem } from "../wire.ts";
 import type { LookState } from "../look.ts";
-import { page, registerStrip } from "./layout.ts";
+import { page, registerStrip, staleNotice } from "./layout.ts";
 import { saveSearchForm } from "./saved.ts";
 import { triageButtons } from "./triage.ts";
 import { epssPercent } from "../words.ts";
@@ -50,15 +50,18 @@ function query(filters: WireFilters, overrides: Partial<WireFilters>): string {
   if (merged.danger) params.set("danger", "1");
   if (merged.topic) params.set("topic", merged.topic);
   if (merged.unread) params.set("unread", "1");
+  if (merged.starred) params.set("starred", "1");
   if (merged.before) params.set("before", String(merged.before));
   const s = params.toString();
   return s ? `/?${s}` : "/";
 }
 
-function chips(item: WireItem, owner: boolean): Html[] {
+function chips(item: WireItem, owner: boolean, today: string): Html[] {
   const s = signals(item);
   const out: Html[] = [];
-  if (item.kind === "kev" || (item.kind === "vulnerability" && s.kev)) out.push(html`<span class="chip kev">KEV${s.dueDate ? html` · due ${s.dueDate}` : ""}</span>`);
+  if (item.kind === "kev" || (item.kind === "vulnerability" && s.kev)) {
+    out.push(kevChip(s.dueDate, today));
+  }
   if (item.kind === "vulnerability") {
     if (typeof s.epss === "number") out.push(html`<span class="chip epss">EPSS ${epssPercent(s.epss)}</span>`);
     if (owner && s.watch?.length) out.push(html`<span class="chip mine">${s.watch.join(", ")}</span>`);
@@ -90,35 +93,13 @@ function featuredCards(items: WireItem[]): Html {
   return html`<div class="feat" aria-label="Latest, featured">${cards}</div>`;
 }
 
-/** What makes two articles one story: the same address once canonical, or the same headline (a short one proves nothing). */
-function storyKeys(item: WireItem): string[] {
-  if (item.kind !== "article") return [];
-  const keys: string[] = [];
-  if (item.canonical_url) keys.push(`u:${item.canonical_url}`);
-  const headline = item.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().slice(0, 80);
-  if (headline.length >= 24) keys.push(`t:${headline}`);
-  return keys;
-}
-
 export function renderNews({ db, filters: asked, owner, open, now, look }: NewsPageOptions): string {
   // What the owner has read and starred is theirs: a visitor's list is not filtered by it, and the counts are totals.
-  const filters: WireFilters = owner ? asked : { ...asked, unread: false };
+  const filters: WireFilters = owner ? asked : { ...asked, unread: false, starred: false };
   // Copies of one address are fetched here so the other sources can be named; the clustering below folds them.
   const fetched = listWire(db, { ...filters, limit: 50 }, { copies: true, owner });
   // One story from several sources is one card: the first by date, the others named on it.
-  const alsoOn = new Map<number, WireItem[]>();
-  const firstByKey = new Map<string, WireItem>();
-  const items: WireItem[] = [];
-  for (const item of fetched) {
-    const keys = storyKeys(item);
-    const first = keys.map((k) => firstByKey.get(k)).find((f) => f !== undefined && f.source_id !== item.source_id);
-    if (first) {
-      alsoOn.set(first.id, [...(alsoOn.get(first.id) ?? []), item]);
-      continue;
-    }
-    for (const k of keys) if (!firstByKey.has(k)) firstByKey.set(k, item);
-    items.push(item);
-  }
+  const { items, alsoOn } = foldStories(fetched);
   const counts = sourceCounts(db)
     .filter((c) => owner || !ownerOnlySources.includes(c.source_id))
     .filter((c) => c.total > 0 || c.source_id === filters.source)
@@ -133,7 +114,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
   const current = query(filters, {});
   const last = fetched[fetched.length - 1];
   // The front page leads with image cards; a filtered or paged view is the plain list.
-  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.before && !filters.platform && !filters.danger && !filters.topic;
+  const plain = !filters.source && !filters.group && !filters.kind && !filters.q && !filters.unread && !filters.starred && !filters.before && !filters.platform && !filters.danger && !filters.topic;
   const featured = plain ? items.slice(0, 4) : [];
   const listed = plain ? items.slice(featured.length) : items;
   // The fix line on a CVE or KEV item: the same facts as the CVE page's Fix panel, in one sentence.
@@ -142,7 +123,16 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
     if (!fixes || (item.kind !== "vulnerability" && item.kind !== "kev")) return html``;
     const cve = item.kind === "kev" ? item.external_id : (signals(item).cves?.[0] ?? item.external_id);
     const row = getVuln(db, cve);
-    if (row) return html`<p class="wi-fix"><b>Fix:</b> ${fixSummary(fixesFor(db, fixes, row))} <a href="/vulnerabilities/${row.cve_id}">Fix panel</a></p>`;
+    if (row) {
+      const fix = fixesFor(db, fixes, row);
+      // NVD's untagged references are not "nothing published": often one of them is the vendor's bulletin.
+      if (fix.empty && fix.untagged.count) {
+        const lead = fix.untagged.lead;
+        const whose = whoseWord(lead);
+        return html`<p class="wi-fix"><b>Fix:</b> untagged references (${figure(fix.untagged.count)})${lead ? html` · ${whose}: <a href="${lead.url}" ${newTab}>${lead.host}</a>` : ""}${fix.exploits.length ? html` · Public exploits: ${fix.exploits.length}` : ""} <a href="/vulnerabilities/${row.cve_id}">Fix panel</a></p>`;
+      }
+      return html`<p class="wi-fix"><b>Fix:</b> ${fixSummary(fix)} <a href="/vulnerabilities/${row.cve_id}">Fix panel</a></p>`;
+    }
     const kev = kevFor(db, cve);
     return kev?.requiredAction ? html`<p class="wi-fix"><b>Fix:</b> CISA: ${kev.requiredAction}${kev.dueDate ? html` (due ${kev.dueDate})` : ""}</p>` : html``;
   };
@@ -167,7 +157,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
       ${item.summary ? html`<p class="wi-sum">${item.summary}</p>` : ""}
       ${fixLine(item)}
       <div class="wi-foot">
-        <div class="chips">${chips(item, owner)}${(alsoOn.get(item.id) ?? []).map((d) => html`<a class="chip also" href="${d.url ?? "#"}" ${newTabIf(d.url)}>also on ${d.source_name}</a>`)}</div>
+        <div class="chips">${chips(item, owner, now.toISOString().slice(0, 10))}${(alsoOn.get(item.id) ?? []).map((d) => html`<a class="chip also" href="${d.url ?? "#"}" ${newTabIf(d.url)}>also on ${d.source_name}</a>`)}</div>
         ${owner
           ? html`<div class="acts">
               <form method="post" action="/items/${item.id}/${item.read ? "unread" : "read"}">${back}<button type="submit">${item.read ? "Mark unread" : "Mark read"}</button></form>
@@ -244,6 +234,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
         <button type="submit">Search</button>
       </form>
     </div>
+    ${staleNotice(db, now)}
     ${featured.length ? featuredCards(featured) : ""}
     <div class="cols wire">
       <section class="main">
@@ -262,6 +253,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
               </form>`
             : ""}
           ${owner ? html`<a class="${filters.unread ? "on" : ""}" href="${query(filters, { unread: !filters.unread, before: undefined })}">Unread only</a>` : ""}
+          ${owner ? html`<a class="${filters.starred ? "on" : ""}" href="${query(filters, { starred: !filters.starred, before: undefined })}">Starred</a>` : ""}
           ${owner && items.length
             ? html`<form method="post" action="/wire/read-all" class="inline">
                 <input type="hidden" name="upto" value="${newestId}"><input type="hidden" name="drawn" value="${now.toISOString()}">
@@ -273,13 +265,14 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
                 ${filters.danger ? html`<input type="hidden" name="danger" value="1">` : ""}
                 ${filters.topic ? html`<input type="hidden" name="topic" value="${filters.topic}">` : ""}
                 ${filters.hideAi ? html`<input type="hidden" name="ai" value="hide">` : ""}
+                ${filters.starred ? html`<input type="hidden" name="starred" value="1">` : ""}
                 <input type="hidden" name="back" value="${current}">
                 <button type="submit">Mark all read</button>
               </form>`
             : ""}
         </div>
         ${items.length === 0
-          ? html`<div class="empty"><b>Nothing here yet.</b><p>${filters.before ? "Nothing older than this." : filters.q || filters.source || filters.kind || filters.unread || filters.group || filters.topic ? "No items match these filters." : "The first fetch has not run. Sources are fetched on their schedule; the owner can fetch one now from the Sources page."}</p></div>`
+          ? html`<div class="empty"><b>Nothing here yet.</b><p>${filters.before ? "Nothing older than this." : filters.starred && !filters.q && !filters.source && !filters.kind && !filters.group && !filters.topic ? "Nothing starred yet: the Star button on an item keeps it here." : filters.q || filters.source || filters.kind || filters.unread || filters.starred || filters.group || filters.topic ? "No items match these filters." : "The first fetch has not run. Sources are fetched on their schedule; the owner can fetch one now from the Sources page."}</p></div>`
           : html`<ul class="wire-list">${rows}</ul>`}
         ${fetched.length === 50 && last ? html`<p class="more"><a href="${query(filters, { before: last.id })}">Older</a></p>` : ""}
       </section>
@@ -297,7 +290,7 @@ export function renderNews({ db, filters: asked, owner, open, now, look }: NewsP
       </aside>
     </div>`;
 
-  const feedQuery = query(filters, { before: undefined, unread: false });
+  const feedQuery = query(filters, { before: undefined, unread: false, starred: false });
   const feed = { href: feedQuery === "/" ? "/feed.xml" : `/feed.xml${feedQuery.slice(1)}`, title: "News" };
-  return page({ title: "News", active: "wire", content, meta: owner ? html`${totalUnread} unread` : html``, owner, open, strip: registerStrip(db, now), look, feed, canonical: "/", description: "Security news, vendor advisories and the CVEs that matter, in one timeline, with what to do about each." });
+  return page({ title: "News", active: "wire", content, meta: owner ? html`${figure(totalUnread)} unread` : html``, owner, open, strip: registerStrip(db, now), look, feed, canonical: "/", description: "Security news, vendor advisories and the CVEs that matter, in one timeline, with what to do about each." });
 }
