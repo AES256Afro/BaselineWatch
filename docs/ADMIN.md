@@ -34,6 +34,7 @@ the items were normalised out of them on arrival.
 | Blob files nothing references any more | Swept once they are a day old, so a fetch in flight is never caught. |
 | Network scan runs and their canary rows | 180 days. |
 | The alert log | 180 days. |
+| Visits (`/visitors`) | 90 days. The day's salt is deleted when the next day's is made. |
 | Timeline items, CVEs, requirements, changes, explanations, triage, decisions, digests | For good. Nothing deletes the record. |
 
 The pass runs itself **once a week** from the scheduler's ticks, after the fetches, and takes a
@@ -185,6 +186,10 @@ part of `npm run check`) and fails on any that no longer answers with its format
   publishers' own sites, as the Sources page lists them. DISA's listing call is made once for the
   STIGs and once for the CCI list; a zip is downloaded only when the listing's date has moved.
 - CISA's directive listing (`cisa.gov/news-events/directives/all`, three pages), once a day.
+- For each public address that reads the site, once a day, a reverse DNS question (PTR) and the
+  forward question that checks its answer, through the host's resolver, so `/visitors` can name
+  the network. Not asked for a request that sends Sec-GPC or DNT, and not at all with
+  `BW_VISITS=false`.
 - For each followed mSCP branch, the GitHub commits API once a day and the branch's zip from
   `codeload.github.com` when the commit moved; DISA's Intune and GPO packages when the listing's
   date moves.
@@ -301,6 +306,24 @@ device's own light or dark setting). The switch on the Appearance page lets each
 itself: two cookies, `bw_look` and `bw_scheme`, a year long, holding one of a few fixed words
 and nothing else. No script is involved; the stylesheet reads `data-look` and `data-scheme` on
 the page, so the content security policy stays as strict as before.
+
+## Visitors
+
+`/visitors` (Desk → This instance, owner only) shows who read the site in the last day, week,
+month or quarter, for every host routed to it or for one: visits by day, pages, where readers
+came from, countries, networks, browsers and devices; then every program that is not a person's
+browser by the name it sends (AI assistants fetching for a person, crawlers, feed readers,
+tools), the paths asked for that do not exist, and the latest page views.
+
+It is counted on the server as each answer is sent (`src/visits.ts`), so the CSP stays
+`script-src 'none'` and a reader who blocks every tracker is counted all the same. Not counted:
+the owner, any address on this side of the router, assets, images, health, sign-in, redirects
+and refusals. A visit is one browser on one day: a hash of the address and the User-Agent under
+that day's salt. The address is never stored, and the salt is deleted the next day. The country
+is Cloudflare's `CF-IPCountry` header, present when the zone's IP Geolocation setting is on (it is
+by default); without it the column stays empty. The network is the registered domain the
+address's reverse DNS names, marked unconfirmed when that name does not resolve back to the
+address. `BW_VISITS=false` stops the counting; what was counted stays until its 90 days are up.
 
 ## The Scan page: the one page with a script
 

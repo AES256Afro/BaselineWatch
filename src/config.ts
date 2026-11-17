@@ -54,6 +54,11 @@ export interface Config {
    * Unset means the same-site set alone.
    */
   probeOrigin: string | null;
+  /**
+   * Count visits (src/visits.ts): every page, feed and API answer given to anyone but the owner,
+   * on the server, with no address kept. On by default; BW_VISITS=false stops the counting.
+   */
+  visits: boolean;
 }
 
 function choice<T extends string>(env: Env, key: string, allowed: readonly T[], fallback: T): T {
@@ -165,5 +170,6 @@ export function loadConfig(env: Env = process.env): Config {
     look: choice(env, "BW_LOOK", looks, "register"),
     scheme: choice(env, "BW_SCHEME", schemes, "system"),
     probeOrigin: origin(env, "BW_PROBE_ORIGIN"),
+    visits: flag(env, "BW_VISITS", true),
   };
 }

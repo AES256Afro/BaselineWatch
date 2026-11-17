@@ -53,6 +53,7 @@ export type Area =
   | "watchlist"
   | "digest"
   | "sources"
+  | "visitors"
   | "branding"
   | "appearance"
   | "guide"
@@ -94,6 +95,7 @@ export const areas: Record<Area, { label: string; path: string; blurb?: string }
   watchlist: { label: "Watchlist", path: "/watchlist", blurb: "the products and platforms you run" },
   digest: { label: "Digest", path: "/digest", blurb: "the daily or weekly summary, and alerts" },
   sources: { label: "Sources", path: "/sources", blurb: "what is read, how often, under what terms" },
+  visitors: { label: "Visitors", path: "/visitors", blurb: "who reads this site: pages, places, referrers, crawlers" },
   appearance: { label: "Appearance", path: "/appearance", blurb: "the look and the colour scheme" },
   branding: { label: "Branding", path: "/branding", blurb: "the mark this instance wears" },
   guide: { label: "Guide", path: "/guide" },
@@ -119,7 +121,7 @@ const standardsLearn: Area[] = ["learn"];
 const vulnGroup: Area[] = ["vulnerabilities", "patch-tuesday", "feeds"];
 const scanGroup: Area[] = ["scan", "scan-domain", "scan-devices", "scan-traces", "scan-network", "scan-history", "scan-guide"];
 const deskGroup: Area[] = ["fleet", "triage", "watchlist", "saved"];
-const deskInstance: Area[] = ["sources", "digest"];
+const deskInstance: Area[] = ["sources", "digest", "visitors"];
 const deskLook: Area[] = ["appearance", "branding"];
 
 export interface PageOptions {
@@ -287,7 +289,7 @@ ${script ? html`<script type="module" src="${script}?v=${productVersion}"></scri
         ${deskGroup.filter((a) => owner || a !== "watchlist").map((a) => entry(a))}${owner ? html`<a class="entry" href="/?starred=1"><b>Starred</b><small>the news items you kept</small></a>` : ""}
         <hr>
         <span class="cap">This instance</span>
-        ${deskInstance.map((a) => entry(a))}
+        ${deskInstance.filter((a) => owner || a !== "visitors").map((a) => entry(a))}
         <hr>
         <span class="cap">How it is drawn</span>
         ${deskLook.map((a) => entry(a))}

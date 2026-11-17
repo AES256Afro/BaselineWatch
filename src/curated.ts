@@ -337,6 +337,14 @@ export const curatedStores: readonly CuratedStore[] = [
     retiredBy: null,
   },
   {
+    where: "src/visits.ts#agents",
+    holds: "The programs Visitors names by their User-Agent: AI assistants fetching for a person, AI and search crawlers, link previews, SEO crawlers, scanners, uptime monitors and feed readers",
+    staleWhen: "a crawler or assistant starts sending a new name; one not on the list is still named when its User-Agent says bot, crawler or spider",
+    checkedBy: null,
+    reviewed: "2026-11-17",
+    retiredBy: null,
+  },
+  {
     where: "src/pipeline.ts#cveStreamSources",
     holds: "The source ids that are the CVE stream (NVD's API, the CVE list), read for the stopped-stream notice",
     staleWhen: "a CVE source is added or renamed",
@@ -370,6 +378,7 @@ export const notCurated: Readonly<Record<string, string>> = {
   "src/pages/controls.ts#standardGroups": "the ladder's headings: the site's vocabulary, not a publisher's data",
   "src/pages/home.ts#formatLabel": "words for the formats the adapters read",
   "src/pages/layout.ts#areas": "the masthead's menus",
+  "src/visits.ts#browsers": "browser families by their own User-Agent tokens; a new browser reads as Other browser, never as a wrong one",
   "src/pages/scan-guide/shared.ts#src": "covered by the ledger's src/pages/scan-guide row",
   "src/pages/scan-traces.ts#system": "covered by the ledger's src/pages/scan-traces.ts row",
   "src/platforms.ts#platformList": "the platform keys and their blurbs; the matching is the vendor-table rows",

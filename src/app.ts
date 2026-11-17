@@ -25,7 +25,7 @@ import { readBrand, readBrandMarks, type BrandKind } from "./branding.ts";
 import { isLook, isScheme, lookCookieHeaders, lookState, type LookState } from "./look.ts";
 import { safeBack } from "./paths.ts";
 import { productName, productVersion } from "./version.ts";
-import type { DnsLookup, TlsProbe } from "./domaincheck.ts";
+import { nodeDns, type DnsLookup, type TlsProbe } from "./domaincheck.ts";
 import { robotsText } from "./feeds.ts";
 import { mountBaselines } from "./routes/baselines.ts";
 import { publicDir, type RouteContext } from "./routes/context.ts";
@@ -40,6 +40,7 @@ import { mountReading } from "./routes/today.ts";
 import { mountVulnerabilities } from "./routes/vulnerabilities.ts";
 
 import { storageReport } from "./housekeeping.ts";
+import { nodeReverse, VisitRecorder, visitKind, type ReverseLookup } from "./visits.ts";
 import { metricsText, pipelineHealth } from "./pipeline.ts";
 
 /**
@@ -63,6 +64,10 @@ export interface AppContext {
   /** Replaces the resolver and the TLS handshake for the domain check in tests. */
   dns?: DnsLookup;
   tls?: TlsProbe;
+  /** Replaces the reverse DNS the visit count names a reader's network by, in tests. */
+  reverse?: ReverseLookup;
+  /** Set by createApp when visits are counted, so a test can wait for the network names to be written. */
+  visits?: VisitRecorder;
 }
 
 export interface HealthReport {
@@ -213,6 +218,39 @@ export function createApp(ctx: AppContext): Express {
   app.set("trust proxy", config.trustedProxies);
   app.use(securityHeaders);
   app.use(gzipText);
+  // Who reads the site (src/visits.ts): each finished page, feed or API answer to anyone but the
+  // owner, counted here on the server, so nothing runs in the reader's browser and the CSP stays
+  // as strict as it is. The read gate further down has not run yet, so the owner is read from the
+  // session when the answer is finished; the path is the original one, before any mount stripped it.
+  if (config.visits) {
+    const visits = new VisitRecorder(db, { reverse: ctx.reverse ?? nodeReverse(), forward: ctx.dns ?? nodeDns(), timeZone: config.timeZone, log: (line) => console.error(line) });
+    ctx.visits = visits;
+    app.use((req, res, next) => {
+      res.once("finish", () => {
+        try {
+          const path = new URL(req.originalUrl, "http://visit.invalid").pathname;
+          const kind = visitKind(req.method, path, res.statusCode, String(res.getHeader("Content-Type") ?? ""));
+          if (!kind || res.locals.owner === true || authState(req, config, now().getTime()).owner) return;
+          visits.record({
+            at: now(),
+            ip: req.ip,
+            host: req.hostname ?? "",
+            path,
+            kind,
+            status: res.statusCode,
+            userAgent: req.get("user-agent") ?? "",
+            acceptLanguage: Boolean(req.get("accept-language")),
+            country: req.get("cf-ipcountry"),
+            referer: req.get("referer"),
+            optOut: req.get("sec-gpc") === "1" || req.get("dnt") === "1",
+          });
+        } catch (error) {
+          console.error("[visits]", error instanceof Error ? error.message : String(error));
+        }
+      });
+      next();
+    });
+  }
   if (config.baseUrl.startsWith("https://")) {
     // Behind TLS (a tunnel or a proxy), tell browsers to stay on it.
     app.use((_req, res, next) => {

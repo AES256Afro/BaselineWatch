@@ -2,6 +2,7 @@ import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { databaseBytes } from "./db.ts";
+import { sweepVisits } from "./visits.ts";
 import { counted, formatBytes } from "./words.ts";
 
 /**
@@ -35,6 +36,8 @@ export interface Retention {
   deviceReadingDays: number;
   /** The alert log says what was sent, not what is true; it is trimmed. */
   alertDays: number;
+  /** Visits (src/visits.ts) older than this go: a season of readers is enough to see who comes and from where. */
+  visitDays: number;
   /**
    * An article's cached image is let go once the article is this old, unless the owner starred or
    * triaged it: the card falls back to its text, and the sweep frees the file. The item stays.
@@ -59,6 +62,7 @@ export const defaultRetention: Retention = {
   networkScanDays: 180,
   deviceReadingDays: 365,
   alertDays: 180,
+  visitDays: 90,
   imageDays: 90,
   blobGraceHours: 24,
   vacuumFreeShare: 0.1,
@@ -75,6 +79,8 @@ export interface HousekeepingResult {
   /** Absent in results recorded before 0.48.0; read it as 0. */
   deviceReadingsDeleted?: number;
   alertsDeleted: number;
+  /** Visits past their window. Absent before 0.57.0; read as 0. */
+  visitsDeleted?: number;
   /** Items whose image was let go, and the bytes the sweep freed with them. Absent before 0.56.0; read as 0. */
   imagesReleased?: number;
   imageBytesFreed?: number;
@@ -334,6 +340,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   const bytesBefore = databaseBytes(db);
   const snapshotsDeleted = sweepSnapshots(db, now, retention);
   const runs = sweepRuns(db, now, retention);
+  const visitsDeleted = sweepVisits(db, now, retention.visitDays);
   const images = sweepImages(db, now, retention);
   const blobs = sweepBlobs(db, dataDir, now, retention, { released: images.hashes });
   optimize(db);
@@ -354,6 +361,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
     networkScansDeleted: runs.networkScans,
     deviceReadingsDeleted: runs.deviceReadings,
     alertsDeleted: runs.alerts,
+    visitsDeleted,
     imagesReleased: images.released,
     imageBytesFreed: blobs.imageBytesFreed,
     imageBytesHeld: blobs.imageBytesHeld,
@@ -366,7 +374,7 @@ export function runHousekeeping(db: DatabaseSync, dataDir: string, options: Hous
   setSetting(db, lastResultKey, JSON.stringify(result), result.ranAt);
   log(
     `[housekeeping] ${counted(result.snapshotsDeleted, "snapshot")}, ${counted(result.blobsDeleted, "blob")} (${formatBytes(result.blobBytesFreed)}), ` +
-      `${counted(result.imagesReleased ?? 0, "image")} let go (${formatBytes(result.imageBytesFreed ?? 0)}), ${counted(result.networkScansDeleted, "scan")}, ${counted(result.deviceReadingsDeleted ?? 0, "reading")}, ${counted(result.alertsDeleted, "alert")}; database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
+      `${counted(result.imagesReleased ?? 0, "image")} let go (${formatBytes(result.imageBytesFreed ?? 0)}), ${counted(result.networkScansDeleted, "scan")}, ${counted(result.deviceReadingsDeleted ?? 0, "reading")}, ${counted(result.alertsDeleted, "alert")}, ${counted(result.visitsDeleted ?? 0, "visit")}; database ${formatBytes(result.bytesBefore)} → ${formatBytes(result.bytesAfter)}` +
       `${result.vacuumed ? " (rewritten)" : ""} in ${result.durationMs} ms`,
   );
   return result;

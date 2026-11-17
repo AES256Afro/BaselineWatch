@@ -4,12 +4,13 @@ import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { createApp } from "../src/app.ts";
+import { createApp, type AppContext } from "../src/app.ts";
 import { loadConfig, type Config } from "../src/config.ts";
 import { migrate, openDatabase } from "../src/db.ts";
 import type { DnsLookup, TlsProbe } from "../src/domaincheck.ts";
 import { HttpError, type HttpGet, type HttpResponse } from "../src/http.ts";
 import type { ReadText, Resolve } from "../src/netscan.ts";
+import type { ReverseLookup, VisitRecorder } from "../src/visits.ts";
 
 export const fixturesDir = path.join(import.meta.dirname, "fixtures");
 
@@ -109,15 +110,17 @@ export interface TestApp {
   db: DatabaseSync;
   dataDir: string;
   config: Config;
+  /** The visit counter, when BW_VISITS is on: `settled()` waits for the network names to be written. */
+  visits: VisitRecorder | undefined;
   close(): Promise<void>;
 }
 
-export async function startTestApp(options: { env?: Record<string, string>; http?: HttpGet; now?: () => Date; resolve?: Resolve; readFile?: ReadText; dns?: DnsLookup; tls?: TlsProbe } = {}): Promise<TestApp> {
+export async function startTestApp(options: { env?: Record<string, string>; http?: HttpGet; now?: () => Date; resolve?: Resolve; readFile?: ReadText; dns?: DnsLookup; tls?: TlsProbe; reverse?: ReverseLookup } = {}): Promise<TestApp> {
   const dataDir = mkdtempSync(path.join(os.tmpdir(), "bw-app-"));
   const db = openDatabase(":memory:");
   const migration = migrate(db);
   const config = loadConfig({ BW_DATA_DIR: dataDir, BW_SCHEDULER: "false", ...options.env });
-  const app = createApp({
+  const ctx: AppContext = {
     config,
     db,
     migrations: migration.known,
@@ -128,7 +131,10 @@ export async function startTestApp(options: { env?: Record<string, string>; http
     ...(options.readFile ? { readFile: options.readFile } : {}),
     ...(options.dns ? { dns: options.dns } : {}),
     ...(options.tls ? { tls: options.tls } : {}),
-  });
+    // A test never asks the real resolver who an address belongs to; one that cares passes its own answers.
+    reverse: options.reverse ?? (async () => []),
+  };
+  const app = createApp(ctx);
   const server = await new Promise<Server>((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
@@ -138,8 +144,10 @@ export async function startTestApp(options: { env?: Record<string, string>; http
     db,
     dataDir,
     config,
+    visits: ctx.visits,
     close: async () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
+      await ctx.visits?.settled();
       db.close();
       rmSync(dataDir, { recursive: true, force: true });
     },

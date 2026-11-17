@@ -49,7 +49,7 @@ function seenPanel(seen: Seen, exposure: Exposure | null | undefined, exposureEr
       : "";
   return html`<section class="box seen" id="seen">
     <h2>What this page learned about you</h2>
-    <p class="small">The server's side of the check: what this request carried, drawn here and kept nowhere.</p>
+    <p class="small">The server's side of the check: what this request carried, drawn here. The address and these headers are kept nowhere; the visit is counted without them, as <a href="/guide#visits">the guide</a> says.</p>
     <dl class="kv">
       <dt>Address</dt><dd><code>${seen.ip ?? "?"}</code> — ${where}${seen.family ? html` (${seen.family})` : ""}${seen.torExit ? html` · <b>a Tor exit</b>: this request came through Tor` : ""}</dd>
       <dt>Transport</dt><dd>${seen.protocol.toUpperCase()}, HTTP/${seen.httpVersion}${seen.tlsProtocol ? html`, ${seen.tlsProtocol}` : seen.protocol === "https" ? html`, TLS ended at the edge in front of this server` : ""}</dd>

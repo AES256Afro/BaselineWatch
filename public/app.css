@@ -218,6 +218,11 @@ td.reviewed { white-space: nowrap; }
 details.fold > form, details.fold > p { margin-bottom: 12px; }
 .status.ok { color: var(--ins); } .status.error { color: var(--del); } .status.unchanged { color: var(--mute); }
 
+/* Visitors: tables of a name and a count or two, which need no more width than their words. */
+table.compact { min-width: 0; }
+table.compact th.num, table.compact td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%; }
+table.compact td.day { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 /* Register */
 del { color: var(--del); background: var(--del-bg); text-decoration: line-through; padding: 0 2px; border-radius: 2px; }
 ins { color: var(--ins); background: var(--ins-bg); text-decoration: underline; padding: 0 2px; border-radius: 2px; }

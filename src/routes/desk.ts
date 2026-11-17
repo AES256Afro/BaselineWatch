@@ -18,6 +18,8 @@ import { addSource, logSourceChange, probeFeed, readNewSource, sourceWithUrl } f
 import { adoptFallback, useRepair } from "../repairs.ts";
 
 import { renderDigest } from "../pages/digest.ts";
+import { renderVisitors } from "../pages/visitors.ts";
+import { visitReport, visitWindows } from "../visits.ts";
 
 import { renderTriage } from "../pages/triage.ts";
 
@@ -245,6 +247,15 @@ export function mountDesk(r: RouteContext): void {
     const subject = triageSubject(body);
     if (subject) clearTriage(db, subject);
     res.redirect(303, safeBack(body.back, "/triage"));
+  });
+
+  // Who reads the site (src/visits.ts): the owner's alone, like the triage board.
+  app.get("/visitors", requireOwner, (req, res) => {
+    const days = visitWindows.find((d) => String(d) === str(req.query.days)) ?? 7;
+    const asked = str(req.query.host, 100)?.toLowerCase();
+    const host = asked && /^[a-z0-9.-]+$/.test(asked) ? asked : null;
+    const at = now();
+    res.type("html").send(renderVisitors({ report: visitReport(db, { now: at, timeZone: config.timeZone, days, host }), now: at, timeZone: config.timeZone, counting: config.visits, ...who(req, res) }));
   });
 
   app.get("/digest", (req, res) => {
