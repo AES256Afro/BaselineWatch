@@ -2,6 +2,23 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.57.1 — 2026-11-17
+
+Visitors counts programs by the day, not by the request. 0.57.0 was never deployed: on the day it
+was tagged, Cloudflare's numbers for cybercard.net and the name routed beside it showed about
+740,000 requests in 24 hours, nineteen in twenty of them AI and search crawlers walking the
+Vulnerabilities list's filters, its feed and its CSV. 0.57.0 kept a row for each. One migration
+(0079) adds `visit_counts` and moves any such rows into it.
+
+- A person's page view is still one row, as in 0.57.0. Every other request (crawlers, AI
+  assistants, feed readers, tools, a page that does not exist) is a count per day by host, kind,
+  status, the program's name, country and network, with the path kept only for a 404.
+- A person is a browser that sends Accept-Language and Sec-Fetch-Mode, as every current browser
+  does; a browser's name without them is counted as unnamed. One browser past 300 pages in a day is
+  counted as a program from then on.
+- Reverse DNS is asked for every person and assistant, and for at most twenty addresses per
+  program per day, so a crawler's fleet of addresses is not a fleet of DNS questions.
+
 ## 0.57.0 — 2026-11-17
 
 Visitors: who reads the site, counted on the server. One migration (0078) adds two empty tables.
