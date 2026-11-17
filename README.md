@@ -79,6 +79,10 @@ With Docker:
 docker compose up -d
 ```
 
+The compose file publishes the port on loopback only. To reach it from the LAN, set
+`BW_ADMIN_PASSWORD` (and `BW_SESSION_SECRET`, so sessions survive a restart) in `.env` first, then
+`BW_BIND=0.0.0.0`: without a password every write is open to whoever reaches the page.
+
 Fetch one source, every enabled source, or whatever is due, from the shell:
 
 ```bash
