@@ -2,6 +2,29 @@
 
 Each version is a tag and an image: `ghcr.io/aes256afro/baselinewatch:<version>`.
 
+## 0.57.0 — 2026-11-17
+
+Visitors: who reads the site, counted on the server. One migration (0078) adds two empty tables.
+
+- Each page, feed and API answer given to anyone but the owner is counted as it is sent. Nothing
+  runs in the reader's browser and no cookie is set, so the CSP stays `script-src 'none'` and a
+  reader who blocks trackers is counted too. The owner, addresses on the server's own network,
+  assets, images, health, sign-in, redirects and refusals are not counted.
+- No address is kept. One browser on one day is a hash of the address and the User-Agent under
+  that day's salt, and the salt is deleted when the next day's is made. Kept with it: the path
+  without its query, the host, the status, the kind of program, the country from Cloudflare's
+  `CF-IPCountry`, the referring site's host, and the registered domain of the address's reverse
+  DNS, marked unconfirmed when that name does not resolve back to the address. A request that
+  sends Sec-GPC or DNT is counted and its address's name is not looked up.
+- `/visitors` (Desk → This instance, owner only): visits and page views by day over today, 7, 30
+  or 90 days, for every host or one; pages, where readers came from, countries, networks,
+  browsers, systems and devices; AI assistants fetching for a person, crawlers (search, AI, link
+  previews, scanners, monitors), feed readers, tools and unnamed clients by the name they send and
+  the network they came from; paths that do not exist; the latest page views.
+- Visits are deleted after 90 days by the weekly housekeeping pass. `BW_VISITS=false` stops the
+  counting. The guide's new section "What this site counts about a visit" (`/guide#visits`) says
+  what is kept, and the Scan page's panel links to it.
+
 ## 0.56.0 — 2026-11-17
 
 The audit of 16 November: code, bug and security sweeps, then readability, usability, visual,
