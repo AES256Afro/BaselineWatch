@@ -268,7 +268,9 @@ export function renderVulnList({ db, filters, owner, open, now, look, ignored = 
     <p class="small"><a href="${csvHref}">Download these ${figure(Math.min(total, 1000))} as CSV</a>${total > 1000 ? " (the first thousand in this order)" : ""} · <a href="${feed.href}">subscribe to this list</a>.</p>
     <p class="small">EPSS scores: ${epssDate ? html`<a href="/sources#src-first-epss">${epssDate}</a>` : html`none pulled yet — <a href="/sources#src-first-epss">Sources</a>`}. NVD cursor: ${cursor ? html`<a href="/sources#src-nvd-cves">${shortStamp(cursor)}</a>` : html`no pull yet — <a href="/sources#src-nvd-cves">Sources</a> shows each feed's state and what to do when one fails`}. The <a href="/?kind=vulnerability">News page</a> shows only notable CVEs (KEV, your stack, new criticals, EPSS over 50%, or active exploitation per SSVC); this table has all of them.</p>`;
 
-  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${figure(stats.total)} CVEs · ${figure(stats.kev)} known exploited (KEV)`, owner, open, look, feed, canonical: "/vulnerabilities", description: "Every CVE as NVD, CISA and FIRST describe it: CVSS, EPSS, KEV, public exploits, and the fix published for each." });
+  // Any filter, sort or page moves the address off the bare table; robots.txt keeps crawlers out
+  // of those, and this tells one that came anyway not to index it.
+  return page({ title: "Vulnerabilities", active: "vulnerabilities", content, meta: html`${figure(stats.total)} CVEs · ${figure(stats.kev)} known exploited (KEV)`, owner, open, look, feed, canonical: "/vulnerabilities", noindex: query(filters, {}) !== "/vulnerabilities", description: "Every CVE as NVD, CISA and FIRST describe it: CVSS, EPSS, KEV, public exploits, and the fix published for each." });
 }
 
 /**

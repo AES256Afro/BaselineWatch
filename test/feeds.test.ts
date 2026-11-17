@@ -32,6 +32,21 @@ describe("the calendar's lines", () => {
   });
 });
 
+/**
+ * Whether robots.txt lets a crawler fetch a path, read the way RFC 9309 reads it: the longest
+ * matching rule wins and Allow wins a tie. No rule here uses * or $, so a rule is a plain prefix.
+ */
+function crawlable(robots: string, path: string): boolean {
+  let best = { length: -1, allow: true };
+  for (const line of robots.split("\n")) {
+    const m = /^(Allow|Disallow):\s*(\S*)$/.exec(line);
+    if (!m?.[2] || !path.startsWith(m[2])) continue;
+    const allow = m[1] === "Allow";
+    if (m[2].length > best.length || (m[2].length === best.length && allow)) best = { length: m[2].length, allow };
+  }
+  return best.allow;
+}
+
 describe("robots.txt", () => {
   it("closes a closed instance and names the sitemap on an open one", () => {
     expect(robotsText(false, "http://x")).toBe("User-agent: *\nDisallow: /\n");
@@ -39,6 +54,19 @@ describe("robots.txt", () => {
     expect(open).toContain("Disallow: /login");
     expect(open).toContain("Disallow: /api/");
     expect(open).toContain("Sitemap: http://x/sitemap.xml");
+  });
+
+  it("keeps crawlers out of the filtered lists and the exports, and leaves the pages they filter open", () => {
+    const open = robotsText(true, "http://x");
+    for (const path of [
+      "/?source=bleeping", "/?kind=vulnerability&before=123", "/feed.xml?group=news", "/search", "/search?q=openssl",
+      "/vulnerabilities?kev=1", "/vulnerabilities?sort=epss&offset=50", "/vulnerabilities.csv", "/vulnerabilities.csv?kev=1",
+      "/vulnerabilities/feed.xml", "/vulnerabilities/feed.xml?platform=windows", "/vulnerabilities/microsoft.csv",
+    ]) expect(crawlable(open, path), path).toBe(false);
+    for (const path of [
+      "/", "/feed.xml", "/vulnerabilities", "/vulnerabilities/CVE-2024-3094", "/vulnerabilities/microsoft",
+      "/standards", "/standards/nist-sp-800-53", "/baselines/windows", "/controls", "/stigs", "/register", "/learn", "/today",
+    ]) expect(crawlable(open, path), path).toBe(true);
   });
 });
 
@@ -99,6 +127,19 @@ describe("on the instance", () => {
       expect(sitemap).toContain(`<loc>${site}/baselines/windows</loc>`);
       const robots = await (await fetch(`${app.base}/robots.txt`)).text();
       expect(robots).toContain(`Sitemap: ${site}/sitemap.xml`);
+      // The sitemap names nothing robots.txt shuts out.
+      const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => (m[1] ?? "").slice(site.length));
+      expect(listed.length).toBeGreaterThan(10);
+      for (const path of listed) expect(crawlable(robots, path), path).toBe(true);
+
+      // A filtered, sorted or paged list asks not to be indexed; the bare list and a CVE's page do not.
+      const noindex = '<meta name="robots" content="noindex, follow">';
+      for (const path of ["/?group=news", "/vulnerabilities?kev=1", "/vulnerabilities?sort=epss", "/vulnerabilities?offset=50", "/search?q=acme"]) {
+        expect(await (await fetch(`${app.base}${path}`)).text(), path).toContain(noindex);
+      }
+      for (const path of ["/", "/vulnerabilities", "/vulnerabilities/CVE-2026-1"]) {
+        expect(await (await fetch(`${app.base}${path}`)).text(), path).not.toContain(noindex);
+      }
 
       // Readers find the feeds from the pages, and the Feeds page names them.
       const news = await (await fetch(`${app.base}/?group=news`)).text();

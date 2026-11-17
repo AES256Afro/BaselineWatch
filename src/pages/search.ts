@@ -76,7 +76,8 @@ export function renderSearch(options: { db: DatabaseSync; q: string | undefined;
         ${total === 0 ? html`<section class="box"><p class="small">Try a CVE id, a vendor or product, a control label such as <code>ac-2</code> or <code>SV-2542</code>, a KB number, or a word from a headline.</p></section>` : ""}
       </aside>
     </div>`;
-  return page({ title, active: "search", content, owner, open, look });
+  // A results page is a query's answer, not a page of the site's own: links to follow, nothing to index.
+  return page({ title, active: "search", content, owner, open, look, noindex: true });
 }
 
 /** A CVE id with no row: whether CISA lists it as exploited, said first, and where to read the rest. */

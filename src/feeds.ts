@@ -215,6 +215,11 @@ const notForCrawlers = [
   // would index is the hedged version — noise in a search result and nothing gained.
   "/scan/network", "/scan/history", "/scan/devices", "/scan/echo",
   "/api/", "/mcp", "/img/", "/health", "/metrics", "/items/", "/wire/",
+  // The lists again under another address: each filter, sort, page and search of the News and the
+  // table, and the table as a file or a feed. Every one names its bare page as canonical, the
+  // combinations have no end, and crawlers walking them were most of the site's requests. The bare
+  // pages, each CVE's page and the News feed stay open; a rule ending in "?" leaves its bare path.
+  "/?", "/feed.xml?", "/search", "/vulnerabilities?", "/vulnerabilities.csv", "/vulnerabilities/feed.xml", "/vulnerabilities/microsoft.csv",
 ];
 
 /** A closed instance says so; an open one names what is not for indexing and where the sitemap is. */

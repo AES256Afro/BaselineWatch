@@ -142,6 +142,8 @@ export interface PageOptions {
   description?: string | undefined;
   /** The page's canonical path, for the tag that tells a crawler which address is the one; pages with filters name their unfiltered self. */
   canonical?: string | undefined;
+  /** A filtered, sorted or paged view of a list: a crawler may follow its links but should not index it. */
+  noindex?: boolean | undefined;
   /**
    * The one self-hosted module script a page may carry, as a path under /assets. Only the Scan
    * page and Traces pass one, each under its own policy; every other page is served with script-src 'none'.
@@ -210,7 +212,7 @@ export function setSiteBase(baseUrl: string): void {
 
 
 
-export function page({ title, active, content, meta, owner, open, strip, look, script, feed, description, canonical }: PageOptions): string {
+export function page({ title, active, content, meta, owner, open, strip, look, script, feed, description, canonical, noindex }: PageOptions): string {
   // The site's wording is the owner's, set on the Branding page; the defaults are plain.
   const words = look.brand?.text ?? defaultBrandText;
   const siteName = words.siteName || productName;
@@ -239,7 +241,8 @@ export function page({ title, active, content, meta, owner, open, strip, look, s
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title === productName || title === siteName ? siteName : `${title} · ${siteName}`}</title>
 <meta name="description" content="${description ?? words.description}">
-<meta property="og:site_name" content="${siteName}">
+${noindex ? html`<meta name="robots" content="noindex, follow">
+` : ""}<meta property="og:site_name" content="${siteName}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description ?? words.description}">
