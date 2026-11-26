@@ -39,4 +39,6 @@ steps:
     fail: A user who still signs in after being disabled in Entra is a cached credential; shorten the offline cache or make the host online-only. RHEL's provider is a Technology Preview; a production host uses Entra Domain Services with the AD backend instead.
     source:
       title: Red Hat, "Configuring SSSD to use a generic identity provider" (RHEL 10)
-      url: https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/configuring_authentication_and_authorization_in_rhel/configuring-sssd-to-use-a-generic-identity-provider
+      # Red Hat's RHEL 10 restructure sends the lower-case path to the docs root; the chapter is
+      # still served under the capitalised product name (checked in a browser, 2026-11-26).
+      url: https://docs.redhat.com/en/documentation/Red_Hat_Enterprise_Linux/10/html/configuring_authentication_and_authorization_in_rhel/configuring-sssd-to-use-a-generic-identity-provider
