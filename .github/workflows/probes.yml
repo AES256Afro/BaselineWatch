@@ -47,14 +47,23 @@ jobs:
         run: npm run check:templates 2>&1 | tee templates.txt
 
       # One issue, updated, rather than one a night: a publisher that rate-limits CI for a week
-      # would otherwise open seven, and seven issues about the same thing get read as noise.
+      # would otherwise open seven, and seven issues about the same thing get read as noise. For
+      # the same reason it is commented on only when the list of dead sources changes; the
+      # findings line in each report is what the next night compares against.
       - name: Report what stopped answering
         if: steps.feeds.outcome == 'failure' || steps.templates.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          findings=$(cat feeds.txt templates.txt 2>/dev/null | grep -E '^(FAIL|DEAD) ' | sed -E 's/[[:space:]]+/ /g' | sort -u | sha256sum | cut -c1-16)
+          existing=$(gh issue list --label probe --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ] && gh issue view "$existing" --json body,comments --jq '([.body] + [.comments[].body]) | last' | grep -qF "probe-findings: $findings"; then
+            echo "Same dead sources as the last report on #$existing; not commenting again."
+            exit 0
+          fi
           {
+            echo "<!-- probe-findings: $findings -->"
             echo "The nightly probe found sources that no longer answer. Full output: $RUN"
             echo
             echo '### Feeds'
@@ -66,12 +75,22 @@ jobs:
             tail -40 templates.txt 2>/dev/null || echo "(did not run)"
             echo '```'
           } > body.md
-          existing=$(gh issue list --label probe --state open --limit 1 --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body-file body.md
           else
             gh label create probe --description "A nightly probe found a source that stopped answering" --color D4C5F9 2>/dev/null || true
             gh issue create --title "Probe: a source stopped answering" --label probe --body-file body.md
+          fi
+
+      - name: Close the report when everything answers again
+        if: steps.feeds.outcome == 'success' && steps.templates.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          existing=$(gh issue list --label probe --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "No feed or cited page is dead as of $RUN."
           fi
 
       - name: Fail the run when something is dead

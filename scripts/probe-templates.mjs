@@ -34,6 +34,10 @@ async function probe(url) {
       const response = await fetch(url, { method, redirect: "follow", headers: { "user-agent": userAgent, accept: "text/html,*/*" }, signal: AbortSignal.timeout(20_000) });
       if (response.ok) return { ok: true, status: response.status, final: response.url };
       if (method === "HEAD" && (response.status === 405 || response.status === 403)) continue;
+      // A 401, 403 or 429 on GET is the vendor's edge refusing this client (docs.redhat.com's
+      // Akamai answers "Access Denied" to anything that is not a browser), not word that the page
+      // has gone. Reported, never counted as dead.
+      if ([401, 403, 429].includes(response.status)) return { ok: false, refused: true, status: response.status, final: response.url };
       return { ok: false, status: response.status, final: response.url };
     } catch (error) {
       if (method === "GET") return { ok: false, status: 0, error: error.cause?.code ?? error.message };
@@ -52,12 +56,19 @@ for (const c of cites) byUrl.set(c.url, [...(byUrl.get(c.url) ?? []), c]);
 console.log(`${files.length} template(s), ${cites.length} citation(s), ${byUrl.size} distinct URL(s)`);
 
 const dead = [];
+const refused = [];
 for (const [url, where] of byUrl) {
   const result = await probe(url);
-  const mark = result.ok ? "ok  " : "DEAD";
+  const mark = result.ok ? "ok  " : result.refused ? "SKIP" : "DEAD";
   console.log(`${mark} ${String(result.status || result.error).padEnd(12)} ${url}`);
-  if (!result.ok) dead.push({ url, where, result });
+  if (result.refused) refused.push(url);
+  else if (!result.ok) dead.push({ url, where, result });
   await new Promise((r) => setTimeout(r, 300));
+}
+
+if (refused.length) {
+  console.log(`\n${refused.length} citation URL(s) refused this client and went unchecked (a person in a browser can still check them):`);
+  for (const url of refused) console.log(`  ${url}`);
 }
 
 if (dead.length) {
@@ -68,5 +79,5 @@ if (dead.length) {
   }
   process.exitCode = 1;
 } else {
-  console.log(`\nevery cited page still answers.`);
+  console.log(refused.length ? `\nno cited page is dead; the refused ones above went unchecked.` : `\nevery cited page still answers.`);
 }

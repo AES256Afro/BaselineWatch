@@ -30,12 +30,16 @@ async function probe(s) {
   const head = (await res.text()).slice(0, 200).trimStart();
   const looksRight = s.format === "json" ? head.startsWith("{") || head.startsWith("[") : head.startsWith("<?xml") || head.startsWith("<rss") || head.startsWith("<feed");
   if (res.status === 429) return "rate-limited (fine on a probe burst)";
+  // A 401 or 403 is the publisher's edge refusing this client (Substack and Akamai refuse
+  // GitHub's runners while serving the same feed to the instance), not an answer about the feed.
+  if (res.status === 401 || res.status === 403) return `refused this client (HTTP ${res.status})`;
   if (!res.ok) return `HTTP ${res.status}`;
   if (!looksRight) return `answers ${res.status} but not ${s.format} (first bytes: ${head.slice(0, 40).replace(/\s+/g, " ")})`;
   return "ok";
 }
 
 let failures = 0;
+let refused = 0;
 for (const s of sources) {
   let verdict = "ok";
   try {
@@ -48,10 +52,14 @@ for (const s of sources) {
       verdict = error instanceof Error ? error.message : String(error);
     }
   }
-  const bad = verdict !== "ok" && !verdict.startsWith("rate-limited");
+  const skip = verdict.startsWith("refused");
+  const bad = verdict !== "ok" && !verdict.startsWith("rate-limited") && !skip;
   if (bad) failures += 1;
-  console.log(`${bad ? "FAIL" : "  ok"} ${s.id.padEnd(26)} ${verdict === "ok" ? "" : verdict}`);
+  if (skip) refused += 1;
+  console.log(`${bad ? "FAIL" : skip ? "SKIP" : "  ok"} ${s.id.padEnd(26)} ${verdict === "ok" ? "" : verdict}`);
   await new Promise((r) => setTimeout(r, 400));
 }
-console.log(failures ? `\n${failures} feed(s) need attention` : "\nevery feed answers");
+const unchecked = refused ? `${refused} refused this client and went unchecked` : "";
+if (failures) console.log(`\n${failures} feed(s) need attention${unchecked ? `; ${unchecked}` : ""}`);
+else console.log(unchecked ? `\nno feed is dead; ${unchecked}` : "\nevery feed answers");
 process.exit(failures ? 1 : 0);
