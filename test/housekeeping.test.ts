@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, utimesSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
@@ -30,12 +30,18 @@ import type { LookState } from "../src/look.ts";
 const now = new Date("2026-11-20T03:00:00Z");
 const daysBefore = (n: number): string => new Date(now.getTime() - n * 86_400_000).toISOString();
 
+/** Dates a blob file as written at `when` on the test's clock, so the grace window reads the injected time, not today's. */
+function writtenAt<T extends { absolutePath: string }>(blob: T, when: string): T {
+  utimesSync(blob.absolutePath, new Date(when), new Date(when));
+  return blob;
+}
+
 let db: DatabaseSync;
 let dataDir: string;
 
 /** A snapshot row and its blob, so sweeping can be watched from both sides. */
 function snapshot(options: { source: string; key: string; body: string; fetchedAt: string; document?: boolean }): string {
-  const blob = putBlob(dataDir, new TextEncoder().encode(options.body));
+  const blob = writtenAt(putBlob(dataDir, new TextEncoder().encode(options.body)), options.fetchedAt);
   const row = db
     .prepare("INSERT INTO snapshots (source_id, document_key, sha256, bytes, blob_path, fetched_at) VALUES (?, ?, ?, ?, ?, ?)")
     .run(options.source, options.key, blob.sha256, blob.bytes, blob.relativePath, options.fetchedAt);
@@ -128,7 +134,7 @@ describe("the blob sweep", () => {
     const mark = putBlob(dataDir, new TextEncoder().encode("the owner's logo"));
     db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES ('branding.logo', ?, ?)").run(mark.sha256, daysBefore(5));
     db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES ('branding.logo_type', 'image/png', ?)").run(daysBefore(5));
-    const orphan = putBlob(dataDir, new TextEncoder().encode("the bytes of a swept snapshot"));
+    const orphan = writtenAt(putBlob(dataDir, new TextEncoder().encode("the bytes of a swept snapshot")), daysBefore(30));
 
     expect(referencedBlobs(db)).toEqual(new Set([standard, image.sha256, mark.sha256]));
     const swept = sweepBlobs(db, dataDir, now);
