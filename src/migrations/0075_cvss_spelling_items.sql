@@ -34,10 +34,13 @@ CREATE TEMP TABLE cvss_item_read AS
 
 -- The two sides agree: the clause goes with its separator. "; " leads to the next change; ". " to
 -- the description, which is then the whole summary, as recordVulnItem writes an item with no change.
+-- json(...) around the subquery (added 2026-11-26, after this had run on every instance with
+-- items): the SQLite in Node 24.22.3 drops the JSON subtype at the subquery's edge, so json_set
+-- stored the array as a quoted string. The result is the same wherever it already ran.
 UPDATE items SET
   summary = (SELECT substr(r.rest, 3) FROM cvss_item_read r WHERE r.id = items.id),
   signals_json = CASE WHEN json_valid(signals_json) AND json_type(signals_json, '$.changes') = 'array'
-    THEN json_set(signals_json, '$.changes', (SELECT json_group_array(j.value) FROM json_each(items.signals_json, '$.changes') j WHERE j.value IS NOT 'cvss'))
+    THEN json_set(signals_json, '$.changes', json((SELECT json_group_array(j.value) FROM json_each(items.signals_json, '$.changes') j WHERE j.value IS NOT 'cvss')))
     ELSE signals_json END
 WHERE id IN (SELECT id FROM cvss_item_read WHERE b IS a);
 
