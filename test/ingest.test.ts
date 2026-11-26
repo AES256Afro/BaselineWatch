@@ -110,6 +110,8 @@ describe("ingestSource", () => {
 
 describe("the Wire", () => {
   it("hides the same link seen from a second source, filters, searches and marks read", async () => {
+    // Migration 0080 stops the Reddit sources; the counts below list enabled sources only.
+    db.prepare("UPDATE sources SET enabled = 1 WHERE id = 'reddit-netsec'").run();
     const bleeping = source("bleeping");
     const netsec = source("reddit-netsec");
     await ingestSource(db, dataDir, bleeping, { http: fakeHttp({ [bleeping.url]: { bytes: fixture("atom.xml") } }), now });
@@ -188,7 +190,8 @@ describe("scheduler", () => {
   });
 
   it("asks one host for one thing at a time, with a pause between", async () => {
-    db.prepare("UPDATE sources SET enabled = 0 WHERE id NOT IN ('reddit-netsec', 'reddit-cybersecurity', 'bleeping')").run();
+    // Migration 0080 stops the Reddit sources; these two are turned on for the host-pause case.
+    db.prepare("UPDATE sources SET enabled = CASE WHEN id IN ('reddit-netsec', 'reddit-cybersecurity', 'bleeping') THEN 1 ELSE 0 END").run();
     const stamps: { url: string; at: number }[] = [];
     const urls = ["reddit-netsec", "reddit-cybersecurity", "bleeping"].map((id) => source(id).url);
     const http = fakeHttp(Object.fromEntries(urls.map((u) => [u, { bytes: fixture(u.includes("reddit") ? "reddit-atom.xml" : "rss.xml") }])));

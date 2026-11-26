@@ -551,6 +551,11 @@ Standard RSS/Atom unless noted. Dedupe by canonical URL, then by normalised titl
 Reddit's API terms allow personal, low-volume, identified use. Do not store comment bodies;
 store the link post and link to the thread.
 
+**Stopped 2026-11-26 (migration 0080).** From 2026-11-17 Reddit refused every subreddit feed this
+product reads: the public instance received nothing from any of the fourteen after that day, and
+Reddit answered 429 or an Atom "Not Found" 404 at random, to GitHub's runners and to a home
+connection. The rows and their past items stay; reading Reddit again would mean its OAuth API.
+
 ### More research and CERT feeds (added 2026-10-28, migration 0046)
 
 From the sources survey of the audit of 28 October. Each answered with real XML on the day and
